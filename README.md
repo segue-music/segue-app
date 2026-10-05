@@ -6,6 +6,14 @@ A Spotify-like music player for Navidrome, any other OpenSubsonic server, or Jel
 around Segue Connect: you pick a device, and whatever you play goes there. One Flutter codebase for Linux,
 Windows, macOS, Android and iOS. The interface is in Portuguese for now.
 
+Segue's protocol and its hub, which runs next to the media server, are in
+[mateusguilherme/segue](https://github.com/mateusguilherme/segue). Without a hub, the app plays on
+the device it runs on.
+
+> [!NOTE]
+> **Vibe-coded.** The app was written by Claude (through Claude Code), with a person deciding what
+> to build and trying it on real devices. Every commit says so.
+
 **Status: skeleton.** It does:
 - signing in with the media server's own account, with only its address: the app finds out whether
   it speaks Subsonic (Navidrome, other OpenSubsonic servers) or Jellyfin (a Jellyfin server, or
@@ -59,7 +67,7 @@ has been tried on a tablet and on an Android TV; the iOS build has not been trie
 | `lib/server/` | `MediaServer`, what the app asks of the media server in either API, and its albums, artists and songs; finding out which API a server speaks, and signing in to it |
 | `lib/subsonic/` | The Subsonic API: token sign-in, albums, artists, songs, search, stream and cover URLs |
 | `lib/jellyfin/` | The Jellyfin API: sign-in by name for this device, the same library calls, and signing out |
-| `lib/segue/` | The Segue protocol in Dart, the hub client (reconnects by itself) and hub discovery |
+| `lib/segue/` | The Segue protocol in Dart (its `SPEC.md` is in the segue repository), the hub client (reconnects by itself) and hub discovery |
 | `lib/player/` | `PlayerController` (queue, commands, state reports) over an `AudioEngine`; `MediaKitEngine` is the real one. `MediaControls`: the system's media controls. `AudioInterruptions`: calls and the like pausing the music, on iOS |
 | `lib/connect/` | `ConnectController`: which device the app controls, and moving the music between devices |
 | `lib/ui/` | The pages: sign-in, home, albums, artists, album, artist, search, player bar and full-screen player, queue, device picker |
@@ -95,7 +103,6 @@ be the following (check the names with `dnf search` if one is missing):
 ```sh
 sudo dnf install clang cmake make ninja-build pkgconf-pkg-config gtk3-devel xz-devel \
   libstdc++-devel mpv-libs-devel libsecret-devel jsoncpp-devel
-cd app
 flutter pub get
 flutter run -d linux
 ```
@@ -104,18 +111,19 @@ Sign in with the media server's address (`https://` is added if left out), user 
 
 ### Connect
 
-Connect needs the hub (`../hub`). Published at `/connect` on the media server's address, it is
-found by itself, with nothing to type at sign-in. To try it without that, run it on your computer,
-pointing at the media server:
+Connect needs the hub, from [mateusguilherme/segue](https://github.com/mateusguilherme/segue).
+Published at `/connect` on the media server's address, it is found by itself, with nothing to type
+at sign-in. To try it without that, run it on your computer, pointing at the media server (with Go,
+in a clone of that repository):
 
 ```sh
-cd hub
+cd segue/hub
 go build -o segue-hub ./cmd/segue-hub
 env SEGUE_UPSTREAM=https://navidrome.example ./segue-hub
 ```
 
 and at sign-in, under "Avançado", put `http://127.0.0.1:8480` as the hub's address. The hub's
-binary is static, so one built elsewhere (`../hub/segue-hub` on the server) runs as it is.
+binary is static, so one built on another computer runs as it is.
 
 To see two devices on one computer, start a second copy of the app as another device:
 
@@ -161,7 +169,7 @@ device and opening it there (allowing that app to install apps) does the same.
 
 ## Running on iOS
 
-The iOS version needs a Mac to build, so it is built on Codemagic's (`../codemagic.yaml`), which
+The iOS version needs a Mac to build, so it is built on Codemagic's (`codemagic.yaml`), which
 signs it and uploads it to App Store Connect; the iPhone installs it from TestFlight. That takes a
 paid Apple Developer Program membership. Codemagic's free plan has enough build minutes for a few
 builds a week.
@@ -200,8 +208,10 @@ What iOS does differently:
 
 ## Building and testing without Flutter installed
 
-`tool/flutter.sh` runs Flutter from a Docker image, as your user. The tests against the hub need
-its binary built first (`go build -o segue-hub ./cmd/segue-hub` in `../hub`).
+`tool/flutter.sh` runs Flutter from a Docker image, as your user. The tests against the hub
+(`test/hub_test.dart`) run its binary, built from the segue repository (`go build -o segue-hub
+./cmd/segue-hub` in its `hub/`): the one in a clone of segue next to this one (`../segue`), or the
+one `SEGUE_HUB_BIN` names. Without it, they are skipped.
 
 ```sh
 docker build -t segue-flutter-dev -f tool/dev.Dockerfile tool
@@ -222,3 +232,7 @@ For Android, a second image adds the JDK and the Android SDK and NDK to the firs
 docker build -t segue-flutter-android -f tool/android.Dockerfile tool
 tool/package-android.sh
 ```
+
+## License
+
+MIT, see [LICENSE](LICENSE).

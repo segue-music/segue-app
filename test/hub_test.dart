@@ -1,5 +1,6 @@
-// The app's Segue client and ConnectController against the real (Go) hub. Needs the hub binary
-// (go build -o segue-hub ./cmd/segue-hub in ../hub, or its path in SEGUE_HUB_BIN).
+// The app's Segue client and ConnectController against the real (Go) hub. Needs the hub binary, from
+// the segue repository (go build -o segue-hub ./cmd/segue-hub in its hub/): its path in
+// SEGUE_HUB_BIN, or a clone of segue next to this one. Without it, these tests are skipped.
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -18,7 +19,7 @@ import 'package:segue/subsonic/api.dart';
 
 import 'fakes.dart';
 
-final hubBin = Platform.environment['SEGUE_HUB_BIN'] ?? '../hub/segue-hub';
+final hubBin = Platform.environment['SEGUE_HUB_BIN'] ?? '../segue/hub/segue-hub';
 
 const songs = [
   Song(id: '5QFKvMsJrd57QE2Le2dKKo', title: 'Dream On', artist: 'Aerosmith', duration: Duration(seconds: 268)),
@@ -78,6 +79,11 @@ Future<void> until(bool Function() condition, String what) async {
 }
 
 void main() {
+  if (!File(hubBin).existsSync()) {
+    test('against the hub', () {}, skip: 'needs the hub binary, $hubBin');
+    return;
+  }
+
   setUpAll(() async {
     hub = await Process.start(hubBin, [], environment: {'SEGUE_AUTH': 'none', 'SEGUE_LISTEN': '127.0.0.1:0'});
     final listening = Completer<Uri>();
