@@ -48,7 +48,9 @@ ColorScheme _colors(Brightness brightness) {
       ColorScheme.fromSeed(seedColor: seed, brightness: brightness, dynamicSchemeVariant: DynamicSchemeVariant.vibrant);
 
   final (purple, pink) = (seeded(iconPurple), seeded(iconPink));
-  final colors = seeded(iconMagenta).copyWith(
+  final tones = seeded(iconMagenta);
+  final ink = brightness == Brightness.dark ? Colors.white : Colors.black;
+  final colors = tones.copyWith(
     secondary: purple.primary,
     onSecondary: purple.onPrimary,
     secondaryContainer: purple.primaryContainer,
@@ -65,6 +67,10 @@ ColorScheme _colors(Brightness brightness) {
     tertiaryFixedDim: pink.primaryFixedDim,
     onTertiaryFixed: pink.onPrimaryFixed,
     onTertiaryFixedVariant: pink.onPrimaryFixedVariant,
+    // Text and icons a third of the way from Material's tones to white in the dark and to black in the light, which
+    // are soft next to the icon; still with the magenta's tint.
+    onSurface: Color.lerp(tones.onSurface, ink, 0.3),
+    onSurfaceVariant: Color.lerp(tones.onSurfaceVariant, ink, 0.3),
   );
 
   if (brightness == Brightness.light) {

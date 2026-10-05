@@ -45,6 +45,27 @@ void main() {
     }
   });
 
+  test('text and icons are a little nearer white in the dark, and black in the light, than Material\'s tones', () {
+    for (final brightness in Brightness.values) {
+      final colors = segueTheme(brightness).colorScheme;
+      final material = ColorScheme.fromSeed(
+        seedColor: iconMagenta,
+        brightness: brightness,
+        dynamicSchemeVariant: DynamicSchemeVariant.vibrant,
+      );
+      final ink = brightness == Brightness.dark ? Colors.white : Colors.black;
+      final roles = {
+        'onSurface': (colors.onSurface, material.onSurface),
+        'onSurfaceVariant': (colors.onSurfaceVariant, material.onSurfaceVariant),
+      };
+
+      for (final MapEntry(key: role, value: (color, tone)) in roles.entries) {
+        expect(contrast(color, ink), lessThan(contrast(tone, ink)), reason: '$brightness $role: nearer the ink');
+        expect(contrast(color, ink), greaterThan(1.05), reason: '$brightness $role: still tinted, not the ink');
+      }
+    }
+  });
+
   test('text on the theme\'s colors is readable, as is the theme\'s color on the background', () {
     for (final brightness in Brightness.values) {
       final colors = segueTheme(brightness).colorScheme;
