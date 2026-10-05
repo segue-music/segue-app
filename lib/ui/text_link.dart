@@ -24,6 +24,7 @@ class _TextLinkState extends State<TextLink> {
   @override
   Widget build(BuildContext context) {
     final link = InkWell(
+      mouseCursor: WidgetStateMouseCursor.clickable,
       onTap: widget.onTap,
       onHover: (hovered) => setState(() => _hovered = hovered),
       hoverColor: Colors.transparent,

@@ -19,22 +19,27 @@ const _litMagenta = Color(0xFFFC18B6);
 /// The app's theme, light or dark. Whatever has the focus stands out: a TV is driven with a remote
 /// from across the room, and Material's own focus highlights are faint. Buttons get a ring; lists,
 /// the side rail and the tiles a strong tint (and, where an image would hide it, a FocusRing).
+///
+/// On a computer the pointer is a hand over what can be clicked: Flutter leaves the arrow over buttons
+/// and lists there, as native apps do, and the hand only on the web. The theme gives buttons and list
+/// tiles the hand; an InkWell, which has no theme for it, says so itself.
 ThemeData segueTheme(Brightness brightness) {
   final colors = _colors(brightness);
   final ring = WidgetStateProperty.resolveWith(
     (states) => states.contains(WidgetState.focused) ? BorderSide(color: colors.onSurface, width: 3) : null,
   );
-  final focusRing = ButtonStyle(side: ring);
+  final buttons = ButtonStyle(side: ring, mouseCursor: WidgetStateMouseCursor.clickable);
   return ThemeData(
     colorScheme: colors,
     focusColor: colors.primary.withValues(alpha: 0.35),
-    iconButtonTheme: IconButtonThemeData(style: focusRing),
+    iconButtonTheme: IconButtonThemeData(style: buttons),
     // The back arrow that Flutter puts in a page's top bar by itself, from Hugeicons as the rest.
     actionIconTheme: ActionIconThemeData(
       backButtonIconBuilder: (context) => const Icon(HugeIcons.strokeRoundedArrowLeft02),
     ),
-    filledButtonTheme: FilledButtonThemeData(style: focusRing),
-    textButtonTheme: TextButtonThemeData(style: focusRing),
+    filledButtonTheme: FilledButtonThemeData(style: buttons),
+    textButtonTheme: TextButtonThemeData(style: buttons),
+    listTileTheme: const ListTileThemeData(mouseCursor: WidgetStateMouseCursor.clickable),
     searchBarTheme: SearchBarThemeData(side: ring),
   );
 }

@@ -78,6 +78,7 @@ class _ArtistTile extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     return FocusRing(
       child: InkWell(
+        mouseCursor: WidgetStateMouseCursor.clickable,
         borderRadius: BorderRadius.circular(8),
         onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ArtistPage(artist))),
         child: Column(

@@ -49,6 +49,7 @@ class NowPlayingBar extends StatelessWidget {
                             child: FocusRing(
                               borderRadius: BorderRadius.circular(4),
                               child: InkWell(
+                                mouseCursor: WidgetStateMouseCursor.clickable,
                                 borderRadius: BorderRadius.circular(4),
                                 onTap: () => PlayerPage.open(context),
                                 child: Row(

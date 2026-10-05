@@ -136,6 +136,9 @@ Running two app instances on one machine as different devices:
   0.0.11: from 1.0 the package draws SVG paths, whose thin strokes Impeller leaves jagged on Linux,
   where it smooths a font's glyphs as text. No Material icon is left, and `test/icons_test.dart`
   keeps it so; the back arrow Flutter adds to a page comes from the theme (`actionIconTheme`).
+- On a computer the pointer is a hand over what can be clicked, which Flutter leaves to the web: the
+  theme (`segueTheme`) gives it to buttons and list tiles, and an `InkWell`, which no theme reaches,
+  takes `mouseCursor: WidgetStateMouseCursor.clickable`. `test/cursor_test.dart` goes over them.
 - No name ends in `_`: when the obvious one is taken, as by an import prefix (`http`), pick a fuller
   one (`httpClient`). A leading `_` is Dart's privacy, not style, and stays.
 - Docs, comments and tests stay generic: no names from a particular setup (machine or device names,

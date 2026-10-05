@@ -97,6 +97,7 @@ class CoverButton extends StatelessWidget {
       message: 'Ver a capa',
       child: FocusRing(
         child: InkWell(
+          mouseCursor: WidgetStateMouseCursor.clickable,
           borderRadius: _borderRadius,
           onTap: () => CoverPage.open(context, id),
           child: Hero(tag: _heroTag(id), child: cover),

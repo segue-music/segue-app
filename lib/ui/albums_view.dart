@@ -235,6 +235,7 @@ class _AlbumTileState extends State<AlbumTile> {
       onExit: (_) => setState(() => _hovered = false),
       child: FocusRing(
         child: InkWell(
+          mouseCursor: WidgetStateMouseCursor.clickable,
           borderRadius: BorderRadius.circular(8),
           onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => AlbumPage(album))),
           child: Column(
