@@ -48,23 +48,27 @@ class SubsonicApi implements MediaServer {
 
   Future<void> ping() => _get('ping');
 
-  /// Albums by name are getAlbumList2's alphabeticalByName; the latest added, its newest.
+  /// Albums by name are getAlbumList2's alphabeticalByName; the latest added, its newest; by release
+  /// date, its byYear over every year, which Navidrome sorts by the full date where it has one.
   @override
   Future<List<Album>> albums({required AlbumOrder order, int size = 100, int offset = 0}) => _albumList(
     switch (order) {
-      AlbumOrder.latest => 'newest',
-      AlbumOrder.name => 'alphabeticalByName',
+      AlbumOrder.latest => {'type': 'newest'},
+      AlbumOrder.name => {'type': 'alphabeticalByName'},
+      // A range from a later year to an earlier one lists the latest first.
+      AlbumOrder.released => {'type': 'byYear', 'fromYear': '9999', 'toYear': '0'},
     },
     size: size,
     offset: offset,
   );
 
   @override
-  Future<List<Album>> mostPlayedAlbums({int size = 20}) => _albumList('frequent', size: size);
+  Future<List<Album>> mostPlayedAlbums({int size = 20}) => _albumList({'type': 'frequent'}, size: size);
 
-  /// Albums in a list type of getAlbumList2: newest, recent, frequent, random, alphabeticalByName…
-  Future<List<Album>> _albumList(String type, {required int size, int offset = 0}) async {
-    final body = await _get('getAlbumList2', {'type': type, 'size': '$size', 'offset': '$offset'});
+  /// Albums in a list of getAlbumList2, which [query] names: its type (newest, recent, frequent, byYear,
+  /// alphabeticalByName…) and the type's parameters.
+  Future<List<Album>> _albumList(Map<String, String> query, {required int size, int offset = 0}) async {
+    final body = await _get('getAlbumList2', {...query, 'size': '$size', 'offset': '$offset'});
     final list = (body['albumList2'] as Map<String, dynamic>?)?['album'] as List? ?? const [];
     return [for (final album in list) _album(album as Map<String, dynamic>)];
   }

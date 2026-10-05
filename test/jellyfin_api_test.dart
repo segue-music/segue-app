@@ -105,6 +105,17 @@ void main() {
     expect(query, containsPair('StartIndex', '400'));
   });
 
+  test('albums by release date: the latest year first, and in a year the latest date', () async {
+    final asked = <http.Request>[];
+    await jellyfin((_) => items([album]), asked).albums(order: AlbumOrder.released, size: 20, offset: 40);
+    final query = asked.single.url.queryParameters;
+    expect(query, containsPair('IncludeItemTypes', 'MusicAlbum'));
+    expect(query['SortBy'], startsWith('ProductionYear,PremiereDate'));
+    expect(query, containsPair('SortOrder', 'Descending'));
+    expect(query, containsPair('Limit', '20'));
+    expect(query, containsPair('StartIndex', '40'));
+  });
+
   test('an album comes with the id of its album artist, or its first artist\'s when it has none', () async {
     final untagged = {
       ...album,

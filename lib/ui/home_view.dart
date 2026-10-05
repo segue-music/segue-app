@@ -12,8 +12,8 @@ import 'spinner.dart';
 /// How many albums a row shows at most.
 const _limit = 20;
 
-/// The first section: the albums the user plays most, and the latest added to the library, each in a
-/// row that scrolls sideways.
+/// The first section: the latest released albums, the albums the user plays most and the latest added
+/// to the library, each in a row that scrolls sideways.
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
 
@@ -22,6 +22,7 @@ class HomeView extends StatefulWidget {
 }
 
 class _HomeViewState extends State<HomeView> {
+  late Future<List<Album>> _released;
   late Future<List<Album>> _mostPlayed;
   late Future<List<Album>> _latest;
   bool _loaded = false;
@@ -37,6 +38,7 @@ class _HomeViewState extends State<HomeView> {
 
   void _load() {
     final api = ServicesScope.of(context).api;
+    _released = api.albums(order: AlbumOrder.released, size: _limit);
     _mostPlayed = api.mostPlayedAlbums(size: _limit);
     _latest = api.albums(order: AlbumOrder.latest, size: _limit);
     _loaded = true;
@@ -47,11 +49,12 @@ class _HomeViewState extends State<HomeView> {
     onRefresh: () async {
       setState(_load);
       // Each row shows its own failure.
-      await Future.wait([_mostPlayed, _latest]).catchError((_) => const <List<Album>>[]);
+      await Future.wait([_released, _mostPlayed, _latest]).catchError((_) => const <List<Album>>[]);
     },
     child: ListView(
       padding: const EdgeInsets.only(bottom: 16),
       children: [
+        _AlbumRow(title: 'Lançamentos', albums: _released, empty: 'A biblioteca está vazia.'),
         _AlbumRow(title: 'Mais tocados', albums: _mostPlayed, empty: 'Os álbuns que você mais ouvir aparecem aqui.'),
         _AlbumRow(title: 'Adicionados recentemente', albums: _latest, empty: 'A biblioteca está vazia.'),
       ],

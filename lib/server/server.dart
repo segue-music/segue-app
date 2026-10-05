@@ -33,6 +33,9 @@ enum AlbumOrder {
 
   /// By name.
   name,
+
+  /// The latest released first, by release date.
+  released,
 }
 
 /// The media server, through the API it speaks: `SubsonicApi` or `JellyfinApi`.

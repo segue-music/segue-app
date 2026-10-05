@@ -84,6 +84,8 @@ class JellyfinApi implements MediaServer {
       ...switch (order) {
         AlbumOrder.latest => {'SortBy': 'DateCreated,SortName', 'SortOrder': 'Descending'},
         AlbumOrder.name => {'SortBy': 'SortName', 'SortOrder': 'Ascending'},
+        // The year first: an album may have one without a full date.
+        AlbumOrder.released => {'SortBy': 'ProductionYear,PremiereDate,SortName', 'SortOrder': 'Descending'},
       },
       'Limit': '$size',
       'StartIndex': '$offset',

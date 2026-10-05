@@ -32,12 +32,13 @@ http.Response albumList(List<String> names) => subsonic({
   },
 });
 
-/// The home page on a screen of [size], over a server whose most played albums are [mostPlayed]
-/// (null: it fails to list them) and whose latest are [latest], however many are asked for. Returns
-/// the queries of the album lists asked for.
+/// The home page on a screen of [size], over a server whose latest released albums are [released],
+/// whose most played are [mostPlayed] (null: it fails to list them) and whose latest added are
+/// [latest], however many are asked for. Returns the queries of the album lists asked for.
 Future<List<Map<String, String>>> pumpHome(
   WidgetTester tester,
   Size size, {
+  List<String> released = const ['Music from Another Dimension!'],
   List<String>? mostPlayed = const ['Pump', 'Toys in the Attic'],
   List<String> latest = const ['Night in the Ruts'],
   bool television = false,
@@ -55,6 +56,7 @@ Future<List<Map<String, String>>> pumpHome(
         return switch (query['type']) {
           'frequent' when mostPlayed != null => albumList(mostPlayed),
           'newest' => albumList(latest),
+          'byYear' => albumList(released),
           _ => http.Response('', 500),
         };
       }
@@ -118,17 +120,20 @@ Future<void> press(WidgetTester tester, LogicalKeyboardKey key) async {
 }
 
 void main() {
-  testWidgets('the app opens on the home: a row of the most played albums, then one of the latest added', (
-    tester,
-  ) async {
+  testWidgets('the app opens on the home: a row of the latest released albums, then the most played, then the latest '
+      'added', (tester) async {
     await pumpHome(tester, const Size(1000, 700));
     expect(title('Início'), findsOneWidget);
 
+    final released = tester.getRect(find.text('Lançamentos'));
+    final another = tester.getRect(find.text('Music from Another Dimension!'));
     final mostPlayed = tester.getRect(find.text('Mais tocados'));
     final pump = tester.getRect(find.text('Pump'));
     final toys = tester.getRect(find.text('Toys in the Attic'));
     final latest = tester.getRect(find.text('Adicionados recentemente'));
     final ruts = tester.getRect(find.text('Night in the Ruts'));
+    expect(another.top, greaterThan(released.bottom));
+    expect(mostPlayed.top, greaterThan(another.bottom));
     expect(pump.top, greaterThan(mostPlayed.bottom));
     expect(toys.top, pump.top, reason: 'side by side, the most played first');
     expect(toys.left, greaterThan(pump.right));
@@ -228,13 +233,13 @@ void main() {
   });
 
   testWidgets('on a phone, a row goes on sideways', (tester) async {
-    await pumpHome(tester, const Size(360, 640), mostPlayed: [for (var i = 0; i < 10; i++) 'Most $i']);
-    expect(find.text('Most 0'), findsOneWidget);
-    expect(find.text('Most 9'), findsNothing);
-    await tester.drag(find.text('Most 0'), const Offset(-2000, 0));
+    await pumpHome(tester, const Size(360, 640), released: [for (var i = 0; i < 10; i++) 'Released $i']);
+    expect(find.text('Released 0'), findsOneWidget);
+    expect(find.text('Released 9'), findsNothing);
+    await tester.drag(find.text('Released 0'), const Offset(-2000, 0));
     await tester.pumpAndSettle();
-    expect(find.text('Most 9'), findsOneWidget);
-    expect(find.text('Night in the Ruts'), findsOneWidget, reason: 'the other row stays');
+    expect(find.text('Released 9'), findsOneWidget);
+    expect(find.text('Pump'), findsOneWidget, reason: 'the other rows stay');
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -256,7 +261,7 @@ void main() {
     expect(tester.getRect(forward).right, greaterThan(1000 - 64), reason: 'in the right corner');
     expect(tester.getCenter(forward).dy, moreOrLessEquals(heading.center.dy, epsilon: 4));
 
-    final scroll = tester.widget<ListView>(rows.first).controller!;
+    final scroll = tester.widget<ListView>(find.ancestor(of: find.text('Most 0'), matching: rows)).controller!;
 
     bool enabled(Finder arrow) =>
         tester.widget<IconButton>(find.ancestor(of: arrow, matching: find.byType(IconButton)).first).onPressed != null;
@@ -301,15 +306,18 @@ void main() {
     final asked = await pumpHome(
       tester,
       const Size(360, 640),
+      released: [for (var i = 0; i < 30; i++) 'Released $i'],
       mostPlayed: [for (var i = 0; i < 30; i++) 'Most $i'],
       latest: [for (var i = 0; i < 30; i++) 'Latest $i'],
     );
-    expect([for (final query in asked) query['size']], ['20', '20']);
+    expect([for (final query in asked) query['size']], ['20', '20', '20']);
 
-    for (final (i, prefix) in ['Most', 'Latest'].indexed) {
-      await tester.ensureVisible(rows.at(i)); // the second is under the bottom bar, at first
+    for (final prefix in ['Released', 'Most', 'Latest']) {
+      // By its albums: the list builds the rows that show, which change as it scrolls.
+      final row = find.ancestor(of: find.text('$prefix 0'), matching: rows);
+      await tester.ensureVisible(row); // the last ones are under the bottom bar, at first
       await tester.pumpAndSettle();
-      await tester.drag(rows.at(i), const Offset(-10000, 0));
+      await tester.drag(row, const Offset(-10000, 0));
       await tester.pumpAndSettle();
       expect(find.text('$prefix 19'), findsOneWidget);
       expect(find.text('$prefix 20'), findsNothing);
@@ -333,15 +341,15 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('pulling the home down lists both rows again', (tester) async {
+  testWidgets('pulling the home down lists every row again', (tester) async {
     final asked = await pumpHome(tester, const Size(360, 640));
 
     List<String?> types() => [for (final query in asked) query['type']];
 
-    expect(types(), unorderedEquals(['frequent', 'newest']));
-    await tester.fling(find.text('Mais tocados'), const Offset(0, 400), 1000);
+    expect(types(), unorderedEquals(['byYear', 'frequent', 'newest']));
+    await tester.fling(find.text('Lançamentos'), const Offset(0, 400), 1000);
     await tester.pumpAndSettle();
-    expect(types(), unorderedEquals(['frequent', 'newest', 'frequent', 'newest']));
+    expect(types(), unorderedEquals(['byYear', 'frequent', 'newest', 'byYear', 'frequent', 'newest']));
     await tester.pumpWidget(const SizedBox());
   });
 

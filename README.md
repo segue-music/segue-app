@@ -21,7 +21,8 @@ the device it runs on.
   `ND_JELLYFIN_ENABLED=true`). The password isn't kept: the system's secure storage gets a Subsonic
   token, or Jellyfin's access token, which signing out ends on a Jellyfin server (Navidrome's keeps
   it until the password changes);
-- a home, where the app opens, with a row of the albums the user plays most and one of the latest
+- a home, where the app opens, with a row of the latest released albums (by release date, or by
+  year where the server has no more), one of the albums the user plays most and one of the latest
   added to the library, 20 each, with arrows in each row's corner to go a screenful forward and
   back (on a Jellyfin server, which counts plays only by song, an album's plays are its songs',
   added up); albums (by name, the next ones coming as the grid nears its end) and artists (by

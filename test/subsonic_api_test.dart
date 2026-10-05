@@ -145,6 +145,25 @@ void main() {
     expect(asked.last.queryParameters, containsPair('type', 'newest'));
   });
 
+  test('albums by release date are getAlbumList2\'s byYear, from the farthest year back to the first', () async {
+    late Uri asked;
+    final api = SubsonicApi(
+      Uri.parse('https://music.test'),
+      credentials,
+      client: MockClient((request) async {
+        asked = request.url;
+        return subsonic({'status': 'ok', 'albumList2': <String, Object?>{}});
+      }),
+    );
+    await api.albums(order: AlbumOrder.released, size: 20, offset: 40);
+    expect(asked.path, '/rest/getAlbumList2.view');
+    expect(asked.queryParameters, containsPair('type', 'byYear'));
+    expect(asked.queryParameters, containsPair('fromYear', '9999'));
+    expect(asked.queryParameters, containsPair('toYear', '0'));
+    expect(asked.queryParameters, containsPair('size', '20'));
+    expect(asked.queryParameters, containsPair('offset', '40'));
+  });
+
   test('the most played albums are getAlbumList2\'s frequent', () async {
     late Uri asked;
     final api = SubsonicApi(
