@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 The Segue app: a Spotify-like Flutter player for Navidrome, other OpenSubsonic servers and
 Jellyfin, and the first real client of Segue, a draft "Connect" protocol (like Spotify Connect).
 The protocol (`SPEC.md`) and its reference hub, in Go, are in another repository,
-`github.com/mateusguilherme/segue`, usually cloned next to this one as `../segue`.
+`github.com/segue-music/segue`, usually cloned next to this one as `../segue`.
 
 `lib/segue/` is the protocol's Dart side. Where it and `SPEC.md` disagree, one of them has a bug,
 so a protocol change touches `SPEC.md` and the hub (in segue) and `lib/segue/` (here) together, in

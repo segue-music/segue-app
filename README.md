@@ -7,7 +7,7 @@ around Segue Connect: you pick a device, and whatever you play goes there. One F
 Windows, macOS, Android and iOS. The interface is in Portuguese for now.
 
 Segue's protocol and its hub, which runs next to the media server, are in
-[mateusguilherme/segue](https://github.com/mateusguilherme/segue). Without a hub, the app plays on
+[segue-music/segue](https://github.com/segue-music/segue). Without a hub, the app plays on
 the device it runs on.
 
 > [!NOTE]
@@ -111,7 +111,7 @@ Sign in with the media server's address (`https://` is added if left out), user 
 
 ### Connect
 
-Connect needs the hub, from [mateusguilherme/segue](https://github.com/mateusguilherme/segue).
+Connect needs the hub, from [segue-music/segue](https://github.com/segue-music/segue).
 Published at `/connect` on the media server's address, it is found by itself, with nothing to type
 at sign-in. To try it without that, run it on your computer, pointing at the media server (with Go,
 in a clone of that repository):
