@@ -92,4 +92,27 @@ void main() {
     // And the focus went with it, at the first press: the ring didn't take it away from the album.
     expect(FocusManager.instance.primaryFocus?.rect, ringAt(tester));
   });
+  testWidgets('an album\'s artist takes no focus: for the keyboard and a remote, each album is one stop', (
+    tester,
+  ) async {
+    addTearDown(() => FocusManager.instance.highlightStrategy = FocusHighlightStrategy.automatic);
+    FocusManager.instance.highlightStrategy = FocusHighlightStrategy.alwaysTraditional;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: segueTheme(Brightness.light),
+        home: const Scaffold(
+          body: AlbumGrid([
+            Album(id: 'a1', name: 'One', artist: 'Aerosmith', artistId: 'ar1'),
+            Album(id: 'a2', name: 'Two', artist: 'Cheap Trick', artistId: 'ar2'),
+          ]),
+        ),
+      ),
+    );
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.pump();
+    expect(FocusManager.instance.primaryFocus?.rect, tester.getRect(find.byType(AlbumTile).first));
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.pump();
+    expect(FocusManager.instance.primaryFocus?.rect, tester.getRect(find.byType(AlbumTile).last));
+  });
 }

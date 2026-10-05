@@ -3,7 +3,15 @@ import '../segue/protocol.dart';
 /// The library's items, whichever API they came from. Ids and cover ids are the media server's, in
 /// its API.
 class Album {
-  const Album({required this.id, required this.name, this.artist, this.coverArt, this.year, this.songCount});
+  const Album({
+    required this.id,
+    required this.name,
+    this.artist,
+    this.coverArt,
+    this.year,
+    this.songCount,
+    this.artistId,
+  });
 
   final String id;
   final String name;
@@ -11,6 +19,10 @@ class Album {
   final String? coverArt;
   final int? year;
   final int? songCount;
+
+  /// The id of its artist, the one its [artist] names (the first, when it has several); null when the
+  /// server gives none.
+  final String? artistId;
 }
 
 class Song {

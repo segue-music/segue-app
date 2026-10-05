@@ -275,6 +275,7 @@ Duration? _duration(Map<String, dynamic> json) {
   return ticks == null ? null : Duration(microseconds: ticks.toInt() ~/ 10);
 }
 
+/// An album's artist is its album artist, or its artists when it has none, as is its artist id.
 Album _album(Map<String, dynamic> json) => Album(
   id: json['Id'] as String,
   name: json['Name'] as String? ?? '',
@@ -282,6 +283,7 @@ Album _album(Map<String, dynamic> json) => Album(
   coverArt: _primaryImage(json),
   year: (json['ProductionYear'] as num?)?.toInt(),
   songCount: (json['ChildCount'] as num?)?.toInt(),
+  artistId: _firstId(json['AlbumArtists']) ?? _firstId(json['ArtistItems']),
 );
 
 /// A song's cover is its own image or else its album's, as Jellyfin's apps show it. Its artists are

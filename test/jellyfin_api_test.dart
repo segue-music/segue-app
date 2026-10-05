@@ -30,6 +30,9 @@ const album = {
   'Name': 'Toys in the Attic',
   'Type': 'MusicAlbum',
   'AlbumArtist': 'Aerosmith',
+  'AlbumArtists': [
+    {'Name': 'Aerosmith', 'Id': 'ar1'},
+  ],
   'ProductionYear': 1975,
   'ChildCount': 9,
   'ImageTags': {'Primary': 'tag'},
@@ -100,6 +103,20 @@ void main() {
     expect(query, containsPair('SortOrder', 'Ascending'));
     expect(query, containsPair('Limit', '200'));
     expect(query, containsPair('StartIndex', '400'));
+  });
+
+  test('an album comes with the id of its album artist, or its first artist\'s when it has none', () async {
+    final untagged = {
+      ...album,
+      'Id': 'a2',
+      'AlbumArtists': <Object>[],
+      'Artists': ['Run-DMC'],
+      'ArtistItems': [
+        {'Name': 'Run-DMC', 'Id': 'ar2'},
+      ],
+    }..remove('AlbumArtist');
+    final albums = await jellyfin((_) => items([album, untagged])).albums(order: AlbumOrder.name);
+    expect(albums.map((album) => (album.artist, album.artistId)), [('Aerosmith', 'ar1'), ('Run-DMC', 'ar2')]);
   });
 
   test('most played albums: Jellyfin counts plays by song, so they add up by album', () async {

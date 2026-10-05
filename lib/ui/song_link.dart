@@ -7,6 +7,7 @@ import '../server/models.dart';
 import '../services.dart';
 import 'album_page.dart';
 import 'artist_page.dart';
+import 'text_link.dart';
 
 /// The title or the album of the song that plays, a link to the album, or its artist, a link to their
 /// page (the first, when it has several): underlined under the mouse, and tinted under the focus as
@@ -49,8 +50,6 @@ enum _Part {
 }
 
 class _SongLinkState extends State<SongLink> {
-  bool _hovered = false;
-
   /// Opens the album or the artist, or says why it can't. The song comes from the media server: the
   /// hub gives other devices' songs without their album's and artist's ids.
   Future<void> _open(String songId) async {
@@ -89,29 +88,16 @@ class _SongLinkState extends State<SongLink> {
   Widget build(BuildContext context) {
     final now = widget.now;
     final songId = now.songId;
-    final link = InkWell(
+    return TextLink(
+      switch (widget._part) {
+        _Part.title => now.title ?? 'Nada tocando',
+        _Part.album => now.album ?? '',
+        _Part.artist => now.artist ?? '',
+      },
+      tooltip: 'Abrir o ${widget._part.word}',
       onTap: songId == null ? null : () => _open(songId),
-      onHover: (hovered) => setState(() => _hovered = hovered),
-      hoverColor: Colors.transparent,
-      borderRadius: BorderRadius.circular(4),
-      child: Text(
-        switch (widget._part) {
-          _Part.title => now.title ?? 'Nada tocando',
-          _Part.album => now.album ?? '',
-          _Part.artist => now.artist ?? '',
-        },
-        style: _hovered
-            ? (widget.style ?? const TextStyle()).copyWith(decoration: TextDecoration.underline)
-            : widget.style,
-        maxLines: widget.maxLines,
-        overflow: TextOverflow.ellipsis,
-      ),
+      style: widget.style,
+      maxLines: widget.maxLines,
     );
-
-    if (songId == null) {
-      return link;
-    }
-
-    return Tooltip(message: 'Abrir o ${widget._part.word}', child: link);
   }
 }

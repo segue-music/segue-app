@@ -99,7 +99,7 @@ void main() {
     await tester.pump();
     expect(queries, ['dream']);
     expect(find.text('Toys in the Attic'), findsNothing);
-    expect(find.text('Aerosmith · 1973'), findsOneWidget);
+    expect(find.textContaining('1973'), findsOneWidget, reason: 'the album, after its artist');
     expect(find.text('Cheap Trick · Heaven Tonight'), findsOneWidget);
     expect(find.text('4:28'), findsOneWidget);
 
@@ -112,7 +112,7 @@ void main() {
     await tester.tap(find.byTooltip('Limpar'));
     await tester.pump();
     expect(find.text('Toys in the Attic'), findsOneWidget);
-    expect(find.text('Aerosmith · 1973'), findsNothing);
+    expect(find.textContaining('1973'), findsNothing);
     expect(queries, ['dream']);
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
   });

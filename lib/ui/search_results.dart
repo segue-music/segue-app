@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../server/models.dart';
 import '../services.dart';
+import 'album_artist_link.dart';
 import 'album_page.dart';
 import 'artist_page.dart';
 import 'artists_view.dart';
@@ -61,11 +62,8 @@ class SearchResultsList extends StatelessWidget {
             ListTile(
               leading: Thumbnail(album.coverArt),
               title: Text(album.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-              subtitle: Text(
-                [album.artist, album.year].nonNulls.join(' · '),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+              // The artist takes no focus, as in the album grid: the album's page links them too.
+              subtitle: ExcludeFocus(child: AlbumByline(album)),
               onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => AlbumPage(album))),
             ),
           if (songs.isNotEmpty) const _Heading('Músicas'),

@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -21,7 +22,8 @@ http.Response subsonic(Map<String, Object?> body) => http.Response(
   headers: {'content-type': 'application/json'},
 );
 
-/// A server with two artists: Aerosmith, with two albums, and Cheap Trick.
+/// A server with two artists: Aerosmith, with two albums, and Cheap Trick. A search for "toys" finds
+/// an album; any other, the artist Aerosmith.
 http.Response server(http.Request request) {
   final path = request.url.path;
 
@@ -70,8 +72,20 @@ http.Response server(http.Request request) {
         'id': 'a2',
         'name': 'Toys in the Attic',
         'artist': 'Aerosmith',
+        'artistId': 'ar1',
+        'year': 1975,
         'song': [
           {'id': 's1', 'title': 'Walk This Way', 'artist': 'Aerosmith', 'duration': 220},
+        ],
+      },
+    });
+  }
+
+  if (path.endsWith('search3.view') && request.url.queryParameters['query'] == 'toys') {
+    return subsonic({
+      'searchResult3': {
+        'album': [
+          {'id': 'a2', 'name': 'Toys in the Attic', 'artist': 'Aerosmith', 'artistId': 'ar1', 'year': 1975},
         ],
       },
     });
@@ -168,6 +182,54 @@ void main() {
     await tester.pumpAndSettle();
     expect(title('Aerosmith'), findsOneWidget);
     expect(find.text('Toys in the Attic'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+  testWidgets('search finds albums too: one opens its page, and its artist theirs', (tester) async {
+    await pumpHome(tester, const Size(1000, 700));
+    await tester.enterText(find.byType(TextField), 'toys');
+    await tester.pump(HomePage.searchTypingPause);
+    await tester.pumpAndSettle();
+    expect(find.text('Álbuns'), findsWidgets);
+    expect(find.textContaining('1975'), findsOneWidget);
+    await tester.tap(find.byTooltip('Abrir o artista'));
+    await tester.pumpAndSettle();
+    expect(title('Aerosmith'), findsOneWidget);
+    expect(find.text('1973'), findsOneWidget, reason: 'their albums');
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Toys in the Attic'));
+    await tester.pumpAndSettle();
+    expect(find.text('Walk This Way'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+  testWidgets('an album\'s page links its artist, whom the keyboard and the remote reach too', (tester) async {
+    await pumpHome(tester, const Size(1000, 700));
+    await tester.enterText(find.byType(TextField), 'toys');
+    await tester.pump(HomePage.searchTypingPause);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Toys in the Attic'));
+    await tester.pumpAndSettle();
+    expect(find.text('Walk This Way'), findsOneWidget);
+    expect(find.textContaining('1975'), findsOneWidget, reason: 'the year, after the artist');
+
+    final link = find.byTooltip('Abrir o artista');
+    await tester.tap(link);
+    await tester.pumpAndSettle();
+    expect(title('Aerosmith'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    // Tab, as the remote's arrows, gets to it, and Enter, as its middle button, opens it.
+    for (var i = 0; i < 5 && FocusManager.instance.primaryFocus?.rect != tester.getRect(link); i++) {
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+    }
+
+    expect(FocusManager.instance.primaryFocus?.rect, tester.getRect(link));
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pumpAndSettle();
+    expect(title('Aerosmith'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 }

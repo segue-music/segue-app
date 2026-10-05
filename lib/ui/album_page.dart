@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../server/models.dart';
 import '../services.dart';
+import 'album_artist_link.dart';
 import 'cover.dart';
 import 'current_song.dart';
 import 'errors.dart';
@@ -69,7 +70,7 @@ class _AlbumPageState extends State<AlbumPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(album.name, style: text.titleLarge),
-                          Text([album.artist, album.year].nonNulls.join(' · '), style: text.bodyMedium),
+                          AlbumByline(album, style: text.bodyMedium),
                           const SizedBox(height: 12),
                           FilledButton.icon(
                             onPressed: songs.isEmpty ? null : () => _play(songs, 0),

@@ -184,6 +184,7 @@ Album _album(Map<String, dynamic> json) => Album(
   coverArt: json['coverArt'] as String?,
   year: (json['year'] as num?)?.toInt(),
   songCount: (json['songCount'] as num?)?.toInt(),
+  artistId: json['artistId'] as String?,
 );
 
 Song _song(Map<String, dynamic> json) => Song(

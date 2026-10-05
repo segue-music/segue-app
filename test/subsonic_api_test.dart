@@ -66,7 +66,14 @@ void main() {
             'status': 'ok',
             'albumList2': {
               'album': [
-                {'id': 'a1', 'name': 'Aerosmith', 'artist': 'Aerosmith', 'coverArt': 'al-a1', 'year': 1973},
+                {
+                  'id': 'a1',
+                  'name': 'Aerosmith',
+                  'artist': 'Aerosmith',
+                  'artistId': 'ar1',
+                  'coverArt': 'al-a1',
+                  'year': 1973,
+                },
               ],
             },
           });
@@ -87,6 +94,7 @@ void main() {
     final albums = await api.albums(order: AlbumOrder.latest);
     expect(albums.single.name, 'Aerosmith');
     expect(albums.single.year, 1973);
+    expect(albums.single.artistId, 'ar1');
     final (_, songs) = await api.album('a1');
     expect(songs.single.title, 'Dream On');
     expect(songs.single.duration, const Duration(seconds: 268));

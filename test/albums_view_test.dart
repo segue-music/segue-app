@@ -9,7 +9,9 @@ import 'package:segue/player/player.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
+import 'package:segue/ui/album_page.dart';
 import 'package:segue/ui/albums_view.dart';
+import 'package:segue/ui/artist_page.dart';
 import 'package:segue/ui/home_page.dart';
 
 import 'fakes.dart';
@@ -22,9 +24,10 @@ http.Response subsonic(Map<String, Object?> body) => http.Response(
   headers: {'content-type': 'application/json'},
 );
 
-/// The home page over a library of [count] albums, "Album 000" on, opened on the albums tab. The
-/// server fails the page at [failing] once. Returns the album lists asked for: their type, offset and
-/// size.
+/// The home page over a library of [count] albums, "Album 000" on, each by an artist of its own,
+/// "Artist 000" (id "ar000") on, opened on the albums tab. An artist's page has one album, "Only by"
+/// their id. The server fails the page at [failing] once. Returns the album lists asked for: their
+/// type, offset and size.
 Future<List<String>> pumpAlbums(WidgetTester tester, {required int count, int? failing}) async {
   const credentials = SubsonicCredentials(username: 'a', token: 't', salt: 's');
   final names = [for (var i = 0; i < count; i++) 'Album ${'$i'.padLeft(3, '0')}'];
@@ -34,6 +37,19 @@ Future<List<String>> pumpAlbums(WidgetTester tester, {required int count, int? f
     credentials,
     client: MockClient((request) async {
       final query = request.url.queryParameters;
+
+      if (request.url.path.endsWith('getArtist.view')) {
+        final id = query['id']!;
+        return subsonic({
+          'artist': {
+            'id': id,
+            'name': 'Artist ${id.substring(2)}',
+            'album': [
+              {'id': 'only-$id', 'name': 'Only by $id'},
+            ],
+          },
+        });
+      }
 
       if (!request.url.path.endsWith('getAlbumList2.view')) {
         return http.Response('', 404);
@@ -55,7 +71,13 @@ Future<List<String>> pumpAlbums(WidgetTester tester, {required int count, int? f
       return subsonic({
         'albumList2': {
           'album': [
-            for (final name in page) {'id': name, 'name': name},
+            for (final name in page)
+              {
+                'id': name,
+                'name': name,
+                'artist': name.replaceFirst('Album', 'Artist'),
+                'artistId': name.replaceFirst('Album ', 'ar'),
+              },
           ],
         },
       });
@@ -100,6 +122,24 @@ void main() {
     expect(second.left, greaterThan(first.left));
     expect(second.top, first.top);
     await tester.pumpWidget(const SizedBox()); // stops the player bar's timers
+  });
+
+  testWidgets('an album\'s artist opens their page, and the rest of the album opens it', (tester) async {
+    await pumpAlbums(tester, count: 3);
+    expect(find.byTooltip('Abrir o artista'), findsNWidgets(3));
+    await tester.tap(find.text('Artist 001'));
+    await tester.pumpAndSettle();
+    expect(find.byType(ArtistPage), findsOneWidget);
+    expect(find.text('Only by ar001'), findsOneWidget, reason: 'the page of the album\'s artist, by their id');
+    expect(find.byTooltip('Abrir o artista'), findsNothing, reason: 'their albums show the year, not them again');
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Album 001'));
+    await tester.pumpAndSettle();
+    expect(find.byType(AlbumPage), findsOneWidget);
+    expect(find.byType(ArtistPage), findsNothing);
+    await tester.pumpWidget(const SizedBox());
   });
 
   testWidgets('scrolling down brings the next albums, until there are no more', (tester) async {
