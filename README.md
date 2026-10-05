@@ -52,7 +52,7 @@ the device it runs on.
   plays again after it, and leaving the car or unplugging the headphones pauses it;
 - its icon (made by `tool/icons.dart` from `tool/icon.png`): Android's launcher icon, adaptive from
   Android 8 on, the Android TV banner, on Linux the window's icon and an entry in the application
-  menu, and the iOS icon.
+  menu, the iOS icon and the macOS icon.
 
 Not yet: playlists, editing the queue (play next, add to it, reorder it), the media controls on the other platforms (Android's
 media session), on a Jellyfin server the cover of a song that came from another device

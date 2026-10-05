@@ -5,6 +5,7 @@
 //   before that, and the Android TV banner.
 // - Linux: the window's icon, also the one of the menu entry that install-desktop-entry.sh adds.
 // - iOS: one 1024 px icon, from which Xcode makes the smaller ones.
+// - macOS: the icon at each size its asset catalog lists.
 import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
@@ -41,6 +42,12 @@ void main() {
     'ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png',
     art.inside(1024, 2 * _reach / (_right - _left)).convert(numChannels: 3),
   );
+
+  // macOS shows the icon as it is, so it carries its own shape: the rounded square on Apple's grid, 824 px of 1024,
+  // with the rest transparent.
+  for (final size in [16, 32, 64, 128, 256, 512, 1024]) {
+    _write('macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_$size.png', art.shape(size, 824 / 1024));
+  }
 }
 
 void _write(String path, Image image) {
