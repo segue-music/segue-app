@@ -51,7 +51,7 @@ class NowPlaying {
   final bool canJump;
 }
 
-/// Spotify's model: the app controls one device at a time, this one or another, and everything you
+/// The Connect model: the app controls one device at a time, this one or another, and everything you
 /// press (play an album, pause, skip) goes to it. Picking another device moves the music there, and
 /// when any device starts playing, every app follows it.
 class ConnectController extends ChangeNotifier {

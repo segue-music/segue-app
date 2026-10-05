@@ -343,7 +343,7 @@ void main() {
     expect(phone.connect.nowPlaying!.position.inSeconds, lessThan(2));
   });
 
-  test('the Spotify flow: control another device, then move the music here', () async {
+  test('the Connect flow: control another device, then move the music here', () async {
     final user = newUser();
     final laptop = await App(user, 'laptop').start();
     final phone = await App(user, 'phone').start();

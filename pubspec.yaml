@@ -1,5 +1,5 @@
 name: segue
-description: "Spotify-like player for Navidrome and Jellyfin, with Segue Connect"
+description: "A music player for Navidrome and Jellyfin, with Segue Connect"
 publish_to: 'none'
 version: 0.1.0+1
 

@@ -4,8 +4,8 @@ import '../server/models.dart';
 import '../services.dart';
 
 /// Builds a song's tile knowing whether it is the current song (the one the device the app
-/// controls plays, or has paused) and whether it plays. Lists mark the current song as Spotify
-/// does: in the theme's primary color (a selected ListTile), with [icon] while it plays.
+/// controls plays, or has paused) and whether it plays. Lists mark the current song in the theme's
+/// primary color (a selected ListTile), with [icon] while it plays.
 class CurrentSong extends StatelessWidget {
   const CurrentSong(this.song, {required this.builder, super.key});
 

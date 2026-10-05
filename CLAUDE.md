@@ -4,8 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-The Segue app: a Spotify-like Flutter player for Navidrome, other OpenSubsonic servers and
-Jellyfin, and the first real client of Segue, a draft "Connect" protocol (like Spotify Connect).
+The Segue app: a Flutter music player for Navidrome, other OpenSubsonic servers and Jellyfin, and
+the first real client of Segue, a draft "Connect" protocol.
 The protocol (`SPEC.md`) and its reference hub, in Go, are in another repository,
 `github.com/segue-music/segue`, usually cloned next to this one as `../segue`.
 
@@ -79,7 +79,7 @@ Running two app instances on one machine as different devices:
   commanded (seek, jump, open) until media_kit's catches up, so the report right after isn't stale.
   It reapplies shuffle after each open, since media_kit turns it off. It starts the current track
   over itself on a jump to it, which mpv ignores. And it reports when a track starts over on repeat. The play order (`order`) maps the shuffled playlist back to the songs.
-- `ConnectController` (`lib/connect/`) follows Spotify's model: the app controls one device at a
+- `ConnectController` (`lib/connect/`) follows the Connect model: the app controls one device at a
   time (`activeId`, null meaning this device). UI actions go through it (`playSongs`, `toggle`,
   `seek`, ...): it either runs them on the local player or sends them as hub commands. The UI should
   call `connect`, not `player`, for playback. It also follows whichever device starts playing, and

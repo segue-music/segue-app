@@ -5,7 +5,7 @@ import '../services.dart';
 import 'player_controls.dart';
 
 /// Keyboard shortcuts for playback, on every page: space plays or pauses what the now-playing bar
-/// shows, as in Spotify. Not while typing: with a text field focused, the key goes on to it.
+/// shows. Not while typing: with a text field focused, the key goes on to it.
 class PlaybackShortcuts extends StatelessWidget {
   const PlaybackShortcuts({required this.child, this.mediaKeys = false, super.key});
 

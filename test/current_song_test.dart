@@ -111,7 +111,7 @@ void main() {
     expect(playingIcon('Make It'), findsNothing);
     expect(find.descendant(of: tile('Make It'), matching: find.text('1')), findsOneWidget);
 
-    // Paused, it still stands out, with its number back, as in Spotify.
+    // Paused, it still stands out, with its number back.
     await services.connect.pause();
     await settle(tester);
     expect(colorOf(tester, 'Dream On'), primary(tester));

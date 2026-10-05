@@ -2,7 +2,7 @@
 
 # Segue app
 
-A Spotify-like music player for Navidrome, any other OpenSubsonic server, or Jellyfin, built
+A music player for Navidrome, any other OpenSubsonic server, or Jellyfin, built
 around Segue Connect: you pick a device, and whatever you play goes there. One Flutter codebase for Linux,
 Windows, macOS, Android and iOS. The interface is in Portuguese for now.
 

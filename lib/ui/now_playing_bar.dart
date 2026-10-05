@@ -119,7 +119,7 @@ class NowPlayingBar extends StatelessWidget {
                       ],
                     ),
                   ),
-                  // Where it plays, when that's another device, as Spotify's strip under the player.
+                  // Where it plays, when that's another device, in a strip under the player.
                   if (now.device != null)
                     Container(
                       width: double.infinity,

@@ -5,7 +5,7 @@ import '../services.dart';
 
 import 'errors.dart';
 
-/// Spotify's "Connect to a device": pick where the music plays.
+/// The device picker: pick where the music plays.
 Future<void> showDevicesSheet(BuildContext context) =>
     showModalBottomSheet<void>(context: context, showDragHandle: true, builder: (_) => const _DevicesSheet());
 
