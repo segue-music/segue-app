@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 
 import '../server/models.dart';
 import '../services.dart';
@@ -9,7 +10,7 @@ import '../services.dart';
 class CurrentSong extends StatelessWidget {
   const CurrentSong(this.song, {required this.builder, super.key});
 
-  static const icon = Icons.graphic_eq;
+  static const icon = HugeIcons.strokeRoundedAudioWave01;
 
   final Song song;
   final Widget Function(BuildContext context, bool current, bool playing) builder;

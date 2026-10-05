@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:flutter/services.dart';
 
 import 'cover.dart';
@@ -59,7 +60,7 @@ class CoverPage extends StatelessWidget {
                     padding: const EdgeInsets.all(8),
                     child: IconButton(
                       tooltip: 'Fechar',
-                      icon: const Icon(Icons.close),
+                      icon: const Icon(HugeIcons.strokeRoundedCancel01),
                       color: Colors.white,
                       onPressed: close,
                     ),

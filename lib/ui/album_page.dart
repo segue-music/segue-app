@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 
 import '../server/models.dart';
 import '../services.dart';
@@ -71,7 +72,7 @@ class _AlbumPageState extends State<AlbumPage> {
                           const SizedBox(height: 12),
                           FilledButton.icon(
                             onPressed: songs.isEmpty ? null : () => _play(songs, 0),
-                            icon: const Icon(Icons.play_arrow),
+                            icon: const Icon(HugeIcons.strokeRoundedPlay),
                             label: const Text('Tocar'),
                           ),
                         ],

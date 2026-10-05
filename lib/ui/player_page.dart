@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:flutter/services.dart';
 
 import '../connect/connect.dart';
@@ -42,7 +43,11 @@ class PlayerPage extends StatelessWidget {
             final device = now?.device;
             return Scaffold(
               appBar: AppBar(
-                leading: IconButton(tooltip: 'Fechar', icon: const Icon(Icons.keyboard_arrow_down), onPressed: close),
+                leading: IconButton(
+                  tooltip: 'Fechar',
+                  icon: const Icon(HugeIcons.strokeRoundedArrowDown01),
+                  onPressed: close,
+                ),
                 centerTitle: true,
                 title: device == null
                     ? null
@@ -53,12 +58,12 @@ class PlayerPage extends StatelessWidget {
                 actions: [
                   IconButton(
                     tooltip: 'Fila',
-                    icon: const Icon(Icons.queue_music),
+                    icon: const Icon(HugeIcons.strokeRoundedPlaylist03),
                     onPressed: () => QueuePage.open(context),
                   ),
                   IconButton(
                     tooltip: 'Aparelhos',
-                    icon: Icon(Icons.devices, color: device == null ? null : colors.primary),
+                    icon: Icon(HugeIcons.strokeRoundedComputerPhoneSync, color: device == null ? null : colors.primary),
                     onPressed: () => showDevicesSheet(context),
                   ),
                 ],
@@ -115,20 +120,20 @@ class _Player extends StatelessWidget {
                       IconButton(
                         tooltip: 'Anterior',
                         iconSize: 36,
-                        icon: const Icon(Icons.skip_previous),
+                        icon: const Icon(HugeIcons.strokeRoundedPrevious),
                         onPressed: () => runCommand(context, connect.previous),
                       ),
                       IconButton.filled(
                         tooltip: now.playing ? 'Pausar' : 'Tocar',
                         iconSize: 40,
                         padding: const EdgeInsets.all(14),
-                        icon: Icon(now.playing ? Icons.pause : Icons.play_arrow),
+                        icon: Icon(now.playing ? HugeIcons.strokeRoundedPause : HugeIcons.strokeRoundedPlay),
                         onPressed: () => runCommand(context, connect.toggle),
                       ),
                       IconButton(
                         tooltip: 'Próxima',
                         iconSize: 36,
-                        icon: const Icon(Icons.skip_next),
+                        icon: const Icon(HugeIcons.strokeRoundedNext),
                         onPressed: () => runCommand(context, connect.next),
                       ),
                       RepeatButton(now),

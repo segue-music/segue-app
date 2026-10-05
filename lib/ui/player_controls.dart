@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 
 import '../connect/connect.dart';
 import '../segue/protocol.dart';
@@ -176,7 +177,7 @@ class ShuffleButton extends StatelessWidget {
     final connect = ServicesScope.of(context).connect;
     return IconButton(
       tooltip: now.shuffle ? 'Desativar aleatório' : 'Ativar aleatório',
-      icon: Icon(Icons.shuffle, color: now.shuffle ? Theme.of(context).colorScheme.primary : null),
+      icon: Icon(HugeIcons.strokeRoundedShuffle, color: now.shuffle ? Theme.of(context).colorScheme.primary : null),
       onPressed: now.canShuffle ? () => runCommand(context, () => connect.setShuffle(!now.shuffle)) : null,
     );
   }
@@ -198,7 +199,7 @@ class RepeatButton extends StatelessWidget {
         Repeat.one => 'Não repetir',
       },
       icon: Icon(
-        now.repeat == Repeat.one ? Icons.repeat_one : Icons.repeat,
+        now.repeat == Repeat.one ? HugeIcons.strokeRoundedRepeatOne01 : HugeIcons.strokeRoundedRepeat,
         color: now.repeat == Repeat.off ? null : Theme.of(context).colorScheme.primary,
       ),
       onPressed: now.canRepeat

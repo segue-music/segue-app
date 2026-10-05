@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 
 import '../server/models.dart';
 import '../services.dart';
@@ -64,7 +65,7 @@ class _ArtistPageState extends State<ArtistPage> {
                   SizedBox.square(
                     dimension: 140,
                     child: ClipOval(
-                      child: Cover(artist.coverArt ?? widget.artist.coverArt, icon: Icons.person_outline),
+                      child: Cover(artist.coverArt ?? widget.artist.coverArt, icon: HugeIcons.strokeRoundedUser),
                     ),
                   ),
                   const SizedBox(width: 16),

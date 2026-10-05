@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 
 import '../segue/client.dart';
 import '../segue/protocol.dart';
@@ -30,16 +31,18 @@ class HomePage extends StatefulWidget {
 /// The library's sections, in the side rail (or, on a phone, the bar at the bottom). The app's icon, in the top
 /// bar, opens the home too, and on a wide screen it alone does.
 enum _Section {
-  home('Início', Icons.home_outlined, Icons.home),
-  albums('Álbuns', Icons.album_outlined, Icons.album),
-  artists('Artistas', Icons.person_outline, Icons.person),
-  genres('Gêneros', Icons.category_outlined, Icons.category);
+  home('Início', HugeIcons.strokeRoundedHome01),
+  albums('Álbuns', HugeIcons.strokeRoundedCd),
+  artists('Artistas', HugeIcons.strokeRoundedUser),
+  genres('Gêneros', HugeIcons.strokeRoundedDashboardSquare01);
 
-  const _Section(this.label, this.icon, this.selectedIcon);
+  const _Section(this.label, this.icon);
 
   final String label;
+
+  /// The same selected or not: Hugeicons' free set has no filled icons. The selected section is on a
+  /// tint.
   final IconData icon;
-  final IconData selectedIcon;
 }
 
 class _HomePageState extends State<HomePage> {
@@ -104,13 +107,17 @@ class _HomePageState extends State<HomePage> {
     final searchBar = SearchBar(
       controller: _search,
       hintText: 'Buscar álbum, artista ou música',
-      leading: const Icon(Icons.search),
+      leading: const Icon(HugeIcons.strokeRoundedSearch01),
       trailing: [
         ListenableBuilder(
           listenable: _search,
           builder: (context, _) => _search.text.isEmpty
               ? const SizedBox.shrink()
-              : IconButton(tooltip: 'Limpar', icon: const Icon(Icons.close), onPressed: _clearSearch),
+              : IconButton(
+                  tooltip: 'Limpar',
+                  icon: const Icon(HugeIcons.strokeRoundedCancel01),
+                  onPressed: _clearSearch,
+                ),
         ),
       ],
       elevation: const WidgetStatePropertyAll(0),
@@ -165,8 +172,12 @@ class _HomePageState extends State<HomePage> {
             : null,
         actions: [
           _HubStatus(client: services.connect.client),
-          IconButton(tooltip: 'Aparelhos', icon: const Icon(Icons.devices), onPressed: () => showDevicesSheet(context)),
-          IconButton(tooltip: 'Sair', icon: const Icon(Icons.logout), onPressed: widget.onSignOut),
+          IconButton(
+            tooltip: 'Aparelhos',
+            icon: const Icon(HugeIcons.strokeRoundedComputerPhoneSync),
+            onPressed: () => showDevicesSheet(context),
+          ),
+          IconButton(tooltip: 'Sair', icon: const Icon(HugeIcons.strokeRoundedLogout01), onPressed: widget.onSignOut),
         ],
       ),
       body: narrow
@@ -188,11 +199,7 @@ class _HomePageState extends State<HomePage> {
                   onDestinationSelected: (index) => _select(_Section.values[index]),
                   destinations: [
                     for (final section in _Section.values)
-                      NavigationDestination(
-                        icon: Icon(section.icon),
-                        selectedIcon: Icon(section.selectedIcon),
-                        label: section.label,
-                      ),
+                      NavigationDestination(icon: Icon(section.icon), label: section.label),
                   ],
                 ),
               ],
@@ -236,7 +243,6 @@ class _SideRail extends StatelessWidget {
                   tooltip: section.label,
                   isSelected: section == selected,
                   icon: Icon(section.icon),
-                  selectedIcon: Icon(section.selectedIcon),
                   style: style,
                   onPressed: () => onSelected(section),
                 ),
@@ -271,20 +277,20 @@ class _HubStatus extends StatelessWidget {
     );
 
     if (client == null) {
-      return status('Sem hub: só toca neste aparelho', Icons.cloud_off);
+      return status('Sem hub: só toca neste aparelho', HugeIcons.strokeRoundedUnlink02);
     }
 
     return ListenableBuilder(
       listenable: client,
       builder: (context, _) => switch (client.status) {
-        HubStatus.connected => status('Conectado ao hub', Icons.cloud_done),
-        HubStatus.connecting => status('Conectando ao hub…', Icons.cloud_sync),
-        HubStatus.offline => status('Hub fora do ar; tentando de novo', Icons.cloud_off),
+        HubStatus.connected => status('Conectado ao hub', HugeIcons.strokeRoundedCloudSavingDone01),
+        HubStatus.connecting => status('Conectando ao hub…', HugeIcons.strokeRoundedCloudLoading),
+        HubStatus.offline => status('Hub fora do ar; tentando de novo', HugeIcons.strokeRoundedUnlink02),
         HubStatus.rejected => status(
           client.lastClose?.code == CloseCode.replaced
               ? 'Este aparelho se conectou de novo em outro lugar (outra cópia do app aberta?)'
               : 'O hub recusou este aparelho',
-          Icons.error_outline,
+          HugeIcons.strokeRoundedAlertCircle,
         ),
       },
     );

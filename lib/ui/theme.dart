@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 
 /// The magenta of the app's icon (tool/icon.png): its rounded square.
 const iconMagenta = Color(0xFFDB02A4);
@@ -28,6 +29,10 @@ ThemeData segueTheme(Brightness brightness) {
     colorScheme: colors,
     focusColor: colors.primary.withValues(alpha: 0.35),
     iconButtonTheme: IconButtonThemeData(style: focusRing),
+    // The back arrow that Flutter puts in a page's top bar by itself, from Hugeicons as the rest.
+    actionIconTheme: ActionIconThemeData(
+      backButtonIconBuilder: (context) => const Icon(HugeIcons.strokeRoundedArrowLeft02),
+    ),
     filledButtonTheme: FilledButtonThemeData(style: focusRing),
     textButtonTheme: TextButtonThemeData(style: focusRing),
     searchBarTheme: SearchBarThemeData(side: ring),

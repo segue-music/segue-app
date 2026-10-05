@@ -132,6 +132,10 @@ Running two app instances on one machine as different devices:
   abbreviations, noun phrases for values, verbs for side effects, no `get` prefix, ...) are by hand.
   `avoid_positional_boolean_parameters` stays off: the guideline exempts setters, and a method like
   `setShuffle(true)` is one that can't be a setter, being async.
+- Icons come from Hugeicons' font (`Icon(HugeIcons.strokeRounded...)`), held at its last font version,
+  0.0.11: from 1.0 the package draws SVG paths, whose thin strokes Impeller leaves jagged on Linux,
+  where it smooths a font's glyphs as text. No Material icon is left, and `test/icons_test.dart`
+  keeps it so; the back arrow Flutter adds to a page comes from the theme (`actionIconTheme`).
 - No name ends in `_`: when the obvious one is taken, as by an import prefix (`http`), pick a fuller
   one (`httpClient`). A leading `_` is Dart's privacy, not style, and stays.
 - Docs, comments and tests stay generic: no names from a particular setup (machine or device names,

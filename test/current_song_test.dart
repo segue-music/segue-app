@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
+import 'package:hugeicons/hugeicons.dart';
 import 'package:http/testing.dart';
 import 'package:segue/connect/connect.dart';
 import 'package:segue/player/player.dart';
@@ -93,14 +94,15 @@ Color? colorOf(WidgetTester tester, String title) => tester
 
 Color primary(WidgetTester tester) => Theme.of(tester.element(find.byType(Scaffold).first)).colorScheme.primary;
 
-Finder playingIcon(String title) => find.descendant(of: tile(title), matching: find.byIcon(Icons.graphic_eq));
+Finder playingIcon(String title) =>
+    find.descendant(of: tile(title), matching: find.byIcon(HugeIcons.strokeRoundedAudioWave01));
 
 void main() {
   testWidgets('on the album page, the song that plays stands out, with the equalizer for its number', (tester) async {
     final services = fakeServices();
     await pump(tester, services, const AlbumPage(album));
     expect(colorOf(tester, 'Dream On'), isNot(primary(tester)));
-    expect(find.byIcon(Icons.graphic_eq), findsNothing);
+    expect(find.byIcon(HugeIcons.strokeRoundedAudioWave01), findsNothing);
 
     await services.connect.playSongs(songs, 1);
     await settle(tester);

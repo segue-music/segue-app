@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 
 import '../services.dart';
 import 'current_song.dart';
 
 /// A cover from the media server, or a placeholder.
 class Cover extends StatelessWidget {
-  const Cover(this.id, {this.size = 300, this.icon = Icons.album_outlined, super.key});
+  const Cover(this.id, {this.size = 300, this.icon = HugeIcons.strokeRoundedCd, super.key});
 
   final String? id;
 
@@ -51,7 +52,7 @@ class Thumbnail extends StatelessWidget {
   Widget build(BuildContext context) => SizedBox.square(
     dimension: 48,
     child: round
-        ? ClipOval(child: Cover(coverArt, size: 96, icon: Icons.person_outline))
+        ? ClipOval(child: Cover(coverArt, size: 96, icon: HugeIcons.strokeRoundedUser))
         : ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: Stack(

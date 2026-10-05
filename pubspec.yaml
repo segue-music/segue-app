@@ -21,6 +21,9 @@ dependencies:
   audio_session: ^0.2.4
   audio_service_mpris: ^0.2.1
   path_provider: ^2.1.6
+  # Hugeicons' font version, held back: from 1.0 the icons are SVG paths, which Impeller on Linux draws
+  # with jagged edges, where it smooths a font's glyphs as text.
+  hugeicons: 0.0.11
 
 dev_dependencies:
   flutter_test:

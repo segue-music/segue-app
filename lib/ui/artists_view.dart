@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 
 import '../server/models.dart';
 import '../services.dart';
@@ -83,7 +84,7 @@ class _ArtistTile extends StatelessWidget {
           children: [
             AspectRatio(
               aspectRatio: 1,
-              child: ClipOval(child: Cover(artist.coverArt, icon: Icons.person_outline)),
+              child: ClipOval(child: Cover(artist.coverArt, icon: HugeIcons.strokeRoundedUser)),
             ),
             const SizedBox(height: 6),
             Text(artist.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: text.titleSmall),

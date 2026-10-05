@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
+import 'package:hugeicons/hugeicons.dart';
 import 'package:http/testing.dart';
 import 'package:segue/connect/connect.dart';
 import 'package:segue/player/player.dart';
@@ -168,8 +169,13 @@ void main() {
     await tester.tap(find.byTooltip('Álbuns'));
     await tester.pumpAndSettle();
     expect(title('Álbuns'), findsOneWidget);
-    expect(find.byIcon(Icons.album), findsOneWidget, reason: 'selected');
-    expect(find.byIcon(Icons.person_outline), findsOneWidget);
+
+    bool selected(String section) => tester
+        .widget<IconButton>(find.ancestor(of: find.byTooltip(section), matching: find.byType(IconButton)))
+        .isSelected!;
+
+    expect(selected('Álbuns'), isTrue);
+    expect(selected('Artistas'), isFalse);
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -180,8 +186,7 @@ void main() {
     final logo = find.byTooltip('Início');
     expect(logo, findsOneWidget, reason: 'the app\'s icon alone');
     expect(find.descendant(of: logo, matching: find.byType(Image)), findsOneWidget);
-    expect(find.byIcon(Icons.home_outlined), findsNothing);
-    expect(find.byIcon(Icons.home), findsNothing);
+    expect(find.byIcon(HugeIcons.strokeRoundedHome01), findsNothing);
     final corner = tester.getRect(logo);
     expect(corner.left, lessThan(16));
     expect(corner.top, lessThan(16));
@@ -206,7 +211,11 @@ void main() {
 
       Rect icon(IconData icon) => tester.getRect(find.descendant(of: find.byType(AppBar), matching: find.byIcon(icon)));
 
-      final (hub, devices, signOut) = (icon(Icons.cloud_off), icon(Icons.devices), icon(Icons.logout));
+      final (hub, devices, signOut) = (
+        icon(HugeIcons.strokeRoundedUnlink02),
+        icon(HugeIcons.strokeRoundedComputerPhoneSync),
+        icon(HugeIcons.strokeRoundedLogout01),
+      );
       expect(devices.left - hub.right, signOut.left - devices.right);
       expect(hub.center.dy, devices.center.dy);
       await tester.pumpWidget(const SizedBox());
@@ -239,7 +248,7 @@ void main() {
     await pumpHome(tester, const Size(960, 540), television: true);
     await tester.tap(find.byTooltip('Álbuns'));
     await tester.pumpAndSettle();
-    Focus.of(tester.element(find.byIcon(Icons.album))).requestFocus();
+    Focus.of(tester.element(find.descendant(of: find.byTooltip('Álbuns'), matching: find.byType(Icon)))).requestFocus();
     await tester.pump();
     await press(tester, LogicalKeyboardKey.arrowUp);
     expect(Focus.of(tester.element(find.byType(Image).first)).hasFocus, isTrue);

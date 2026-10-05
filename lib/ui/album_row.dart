@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 
 import '../server/models.dart';
 import 'albums_view.dart';
@@ -135,12 +136,12 @@ class _AlbumRowState extends State<AlbumRow> {
           children: [
             IconButton(
               tooltip: 'Voltar',
-              icon: const Icon(Icons.chevron_left),
+              icon: const Icon(HugeIcons.strokeRoundedArrowLeft01),
               onPressed: position.extentBefore > 0 ? () => _page(-1) : null,
             ),
             IconButton(
               tooltip: 'Avançar',
-              icon: const Icon(Icons.chevron_right),
+              icon: const Icon(HugeIcons.strokeRoundedArrowRight01),
               onPressed: position.extentAfter > 0 ? () => _page(1) : null,
             ),
           ],

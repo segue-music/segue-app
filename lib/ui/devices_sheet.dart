@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 
 import '../segue/protocol.dart';
 import '../services.dart';
@@ -41,7 +42,7 @@ class _DevicesSheet extends StatelessWidget {
             child: Text('Conectar a um aparelho', style: Theme.of(context).textTheme.titleLarge),
           ),
           ListTile(
-            leading: const Icon(Icons.computer),
+            leading: const Icon(HugeIcons.strokeRoundedComputer),
             title: Text('Este aparelho (${services.session.deviceName})'),
             selected: connect.activeId == null,
             trailing: _marks(playing: connect.player.playing, active: connect.activeId == null),
@@ -49,13 +50,13 @@ class _DevicesSheet extends StatelessWidget {
           ),
           if (client == null)
             ListTile(
-              leading: const Icon(Icons.info_outline),
+              leading: const Icon(HugeIcons.strokeRoundedInformationCircle),
               title: const Text('Nenhum hub encontrado'),
               subtitle: Text('Sem o hub em ${services.session.server.host}, só dá para tocar aqui.'),
             ),
           for (final device in connect.devices)
             ListTile(
-              leading: const Icon(Icons.speaker),
+              leading: const Icon(HugeIcons.strokeRoundedSpeaker),
               title: Text(device.info.name),
               subtitle: Text(_describe(device)),
               selected: connect.activeId == device.id,
@@ -75,7 +76,10 @@ class _DevicesSheet extends StatelessWidget {
 
     return Row(
       mainAxisSize: MainAxisSize.min,
-      children: [if (playing) const Icon(Icons.graphic_eq), if (active) const Icon(Icons.check)],
+      children: [
+        if (playing) const Icon(HugeIcons.strokeRoundedAudioWave01),
+        if (active) const Icon(HugeIcons.strokeRoundedTick02),
+      ],
     );
   }
 

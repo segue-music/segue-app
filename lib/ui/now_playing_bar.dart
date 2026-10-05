@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 
 import 'cover.dart';
 import 'devices_sheet.dart';
@@ -91,29 +92,32 @@ class NowPlayingBar extends StatelessWidget {
                         if (wide) ShuffleButton(now),
                         IconButton(
                           tooltip: 'Anterior',
-                          icon: const Icon(Icons.skip_previous),
+                          icon: const Icon(HugeIcons.strokeRoundedPrevious),
                           onPressed: () => runCommand(context, connect.previous),
                         ),
                         IconButton(
                           tooltip: now.playing ? 'Pausar' : 'Tocar',
-                          icon: Icon(now.playing ? Icons.pause : Icons.play_arrow),
+                          icon: Icon(now.playing ? HugeIcons.strokeRoundedPause : HugeIcons.strokeRoundedPlay),
                           onPressed: () => runCommand(context, connect.toggle),
                         ),
                         IconButton(
                           tooltip: 'Próxima',
-                          icon: const Icon(Icons.skip_next),
+                          icon: const Icon(HugeIcons.strokeRoundedNext),
                           onPressed: () => runCommand(context, connect.next),
                         ),
                         if (wide) RepeatButton(now),
                         if (wide)
                           IconButton(
                             tooltip: 'Fila',
-                            icon: const Icon(Icons.queue_music),
+                            icon: const Icon(HugeIcons.strokeRoundedPlaylist03),
                             onPressed: () => QueuePage.open(context),
                           ),
                         IconButton(
                           tooltip: 'Aparelhos',
-                          icon: Icon(Icons.devices, color: now.device == null ? null : colors.primary),
+                          icon: Icon(
+                            HugeIcons.strokeRoundedComputerPhoneSync,
+                            color: now.device == null ? null : colors.primary,
+                          ),
                           onPressed: () => showDevicesSheet(context),
                         ),
                       ],
@@ -127,7 +131,7 @@ class NowPlayingBar extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                       child: Row(
                         children: [
-                          Icon(Icons.speaker, size: 16, color: colors.onPrimaryContainer),
+                          Icon(HugeIcons.strokeRoundedSpeaker, size: 16, color: colors.onPrimaryContainer),
                           const SizedBox(width: 6),
                           Text(
                             '${now.playing ? 'Tocando' : 'Pausado'} em ${now.device}',
