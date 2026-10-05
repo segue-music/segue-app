@@ -198,6 +198,22 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets(
+    'the hub\'s status sits as far from the devices button as that is from signing out',
+    (tester) async {
+      await pumpHome(tester, const Size(1000, 700));
+
+      Rect icon(IconData icon) => tester.getRect(find.descendant(of: find.byType(AppBar), matching: find.byIcon(icon)));
+
+      final (hub, devices, signOut) = (icon(Icons.cloud_off), icon(Icons.devices), icon(Icons.logout));
+      expect(devices.left - hub.right, signOut.left - devices.right);
+      expect(hub.center.dy, devices.center.dy);
+      await tester.pumpWidget(const SizedBox());
+    },
+    // Buttons are smaller on a desktop.
+    variant: const TargetPlatformVariant({TargetPlatform.android, TargetPlatform.linux}),
+  );
+
   testWidgets('on a phone, the app\'s icon is in the top left corner too, and the bar at the bottom keeps the home', (
     tester,
   ) async {

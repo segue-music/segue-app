@@ -253,22 +253,35 @@ class _HubStatus extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final client = this.client;
+    // As big as the icon buttons beside it (Material 3's 40 pixels, padded to 48 where the theme pads
+    // tap targets), so that the icons in the bar are evenly spaced.
+    final size = Theme.of(context).materialTapTargetSize == MaterialTapTargetSize.padded
+        ? kMinInteractiveDimension
+        : 40.0;
+
+    Widget status(String message, IconData icon) => Tooltip(
+      message: message,
+      child: SizedBox.square(
+        dimension: size,
+        child: Center(child: Icon(icon)),
+      ),
+    );
 
     if (client == null) {
-      return const Tooltip(message: 'Sem hub: só toca neste aparelho', child: Icon(Icons.cloud_off));
+      return status('Sem hub: só toca neste aparelho', Icons.cloud_off);
     }
 
     return ListenableBuilder(
       listenable: client,
       builder: (context, _) => switch (client.status) {
-        HubStatus.connected => const Tooltip(message: 'Conectado ao hub', child: Icon(Icons.cloud_done)),
-        HubStatus.connecting => const Tooltip(message: 'Conectando ao hub…', child: Icon(Icons.cloud_sync)),
-        HubStatus.offline => const Tooltip(message: 'Hub fora do ar; tentando de novo', child: Icon(Icons.cloud_off)),
-        HubStatus.rejected => Tooltip(
-          message: client.lastClose?.code == CloseCode.replaced
+        HubStatus.connected => status('Conectado ao hub', Icons.cloud_done),
+        HubStatus.connecting => status('Conectando ao hub…', Icons.cloud_sync),
+        HubStatus.offline => status('Hub fora do ar; tentando de novo', Icons.cloud_off),
+        HubStatus.rejected => status(
+          client.lastClose?.code == CloseCode.replaced
               ? 'Este aparelho se conectou de novo em outro lugar (outra cópia do app aberta?)'
               : 'O hub recusou este aparelho',
-          child: const Icon(Icons.error_outline),
+          Icons.error_outline,
         ),
       },
     );
