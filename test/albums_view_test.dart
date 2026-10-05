@@ -78,7 +78,7 @@ Future<List<String>> pumpAlbums(WidgetTester tester, {required int count, int? f
     ),
   );
   await tester.pumpAndSettle();
-  await tester.tap(find.descendant(of: find.byType(NavigationRail), matching: find.text('Álbuns')));
+  await tester.tap(find.byTooltip('Álbuns'));
   await tester.pumpAndSettle();
   return asked;
 }

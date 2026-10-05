@@ -19,7 +19,6 @@ Future<void> main() async {
       mediaControls: controls,
       interruptions: interruptions,
       television: television,
-      railCollapsed: await SegueApp.loadRailCollapsed(),
     ),
   );
 }

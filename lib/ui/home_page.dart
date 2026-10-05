@@ -14,15 +14,9 @@ import 'now_playing_bar.dart';
 import 'search_results.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({required this.onSignOut, this.railCollapsed = false, this.onRailCollapsed, super.key});
+  const HomePage({required this.onSignOut, super.key});
 
   final VoidCallback onSignOut;
-
-  /// Whether the side rail starts with only its icons.
-  final bool railCollapsed;
-
-  /// Called when the user collapses (true) or expands (false) the side rail.
-  final ValueChanged<bool>? onRailCollapsed;
 
   /// How long typing in the search bar has to stop before the search goes out, so that it isn't one
   /// per key.
@@ -32,7 +26,8 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-/// The library's sections, in the side rail (or, on a phone, the bar at the bottom).
+/// The library's sections, in the side rail (or, on a phone, the bar at the bottom). The app's icon, in the top
+/// bar, opens the home too, and on a wide screen it alone does.
 enum _Section {
   home('Início', Icons.home_outlined, Icons.home),
   albums('Álbuns', Icons.album_outlined, Icons.album),
@@ -58,15 +53,7 @@ class _HomePageState extends State<HomePage> {
   /// The sections opened so far: each loads the first time it is opened.
   final _opened = {_Section.home};
 
-  /// Whether the side rail shows only its icons.
-  late bool _railCollapsed = widget.railCollapsed;
-
-  /// The button that collapses and expands the side rail, the same in either, so that it keeps the
-  /// focus.
-  final _railToggle = GlobalKey();
-
-  void _select(int index) {
-    final section = _Section.values[index];
+  void _select(_Section section) {
     setState(() {
       _section = section;
       _opened.add(section);
@@ -75,11 +62,6 @@ class _HomePageState extends State<HomePage> {
     if (_results != null) {
       _clearSearch();
     }
-  }
-
-  void _toggleRail() {
-    setState(() => _railCollapsed = !_railCollapsed);
-    widget.onRailCollapsed?.call(_railCollapsed);
   }
 
   void _typed(String text) {
@@ -135,12 +117,6 @@ class _HomePageState extends State<HomePage> {
       onChanged: _typed,
       onSubmitted: _searchFor,
     );
-    final railToggle = IconButton(
-      key: _railToggle,
-      tooltip: _railCollapsed ? 'Expandir a barra lateral' : 'Recolher a barra lateral',
-      icon: Icon(_railCollapsed ? Icons.menu : Icons.menu_open),
-      onPressed: _toggleRail,
-    );
     // Next to the title when there is room for both; on a phone, on a line of its own under it.
     final narrow = MediaQuery.sizeOf(context).width < 600;
     final sections = Stack(
@@ -163,6 +139,12 @@ class _HomePageState extends State<HomePage> {
     );
     return Scaffold(
       appBar: AppBar(
+        // The app's icon, which opens the home: on a wide screen, over the side rail.
+        leading: IconButton(
+          tooltip: _Section.home.label,
+          icon: Image.asset('assets/logo.png', width: 32, height: 32),
+          onPressed: () => _select(_Section.home),
+        ),
         title: narrow
             ? Text(_section.label)
             : Row(
@@ -188,23 +170,7 @@ class _HomePageState extends State<HomePage> {
           ? sections
           : Row(
               children: [
-                if (_railCollapsed)
-                  _CollapsedRail(toggle: railToggle, selected: _section, onSelected: _select)
-                else
-                  NavigationRail(
-                    selectedIndex: _section.index,
-                    onDestinationSelected: _select,
-                    labelType: NavigationRailLabelType.all,
-                    leading: railToggle,
-                    destinations: [
-                      for (final section in _Section.values)
-                        NavigationRailDestination(
-                          icon: Icon(section.icon),
-                          selectedIcon: Icon(section.selectedIcon),
-                          label: Text(section.label),
-                        ),
-                    ],
-                  ),
+                _SideRail(selected: _section, onSelected: _select),
                 const VerticalDivider(width: 1),
                 Expanded(child: sections),
               ],
@@ -216,7 +182,7 @@ class _HomePageState extends State<HomePage> {
                 const NowPlayingBar(),
                 NavigationBar(
                   selectedIndex: _section.index,
-                  onDestinationSelected: _select,
+                  onDestinationSelected: (index) => _select(_Section.values[index]),
                   destinations: [
                     for (final section in _Section.values)
                       NavigationDestination(
@@ -233,16 +199,14 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-/// The side rail collapsed to its sections' icons, each named by its tooltip. NavigationRail's own
-/// highlight is as wide collapsed as expanded; here it is the icon's button's.
-class _CollapsedRail extends StatelessWidget {
-  const _CollapsedRail({required this.toggle, required this.selected, required this.onSelected});
-
-  /// The button that expands the rail.
-  final Widget toggle;
+/// The side rail: the sections' icons, each named by its tooltip, but the home's, which the app's icon above it
+/// opens. NavigationRail's highlight is 56 px wide, from one edge of so narrow a rail to the other; here it is the
+/// icon's button's.
+class _SideRail extends StatelessWidget {
+  const _SideRail({required this.selected, required this.onSelected});
 
   final _Section selected;
-  final ValueChanged<int> onSelected;
+  final ValueChanged<_Section> onSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -261,20 +225,19 @@ class _CollapsedRail extends StatelessWidget {
       child: Column(
         children: [
           const SizedBox(height: 8),
-          toggle,
-          const SizedBox(height: 8),
           for (final section in _Section.values)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: IconButton(
-                tooltip: section.label,
-                isSelected: section == selected,
-                icon: Icon(section.icon),
-                selectedIcon: Icon(section.selectedIcon),
-                style: style,
-                onPressed: () => onSelected(section.index),
+            if (section != _Section.home)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: IconButton(
+                  tooltip: section.label,
+                  isSelected: section == selected,
+                  icon: Icon(section.icon),
+                  selectedIcon: Icon(section.selectedIcon),
+                  style: style,
+                  onPressed: () => onSelected(section),
+                ),
               ),
-            ),
         ],
       ),
     );

@@ -7,6 +7,7 @@
 // - iOS: one 1024 px icon, from which Xcode makes the smaller ones.
 // - macOS: the icon at each size its asset catalog lists.
 // - Windows: one .ico, with the sizes Windows picks from.
+// - The app itself: the icon in its top bar, which goes to the home.
 import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
@@ -58,6 +59,12 @@ void main() {
     'windows/runner/resources/app_icon.ico',
     IcoEncoder().encodeImages([for (final size in windowsSizes) art.shape(size, 0.84)]),
   );
+
+  // In the app's top bar: the rounded square from edge to edge, 32 logical pixels, at each density Flutter picks an
+  // asset's variant for (assets/2.0x/logo.png for 2 physical pixels per logical one, and so on).
+  for (final density in [1, 2, 3, 4]) {
+    _write(density == 1 ? 'assets/logo.png' : 'assets/$density.0x/logo.png', art.shape(32 * density, 1));
+  }
 }
 
 void _write(String path, Image image) => _writeBytes(path, encodePng(image, level: 9));

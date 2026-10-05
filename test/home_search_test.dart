@@ -125,4 +125,19 @@ void main() {
     expect(field.center.dy, moreOrLessEquals(title.center.dy, epsilon: 4));
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
   });
+
+  testWidgets('the app\'s icon clears the search, going back to the home', (tester) async {
+    await pumpHome(tester, const Size(1000, 640));
+    await tester.enterText(find.byType(TextField), 'dream');
+    await tester.pump(HomePage.searchTypingPause);
+    await tester.pump();
+    expect(find.text('Dream Police'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Início'));
+    await tester.pump();
+    expect(find.text('Dream Police'), findsNothing);
+    expect(find.text('Toys in the Attic'), findsOneWidget);
+    expect(tester.widget<TextField>(find.byType(TextField)).controller?.text, isEmpty);
+    await tester.pumpWidget(const SizedBox()); // stops the bar's timer
+  });
 }

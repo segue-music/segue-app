@@ -25,8 +25,9 @@ the device it runs on.
   added to the library, 20 each, with arrows in each row's corner to go a screenful forward and
   back (on a Jellyfin server, which counts plays only by song, an album's plays are its songs',
   added up); albums (by name, the next ones coming as the grid nears its end) and artists (by
-  name, each with their albums); all three in a side rail (which a button collapses to its icons,
-  each naming its section on hover, and the app remembers so) or, on a phone, a bar at the bottom;
+  name, each with their albums): albums and artists in a side rail, as icons that name their
+  sections on hover, and the home under the app's icon, in the top bar's left corner (on a phone,
+  the icon goes there too, and all three are in a bar at the bottom);
   the album page; search (artists, albums and songs); and playback through media_kit (libmpv), with
   a seek bar, shuffle and repeat (the queue or the track), in the player bar and in a full-screen
   player that the song in the bar opens. In both, the song's title opens its album (as does the
@@ -52,7 +53,9 @@ the device it runs on.
   plays again after it, and leaving the car or unplugging the headphones pauses it;
 - its icon (made by `tool/icons.dart` from `tool/icon.png`): Android's launcher icon, adaptive from
   Android 8 on, the Android TV banner, on Linux the window's icon and an entry in the application
-  menu, the iOS and macOS icons, and the Windows icon.
+  menu, the iOS and macOS icons, the Windows icon, and the app's own, in its top bar. The theme,
+  light or dark (as the system's), takes the icon's colors: its magenta, the purple and the pink of
+  the ring around the note, and in the dark the black around it, as the background.
 
 Not yet: playlists, editing the queue (play next, add to it, reorder it), the media controls on the other platforms (Android's
 media session), on a Jellyfin server the cover of a song that came from another device

@@ -123,11 +123,10 @@ void main() {
     tester,
   ) async {
     await pumpHome(tester, const Size(1000, 700));
-    expect(find.byType(NavigationRail), findsOneWidget);
     expect(find.byType(NavigationBar), findsNothing);
     expect(title('Início'), findsOneWidget);
 
-    await tester.tap(find.descendant(of: find.byType(NavigationRail), matching: find.text('Artistas')));
+    await tester.tap(find.byTooltip('Artistas'));
     await tester.pumpAndSettle();
     expect(title('Artistas'), findsOneWidget);
     expect(find.text('Aerosmith'), findsOneWidget);
@@ -151,7 +150,7 @@ void main() {
   testWidgets('on a phone, the sections are in a bar at the bottom', (tester) async {
     await pumpHome(tester, const Size(360, 640));
     expect(find.byType(NavigationBar), findsOneWidget);
-    expect(find.byType(NavigationRail), findsNothing);
+    expect(find.byTooltip('Artistas'), findsOneWidget, reason: 'in the bar alone, with no side rail');
     await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Artistas')));
     await tester.pumpAndSettle();
     expect(title('Artistas'), findsOneWidget);
