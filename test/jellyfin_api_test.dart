@@ -205,6 +205,15 @@ void main() {
     expect(asked.last.url.queryParameters, containsPair('Ids', 'a2,a1'));
   });
 
+  test('a genre\'s most played albums add up the plays of its songs', () async {
+    final asked = <http.Request>[];
+    await jellyfin((_) => items([]), asked).mostPlayedAlbums(genre: 'g1');
+    final songs = asked.single.url.queryParameters;
+    expect(songs, containsPair('IncludeItemTypes', 'Audio'));
+    expect(songs, containsPair('GenreIds', 'g1'));
+    expect(songs, containsPair('SortBy', 'PlayCount'));
+  });
+
   test('with nothing played yet there are no most played albums, and no albums to ask for', () async {
     final asked = <http.Request>[];
     expect(await jellyfin((_) => items([]), asked).mostPlayedAlbums(), isEmpty);

@@ -94,12 +94,13 @@ class JellyfinApi implements MediaServer {
   ];
 
   /// Jellyfin counts plays only by song: an album's are those of its songs, added up, among the user's
-  /// most played songs. A tie goes to the album with the more played song.
+  /// most played songs (a genre's: of that genre). A tie goes to the album with the more played song.
   @override
-  Future<List<Album>> mostPlayedAlbums({int size = 20}) async {
+  Future<List<Album>> mostPlayedAlbums({int size = 20, String? genre}) async {
     final songs = await _items({
       'IncludeItemTypes': 'Audio',
       'Filters': 'IsPlayed',
+      'GenreIds': ?genre,
       'SortBy': 'PlayCount',
       'SortOrder': 'Descending',
       'Limit': '1000',

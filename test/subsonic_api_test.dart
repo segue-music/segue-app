@@ -229,6 +229,53 @@ void main() {
     expect(albums.single.name, 'Pump');
   });
 
+  test(
+    'a genre\'s most played albums are those of the genre among the 500 most played: frequent takes no genre',
+    () async {
+      late Uri asked;
+      final api = SubsonicApi(
+        Uri.parse('https://music.test'),
+        credentials,
+        client: MockClient((request) async {
+          asked = request.url;
+          return subsonic({
+            'status': 'ok',
+            'albumList2': {
+              'album': [
+                {
+                  'id': 'a1',
+                  'name': 'Pump',
+                  'genre': 'Rock',
+                  'genres': [
+                    {'name': 'Rock'},
+                  ],
+                },
+                {'id': 'a2', 'name': 'Honky Tonk Blues', 'genre': 'Blues'},
+                // Its first genre, and its others in OpenSubsonic's genres.
+                {
+                  'id': 'a3',
+                  'name': 'Toys in the Attic',
+                  'genre': 'Blues',
+                  'genres': [
+                    {'name': 'Blues'},
+                    {'name': 'Rock'},
+                  ],
+                },
+                // From a server without OpenSubsonic's genres.
+                {'id': 'a4', 'name': 'Rocks', 'genre': 'Rock'},
+                {'id': 'a5', 'name': 'Get a Grip', 'genre': 'Rock'},
+              ],
+            },
+          });
+        }),
+      );
+      final albums = await api.mostPlayedAlbums(size: 3, genre: 'Rock');
+      expect(asked.queryParameters, containsPair('type', 'frequent'));
+      expect(asked.queryParameters, containsPair('size', '500'));
+      expect([for (final album in albums) album.name], ['Pump', 'Toys in the Attic', 'Rocks']);
+    },
+  );
+
   test('search asks for artists, albums and songs', () async {
     late Uri asked;
     final api = SubsonicApi(

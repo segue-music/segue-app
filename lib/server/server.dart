@@ -57,8 +57,9 @@ abstract interface class MediaServer {
   /// The albums of the genre whose id is [id], by name.
   Future<List<Album>> genreAlbums(String id, {int size = 100, int offset = 0});
 
-  /// The albums the user plays most, the most played first; none before anything has played.
-  Future<List<Album>> mostPlayedAlbums({int size = 20});
+  /// The albums the user plays most, the most played first; none before anything has played. With
+  /// [genre], a genre's id, those of that genre.
+  Future<List<Album>> mostPlayedAlbums({int size = 20, String? genre});
 
   /// An album and its songs, in order.
   Future<(Album, List<Song>)> album(String id);

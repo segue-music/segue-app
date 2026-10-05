@@ -21,8 +21,9 @@ http.Response subsonic(Map<String, Object?> body) => http.Response(
   headers: {'content-type': 'application/json'},
 );
 
-/// A server whose genres come out of order, one of them only on songs, and whose Rock has two albums.
-/// [asked] gets the queries of the album lists asked for.
+/// A server whose genres come out of order, one of them only on songs. Rock has two albums, one of them
+/// among the most played, with one of hard rock; Blues has one, never played. [asked] gets the queries
+/// of the album lists asked for.
 http.Response server(http.Request request, List<Map<String, String>> asked) {
   final path = request.url.path;
   final query = request.url.queryParameters;
@@ -48,6 +49,26 @@ http.Response server(http.Request request, List<Map<String, String>> asked) {
           if (query['type'] == 'byGenre' && query['genre'] == 'Rock') ...[
             {'id': 'a1', 'name': 'Rocks', 'artist': 'Aerosmith'},
             {'id': 'a2', 'name': 'Toys in the Attic', 'artist': 'Aerosmith'},
+          ],
+          if (query['type'] == 'byGenre' && query['genre'] == 'Blues')
+            {'id': 'b1', 'name': 'Honky Tonk Blues', 'artist': 'Aerosmith'},
+          if (query['type'] == 'frequent') ...[
+            {
+              'id': 'a3',
+              'name': 'Pump',
+              'artist': 'Aerosmith',
+              'genres': [
+                {'name': 'hard rock'},
+              ],
+            },
+            {
+              'id': 'a2',
+              'name': 'Toys in the Attic',
+              'artist': 'Aerosmith',
+              'genres': [
+                {'name': 'Rock'},
+              ],
+            },
           ],
         ],
       },
@@ -123,11 +144,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(title('Rock'), findsOneWidget);
     expect(find.text('Rocks'), findsOneWidget);
-    expect(find.text('Toys in the Attic'), findsOneWidget);
-    expect(asked.last, containsPair('type', 'byGenre'));
-    expect(asked.last, containsPair('offset', '0'));
+    expect(find.text('Toys in the Attic'), findsWidgets);
+    expect(asked, contains(allOf(containsPair('type', 'byGenre'), containsPair('offset', '0'))));
 
-    await tester.tap(find.text('Toys in the Attic'));
+    await tester.tap(find.text('Toys in the Attic').last);
     await tester.pumpAndSettle();
     expect(find.text('Walk This Way'), findsOneWidget);
 
@@ -137,6 +157,46 @@ void main() {
     await tester.pumpAndSettle();
     expect(title('Gêneros'), findsOneWidget);
     await tester.pumpWidget(const SizedBox()); // stops the player bar's timers
+  });
+
+  testWidgets('a genre\'s page starts with a row of its most played albums, above all of them', (tester) async {
+    await pumpHome(tester, const Size(1000, 700));
+    await tester.tap(find.byTooltip('Gêneros'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Rock'));
+    await tester.pumpAndSettle();
+
+    final row = find.byWidgetPredicate((widget) => widget is ListView && widget.scrollDirection == Axis.horizontal);
+    expect(find.descendant(of: row, matching: find.text('Toys in the Attic')), findsOneWidget);
+    expect(
+      find.descendant(of: row, matching: find.text('Pump')),
+      findsNothing,
+      reason: 'another genre\'s',
+    );
+    expect(
+      find.descendant(of: row, matching: find.text('Rocks')),
+      findsNothing,
+      reason: 'never played',
+    );
+
+    final mostPlayed = tester.getRect(find.text('Mais tocados'));
+    final all = tester.getRect(find.text('Álbuns'));
+    expect(tester.getRect(row).top, greaterThan(mostPlayed.bottom));
+    expect(all.top, greaterThan(tester.getRect(row).bottom));
+    expect(tester.getRect(find.text('Rocks')).top, greaterThan(all.bottom));
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('a genre with nothing played has no row of the most played, just its albums', (tester) async {
+    await pumpHome(tester, const Size(1000, 700));
+    await tester.tap(find.byTooltip('Gêneros'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Blues'));
+    await tester.pumpAndSettle();
+    expect(find.text('Honky Tonk Blues'), findsOneWidget);
+    expect(find.text('Mais tocados'), findsNothing);
+    expect(find.text('Álbuns'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
   });
 
   testWidgets('on a phone, the genres are in the bar at the bottom', (tester) async {

@@ -62,15 +62,36 @@ class SubsonicApi implements MediaServer {
     offset: offset,
   );
 
+  /// getAlbumList2's frequent, which takes no genre: a genre's most played are those of the genre among
+  /// the 500 most played, as many as a list gives at once (Navidrome's limit).
   @override
-  Future<List<Album>> mostPlayedAlbums({int size = 20}) => _albumList({'type': 'frequent'}, size: size);
+  Future<List<Album>> mostPlayedAlbums({int size = 20, String? genre}) async {
+    if (genre == null) {
+      return _albumList({'type': 'frequent'}, size: size);
+    }
+
+    final albums = await _albumListItems({'type': 'frequent'}, size: 500);
+    return [
+      for (final json in albums)
+        if (_albumGenres(json).contains(genre)) _album(json),
+    ].take(size).toList();
+  }
 
   /// Albums in a list of getAlbumList2, which [query] names: its type (newest, recent, frequent, byYear,
   /// alphabeticalByName…) and the type's parameters.
-  Future<List<Album>> _albumList(Map<String, String> query, {required int size, int offset = 0}) async {
+  Future<List<Album>> _albumList(Map<String, String> query, {required int size, int offset = 0}) async => [
+    for (final json in await _albumListItems(query, size: size, offset: offset)) _album(json),
+  ];
+
+  /// The same albums, as the server sends them.
+  Future<List<Map<String, dynamic>>> _albumListItems(
+    Map<String, String> query, {
+    required int size,
+    int offset = 0,
+  }) async {
     final body = await _get('getAlbumList2', {...query, 'size': '$size', 'offset': '$offset'});
     final list = (body['albumList2'] as Map<String, dynamic>?)?['album'] as List? ?? const [];
-    return [for (final album in list) _album(album as Map<String, dynamic>)];
+    return [for (final album in list) album as Map<String, dynamic>];
   }
 
   /// Every genre (getGenres), by its name: Subsonic has no ids for them.
@@ -203,6 +224,13 @@ Album _album(Map<String, dynamic> json) => Album(
   songCount: (json['songCount'] as num?)?.toInt(),
   artistId: json['artistId'] as String?,
 );
+
+/// An album's genres: Subsonic's genre, its first, and OpenSubsonic's genres, all of them.
+Set<String> _albumGenres(Map<String, dynamic> json) => {
+  if (json['genre'] case final String genre) genre,
+  for (final genre in json['genres'] as List? ?? const [])
+    if ((genre as Map<String, dynamic>)['name'] case final String name) name,
+};
 
 Song _song(Map<String, dynamic> json) => Song(
   id: json['id'] as String,

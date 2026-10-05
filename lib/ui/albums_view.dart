@@ -13,10 +13,13 @@ import 'spinner.dart';
 
 /// The library's albums, or a genre's, by name, a page at a time: the next as the grid nears its end.
 class AlbumsView extends StatefulWidget {
-  const AlbumsView({this.genre, super.key});
+  const AlbumsView({this.genre, this.header, super.key});
 
   /// The genre whose albums it lists; null, the library's.
   final Genre? genre;
+
+  /// Above the albums, scrolling with them.
+  final Widget? header;
 
   @override
   State<AlbumsView> createState() => _AlbumsViewState();
@@ -135,6 +138,7 @@ class _AlbumsViewState extends State<AlbumsView> {
         onRefresh: () => _load(over: true),
         child: AlbumGrid(
           _albums,
+          header: widget.header,
           footer: error != null
               ? _Retry('Não consegui listar mais álbuns: $error', onRetry: _retry)
               : _loading
