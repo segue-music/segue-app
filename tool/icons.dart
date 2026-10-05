@@ -6,6 +6,7 @@
 // - Linux: the window's icon, also the one of the menu entry that install-desktop-entry.sh adds.
 // - iOS: one 1024 px icon, from which Xcode makes the smaller ones.
 // - macOS: the icon at each size its asset catalog lists.
+// - Windows: one .ico, with the sizes Windows picks from.
 import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
@@ -48,12 +49,23 @@ void main() {
   for (final size in [16, 32, 64, 128, 256, 512, 1024]) {
     _write('macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_$size.png', art.shape(size, 824 / 1024));
   }
+
+  // Windows: the rounded square with the rest transparent, as on Linux, at the sizes Windows picks from for the
+  // taskbar, the title bar and Explorer, at 100 to 200 % scaling. Each one is a PNG inside the .ico, which Windows
+  // reads since Vista.
+  final windowsSizes = [16, 20, 24, 32, 40, 48, 64, 256];
+  _writeBytes(
+    'windows/runner/resources/app_icon.ico',
+    IcoEncoder().encodeImages([for (final size in windowsSizes) art.shape(size, 0.84)]),
+  );
 }
 
-void _write(String path, Image image) {
+void _write(String path, Image image) => _writeBytes(path, encodePng(image, level: 9));
+
+void _writeBytes(String path, List<int> bytes) {
   File(path)
     ..createSync(recursive: true)
-    ..writeAsBytesSync(encodePng(image, level: 9));
+    ..writeAsBytesSync(bytes);
   stdout.writeln(path);
 }
 
