@@ -10,6 +10,9 @@
 struct _MyApplication {
   GtkApplication parent_instance;
   char** dart_entrypoint_arguments;
+  // The app's channel to the window (segue/window), and the style it gives the header bar.
+  FlMethodChannel* window_channel;
+  GtkCssProvider* title_bar_style;
 };
 
 G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
@@ -17,6 +20,92 @@ G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
 // Called when first Flutter frame received.
 static void first_frame_cb(MyApplication* self, FlView* view) {
   gtk_widget_show(gtk_widget_get_toplevel(GTK_WIDGET(view)));
+}
+
+// The header bar in the app's colors, so that it reads as part of the app and not as a strip of the system's color
+// above it: the background, the title and the close button. Its line at the bottom would set it apart, so it goes.
+// When the window isn't the active one, the title and the button fade, as GTK's own do.
+static const char kTitleBarStyle[] = R"(
+@define-color segue_background %s;
+@define-color segue_foreground %s;
+
+headerbar, headerbar:backdrop {
+  background: @segue_background;
+  color: @segue_foreground;
+  border: none;
+  box-shadow: none;
+}
+
+headerbar:backdrop {
+  color: alpha(@segue_foreground, 0.6);
+}
+
+headerbar button.titlebutton, headerbar button.titlebutton:backdrop {
+  background: none;
+  color: inherit;
+  border-color: transparent;
+  box-shadow: none;
+  text-shadow: none;
+  -gtk-icon-shadow: none;
+}
+
+headerbar button.titlebutton:hover {
+  background: alpha(@segue_foreground, 0.12);
+}
+
+headerbar button.titlebutton:active {
+  background: alpha(@segue_foreground, 0.2);
+}
+)";
+
+// A color as the app sends it (Color.toARGB32), as CSS: its alpha is left out, the app's colors being opaque.
+static gchar* css_color(FlValue* argb) {
+  return g_strdup_printf("#%06x", static_cast<guint>(fl_value_get_int(argb) & 0xffffff));
+}
+
+// The integer under key in the map args, or nullptr.
+static FlValue* lookup_int(FlValue* args, const gchar* key) {
+  if (fl_value_get_type(args) != FL_VALUE_TYPE_MAP) {
+    return nullptr;
+  }
+
+  FlValue* value = fl_value_lookup_string(args, key);
+  return value != nullptr && fl_value_get_type(value) == FL_VALUE_TYPE_INT
+             ? value
+             : nullptr;
+}
+
+// Answers the app's calls on segue/window (lib/ui/title_bar.dart): setTitleBarColors gives the header bar the
+// theme's background and foreground.
+static void window_method_call_cb(FlMethodChannel* channel,
+                                  FlMethodCall* method_call,
+                                  gpointer user_data) {
+  MyApplication* self = MY_APPLICATION(user_data);
+
+  if (g_strcmp0(fl_method_call_get_name(method_call), "setTitleBarColors") !=
+      0) {
+    fl_method_call_respond_not_implemented(method_call, nullptr);
+    return;
+  }
+
+  FlValue* args = fl_method_call_get_args(method_call);
+  FlValue* background = lookup_int(args, "background");
+  FlValue* foreground = lookup_int(args, "foreground");
+
+  if (background == nullptr || foreground == nullptr) {
+    fl_method_call_respond_error(
+        method_call, "bad_arguments",
+        "expected background and foreground as ARGB integers", nullptr,
+        nullptr);
+    return;
+  }
+
+  g_autofree gchar* background_css = css_color(background);
+  g_autofree gchar* foreground_css = css_color(foreground);
+  g_autofree gchar* css =
+      g_strdup_printf(kTitleBarStyle, background_css, foreground_css);
+  gtk_css_provider_load_from_data(self->title_bar_style, css, -1, nullptr);
+  fl_method_call_respond_success(method_call, nullptr, nullptr);
 }
 
 // Implements GApplication::activate.
@@ -85,6 +174,19 @@ static void my_application_activate(GApplication* application) {
 
   fl_register_plugins(FL_PLUGIN_REGISTRY(view));
 
+  // The header bar's style is the screen's, since a widget's own reaches neither its title nor its buttons. Until
+  // the app sends its colors, the provider is empty, and the bar is GTK's.
+  self->title_bar_style = gtk_css_provider_new();
+  gtk_style_context_add_provider_for_screen(
+      gtk_window_get_screen(window), GTK_STYLE_PROVIDER(self->title_bar_style),
+      GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+  g_autoptr(FlStandardMethodCodec) codec = fl_standard_method_codec_new();
+  self->window_channel = fl_method_channel_new(
+      fl_engine_get_binary_messenger(fl_view_get_engine(view)), "segue/window",
+      FL_METHOD_CODEC(codec));
+  fl_method_channel_set_method_call_handler(
+      self->window_channel, window_method_call_cb, self, nullptr);
+
   gtk_widget_grab_focus(GTK_WIDGET(view));
 }
 
@@ -131,6 +233,8 @@ static void my_application_shutdown(GApplication* application) {
 static void my_application_dispose(GObject* object) {
   MyApplication* self = MY_APPLICATION(object);
   g_clear_pointer(&self->dart_entrypoint_arguments, g_strfreev);
+  g_clear_object(&self->window_channel);
+  g_clear_object(&self->title_bar_style);
   G_OBJECT_CLASS(my_application_parent_class)->dispose(object);
 }
 

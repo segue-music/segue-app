@@ -9,6 +9,7 @@ import 'ui/login_page.dart';
 import 'ui/shortcuts.dart';
 import 'ui/spinner.dart';
 import 'ui/theme.dart';
+import 'ui/title_bar.dart';
 
 class SegueApp extends StatefulWidget {
   const SegueApp({required this.session, this.mediaControls, this.interruptions, this.television = false, super.key});
@@ -100,14 +101,14 @@ class _SegueAppState extends State<SegueApp> {
           child: TextFieldArrowShortcuts(child: child!),
         );
 
-        if (services == null) {
-          return page;
-        }
-
-        return ServicesScope(
-          services: services,
-          // The media keys, too, where no system media session takes them.
-          child: PlaybackShortcuts(mediaKeys: widget.mediaControls == null, child: page),
+        return ThemedTitleBar(
+          child: services == null
+              ? page
+              : ServicesScope(
+                  services: services,
+                  // The media keys, too, where no system media session takes them.
+                  child: PlaybackShortcuts(mediaKeys: widget.mediaControls == null, child: page),
+                ),
         );
       },
       home: services != null

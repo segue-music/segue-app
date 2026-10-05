@@ -59,7 +59,8 @@ the device it runs on.
   Android 8 on, the Android TV banner, on Linux the window's icon and an entry in the application
   menu, the iOS and macOS icons, the Windows icon, and the app's own, in its top bar. The theme,
   light or dark (as the system's), takes the icon's colors: its magenta, the purple and the pink of
-  the ring around the note, and in the dark the black around it, as the background.
+  the ring around the note, and in the dark the black around it, as the background. On Linux the
+  window's title bar, with the close button, takes the background too.
 
 Not yet: playlists, editing the queue (play next, add to it, reorder it), the media controls on the other platforms (Android's
 media session), on a Jellyfin server the cover of a song that came from another device
