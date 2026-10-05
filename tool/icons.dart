@@ -1,5 +1,5 @@
-// Makes the app's icons from tool/icon.png, the artwork: a red rounded square on a near-black background. Run it from
-// app/ after changing the artwork: DART=1 tool/flutter.sh run tool/icons.dart
+// Makes the app's icons from tool/icon.png, the artwork: a magenta rounded square, with a ring around the note, on a
+// near-black background. Run it after changing the artwork: DART=1 tool/flutter.sh run tool/icons.dart
 //
 // - Android: the launcher icon, adaptive (Android 8 and later, mipmap-anydpi-v26/ic_launcher.xml) and as a plain image
 //   before that, and the Android TV banner.
@@ -11,9 +11,9 @@ import 'dart:typed_data';
 
 import 'package:image/image.dart';
 
-/// The rounded square in the artwork, in its pixels, and how far the note reaches from the square's centre (the tip of
-/// its top flag), as measured on it. A new artwork needs these measured again.
-const _left = 140.0, _top = 137.0, _right = 1112.0, _bottom = 1085.0, _radius = 200.0, _note = 450.0;
+/// The rounded square in the artwork, in its pixels, and how far the drawing in it reaches from the square's centre
+/// (the outer edge of the ring around the note), as measured on it. A new artwork needs these measured again.
+const _left = 95.0, _top = 101.0, _right = 789.5, _bottom = 765.5, _radius = 136.0, _reach = 290.0;
 
 const _res = 'android/app/src/main/res';
 
@@ -28,18 +28,18 @@ void main() {
     _write('$_res/mipmap-$density/ic_launcher.png', art.shape((48 * scale).round(), 40 / 48));
     // Android 8 and later: the launcher cuts the icon to its own shape (a circle, a squircle...), so the foreground
     // layer, 108 dp of which 72 dp show, is the inside of the square without its edge, stretched to the layer's
-    // borders. The note fits in the 66 dp circle that every shape keeps.
+    // borders. The ring fits in the 66 dp circle that every shape keeps.
     _write('$_res/mipmap-$density/ic_launcher_foreground.png', art.inside((108 * scale).round(), 66 / 108));
   }
 
   // The Android TV banner, 320 × 180 dp: the artwork with its glow, on its own background.
   _write('$_res/drawable-xhdpi/banner.png', art.banner(640, 360));
   _write('linux/runner/resources/app_icon.png', art.shape(256, 0.84));
-  // iOS cuts the icon to its own rounded square, so it is the artwork's square from edge to edge, the note as big in it
-  // as in the artwork. Opaque: App Store Connect refuses an icon with an alpha channel.
+  // iOS cuts the icon to its own rounded square, so it is the artwork's square from edge to edge, the drawing as big in
+  // it as in the artwork. Opaque: App Store Connect refuses an icon with an alpha channel.
   _write(
     'ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png',
-    art.inside(1024, 2 * _note / (_right - _left)).convert(numChannels: 3),
+    art.inside(1024, 2 * _reach / (_right - _left)).convert(numChannels: 3),
   );
 }
 
@@ -74,10 +74,10 @@ class _Artwork {
   }
 
   /// The inside of the rounded square, 16 px from its edge, carried on to the image's borders by repeating that edge
-  /// outwards: opaque, with nothing of the square's shape left. [fill] is how much of the image the note takes.
+  /// outwards: opaque, with nothing of the square's shape left. [fill] is how much of the image the drawing takes.
   Image inside(int size, double fill) {
     const inset = 16.0;
-    final scale = 2 * _note / (size * fill);
+    final scale = 2 * _reach / (size * fill);
     return _render(size, size, scale, (x, y) {
       final (px, py) = _nearestInside(x, y, inset);
       final (r, g, b) = _sample(px, py);
