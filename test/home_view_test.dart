@@ -127,7 +127,7 @@ void main() {
 
     final released = tester.getRect(find.text('Lançamentos'));
     final another = tester.getRect(find.text('Music from Another Dimension!'));
-    final mostPlayed = tester.getRect(find.text('Mais tocados'));
+    final mostPlayed = tester.getRect(find.text('Mais ouvidos'));
     final pump = tester.getRect(find.text('Pump'));
     final toys = tester.getRect(find.text('Toys in the Attic'));
     final latest = tester.getRect(find.text('Adicionados recentemente'));
@@ -190,12 +190,12 @@ void main() {
     await tester.tap(find.byTooltip('Artistas'));
     await tester.pumpAndSettle();
     expect(title('Artistas'), findsOneWidget);
-    expect(shown('Mais tocados'), findsNothing);
+    expect(shown('Mais ouvidos'), findsNothing);
 
     await tester.tap(logo);
     await tester.pumpAndSettle();
     expect(title('Início'), findsOneWidget);
-    expect(shown('Mais tocados'), findsOneWidget);
+    expect(shown('Mais ouvidos'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -272,7 +272,7 @@ void main() {
     expect(find.byType(Scrollbar), findsNothing);
     final back = find.byTooltip('Voltar').first;
     final forward = find.byTooltip('Avançar').first;
-    final heading = tester.getRect(find.text('Mais tocados'));
+    final heading = tester.getRect(find.text('Mais ouvidos'));
     expect(tester.getRect(back).left, greaterThan(heading.right));
     expect(tester.getRect(forward).left, greaterThan(tester.getRect(back).right - 1));
     expect(tester.getRect(forward).right, greaterThan(1000 - 64), reason: 'in the right corner');
@@ -345,7 +345,7 @@ void main() {
 
   testWidgets('before anything has played, the home says what will show there', (tester) async {
     await pumpHome(tester, const Size(1000, 700), mostPlayed: []);
-    expect(find.text('Mais tocados'), findsOneWidget);
+    expect(find.text('Mais ouvidos'), findsOneWidget);
     expect(find.text('Os álbuns que você mais ouvir aparecem aqui.'), findsOneWidget);
     expect(find.text('Night in the Ruts'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());

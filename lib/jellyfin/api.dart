@@ -97,29 +97,17 @@ class JellyfinApi implements MediaServer {
   /// most played songs (a genre's: of that genre). A tie goes to the album with the more played song.
   @override
   Future<List<Album>> mostPlayedAlbums({int size = 20, String? genre}) async {
-    final songs = await _items({
-      'IncludeItemTypes': 'Audio',
-      'Filters': 'IsPlayed',
-      'GenreIds': ?genre,
-      'SortBy': 'PlayCount',
-      'SortOrder': 'Descending',
-      'Limit': '1000',
-    });
     final plays = <String, int>{};
 
-    for (final song in songs) {
+    for (final song in await _mostPlayedSongs({'GenreIds': ?genre})) {
       final album = song['AlbumId'] as String?;
-      final count = ((song['UserData'] as Map<String, dynamic>?)?['PlayCount'] as num?)?.toInt() ?? 0;
 
       if (album != null) {
-        plays[album] = (plays[album] ?? 0) + count;
+        plays[album] = (plays[album] ?? 0) + _playCount(song);
       }
     }
 
-    final ranked = [
-      for (final (i, MapEntry(key: id, value: count)) in plays.entries.indexed) (id: id, count: count, i: i),
-    ]..sort((a, b) => a.count != b.count ? b.count.compareTo(a.count) : a.i.compareTo(b.i));
-    final ids = [for (final album in ranked.take(size)) album.id];
+    final ids = rankedByCount(plays).take(size).toList();
 
     if (ids.isEmpty) {
       return const [];
@@ -130,6 +118,25 @@ class JellyfinApi implements MediaServer {
       for (final json in await _items({'Ids': ids.join(',')})) json['Id'] as String: _album(json),
     };
     return [for (final id in ids) ?albums[id]];
+  }
+
+  /// A genre's plays are those of its songs, added up, among the user's most played songs, as an
+  /// album's are.
+  @override
+  Future<List<Genre>> mostPlayedGenres({int size = 10}) async {
+    final plays = <String, int>{};
+    final names = <String, String>{};
+
+    for (final song in await _mostPlayedSongs({'Fields': 'Genres'})) {
+      for (final genre in song['GenreItems'] as List? ?? const []) {
+        if (genre case {'Id': final String id, 'Name': final String name}) {
+          plays[id] = (plays[id] ?? 0) + _playCount(song);
+          names[id] = name;
+        }
+      }
+    }
+
+    return [for (final id in rankedByCount(plays).take(size)) Genre(id: id, name: names[id]!)];
   }
 
   /// Every music genre, with how many albums it has. MusicGenres, which Jellyfin keeps next to Genres:
@@ -239,6 +246,17 @@ class JellyfinApi implements MediaServer {
   Future<List<Map<String, dynamic>>> _items(Map<String, String> query) =>
       _list('Items', {'Recursive': 'true', ...query});
 
+  /// The user's most played songs, the most played first, as many as 1000, that match [query]: where
+  /// Jellyfin keeps the plays.
+  Future<List<Map<String, dynamic>>> _mostPlayedSongs(Map<String, String> query) => _items({
+    'IncludeItemTypes': 'Audio',
+    'Filters': 'IsPlayed',
+    'SortBy': 'PlayCount',
+    'SortOrder': 'Descending',
+    'Limit': '1000',
+    ...query,
+  });
+
   /// Artists come from their own endpoint: Jellyfin's Items doesn't list them.
   Future<List<Map<String, dynamic>>> _albumArtists(Map<String, String> query) => _list('Artists/AlbumArtists', query);
 
@@ -292,6 +310,10 @@ String? _joined(Object? names) => names is List && names.isNotEmpty ? names.join
 /// The id of the first of a list of names with ids, as ArtistItems and AlbumArtists are.
 String? _firstId(Object? items) =>
     items is List && items.isNotEmpty ? (items.first as Map<String, dynamic>)['Id'] as String? : null;
+
+/// How many times the user played an item.
+int _playCount(Map<String, dynamic> json) =>
+    ((json['UserData'] as Map<String, dynamic>?)?['PlayCount'] as num?)?.toInt() ?? 0;
 
 Duration? _duration(Map<String, dynamic> json) {
   final ticks = json['RunTimeTicks'] as num?; // 10 million to the second

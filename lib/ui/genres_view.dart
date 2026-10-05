@@ -6,8 +6,9 @@ import 'artists_view.dart';
 import 'genre_page.dart';
 import 'spinner.dart';
 
-/// The library's genres, by name, each with how many albums it has. Those with none, which a server
-/// may list for their songs alone, are left out: they would open an empty page.
+/// The library's genres, by name, each with how many albums it has, under those the user listens to
+/// most. Those with no albums, which a server may list for their songs alone, are left out: they would
+/// open an empty page.
 class GenresView extends StatefulWidget {
   const GenresView({super.key});
 
@@ -15,8 +16,11 @@ class GenresView extends StatefulWidget {
   State<GenresView> createState() => _GenresViewState();
 }
 
+/// Every genre, and those the user listens to most.
+typedef _Genres = ({List<Genre> all, List<Genre> mostPlayed});
+
 class _GenresViewState extends State<GenresView> {
-  Future<List<Genre>>? _genres;
+  Future<_Genres>? _genres;
 
   @override
   void didChangeDependencies() {
@@ -24,12 +28,18 @@ class _GenresViewState extends State<GenresView> {
     _genres ??= _load();
   }
 
-  Future<List<Genre>> _load() async {
-    final genres = await ServicesScope.of(context).api.genres();
-    return [
-      for (final genre in genres)
-        if (genre.albumCount != 0) genre,
-    ]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+  Future<_Genres> _load() async {
+    final api = ServicesScope.of(context).api;
+    // A shortcut, which the list goes without when the server fails to give it.
+    final mostPlayed = api.mostPlayedGenres().catchError((_) => const <Genre>[]);
+    final genres = await api.genres();
+    return (
+      all: [
+        for (final genre in genres)
+          if (genre.albumCount != 0) genre,
+      ]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase())),
+      mostPlayed: await mostPlayed,
+    );
   }
 
   @override
@@ -46,6 +56,9 @@ class _GenresViewState extends State<GenresView> {
         return const Center(child: Spinner());
       }
 
+      final (:all, :mostPlayed) = genres;
+      // Before anything has played, the list alone.
+      final header = mostPlayed.isEmpty ? 0 : 1;
       return RefreshIndicator(
         onRefresh: () async {
           final reload = _load();
@@ -54,13 +67,17 @@ class _GenresViewState extends State<GenresView> {
         },
         child: ListView.builder(
           padding: const EdgeInsets.symmetric(vertical: 8),
-          itemCount: genres.length,
+          itemCount: header + all.length,
           itemBuilder: (context, i) {
-            final genre = genres[i];
+            if (i < header) {
+              return _MostPlayed(mostPlayed);
+            }
+
+            final genre = all[i - header];
             return ListTile(
               title: Text(genre.name),
               subtitle: genre.albumCount == null ? null : Text(albumCount(genre.albumCount)),
-              onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => GenrePage(genre))),
+              onTap: () => _open(context, genre),
             );
           },
         ),
@@ -68,3 +85,39 @@ class _GenresViewState extends State<GenresView> {
     },
   );
 }
+
+/// The genres the user listens to most, the most first, as buttons; then the heading of the list of
+/// them all.
+class _MostPlayed extends StatelessWidget {
+  const _MostPlayed(this.genres);
+
+  final List<Genre> genres;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Mais ouvidos', style: text.titleLarge),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final genre in genres)
+                FilledButton.tonal(onPressed: () => _open(context, genre), child: Text(genre.name)),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Text('Todos os gêneros', style: text.titleLarge),
+        ],
+      ),
+    );
+  }
+}
+
+void _open(BuildContext context, Genre genre) =>
+    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => GenrePage(genre)));

@@ -38,6 +38,13 @@ enum AlbumOrder {
   released,
 }
 
+/// The keys of [counts], the highest count first; a tie keeps their order in [counts].
+List<K> rankedByCount<K>(Map<K, int> counts) {
+  final ranked = [for (final (i, MapEntry(:key, :value)) in counts.entries.indexed) (key: key, count: value, i: i)]
+    ..sort((a, b) => a.count != b.count ? b.count.compareTo(a.count) : a.i.compareTo(b.i));
+  return [for (final entry in ranked) entry.key];
+}
+
 /// The media server, through the API it speaks: `SubsonicApi` or `JellyfinApi`.
 abstract interface class MediaServer {
   /// Also the API of the ids the hub gives this device (SPEC.md, section 8).
@@ -60,6 +67,9 @@ abstract interface class MediaServer {
   /// The albums the user plays most, the most played first; none before anything has played. With
   /// [genre], a genre's id, those of that genre.
   Future<List<Album>> mostPlayedAlbums({int size = 20, String? genre});
+
+  /// The genres the user plays most, the most played first; none before anything has played.
+  Future<List<Genre>> mostPlayedGenres({int size = 10});
 
   /// An album and its songs, in order.
   Future<(Album, List<Song>)> album(String id);

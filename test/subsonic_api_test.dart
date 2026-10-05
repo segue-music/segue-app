@@ -276,6 +276,53 @@ void main() {
     },
   );
 
+  test('the most played genres add up the plays of the 500 most played albums, by each of their genres', () async {
+    late Uri asked;
+    final api = SubsonicApi(
+      Uri.parse('https://music.test'),
+      credentials,
+      client: MockClient((request) async {
+        asked = request.url;
+        return subsonic({
+          'status': 'ok',
+          'albumList2': {
+            'album': [
+              {
+                'id': 'a1',
+                'name': 'Pump',
+                'playCount': 10,
+                'genres': [
+                  {'name': 'Rock'},
+                ],
+              },
+              {'id': 'a2', 'name': 'Kind of Blue', 'playCount': 8, 'genre': 'Jazz'},
+              {
+                'id': 'a3',
+                'name': 'Toys in the Attic',
+                'playCount': 6,
+                'genre': 'Blues',
+                'genres': [
+                  {'name': 'Blues'},
+                  {'name': 'Rock'},
+                ],
+              },
+              // A server that doesn't say counts each album once.
+              {'id': 'a4', 'name': 'Thriller', 'genre': 'Pop'},
+            ],
+          },
+        });
+      }),
+    );
+    final genres = await api.mostPlayedGenres(size: 3);
+    expect(asked.queryParameters, containsPair('type', 'frequent'));
+    expect(asked.queryParameters, containsPair('size', '500'));
+    expect(
+      [for (final genre in genres) (genre.id, genre.name)],
+      [('Rock', 'Rock'), ('Jazz', 'Jazz'), ('Blues', 'Blues')],
+    );
+    expect(await api.mostPlayedGenres(), hasLength(4));
+  });
+
   test('search asks for artists, albums and songs', () async {
     late Uri asked;
     final api = SubsonicApi(

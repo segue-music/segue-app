@@ -26,9 +26,10 @@ the device it runs on.
   added to the library, 20 each, with arrows in each row's corner to go a screenful forward and
   back (on a Jellyfin server, which counts plays only by song, an album's plays are its songs',
   added up); albums (by name, the next ones coming as the grid nears its end), artists (by name,
-  each with their albums) and genres (by name, each with its number of albums, and its albums by
-  name, under a row of those the user plays most: on a Subsonic server, whose list of the most
-  played takes no genre, those among the 500 most played): albums, artists and genres in a side rail, as icons that name their sections on hover,
+  each with their albums) and genres (by name, each with its number of albums, under the ten the
+  user listens to most, and its albums by name, under a row of those the user plays most: on a
+  Subsonic server, which counts no plays by genre, both come from the 500 most played albums):
+  albums, artists and genres in a side rail, as icons that name their sections on hover,
   and the home under the app's icon, in the top bar's left corner (on a phone, the icon goes there
   too, and all four are in a bar at the bottom);
   the album page, whose cover opens full screen; search (artists, albums and songs); and playback

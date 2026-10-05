@@ -214,6 +214,34 @@ void main() {
     expect(songs, containsPair('SortBy', 'PlayCount'));
   });
 
+  test('the most played genres add up the plays of the most played songs, by each of their genres', () async {
+    Map<String, Object?> played(String id, int plays, List<(String, String)> genres) => {
+      ...song,
+      'Id': id,
+      'GenreItems': [
+        for (final (id, name) in genres) {'Id': id, 'Name': name},
+      ],
+      'UserData': {'PlayCount': plays, 'Played': true},
+    };
+
+    final asked = <http.Request>[];
+    final genres = await jellyfin(
+      (_) => items([
+        played('s1', 12, [('g3', 'Jazz')]),
+        played('s2', 9, [('g1', 'Rock')]),
+        played('s3', 5, [('g2', 'Blues'), ('g1', 'Rock')]),
+        played('s4', 1, []),
+      ]),
+      asked,
+    ).mostPlayedGenres(size: 2);
+    expect([for (final genre in genres) (genre.id, genre.name)], [('g1', 'Rock'), ('g3', 'Jazz')]);
+    final songs = asked.single.url.queryParameters;
+    expect(songs, containsPair('IncludeItemTypes', 'Audio'));
+    expect(songs, containsPair('Filters', 'IsPlayed'));
+    expect(songs, containsPair('SortBy', 'PlayCount'));
+    expect(songs['Fields'], contains('Genres'));
+  });
+
   test('with nothing played yet there are no most played albums, and no albums to ask for', () async {
     final asked = <http.Request>[];
     expect(await jellyfin((_) => items([]), asked).mostPlayedAlbums(), isEmpty);

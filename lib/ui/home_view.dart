@@ -48,7 +48,7 @@ class _HomeViewState extends State<HomeView> {
       padding: const EdgeInsets.only(bottom: 16),
       children: [
         AlbumRow(title: 'Lançamentos', albums: _released, empty: 'A biblioteca está vazia.'),
-        AlbumRow(title: 'Mais tocados', albums: _mostPlayed, empty: 'Os álbuns que você mais ouvir aparecem aqui.'),
+        AlbumRow(title: 'Mais ouvidos', albums: _mostPlayed, empty: 'Os álbuns que você mais ouvir aparecem aqui.'),
         AlbumRow(title: 'Adicionados recentemente', albums: _latest, empty: 'A biblioteca está vazia.'),
       ],
     ),

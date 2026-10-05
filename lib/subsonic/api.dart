@@ -107,6 +107,21 @@ class SubsonicApi implements MediaServer {
   Future<List<Album>> genreAlbums(String id, {int size = 100, int offset = 0}) =>
       _albumList({'type': 'byGenre', 'genre': id}, size: size, offset: offset);
 
+  /// Subsonic counts no plays by genre: a genre's are those of its albums among the 500 most played,
+  /// added up. A server that doesn't say an album's plays counts it once.
+  @override
+  Future<List<Genre>> mostPlayedGenres({int size = 10}) async {
+    final plays = <String, int>{};
+
+    for (final album in await _albumListItems({'type': 'frequent'}, size: 500)) {
+      for (final genre in _albumGenres(album)) {
+        plays[genre] = (plays[genre] ?? 0) + ((album['playCount'] as num?)?.toInt() ?? 1);
+      }
+    }
+
+    return [for (final name in rankedByCount(plays).take(size)) Genre(id: name, name: name)];
+  }
+
   @override
   Future<(Album, List<Song>)> album(String id) async {
     final json = (await _get('getAlbum', {'id': id}))['album'] as Map<String, dynamic>;
