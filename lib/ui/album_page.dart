@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../server/models.dart';
 import '../services.dart';
 import 'album_artist_link.dart';
-import 'cover.dart';
+import 'cover_page.dart';
 import 'current_song.dart';
 import 'errors.dart';
 import 'now_playing_bar.dart';
@@ -60,10 +60,7 @@ class _AlbumPageState extends State<AlbumPage> {
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
-                    SizedBox.square(
-                      dimension: 140,
-                      child: ClipRRect(borderRadius: BorderRadius.circular(8), child: Cover(album.coverArt)),
-                    ),
+                    SizedBox.square(dimension: 140, child: CoverButton(album.coverArt)),
                     const SizedBox(width: 16),
                     Expanded(
                       child: Column(

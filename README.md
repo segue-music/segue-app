@@ -28,14 +28,15 @@ the device it runs on.
   name, each with their albums): albums and artists in a side rail, as icons that name their
   sections on hover, and the home under the app's icon, in the top bar's left corner (on a phone,
   the icon goes there too, and all three are in a bar at the bottom);
-  the album page; search (artists, albums and songs); and playback through media_kit (libmpv), with
-  a seek bar, shuffle and repeat (the queue or the track), in the player bar and in a full-screen
-  player that the song in the bar opens. In both, the song's title opens its album (as does the
-  album's name, in the full-screen player) and its artist their page (the first artist, when it has
-  several), whichever device it plays on; on a phone the whole song in the bar opens the player.
-  Wherever albums are listed (the home's rows, the albums tab and search), an album's artist opens
-  their page, and the rest of it the album; on the album's page the artist links too, and there the
-  keyboard and the remote get to them (in the lists, each album is one stop);
+  the album page, whose cover opens full screen; search (artists, albums and songs); and playback
+  through media_kit (libmpv), with a seek bar, shuffle and repeat (the queue or the track), in the
+  player bar and in a full-screen player that the song in the bar opens. In both, the song's title
+  opens its album (as does the album's name, in the full-screen player) and its artist their page
+  (the first artist, when it has several), whichever device it plays on; on a phone the whole song
+  in the bar opens the player. Wherever albums are listed (the home's rows, the albums tab and
+  search), an album's artist opens their page, and the rest of it the album; on the album's page
+  the artist links too, and there the keyboard and the remote get to them (in the lists, each album
+  is one stop);
 - the queue of whichever device the app controls, from the full-screen player or, on a wide
   screen, the player bar: the current track on top, the next ones under it and what played before
   above it. A tap on a track plays it there;
