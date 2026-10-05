@@ -38,9 +38,11 @@ the device it runs on.
   opens its album (as does the album's name, in the full-screen player) and its artist their page
   (the first artist, when it has several), whichever device it plays on; on a phone the whole song
   in the bar opens the player. Wherever albums are listed (the home's rows, the albums tab and
-  search), an album's artist opens their page, and the rest of it the album; on the album's page
-  the artist links too, and there the keyboard and the remote get to them (in the lists, each album
-  is one stop);
+  search), an album's artist opens their page, a button in the middle of its cover plays it from
+  its first song (on a computer, while the pointer is over the album; on a phone or a tablet,
+  always; on a TV, which goes from album to album, never), and the rest of it opens the album; on the album's
+  page the artist links too, and there the keyboard and the remote get to them (in the lists, each
+  album is one stop);
 - the queue of whichever device the app controls, from the full-screen player or, on a wide
   screen, the player bar: the current track on top, the next ones under it and what played before
   above it. A tap on a track plays it there;

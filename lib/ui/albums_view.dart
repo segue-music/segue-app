@@ -7,6 +7,7 @@ import '../server/server.dart';
 import '../services.dart';
 import 'album_artist_link.dart';
 import 'album_page.dart';
+import 'album_play_button.dart';
 import 'cover.dart';
 import 'focus_ring.dart';
 import 'spinner.dart';
@@ -208,8 +209,8 @@ class AlbumGrid extends StatelessWidget {
 }
 
 /// An album's cover, with its name and a line under it. It opens the album's page, but for its
-/// artist, under the name, who opens theirs.
-class AlbumTile extends StatelessWidget {
+/// artist, under the name, who opens theirs, and the button over the cover, which plays it.
+class AlbumTile extends StatefulWidget {
   const AlbumTile(this.album, {this.subtitle, super.key});
 
   final Album album;
@@ -218,28 +219,49 @@ class AlbumTile extends StatelessWidget {
   final String? subtitle;
 
   @override
+  State<AlbumTile> createState() => _AlbumTileState();
+}
+
+class _AlbumTileState extends State<AlbumTile> {
+  /// The pointer is over the album: its play button shows.
+  bool _hovered = false;
+
+  @override
   Widget build(BuildContext context) {
+    final album = widget.album;
     final text = Theme.of(context).textTheme;
-    return FocusRing(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => AlbumPage(album))),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AspectRatio(
-              aspectRatio: 1,
-              child: ClipRRect(borderRadius: BorderRadius.circular(8), child: Cover(album.coverArt)),
-            ),
-            const SizedBox(height: 6),
-            Text(album.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: text.titleSmall),
-            if (subtitle case final line?)
-              Text(line, maxLines: 1, overflow: TextOverflow.ellipsis, style: text.bodySmall)
-            else
-              // The artist takes no focus: for the keyboard and the remote the album stays one stop, as
-              // the song in the player bar is. The album's page links them too.
-              ExcludeFocus(child: AlbumArtistLink(album, style: text.bodySmall)),
-          ],
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: FocusRing(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => AlbumPage(album))),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AspectRatio(
+                aspectRatio: 1,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Positioned.fill(
+                      child: ClipRRect(borderRadius: BorderRadius.circular(8), child: Cover(album.coverArt)),
+                    ),
+                    AlbumPlayButton(album, hovered: _hovered),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(album.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: text.titleSmall),
+              if (widget.subtitle case final line?)
+                Text(line, maxLines: 1, overflow: TextOverflow.ellipsis, style: text.bodySmall)
+              else
+                // The artist takes no focus: for the keyboard and the remote the album stays one stop, as
+                // the song in the player bar is. The album's page links them too.
+                ExcludeFocus(child: AlbumArtistLink(album, style: text.bodySmall)),
+            ],
+          ),
         ),
       ),
     );

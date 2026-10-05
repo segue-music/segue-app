@@ -4,6 +4,7 @@ import '../server/models.dart';
 import '../services.dart';
 import 'album_artist_link.dart';
 import 'album_page.dart';
+import 'album_play_button.dart';
 import 'artist_page.dart';
 import 'artists_view.dart';
 import 'cover.dart';
@@ -58,14 +59,7 @@ class SearchResultsList extends StatelessWidget {
               onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ArtistPage(artist))),
             ),
           if (albums.isNotEmpty) const _Heading('Álbuns'),
-          for (final album in albums)
-            ListTile(
-              leading: Thumbnail(album.coverArt),
-              title: Text(album.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-              // The artist takes no focus, as in the album grid: the album's page links them too.
-              subtitle: ExcludeFocus(child: AlbumByline(album)),
-              onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => AlbumPage(album))),
-            ),
+          for (final album in albums) _AlbumResult(album),
           if (songs.isNotEmpty) const _Heading('Músicas'),
           // As on the album page: the queue is the songs listed, from the one picked.
           for (final (i, song) in songs.indexed)
@@ -100,4 +94,42 @@ class _Heading extends StatelessWidget {
     padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
     child: Text(text, style: Theme.of(context).textTheme.titleMedium),
   );
+}
+
+/// An album the search found, which opens its page, but for the button over its thumbnail, which
+/// plays it.
+class _AlbumResult extends StatefulWidget {
+  const _AlbumResult(this.album);
+
+  final Album album;
+
+  @override
+  State<_AlbumResult> createState() => _AlbumResultState();
+}
+
+class _AlbumResultState extends State<_AlbumResult> {
+  /// The pointer is over the album: its play button shows.
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final album = widget.album;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: ListTile(
+        leading: Stack(
+          alignment: Alignment.center,
+          children: [
+            Thumbnail(album.coverArt),
+            AlbumPlayButton(album, hovered: _hovered, small: true),
+          ],
+        ),
+        title: Text(album.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+        // The artist takes no focus, as in the album grid: the album's page links them too.
+        subtitle: ExcludeFocus(child: AlbumByline(album)),
+        onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => AlbumPage(album))),
+      ),
+    );
+  }
 }
