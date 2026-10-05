@@ -11,9 +11,12 @@ import 'cover.dart';
 import 'focus_ring.dart';
 import 'spinner.dart';
 
-/// The library's albums, by name, a page at a time: the next as the grid nears its end.
+/// The library's albums, or a genre's, by name, a page at a time: the next as the grid nears its end.
 class AlbumsView extends StatefulWidget {
-  const AlbumsView({super.key});
+  const AlbumsView({this.genre, super.key});
+
+  /// The genre whose albums it lists; null, the library's.
+  final Genre? genre;
 
   @override
   State<AlbumsView> createState() => _AlbumsViewState();
@@ -62,7 +65,11 @@ class _AlbumsViewState extends State<AlbumsView> {
     });
 
     try {
-      final page = await api.albums(order: AlbumOrder.name, size: _pageSize, offset: over ? 0 : _albums.length);
+      final offset = over ? 0 : _albums.length;
+      final page = await switch (widget.genre) {
+        null => api.albums(order: AlbumOrder.name, size: _pageSize, offset: offset),
+        final genre => api.genreAlbums(genre.id, size: _pageSize, offset: offset),
+      };
 
       if (!mounted || generation != _generation) {
         return;

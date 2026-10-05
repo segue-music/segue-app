@@ -164,6 +164,47 @@ void main() {
     expect(asked.queryParameters, containsPair('offset', '40'));
   });
 
+  test('genres are getGenres\', named by their value, and a genre\'s albums getAlbumList2\'s byGenre', () async {
+    final asked = <Uri>[];
+    final api = SubsonicApi(
+      Uri.parse('https://music.test'),
+      credentials,
+      client: MockClient((request) async {
+        asked.add(request.url);
+
+        if (request.url.path.endsWith('getGenres.view')) {
+          return subsonic({
+            'status': 'ok',
+            'genres': {
+              'genre': [
+                {'value': 'Hard Rock', 'songCount': 30, 'albumCount': 3},
+              ],
+            },
+          });
+        }
+
+        return subsonic({
+          'status': 'ok',
+          'albumList2': {
+            'album': [
+              {'id': 'a1', 'name': 'Toys in the Attic', 'artist': 'Aerosmith'},
+            ],
+          },
+        });
+      }),
+    );
+    final genre = (await api.genres()).single;
+    expect((genre.id, genre.name, genre.albumCount), ('Hard Rock', 'Hard Rock', 3));
+
+    final albums = await api.genreAlbums(genre.id, size: 20, offset: 40);
+    expect(albums.single.name, 'Toys in the Attic');
+    expect(asked.last.path, '/rest/getAlbumList2.view');
+    expect(asked.last.queryParameters, containsPair('type', 'byGenre'));
+    expect(asked.last.queryParameters, containsPair('genre', 'Hard Rock'));
+    expect(asked.last.queryParameters, containsPair('size', '20'));
+    expect(asked.last.queryParameters, containsPair('offset', '40'));
+  });
+
   test('the most played albums are getAlbumList2\'s frequent', () async {
     late Uri asked;
     final api = SubsonicApi(

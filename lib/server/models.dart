@@ -76,5 +76,17 @@ class Artist {
   final int? albumCount;
 }
 
+/// A genre of the library's albums.
+class Genre {
+  const Genre({required this.id, required this.name, this.albumCount});
+
+  /// Its id in Jellyfin's API; in Subsonic's, which has no ids for genres, its name.
+  final String id;
+  final String name;
+
+  /// How many albums it has; null when the server doesn't say.
+  final int? albumCount;
+}
+
 /// What a search found.
 typedef SearchResults = ({List<Artist> artists, List<Album> albums, List<Song> songs});

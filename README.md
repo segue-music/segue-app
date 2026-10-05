@@ -25,10 +25,11 @@ the device it runs on.
   year where the server has no more), one of the albums the user plays most and one of the latest
   added to the library, 20 each, with arrows in each row's corner to go a screenful forward and
   back (on a Jellyfin server, which counts plays only by song, an album's plays are its songs',
-  added up); albums (by name, the next ones coming as the grid nears its end) and artists (by
-  name, each with their albums): albums and artists in a side rail, as icons that name their
-  sections on hover, and the home under the app's icon, in the top bar's left corner (on a phone,
-  the icon goes there too, and all three are in a bar at the bottom);
+  added up); albums (by name, the next ones coming as the grid nears its end), artists (by name,
+  each with their albums) and genres (by name, each with its number of albums, and its albums by
+  name): albums, artists and genres in a side rail, as icons that name their sections on hover,
+  and the home under the app's icon, in the top bar's left corner (on a phone, the icon goes there
+  too, and all four are in a bar at the bottom);
   the album page, whose cover opens full screen; search (artists, albums and songs); and playback
   through media_kit (libmpv), with a seek bar, shuffle and repeat (the queue or the track), in the
   player bar and in a full-screen player that the song in the bar opens. In both, the song's title

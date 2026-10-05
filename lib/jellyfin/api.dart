@@ -131,6 +131,26 @@ class JellyfinApi implements MediaServer {
     return [for (final id in ids) ?albums[id]];
   }
 
+  /// Every music genre, with how many albums it has. MusicGenres, which Jellyfin keeps next to Genres:
+  /// that one lists the music genres only under a music library's id.
+  @override
+  Future<List<Genre>> genres() async => [
+    for (final json in await _list('MusicGenres', {'Fields': 'ItemCounts'})) _genre(json),
+  ];
+
+  @override
+  Future<List<Album>> genreAlbums(String id, {int size = 100, int offset = 0}) async => [
+    for (final json in await _items({
+      'IncludeItemTypes': 'MusicAlbum',
+      'GenreIds': id,
+      'SortBy': 'SortName',
+      'SortOrder': 'Ascending',
+      'Limit': '$size',
+      'StartIndex': '$offset',
+    }))
+      _album(json),
+  ];
+
   @override
   Future<(Album, List<Song>)> album(String id) async {
     // Future.wait throws the first failure as it came, where a record's wait would wrap it.
@@ -305,5 +325,11 @@ Artist _artist(Map<String, dynamic> json) => Artist(
   id: json['Id'] as String,
   name: json['Name'] as String? ?? '',
   coverArt: _primaryImage(json),
+  albumCount: (json['AlbumCount'] as num?)?.toInt(),
+);
+
+Genre _genre(Map<String, dynamic> json) => Genre(
+  id: json['Id'] as String,
+  name: json['Name'] as String? ?? '',
   albumCount: (json['AlbumCount'] as num?)?.toInt(),
 );

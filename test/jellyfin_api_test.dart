@@ -116,6 +116,43 @@ void main() {
     expect(query, containsPair('StartIndex', '40'));
   });
 
+  test('genres are the music genres, with their number of albums, and a genre\'s albums those of its id', () async {
+    final asked = <http.Request>[];
+    final api = jellyfin(
+      (request) => request.url.path.endsWith('MusicGenres')
+          ? items([
+              {'Id': 'g1', 'Name': 'Hard Rock', 'Type': 'MusicGenre', 'AlbumCount': 3},
+            ])
+          : items([album]),
+      asked,
+    );
+    final genre = (await api.genres()).single;
+    expect((genre.id, genre.name, genre.albumCount), ('g1', 'Hard Rock', 3));
+    expect(asked.single.url.path, '/jellyfin/MusicGenres');
+    expect(asked.single.url.queryParameters, containsPair('userId', 'u1'));
+    expect(asked.single.url.queryParameters, containsPair('Fields', 'ItemCounts'));
+
+    final albums = await api.genreAlbums('g1', size: 20, offset: 40);
+    expect(albums.single.name, 'Toys in the Attic');
+    final query = asked.last.url.queryParameters;
+    expect(asked.last.url.path, '/jellyfin/Items');
+    expect(query, containsPair('GenreIds', 'g1'));
+    expect(query, containsPair('IncludeItemTypes', 'MusicAlbum'));
+    expect(query['SortBy'], startsWith('SortName'));
+    expect(query, containsPair('SortOrder', 'Ascending'));
+    expect(query, containsPair('Limit', '20'));
+    expect(query, containsPair('StartIndex', '40'));
+  });
+
+  test('a genre without its number of albums has none', () async {
+    final genres = await jellyfin(
+      (_) => items([
+        {'Id': 'g1', 'Name': 'Hard Rock', 'Type': 'MusicGenre'},
+      ]),
+    ).genres();
+    expect(genres.single.albumCount, isNull);
+  });
+
   test('an album comes with the id of its album artist, or its first artist\'s when it has none', () async {
     final untagged = {
       ...album,

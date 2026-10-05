@@ -154,9 +154,10 @@ void main() {
     expect(railWidth(tester), 56);
     expect(shown('Álbuns'), findsNothing);
     expect(shown('Artistas'), findsNothing);
+    expect(shown('Gêneros'), findsNothing);
     expect(find.byTooltip('Recolher a barra lateral'), findsNothing, reason: 'it is always so');
 
-    for (final section in ['Álbuns', 'Artistas']) {
+    for (final section in ['Álbuns', 'Artistas', 'Gêneros']) {
       final button = find.descendant(
         of: find.byTooltip(section),
         matching: find.byWidgetPredicate((widget) => widget is InkResponse),

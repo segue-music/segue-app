@@ -9,6 +9,7 @@ import '../services.dart';
 import 'albums_view.dart';
 import 'artists_view.dart';
 import 'devices_sheet.dart';
+import 'genres_view.dart';
 import 'home_view.dart';
 import 'now_playing_bar.dart';
 import 'search_results.dart';
@@ -31,7 +32,8 @@ class HomePage extends StatefulWidget {
 enum _Section {
   home('Início', Icons.home_outlined, Icons.home),
   albums('Álbuns', Icons.album_outlined, Icons.album),
-  artists('Artistas', Icons.person_outline, Icons.person);
+  artists('Artistas', Icons.person_outline, Icons.person),
+  genres('Gêneros', Icons.category_outlined, Icons.category);
 
   const _Section(this.label, this.icon, this.selectedIcon);
 
@@ -132,6 +134,7 @@ class _HomePageState extends State<HomePage> {
               _Section.home => const HomeView(),
               _Section.albums => const AlbumsView(),
               _Section.artists => const ArtistsView(),
+              _Section.genres => const GenresView(),
             },
           ),
         if (results != null) SearchResultsList(results),

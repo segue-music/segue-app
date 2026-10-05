@@ -73,6 +73,19 @@ class SubsonicApi implements MediaServer {
     return [for (final album in list) _album(album as Map<String, dynamic>)];
   }
 
+  /// Every genre (getGenres), by its name: Subsonic has no ids for them.
+  @override
+  Future<List<Genre>> genres() async {
+    final body = await _get('getGenres');
+    final list = (body['genres'] as Map<String, dynamic>?)?['genre'] as List? ?? const [];
+    return [for (final genre in list) _genre(genre as Map<String, dynamic>)];
+  }
+
+  /// getAlbumList2's byGenre, which Navidrome sorts by name.
+  @override
+  Future<List<Album>> genreAlbums(String id, {int size = 100, int offset = 0}) =>
+      _albumList({'type': 'byGenre', 'genre': id}, size: size, offset: offset);
+
   @override
   Future<(Album, List<Song>)> album(String id) async {
     final json = (await _get('getAlbum', {'id': id}))['album'] as Map<String, dynamic>;
@@ -200,6 +213,12 @@ Song _song(Map<String, dynamic> json) => Song(
   duration: json['duration'] == null ? null : Duration(seconds: (json['duration'] as num).toInt()),
   albumId: json['albumId'] as String?,
   artistId: json['artistId'] as String?,
+);
+
+Genre _genre(Map<String, dynamic> json) => Genre(
+  id: json['value'] as String,
+  name: json['value'] as String,
+  albumCount: (json['albumCount'] as num?)?.toInt(),
 );
 
 Artist _artist(Map<String, dynamic> json) => Artist(
