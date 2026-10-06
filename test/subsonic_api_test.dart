@@ -87,6 +87,7 @@ void main() {
             'recordLabels': [
               {'name': 'Columbia'},
             ],
+            'musicBrainzId': 'r1',
             'song': [
               {'id': 's1', 'title': 'Dream On', 'artist': 'Aerosmith', 'duration': 268},
             ],
@@ -100,6 +101,8 @@ void main() {
     expect(albums.single.artistId, 'ar1');
     final (album, songs) = await api.album('a1');
     expect(album.recordLabels, ['Columbia'], reason: 'OpenSubsonic\'s recordLabels');
+    expect(album.musicBrainzId, 'r1');
+    expect(albums.single.musicBrainzId, isNull);
     expect(songs.single.title, 'Dream On');
     expect(songs.single.duration, const Duration(seconds: 268));
     expect(songs.single.toQueueItem().durationMs, 268000);

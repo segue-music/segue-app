@@ -355,6 +355,8 @@ void main() {
               'Studios': [
                 {'Name': 'Columbia', 'Id': 'st1'},
               ],
+            if (query['Fields']?.split(',').contains('ProviderIds') ?? false)
+              'ProviderIds': {'MusicBrainzAlbum': 'r1', 'MusicBrainzReleaseGroup': 'rg1'},
           },
         ]);
       }
@@ -367,6 +369,7 @@ void main() {
     }, asked).album('a1');
     expect(found.name, 'Toys in the Attic');
     expect(found.recordLabels, ['Columbia'], reason: 'its studios, which come only when asked for');
+    expect(found.musicBrainzId, 'r1', reason: 'its release\'s, among its other ids, which come only when asked for');
     final tracks = asked.firstWhere((request) => request.url.queryParameters['ParentId'] == 'a1').url.queryParameters;
     expect(tracks, containsPair('IncludeItemTypes', 'Audio'));
     expect(tracks['SortBy'], startsWith('ParentIndexNumber,IndexNumber'));

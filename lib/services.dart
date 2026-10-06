@@ -7,6 +7,7 @@ import 'lyrics/lrclib.dart';
 import 'player/engine.dart';
 import 'player/play_counter.dart';
 import 'player/player.dart';
+import 'releases/musicbrainz.dart';
 import 'segue/client.dart';
 import 'segue/discovery.dart';
 import 'segue/protocol.dart';
@@ -16,7 +17,7 @@ import 'session.dart';
 
 /// Everything a signed-in session runs on.
 class Services {
-  Services(this.session, this.api, this.player, this.connect, {this.lrclib, this.playCounter});
+  Services(this.session, this.api, this.player, this.connect, {this.lrclib, this.musicBrainz, this.playCounter});
 
   /// Starts a session: the API, this device's player and, if a hub is found, the connection to it.
   static Future<Services> start(Session session, {AudioEngine? engine}) async {
@@ -49,6 +50,7 @@ class Services {
       player,
       ConnectController(player: player, client: client),
       lrclib: Lrclib(),
+      musicBrainz: MusicBrainz(),
       playCounter: PlayCounter(player, api),
     );
     unawaited(client?.start());
@@ -63,6 +65,10 @@ class Services {
   /// Where lyrics come from when the media server has none; null, nowhere.
   final Lrclib? lrclib;
 
+  /// Where an album's release date and record labels come from when the media server doesn't say them; null,
+  /// nowhere.
+  final MusicBrainz? musicBrainz;
+
   /// What counts the player's plays on the media server; null, nothing.
   final PlayCounter? playCounter;
 
@@ -73,6 +79,7 @@ class Services {
     await player.dispose();
     api.close();
     lrclib?.close();
+    musicBrainz?.close();
   }
 }
 

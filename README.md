@@ -76,7 +76,10 @@ the device it runs on.
   it has and how long they last; after its songs, its release date, as precisely as the server knows
   it, and its record labels (OpenSubsonic's; on a Jellyfin server, which reads no labels from music
   files, the album's studios, where someone set them), which the keyboard and the remote, coming to
-  the last song, scroll on to;
+  the last song, scroll on to. Where the server says no date (or only the year) or no labels,
+  MusicBrainz (musicbrainz.org) fills them in: by the album's MusicBrainz id, where the server knows
+  it, its edition's date and labels; without it, only the date the album first came out, by its
+  name, artist and year, when these match one album only;
 - on the album page and in search, the current song (on whichever device the app controls) stands
   out in the theme's color, with an equalizer in place of its number, or over its cover, while it
   plays;
@@ -123,6 +126,7 @@ has been tried on a tablet and on an Android TV; the iOS build has not been trie
 | `lib/player/` | `PlayerController` (queue, commands, state reports) over an `AudioEngine`; `MediaKitEngine` is the real one. `MediaControls`: the system's media controls. `AudioInterruptions`: calls and the like pausing the music, on iOS |
 | `lib/connect/` | `ConnectController`: which device the app controls, and moving the music between devices |
 | `lib/lyrics/` | LRCLIB (lrclib.net), where lyrics come from when the media server has none, and LRC |
+| `lib/releases/` | MusicBrainz (musicbrainz.org), where an album's release date and record labels come from when the media server doesn't say them |
 | `lib/ui/` | The pages: sign-in, home, albums, artists, album, artist, search, player bar and full-screen player, queue, device picker |
 | `test/` | Unit and widget tests, and tests against the real Go hub (`hub_test.dart`) |
 | `tool/` | A Docker image and script to build and test without installing Flutter; `icons.dart` makes every icon from the artwork, `icon.png` |

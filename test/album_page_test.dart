@@ -9,6 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:segue/connect/connect.dart';
 import 'package:segue/player/player.dart';
+import 'package:segue/releases/musicbrainz.dart';
 import 'package:segue/server/models.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
@@ -28,14 +29,15 @@ http.Response subsonic(Map<String, Object?> body) => http.Response(
 );
 
 /// The page of Toys in the Attic, with the cover [coverArt], two songs by Aerosmith and then [more] songs, the release
-/// date [releaseDate] and the record labels [recordLabels], on a 1000×700 screen. Aerosmith's picture is `ar-ar1`.
-/// Returns the player's engine.
+/// date [releaseDate] and the record labels [recordLabels], on a 1000×700 screen, with what [musicBrainz] adds.
+/// Aerosmith's picture is `ar-ar1`. Returns the player's engine.
 Future<FakeEngine> pumpAlbum(
   WidgetTester tester, {
   String? coverArt = 'al-a1',
   int more = 0,
   Map<String, int>? releaseDate,
   List<String> recordLabels = const [],
+  MusicBrainz? musicBrainz,
 }) async {
   const credentials = SubsonicCredentials(username: 'a', token: 't', salt: 's');
   final api = SubsonicApi(
@@ -76,6 +78,7 @@ Future<FakeEngine> pumpAlbum(
     api,
     player,
     ConnectController(player: player),
+    musicBrainz: musicBrainz,
   );
   tester.view.physicalSize = const Size(1000, 700);
   tester.view.devicePixelRatio = 1;
@@ -287,6 +290,31 @@ void main() {
       expect(Focus.maybeOf(tester.element(text))?.canRequestFocus ?? false, isFalse, reason: 'no stop');
     }
 
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('where the server says no release date, MusicBrainz\'s, as it comes', (tester) async {
+    final brainz = MusicBrainz(
+      spacing: Duration.zero,
+      client: MockClient(
+        (_) async => http.Response(
+          jsonEncode({
+            'release-groups': [
+              {
+                'title': 'Toys in the Attic',
+                'first-release-date': '1975-04-08',
+                'artist-credit': [
+                  {'name': 'Aerosmith', 'joinphrase': ''},
+                ],
+              },
+            ],
+          }),
+          200,
+        ),
+      ),
+    );
+    await pumpAlbum(tester, musicBrainz: brainz);
+    expect(find.text('8 de abril de 1975'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 

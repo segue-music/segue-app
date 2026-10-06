@@ -13,6 +13,7 @@ class Album {
     this.artistId,
     this.releaseDate,
     this.recordLabels = const [],
+    this.musicBrainzId,
   });
 
   final String id;
@@ -31,6 +32,10 @@ class Album {
 
   /// The labels that put it out; none when the server doesn't say.
   final List<String> recordLabels;
+
+  /// The id of its release in MusicBrainz (its edition, with its date and labels); null when the server doesn't know
+  /// it.
+  final String? musicBrainzId;
 }
 
 /// A date as precisely as the server knows it: a day, or only a month, or only a year.

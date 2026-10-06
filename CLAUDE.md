@@ -114,6 +114,11 @@ Running two app instances on one machine as different devices:
 - `lib/lyrics/lrclib.dart`: LRCLIB, where the full-screen player's lyrics (`LyricsView`) come from
   when the media server has none, by the song's title, artist, album and length. `Services.start`
   gives it one; tests leave `Services.lrclib` null, so that none goes out to the internet.
+- `lib/releases/musicbrainz.dart`: MusicBrainz, where the album page's release date and record labels
+  come from when the media server doesn't say them: by the album's MusicBrainz id (its release), or,
+  for the date only, by its name, artist and year (its release group). It sends a request a second at
+  most, as MusicBrainz asks, and remembers what it found for the session. `Services.start` gives it
+  one; tests leave `Services.musicBrainz` null, so that none goes out to the internet.
 - `lib/segue/`: protocol types, the client (reconnects with backoff; stops on final close codes
   4001/4002/4003) and hub discovery (`/connect/v1/info` next to the server).
 - `MediaControls` (`lib/player/media_controls.dart`) mirrors `connect.nowPlaying` to the system's

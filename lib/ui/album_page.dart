@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
+import '../releases/musicbrainz.dart';
 import '../server/models.dart';
 import '../server/server.dart';
 import '../services.dart';
@@ -30,12 +31,32 @@ class _AlbumPageState extends State<AlbumPage> {
   /// The cover id of the picture of the album's artist.
   Future<String?>? _artistPicture;
 
+  /// The album's release date and record labels, with what MusicBrainz adds to the media server's.
+  Future<AlbumRelease>? _release;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final api = ServicesScope.of(context).api;
-    final album = _album ??= api.album(widget.album.id);
-    _artistPicture ??= _pictureOfArtist(api, widget.album.artistId, album);
+    final services = ServicesScope.of(context);
+    final album = _album ??= services.api.album(widget.album.id);
+    _artistPicture ??= _pictureOfArtist(services.api, widget.album.artistId, album);
+    _release ??= _releaseOf(album, musicBrainz: services.musicBrainz);
+  }
+
+  /// [album]'s release date and record labels: the media server's, with what [musicBrainz] adds (null: nothing).
+  /// None when the server fails to give the album, which the page says.
+  static Future<AlbumRelease> _releaseOf(Future<(Album, List<Song>)> album, {MusicBrainz? musicBrainz}) async {
+    try {
+      final (found, _) = await album;
+
+      if (musicBrainz == null) {
+        return (date: found.releaseDate, labels: found.recordLabels);
+      }
+
+      return await musicBrainz.complete(found);
+    } on Object {
+      return (date: null, labels: const <String>[]);
+    }
   }
 
   /// The cover id of the picture of the album's artist, [artistId] or, when the page opened without it, the one
@@ -112,7 +133,10 @@ class _AlbumPageState extends State<AlbumPage> {
               ),
               const SongListHeader(numbered: true),
               for (var i = 0; i < songs.length; i++)
-                if (i == songs.length - 1) _LastSong(_song(songs, i), album: album) else _song(songs, i),
+                if (i == songs.length - 1)
+                  _LastSong(_song(songs, i), album: album, release: _release!)
+                else
+                  _song(songs, i),
             ],
           );
         },
@@ -227,47 +251,49 @@ class _ArtistPicture extends StatelessWidget {
 }
 
 /// The album's last song, with what is known of its release under it, ending the list: its date, and the labels that
-/// put it out. The keyboard and the remote stop at the songs only, so as the focus comes to the last one the list
-/// scrolls on to show these too.
+/// put it out. The media server's first, then with what MusicBrainz adds, as it comes. The keyboard and the remote
+/// stop at the songs only, so as the focus comes to the last one the list scrolls on to show these too.
 class _LastSong extends StatelessWidget {
-  const _LastSong(this.song, {required this.album});
+  const _LastSong(this.song, {required this.album, required this.release});
 
   final Widget song;
   final Album album;
+  final Future<AlbumRelease> release;
 
   @override
   Widget build(BuildContext context) {
-    final lines = [
-      if (album.releaseDate case final date?) _formatDate(date),
-      if (album.recordLabels.isNotEmpty) album.recordLabels.join(', '),
-    ];
-
-    if (lines.isEmpty) {
-      return song;
-    }
-
     final theme = Theme.of(context);
     final style = theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant);
-    return Focus(
-      canRequestFocus: false,
-      onFocusChange: (focused) {
-        if (focused) {
-          Scrollable.ensureVisible(context, alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd);
-        }
-      },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          song,
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [for (final line in lines) Text(line, style: style)],
-            ),
+    return FutureBuilder(
+      future: release,
+      initialData: (date: album.releaseDate, labels: album.recordLabels),
+      builder: (context, snapshot) {
+        final (:date, :labels) = snapshot.requireData;
+        final lines = [if (date != null) _formatDate(date), if (labels.isNotEmpty) labels.join(', ')];
+        // The same widgets around the song, with or without the lines under it: rebuilt, it would lose the focus.
+        return Focus(
+          canRequestFocus: false,
+          onFocusChange: (focused) {
+            if (focused) {
+              Scrollable.ensureVisible(context, alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd);
+            }
+          },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              song,
+              if (lines.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [for (final line in lines) Text(line, style: style)],
+                  ),
+                ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

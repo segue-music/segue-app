@@ -293,10 +293,10 @@ class SubsonicApi implements MediaServer {
   void close() => _http.close();
 }
 
-/// An album's record labels and release date are OpenSubsonic's, which a plain Subsonic server doesn't give. The
-/// release date is that of the album's edition, else the original one. Navidrome fills them from the tags that say
-/// which date they are (a release date, an original date, or a date beside an original one); from a date tag alone it
-/// gives only the year.
+/// An album's record labels, release date and MusicBrainz id are OpenSubsonic's, which a plain Subsonic server doesn't
+/// give. The release date is that of the album's edition, else the original one. Navidrome fills them from the tags
+/// that say which date they are (a release date, an original date, or a date beside an original one); from a date tag
+/// alone it gives only the year.
 Album _album(Map<String, dynamic> json) => Album(
   id: json['id'] as String,
   name: json['name'] as String? ?? '',
@@ -312,6 +312,10 @@ Album _album(Map<String, dynamic> json) => Album(
     for (final label in json['recordLabels'] as List? ?? const [])
       if ((label as Map<String, dynamic>)['name'] case final String name) name,
   ],
+  musicBrainzId: switch (json['musicBrainzId']) {
+    final String id when id.isNotEmpty => id,
+    _ => null,
+  },
 );
 
 /// An OpenSubsonic ItemDate, as much of a date as the server knows; none without a year.
