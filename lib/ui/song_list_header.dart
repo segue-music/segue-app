@@ -5,19 +5,30 @@ import 'cover.dart';
 import 'player_controls.dart';
 import 'themed_icon.dart';
 
-/// A song's duration, in the last column of a list of songs: in the color the list tile gives it (the current song's,
-/// when it is), at the size of the artist's line beside it, which a list tile's own, the theme's smallest, is well
-/// under.
+/// The text of a list of songs' first and last columns, a song's number and its duration: at the size of the artist's
+/// line beside them, which a list tile's own, the theme's smallest, is well under, in the color the tile gives them
+/// (the current song's, when it is).
+TextStyle? _columnStyle(BuildContext context) =>
+    Theme.of(context).textTheme.bodyMedium?.copyWith(color: DefaultTextStyle.of(context).style.color);
+
+/// A song's number on its album, in the first column of its list, under the header's "#".
+class SongNumber extends StatelessWidget {
+  const SongNumber(this.number, {super.key});
+
+  final int number;
+
+  @override
+  Widget build(BuildContext context) => Text('$number', textAlign: TextAlign.end, style: _columnStyle(context));
+}
+
+/// A song's duration, in the last column of a list of songs, under the header's clock.
 class SongDuration extends StatelessWidget {
   const SongDuration(this.duration, {super.key});
 
   final Duration? duration;
 
   @override
-  Widget build(BuildContext context) => Text(
-    formatDuration(duration),
-    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: DefaultTextStyle.of(context).style.color),
-  );
+  Widget build(BuildContext context) => Text(formatDuration(duration), style: _columnStyle(context));
 }
 
 /// The header of a list of songs, naming its columns over them: their numbers ("#") or covers (unnamed), their

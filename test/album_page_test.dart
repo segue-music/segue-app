@@ -188,23 +188,31 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('a song\'s duration is as big as the artist\'s line beside it, and in its title\'s color', (
+  testWidgets('a song\'s number and duration are as big as the artist\'s line beside them, in its title\'s color', (
     tester,
   ) async {
     await pumpAlbum(tester);
     TextStyle? style(Finder text) => tester.renderObject<RenderParagraph>(text).text.style;
-    final duration = find.descendant(of: song('Walk This Way'), matching: find.text('3:40'));
-    final artist = find.descendant(of: song('Walk This Way'), matching: find.text('Aerosmith'));
-    expect(style(duration)?.fontSize, style(artist)?.fontSize);
-    expect(style(duration)?.fontSize, greaterThan(11), reason: 'bigger than a list tile\'s own');
+    Finder inSong(String title, String text) => find.descendant(of: song(title), matching: find.text(text));
+    final (number, duration) = (inSong('Walk This Way', '1'), inSong('Walk This Way', '3:40'));
+    final artist = inSong('Walk This Way', 'Aerosmith');
+
+    for (final (column, text) in [('number', number), ('duration', duration)]) {
+      expect(style(text)?.fontSize, style(artist)?.fontSize, reason: column);
+      expect(style(text)?.fontSize, greaterThan(11), reason: '$column, bigger than a list tile\'s own');
+    }
 
     await tester.tap(find.text('Walk This Way'));
     await tester.pump();
     await tester.pump(kThemeChangeDuration); // the tile's colors change in this
-    final title = find.descendant(of: song('Walk This Way'), matching: find.text('Walk This Way'));
-    expect(style(duration)?.color, style(title)?.color, reason: 'the song that plays, tinted');
-    final other = find.descendant(of: song('Sweet Emotion'), matching: find.text('4:34'));
-    expect(style(duration)?.color, isNot(style(other)?.color), reason: 'unlike the song that doesn\'t play');
+    expect(
+      style(duration)?.color,
+      style(inSong('Walk This Way', 'Walk This Way'))?.color,
+      reason: 'the song that plays',
+    );
+    final (otherNumber, otherDuration) = (inSong('Sweet Emotion', '2'), inSong('Sweet Emotion', '4:34'));
+    expect(style(duration)?.color, isNot(style(otherDuration)?.color), reason: 'unlike the song that doesn\'t play');
+    expect(style(otherNumber)?.color, style(otherDuration)?.color, reason: 'its number, as its duration');
     await tester.pumpWidget(const SizedBox());
   });
 

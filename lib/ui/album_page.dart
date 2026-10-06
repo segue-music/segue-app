@@ -94,7 +94,7 @@ class _AlbumPageState extends State<AlbumPage> {
                     selected: current,
                     leading: SizedBox(
                       width: SongListHeader.numberWidth,
-                      child: playing ? const ThemedIcon(CurrentSong.icon) : Text('${i + 1}', textAlign: TextAlign.end),
+                      child: playing ? const ThemedIcon(CurrentSong.icon) : SongNumber(i + 1),
                     ),
                     title: Text(song.title),
                     // The artist takes no focus: for the keyboard and the remote the song stays one stop, as an
