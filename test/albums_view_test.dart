@@ -152,6 +152,17 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('the order chips keep some room between them and the albums, also as these scroll', (tester) async {
+    await pumpAlbums(tester, count: 300);
+    double gap() => tester.getRect(find.byType(AlbumGrid)).top - tester.getRect(order('Nome')).bottom;
+
+    expect(gap(), greaterThanOrEqualTo(12));
+    await tester.drag(find.byType(AlbumGrid), const Offset(0, -500));
+    await tester.pumpAndSettle();
+    expect(gap(), greaterThanOrEqualTo(12), reason: 'the grid\'s own room above scrolls away with it');
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('an empty library says so', (tester) async {
     await pumpAlbums(tester, count: 0);
     expect(find.text('A biblioteca está vazia.'), findsOneWidget);

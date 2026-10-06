@@ -218,7 +218,8 @@ class _OrderChips extends StatelessWidget {
   @override
   Widget build(BuildContext context) => SingleChildScrollView(
     scrollDirection: Axis.horizontal,
-    padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+    // Room under them that stays as the albums scroll, whose own room above goes away with them.
+    padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
     child: Row(
       children: [
         for (final option in _orders)
