@@ -70,7 +70,9 @@ class NowPlayingBar extends StatelessWidget {
                   children: [
                     Padding(padding: const EdgeInsets.fromLTRB(4, 4, 4, 0), child: SeekSlider(now)),
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(8, 0, 8, 6),
+                      // Less on the left and at the bottom than around the buttons, by the song's room inside: its
+                      // cover stays 8 from the edge, and the buttons 6 from the bottom.
+                      padding: const EdgeInsets.fromLTRB(4, 0, 8, 2),
                       child: IconButtonTheme(
                         data: IconButtonThemeData(style: buttons),
                         child: Row(
@@ -79,52 +81,57 @@ class NowPlayingBar extends StatelessWidget {
                               child: Tooltip(
                                 message: lyrics == null ? 'Abrir o player' : 'Fechar o player',
                                 child: FocusRing(
-                                  borderRadius: BorderRadius.circular(4),
+                                  borderRadius: BorderRadius.circular(8),
                                   child: InkWell(
                                     mouseCursor: WidgetStateMouseCursor.clickable,
-                                    borderRadius: BorderRadius.circular(4),
+                                    borderRadius: BorderRadius.circular(8),
                                     onTap: lyrics == null
                                         ? () => PlayerPage.open(context)
                                         : () => PageArea.navigatorOf(context).maybePop(),
-                                    child: Row(
-                                      children: [
-                                        SizedBox.square(
-                                          dimension: cover,
-                                          child: ClipRRect(
-                                            borderRadius: BorderRadius.circular(4),
-                                            child: Cover(now.coverArt, size: 96),
+                                    // Room around the cover and the lines, where the tint and the ring show, rounded
+                                    // as the cover is.
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(4),
+                                      child: Row(
+                                        children: [
+                                          SizedBox.square(
+                                            dimension: cover,
+                                            child: ClipRRect(
+                                              borderRadius: BorderRadius.circular(4),
+                                              child: Cover(now.coverArt, size: 96),
+                                            ),
                                           ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        // On a phone the song is all there is to tap for the player: its title and
-                                        // artist link only on a wider screen, as the full-screen player's do. They
-                                        // take no focus: for the keyboard and the remote the song is one stop, the
-                                        // player's, where they link too.
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: wide
-                                                ? [
-                                                    ExcludeFocus(child: SongLink.title(now, style: line)),
-                                                    ExcludeFocus(child: SongLink.artist(now, style: line)),
-                                                  ]
-                                                : [
-                                                    Text(
-                                                      now.title ?? 'Nada tocando',
-                                                      style: line,
-                                                      maxLines: 1,
-                                                      overflow: TextOverflow.ellipsis,
-                                                    ),
-                                                    Text(
-                                                      now.artist ?? '',
-                                                      style: line,
-                                                      maxLines: 1,
-                                                      overflow: TextOverflow.ellipsis,
-                                                    ),
-                                                  ],
+                                          const SizedBox(width: 12),
+                                          // On a phone the song is all there is to tap for the player: its title and
+                                          // artist link only on a wider screen, as the full-screen player's do. They
+                                          // take no focus: for the keyboard and the remote the song is one stop, the
+                                          // player's, where they link too.
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: wide
+                                                  ? [
+                                                      ExcludeFocus(child: SongLink.title(now, style: line)),
+                                                      ExcludeFocus(child: SongLink.artist(now, style: line)),
+                                                    ]
+                                                  : [
+                                                      Text(
+                                                        now.title ?? 'Nada tocando',
+                                                        style: line,
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow.ellipsis,
+                                                      ),
+                                                      Text(
+                                                        now.artist ?? '',
+                                                        style: line,
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow.ellipsis,
+                                                      ),
+                                                    ],
+                                            ),
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ),

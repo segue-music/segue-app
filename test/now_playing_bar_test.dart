@@ -41,6 +41,18 @@ void main() {
     });
   }
 
+  testWidgets('the song in the bar has room around its cover and lines, where its tint and ring show', (tester) async {
+    await pumpBar(tester, size: const Size(960, 540));
+    final bar = find.byType(NowPlayingBar);
+    final cover = tester.getRect(find.descendant(of: bar, matching: find.byType(Cover)));
+    final song = tester.getRect(find.descendant(of: bar, matching: find.byTooltip('Abrir o player')));
+    expect(cover.left - song.left, moreOrLessEquals(4));
+    expect(cover.top - song.top, moreOrLessEquals(4));
+    expect(song.bottom - cover.bottom, moreOrLessEquals(4));
+    expect(cover.left, moreOrLessEquals(8), reason: 'where it was, the room taken from the bar\'s edge');
+    await tester.pumpWidget(const SizedBox()); // stops the bar's timer
+  });
+
   testWidgets('on a phone-sized screen, the bar shows what plays on another device, and where', (tester) async {
     const credentials = SubsonicCredentials(username: 'a', token: 't', salt: 's');
     final api = SubsonicApi(
