@@ -129,7 +129,9 @@ class _SeekSliderState extends State<SeekSlider> {
         overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
       ),
       child: Slider(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        // In the bar, no taller than the times beside it, which keeps the bar low; under the full-screen player's song,
+        // with room to take it.
+        padding: EdgeInsets.symmetric(horizontal: 14, vertical: widget.timesBelow ? 6 : 2),
         max: length > 0 ? length.toDouble() : 1,
         value: length > 0 ? position.inMilliseconds.clamp(0, length).toDouble() : 0,
         semanticFormatterCallback: (ms) => formatDuration(Duration(milliseconds: ms.round())),

@@ -10,11 +10,37 @@ import 'package:segue/server/models.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
+import 'package:segue/ui/cover.dart';
 import 'package:segue/ui/now_playing_bar.dart';
 
 import 'fakes.dart';
+import 'player_page_test.dart' show pumpBar;
 
 void main() {
+  for (final (screen, size) in [('a wide screen', const Size(960, 540)), ('a phone', const Size(360, 640))]) {
+    testWidgets('on $screen, the bar\'s cover is as tall as the title and the artist beside it, and no button taller', (
+      tester,
+    ) async {
+      await pumpBar(tester, size: size);
+      final bar = find.byType(NowPlayingBar);
+      final cover = tester.getRect(find.descendant(of: bar, matching: find.byType(Cover)));
+      final title = tester.getRect(find.descendant(of: bar, matching: find.text('Sweet Emotion')));
+      final artist = tester.getRect(find.descendant(of: bar, matching: find.text('Aerosmith')));
+      expect(cover.height, moreOrLessEquals(artist.bottom - title.top, epsilon: 1));
+      expect(cover.center.dy, moreOrLessEquals((title.top + artist.bottom) / 2, epsilon: 1));
+
+      for (final button in tester.widgetList<IconButton>(find.descendant(of: bar, matching: find.byType(IconButton)))) {
+        expect(
+          tester.getSize(find.byWidget(button)).height,
+          lessThanOrEqualTo(cover.height + 1),
+          reason: button.tooltip,
+        );
+      }
+
+      await tester.pumpWidget(const SizedBox()); // stops the bar's timer
+    });
+  }
+
   testWidgets('on a phone-sized screen, the bar shows what plays on another device, and where', (tester) async {
     const credentials = SubsonicCredentials(username: 'a', token: 't', salt: 's');
     final api = SubsonicApi(

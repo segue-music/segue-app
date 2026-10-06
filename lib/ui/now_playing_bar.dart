@@ -31,7 +31,15 @@ class NowPlayingBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    // The song's title and artist, a line each, and its cover as tall as the two, which sets the bar's height.
+    final line = theme.textTheme.bodyMedium;
+    final cover = 2 * _lineHeight(line, MediaQuery.textScalerOf(context));
+    // The buttons as tall as the cover too, without the room Material leaves around them on a touch screen.
+    final buttons = (theme.iconButtonTheme.style ?? const ButtonStyle()).copyWith(
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    );
     // Shuffle, repeat, the lyrics and the queue need room; a phone-sized bar has none (they are in the
     // full-screen player).
     final wide = MediaQuery.sizeOf(context).width >= wideFrom;
@@ -63,105 +71,119 @@ class NowPlayingBar extends StatelessWidget {
                     Padding(padding: const EdgeInsets.fromLTRB(4, 4, 4, 0), child: SeekSlider(now)),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(8, 0, 8, 6),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Tooltip(
-                              message: lyrics == null ? 'Abrir o player' : 'Fechar o player',
-                              child: FocusRing(
-                                borderRadius: BorderRadius.circular(4),
-                                child: InkWell(
-                                  mouseCursor: WidgetStateMouseCursor.clickable,
+                      child: IconButtonTheme(
+                        data: IconButtonThemeData(style: buttons),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Tooltip(
+                                message: lyrics == null ? 'Abrir o player' : 'Fechar o player',
+                                child: FocusRing(
                                   borderRadius: BorderRadius.circular(4),
-                                  onTap: lyrics == null
-                                      ? () => PlayerPage.open(context)
-                                      : () => PageArea.navigatorOf(context).maybePop(),
-                                  child: Row(
-                                    children: [
-                                      SizedBox.square(
-                                        dimension: 48,
-                                        child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(4),
-                                          child: Cover(now.coverArt, size: 96),
+                                  child: InkWell(
+                                    mouseCursor: WidgetStateMouseCursor.clickable,
+                                    borderRadius: BorderRadius.circular(4),
+                                    onTap: lyrics == null
+                                        ? () => PlayerPage.open(context)
+                                        : () => PageArea.navigatorOf(context).maybePop(),
+                                    child: Row(
+                                      children: [
+                                        SizedBox.square(
+                                          dimension: cover,
+                                          child: ClipRRect(
+                                            borderRadius: BorderRadius.circular(4),
+                                            child: Cover(now.coverArt, size: 96),
+                                          ),
                                         ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      // On a phone the song is all there is to tap for the player: its title and
-                                      // artist link only on a wider screen, as the full-screen player's do. They
-                                      // take no focus: for the keyboard and the remote the song is one stop, the
-                                      // player's, where they link too.
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: wide
-                                              ? [
-                                                  ExcludeFocus(child: SongLink.title(now)),
-                                                  ExcludeFocus(child: SongLink.artist(now)),
-                                                ]
-                                              : [
-                                                  Text(
-                                                    now.title ?? 'Nada tocando',
-                                                    maxLines: 1,
-                                                    overflow: TextOverflow.ellipsis,
-                                                  ),
-                                                  Text(now.artist ?? '', maxLines: 1, overflow: TextOverflow.ellipsis),
-                                                ],
+                                        const SizedBox(width: 12),
+                                        // On a phone the song is all there is to tap for the player: its title and
+                                        // artist link only on a wider screen, as the full-screen player's do. They
+                                        // take no focus: for the keyboard and the remote the song is one stop, the
+                                        // player's, where they link too.
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: wide
+                                                ? [
+                                                    ExcludeFocus(child: SongLink.title(now, style: line)),
+                                                    ExcludeFocus(child: SongLink.artist(now, style: line)),
+                                                  ]
+                                                : [
+                                                    Text(
+                                                      now.title ?? 'Nada tocando',
+                                                      style: line,
+                                                      maxLines: 1,
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                    Text(
+                                                      now.artist ?? '',
+                                                      style: line,
+                                                      maxLines: 1,
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                  ],
+                                          ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                          if (wide) ShuffleButton(now),
-                          IconButton(
-                            tooltip: 'Anterior',
-                            icon: const ThemedIcon(HugeIcons.strokeRoundedPrevious),
-                            onPressed: () => runCommand(context, connect.previous),
-                          ),
-                          IconButton(
-                            tooltip: now.playing ? 'Pausar' : 'Tocar',
-                            icon: ThemedIcon(now.playing ? HugeIcons.strokeRoundedPause : HugeIcons.strokeRoundedPlay),
-                            onPressed: () => runCommand(context, connect.toggle),
-                          ),
-                          IconButton(
-                            tooltip: 'Próxima',
-                            icon: const ThemedIcon(HugeIcons.strokeRoundedNext),
-                            onPressed: () => runCommand(context, connect.next),
-                          ),
-                          if (wide) RepeatButton(now),
-                          if (wide)
-                            switch (lyrics) {
-                              null => IconButton(
-                                tooltip: 'Mostrar a letra',
-                                icon: const ThemedIcon(HugeIcons.strokeRoundedMicVocal),
-                                onPressed: () => PlayerPage.open(context, lyrics: true),
-                              ),
-                              final shown => ValueListenableBuilder(
-                                valueListenable: shown,
-                                builder: (context, on, _) => IconButton(
-                                  tooltip: on ? 'Esconder a letra' : 'Mostrar a letra',
-                                  icon: ThemedIcon(HugeIcons.strokeRoundedMicVocal, color: on ? colors.primary : null),
-                                  onPressed: () => shown.value = !on,
-                                ),
-                              ),
-                            },
-                          if (wide)
+                            if (wide) ShuffleButton(now),
                             IconButton(
-                              tooltip: 'Fila',
-                              icon: const ThemedIcon(HugeIcons.strokeRoundedPlaylist03),
-                              onPressed: () => QueuePage.open(context),
+                              tooltip: 'Anterior',
+                              icon: const ThemedIcon(HugeIcons.strokeRoundedPrevious),
+                              onPressed: () => runCommand(context, connect.previous),
                             ),
-                          IconButton(
-                            tooltip: 'Aparelhos',
-                            icon: ThemedIcon(
-                              HugeIcons.strokeRoundedMonitorSpeaker,
-                              color: now.device == null ? null : colors.primary,
+                            IconButton(
+                              tooltip: now.playing ? 'Pausar' : 'Tocar',
+                              icon: ThemedIcon(
+                                now.playing ? HugeIcons.strokeRoundedPause : HugeIcons.strokeRoundedPlay,
+                              ),
+                              onPressed: () => runCommand(context, connect.toggle),
                             ),
-                            onPressed: () => showDevicesSheet(context),
-                          ),
-                        ],
+                            IconButton(
+                              tooltip: 'Próxima',
+                              icon: const ThemedIcon(HugeIcons.strokeRoundedNext),
+                              onPressed: () => runCommand(context, connect.next),
+                            ),
+                            if (wide) RepeatButton(now),
+                            if (wide)
+                              switch (lyrics) {
+                                null => IconButton(
+                                  tooltip: 'Mostrar a letra',
+                                  icon: const ThemedIcon(HugeIcons.strokeRoundedMicVocal),
+                                  onPressed: () => PlayerPage.open(context, lyrics: true),
+                                ),
+                                final shown => ValueListenableBuilder(
+                                  valueListenable: shown,
+                                  builder: (context, on, _) => IconButton(
+                                    tooltip: on ? 'Esconder a letra' : 'Mostrar a letra',
+                                    icon: ThemedIcon(
+                                      HugeIcons.strokeRoundedMicVocal,
+                                      color: on ? colors.primary : null,
+                                    ),
+                                    onPressed: () => shown.value = !on,
+                                  ),
+                                ),
+                              },
+                            if (wide)
+                              IconButton(
+                                tooltip: 'Fila',
+                                icon: const ThemedIcon(HugeIcons.strokeRoundedPlaylist03),
+                                onPressed: () => QueuePage.open(context),
+                              ),
+                            IconButton(
+                              tooltip: 'Aparelhos',
+                              icon: ThemedIcon(
+                                HugeIcons.strokeRoundedMonitorSpeaker,
+                                color: now.device == null ? null : colors.primary,
+                              ),
+                              onPressed: () => showDevicesSheet(context),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     // Where it plays, when that's another device, in a strip under the player.
@@ -189,6 +211,21 @@ class NowPlayingBar extends StatelessWidget {
         );
       },
     );
+  }
+}
+
+/// How tall a line of text in [style] is, at [scaler]'s size.
+double _lineHeight(TextStyle? style, TextScaler scaler) {
+  final painter = TextPainter(
+    text: TextSpan(text: ' ', style: style),
+    textDirection: TextDirection.ltr,
+    textScaler: scaler,
+  );
+
+  try {
+    return painter.preferredLineHeight;
+  } finally {
+    painter.dispose();
   }
 }
 
