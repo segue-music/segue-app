@@ -669,7 +669,7 @@ void main() {
     void expectBig(String what) {
       expect(tester.getSize(playerCover).height, greaterThan(600), reason: what);
       expect(
-        tester.getRect(playerTip('Repetir a lista')).bottom,
+        tester.getRect(inPlayer((widget) => widget is Text && widget.data == 'Toys in the Attic')).bottom,
         lessThanOrEqualTo(tester.getRect(onPage(find.byType(NowPlayingBar))).top),
         reason: what,
       );
@@ -732,6 +732,26 @@ void main() {
     await tester.tap(find.descendant(of: bar, matching: find.byTooltip('Fechar o player')));
     await tester.pumpAndSettle();
     expect(find.byType(PlayerPage), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a wide screen the full-screen player shows the song alone: the controls are the bar\'s, under it', (
+    tester,
+  ) async {
+    await pumpBar(tester, size: const Size(1280, 800));
+    await openPlayer(tester);
+    expect(onPage(find.text('Sweet Emotion')), findsWidgets);
+    expect(playerCover, findsOneWidget);
+    expect(inPlayer((widget) => widget is Slider), findsNothing);
+
+    for (final tooltip in ['Ativar aleatório', 'Anterior', 'Tocar', 'Próxima', 'Repetir a lista']) {
+      expect(playerTip(tooltip), findsNothing, reason: tooltip);
+      expect(
+        find.descendant(of: onPage(find.byType(NowPlayingBar)), matching: find.byTooltip(tooltip)),
+        findsOneWidget,
+      );
+    }
+
     await tester.pumpWidget(const SizedBox());
   });
 

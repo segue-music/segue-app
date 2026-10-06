@@ -15,8 +15,9 @@ import 'queue_page.dart';
 import 'song_link.dart';
 import 'themed_icon.dart';
 
-/// The full-screen player: what plays, wherever it plays, big, with every control, and its lyrics beside
-/// it (on a phone, under it).
+/// The full-screen player: what plays, wherever it plays, big, and its lyrics beside it (on a phone, under it). On a
+/// wide screen the player bar stays under it, with the controls; on a phone, where there is none, it has every control
+/// itself.
 class PlayerPage extends StatelessWidget {
   const PlayerPage(this._lyrics, {super.key});
 
@@ -88,7 +89,9 @@ class PlayerPage extends StatelessWidget {
                     ],
                   ],
                 ),
-                body: now == null ? const Center(child: Text('Nada tocando')) : _Player(now, connect, lyrics: lyrics),
+                body: now == null
+                    ? const Center(child: Text('Nada tocando'))
+                    : _Player(now, connect, lyrics: lyrics, controls: !wide),
                 bottomNavigationBar: wide ? NowPlayingBar(lyrics: _lyrics) : null,
               );
             },
@@ -126,13 +129,16 @@ class PlayerRoute extends PageRouteBuilder<void> {
 }
 
 class _Player extends StatelessWidget {
-  const _Player(this.now, this.connect, {required this.lyrics});
+  const _Player(this.now, this.connect, {required this.lyrics, required this.controls});
 
   final NowPlaying now;
   final ConnectController connect;
 
   /// Whether the lyrics show.
   final bool lyrics;
+
+  /// Whether the slider and the buttons show under the song: on a phone, where the bar isn't under the player.
+  final bool controls;
 
   /// From how wide the lyrics go beside the player rather than under it.
   static const _lyricsBesideFrom = 720.0;
@@ -160,9 +166,9 @@ class _Player extends StatelessWidget {
     final beside = box.maxWidth >= _lyricsBesideFrom;
     // Beside the player, the lyrics take half the screen, the player the rest, which shrinks as they come in.
     final room = beside ? box.maxWidth * (1 - shown / 2) : box.maxWidth;
-    // The cover as big as it fits, leaving room for the rest under it.
+    // The cover as big as it fits, leaving room for the rest under it: the song, and the controls where they show.
     final width = room - 48;
-    final side = min(width, box.maxHeight - 280).clamp(96.0, _maxCover);
+    final side = min(width, box.maxHeight - (controls ? 280 : 160)).clamp(96.0, _maxCover);
     final player = SizedBox(
       width: max(side, 280),
       child: Column(
@@ -195,35 +201,37 @@ class _Player extends StatelessWidget {
               textAlign: TextAlign.center,
               replace: true,
             ),
-          const SizedBox(height: 12),
-          SeekSlider(now, timesBelow: true),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              ShuffleButton(now),
-              IconButton(
-                tooltip: 'Anterior',
-                iconSize: 36,
-                icon: const ThemedIcon(HugeIcons.strokeRoundedPrevious),
-                onPressed: () => runCommand(context, connect.previous),
-              ),
-              IconButton.filled(
-                tooltip: now.playing ? 'Pausar' : 'Tocar',
-                iconSize: 40,
-                padding: const EdgeInsets.all(14),
-                icon: ThemedIcon(now.playing ? HugeIcons.strokeRoundedPause : HugeIcons.strokeRoundedPlay),
-                onPressed: () => runCommand(context, connect.toggle),
-              ),
-              IconButton(
-                tooltip: 'Próxima',
-                iconSize: 36,
-                icon: const ThemedIcon(HugeIcons.strokeRoundedNext),
-                onPressed: () => runCommand(context, connect.next),
-              ),
-              RepeatButton(now),
-            ],
-          ),
+          if (controls) ...[
+            const SizedBox(height: 12),
+            SeekSlider(now, timesBelow: true),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ShuffleButton(now),
+                IconButton(
+                  tooltip: 'Anterior',
+                  iconSize: 36,
+                  icon: const ThemedIcon(HugeIcons.strokeRoundedPrevious),
+                  onPressed: () => runCommand(context, connect.previous),
+                ),
+                IconButton.filled(
+                  tooltip: now.playing ? 'Pausar' : 'Tocar',
+                  iconSize: 40,
+                  padding: const EdgeInsets.all(14),
+                  icon: ThemedIcon(now.playing ? HugeIcons.strokeRoundedPause : HugeIcons.strokeRoundedPlay),
+                  onPressed: () => runCommand(context, connect.toggle),
+                ),
+                IconButton(
+                  tooltip: 'Próxima',
+                  iconSize: 36,
+                  icon: const ThemedIcon(HugeIcons.strokeRoundedNext),
+                  onPressed: () => runCommand(context, connect.next),
+                ),
+                RepeatButton(now),
+              ],
+            ),
+          ],
           // Under the player, the lyrics' room grows as they fade in.
           if (shown > 0 && !beside)
             ClipRect(
