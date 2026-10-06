@@ -97,6 +97,9 @@ Running two app instances on one machine as different devices:
   which API it speaks (`detectApi`: a Subsonic ping, else Jellyfin's `System/Info/Public`), and
   `openServer` reopens a saved sign-in by its credentials. The API also gives the hub's hello its
   `api` and `auth`, so a Jellyfin sign-in is a Jellyfin device, with ids in Jellyfin's API.
+- `lib/lyrics/lrclib.dart`: LRCLIB, where the full-screen player's lyrics (`LyricsView`) come from
+  when the media server has none, by the song's title, artist, album and length. `Services.start`
+  gives it one; tests leave `Services.lrclib` null, so that none goes out to the internet.
 - `lib/segue/`: protocol types, the client (reconnects with backoff; stops on final close codes
   4001/4002/4003) and hub discovery (`/connect/v1/info` next to the server).
 - `MediaControls` (`lib/player/media_controls.dart`) mirrors `connect.nowPlaying` to the system's

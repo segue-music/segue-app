@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:hugeicons/hugeicons.dart';
 
 import '../connect/connect.dart';
 import '../server/models.dart';
@@ -16,13 +18,20 @@ class LyricsView extends StatefulWidget {
 
   final NowPlaying now;
 
+  /// How tall the fades at the lyrics' top and bottom are.
+  static const edgeFade = 40.0;
+
+  /// What a part with no singing shows, in synced lyrics: a blank line, or an intro.
+  static const instrumentalIcon = HugeIcons.strokeRoundedMusicNote03;
+
   @override
   State<LyricsView> createState() => _LyricsViewState();
 }
 
 class _LyricsViewState extends State<LyricsView> {
-  /// The song whose lyrics [_lyrics] brings.
-  String? _songId;
+  /// The song whose lyrics [_lyrics] brings: by its id, and by its title, artist and album, as LRCLIB
+  /// knows it (also with no id, from a hub that couldn't translate it).
+  Object? _song;
   Future<Lyrics?>? _lyrics;
 
   final _scroll = ScrollController();
@@ -56,15 +65,58 @@ class _LyricsViewState extends State<LyricsView> {
   /// Asks for the lyrics of the song that plays, when it is another. A song the hub couldn't give in
   /// this device's API has none to ask for.
   void _fetch() {
-    final songId = widget.now.songId;
+    final now = widget.now;
+    final song = (now.songId, now.title, now.artist, now.album);
 
-    if (_lyrics != null && songId == _songId) {
+    if (_lyrics != null && song == _song) {
       return;
     }
 
-    _songId = songId;
+    _song = song;
     _shown = null;
-    _lyrics = songId == null ? Future.value() : ServicesScope.of(context).api.lyrics(songId);
+    _lyrics = _find(now).then(_withIntro);
+  }
+
+  /// The song's lyrics from the media server; when it has none, or fails, from LRCLIB. The server's
+  /// failure shows only if LRCLIB has none either.
+  Future<Lyrics?> _find(NowPlaying now) async {
+    final services = ServicesScope.of(context);
+    final (songId, title, artist) = (now.songId, now.title, now.artist);
+    (Object, StackTrace)? failure;
+    Lyrics? lyrics;
+
+    try {
+      lyrics = songId == null ? null : await services.api.lyrics(songId);
+    } on Object catch (error, stack) {
+      failure = (error, stack);
+    }
+
+    final lrclib = services.lrclib;
+
+    if (lyrics == null && lrclib != null && title != null && artist != null) {
+      lyrics = await lrclib.find(title: title, artist: artist, album: now.album, duration: now.duration);
+    }
+
+    if ((lyrics, failure) case (null, (final error, final stack)?)) {
+      Error.throwWithStackTrace(error, stack);
+    }
+
+    return lyrics;
+  }
+
+  /// From how late a first line leaves an intro to show, as a part with no singing.
+  static const _introFrom = Duration(seconds: 2);
+
+  /// [lyrics], with a blank line for their intro when they are synced and their first line comes late
+  /// enough.
+  static Lyrics? _withIntro(Lyrics? lyrics) {
+    final first = lyrics?.lines.firstOrNull?.start;
+
+    if (lyrics == null || !lyrics.synced || first == null || first < _introFrom) {
+      return lyrics;
+    }
+
+    return Lyrics([const LyricLine('', start: Duration.zero), ...lyrics.lines], provider: lyrics.provider);
   }
 
   /// The line that plays at [position]: the last to have started; none before the first.
@@ -163,45 +215,67 @@ class _LyricsViewState extends State<LyricsView> {
       child: Scrollbar(
         controller: _scroll,
         notificationPredicate: (notification) => !_following && defaultScrollNotificationPredicate(notification),
-        child: ScrollConfiguration(
-          // The scrollbar above in place of the one the platform adds, which shows for any scroll.
-          behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
-          child: SingleChildScrollView(
-            controller: _scroll,
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                for (final (i, line) in lyrics.lines.indexed)
-                  InkWell(
-                    key: _keys[i],
-                    mouseCursor: WidgetStateMouseCursor.clickable,
-                    borderRadius: BorderRadius.circular(8),
-                    onTap: switch (line.start) {
-                      final start? => () => runCommand(context, () => ServicesScope.of(context).connect.seek(start)),
-                      null => null,
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                      child: Text(
-                        line.text,
-                        textAlign: TextAlign.center,
-                        style: i == playing
-                            ? style?.copyWith(fontWeight: FontWeight.bold, color: ink)
-                            : style?.copyWith(color: faded),
+        // Fading out at the top and the bottom, rather than cut off there. The scrollbar stays whole.
+        child: ShaderMask(
+          blendMode: BlendMode.dstIn,
+          shaderCallback: (bounds) {
+            final edge = bounds.height > 0 ? min(LyricsView.edgeFade / bounds.height, 0.5) : 0.0;
+            return LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: const [Colors.transparent, Colors.black, Colors.black, Colors.transparent],
+              stops: [0, edge, 1 - edge, 1],
+            ).createShader(bounds);
+          },
+          child: ScrollConfiguration(
+            // The scrollbar above in place of the one the platform adds, which shows for any scroll.
+            behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+            child: SingleChildScrollView(
+              controller: _scroll,
+              // Room under the fades, for the first and the last lines to show whole.
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: LyricsView.edgeFade),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final (i, line) in lyrics.lines.indexed)
+                    InkWell(
+                      key: _keys[i],
+                      mouseCursor: WidgetStateMouseCursor.clickable,
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: switch (line.start) {
+                        final start? => () => runCommand(context, () => ServicesScope.of(context).connect.seek(start)),
+                        null => null,
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        // A blank line of synced lyrics is a part with no singing; of others, a gap between
+                        // verses.
+                        child: lyrics.synced && line.text.trim().isEmpty
+                            ? Icon(
+                                LyricsView.instrumentalIcon,
+                                size: style?.fontSize,
+                                color: i == playing ? ink : faded,
+                              )
+                            : Text(
+                                line.text,
+                                textAlign: TextAlign.center,
+                                style: i == playing
+                                    ? style?.copyWith(fontWeight: FontWeight.bold, color: ink)
+                                    : style?.copyWith(color: faded),
+                              ),
                       ),
                     ),
-                  ),
-                if (lyrics.provider case final provider?)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(8, 24, 8, 8),
-                    child: Text(
-                      'Letras providas por $provider',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: faded),
+                  if (lyrics.provider case final provider?)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(8, 24, 8, 8),
+                      child: Text(
+                        'Letras providas por $provider',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: faded),
+                      ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

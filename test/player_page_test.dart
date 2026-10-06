@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:segue/connect/connect.dart';
+import 'package:segue/lyrics/lrclib.dart';
 import 'package:segue/player/player.dart';
 import 'package:segue/segue/client.dart';
 import 'package:segue/segue/protocol.dart';
@@ -131,6 +132,7 @@ Future<PlayerController> pumpBar(
   WidgetTester tester, {
   SegueClient? client,
   http.Response Function(http.Request request)? server,
+  Lrclib? lrclib,
   Size size = const Size(360, 640),
 }) async {
   final api = SubsonicApi(
@@ -160,6 +162,7 @@ Future<PlayerController> pumpBar(
     api,
     player,
     connect,
+    lrclib: lrclib,
   );
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -396,6 +399,101 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('the top bar keeps the background\'s color as the lyrics scroll under it', (tester) async {
+    final player = await pumpBar(
+      tester,
+      server: withLyrics([for (var i = 0; i < 60; i++) (i * 4, 'Line $i')]),
+      size: const Size(1280, 800),
+    );
+    await openPlayer(tester);
+    await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
+    await tester.pumpAndSettle();
+
+    (Color?, double) bar() {
+      final material = tester.widget<Material>(
+        find.descendant(of: onPage(find.byType(AppBar)), matching: find.byType(Material)).first,
+      );
+      return (material.color, material.elevation);
+    }
+
+    final background = Theme.of(tester.element(onPage(find.byType(LyricsView)))).colorScheme.surface;
+    expect(bar(), (background, 0));
+    await player.seek(const Duration(seconds: 160)); // they scroll by themselves
+    await tester.pumpAndSettle();
+    expect(bar(), (background, 0));
+    await tester.drag(onPage(find.text('Line 40')), const Offset(0, -300)); // and by the user
+    await tester.pumpAndSettle();
+    expect(bar(), (background, 0));
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('the lyrics fade out at their top and bottom, with room there to show whole at the ends', (tester) async {
+    await pumpBar(tester, server: withLyrics(verse), size: const Size(1280, 800));
+    await openPlayer(tester);
+    await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
+    await tester.pumpAndSettle();
+    final fade = find.descendant(of: onPage(find.byType(LyricsView)), matching: find.byType(ShaderMask));
+    expect(fade, findsOneWidget);
+    expect(tester.widget<ShaderMask>(fade).blendMode, BlendMode.dstIn, reason: 'it keeps the lines where it is opaque');
+    final first = find.descendant(of: fade, matching: find.text('You talk about things'));
+    expect(first, findsOneWidget);
+    expect(tester.getRect(first).top - tester.getRect(fade).top, greaterThanOrEqualTo(LyricsView.edgeFade));
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('a blank line of synced lyrics, a part with no singing, shows a note, whole while it plays', (
+    tester,
+  ) async {
+    final player = await pumpBar(
+      tester,
+      server: withLyrics([(0, 'Sweet emotion'), (5, ''), (10, 'Talk about things')]),
+      size: const Size(1280, 800),
+    );
+    await player.seek(const Duration(seconds: 6));
+    await openPlayer(tester);
+    await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
+    await tester.pumpAndSettle();
+    final note = find.descendant(
+      of: onPage(find.byType(LyricsView)),
+      matching: find.byIcon(LyricsView.instrumentalIcon),
+    );
+    expect(note, findsOneWidget);
+    expect(tester.getCenter(note).dy, greaterThan(tester.getRect(onPage(find.text('Sweet emotion'))).bottom));
+    expect(tester.getCenter(note).dy, lessThan(tester.getRect(onPage(find.text('Talk about things'))).top));
+    expect(tester.widget<Icon>(note).color?.a, 1, reason: 'it plays');
+    expect(marked(tester, 'Sweet emotion'), isFalse);
+
+    await player.seek(const Duration(seconds: 11));
+    await tester.pumpAndSettle();
+    expect(tester.widget<Icon>(note).color?.a, lessThan(0.5));
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('an intro before the first line shows a note above it, while it plays', (tester) async {
+    final player = await pumpBar(
+      tester,
+      server: withLyrics([(8, 'Sweet emotion'), (12, 'Talk about things')]),
+      size: const Size(1280, 800),
+    );
+    await player.seek(const Duration(seconds: 2));
+    await openPlayer(tester);
+    await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
+    await tester.pumpAndSettle();
+    final note = find.descendant(
+      of: onPage(find.byType(LyricsView)),
+      matching: find.byIcon(LyricsView.instrumentalIcon),
+    );
+    expect(note, findsOneWidget);
+    expect(tester.getCenter(note).dy, lessThan(tester.getRect(onPage(find.text('Sweet emotion'))).top));
+    expect(tester.widget<Icon>(note).color?.a, 1);
+
+    await player.seek(const Duration(seconds: 9));
+    await tester.pumpAndSettle();
+    expect(marked(tester, 'Sweet emotion'), isTrue);
+    expect(tester.widget<Icon>(note).color?.a, lessThan(0.5));
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('a line of synced lyrics, tapped, goes there', (tester) async {
     final player = await pumpBar(tester, server: withLyrics(verse), size: const Size(1280, 800));
     await openPlayer(tester);
@@ -426,6 +524,36 @@ void main() {
     await tester.tap(onPage(find.text('That nobody wears')));
     await tester.pumpAndSettle();
     expect(player.position.inSeconds, 6, reason: 'not a place in the song');
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('lyrics the media server doesn\'t have come from LRCLIB, which they say', (tester) async {
+    final asked = <http.Request>[];
+    final lrclib = Lrclib(
+      client: MockClient((request) async {
+        asked.add(request);
+        return request.url.path == '/api/get'
+            ? http.Response(
+                jsonEncode({
+                  'trackName': 'Sweet Emotion',
+                  'artistName': 'Aerosmith',
+                  'duration': 274,
+                  'instrumental': false,
+                  'syncedLyrics': '[00:00.00] You talk about things\n[00:05.00] That nobody cares',
+                }),
+                200,
+                headers: {'content-type': 'application/json'},
+              )
+            : http.Response('', 404);
+      }),
+    );
+    await pumpBar(tester, server: withLyrics([]), lrclib: lrclib, size: const Size(1280, 800));
+    await openPlayer(tester);
+    await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
+    await tester.pumpAndSettle();
+    expect(asked.single.url.queryParameters['track_name'], 'Sweet Emotion');
+    expect(onPage(find.text('That nobody cares')), findsOneWidget);
+    expect(onPage(find.text('Letras providas por LRCLIB')), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 

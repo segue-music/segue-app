@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 
 import 'connect/connect.dart';
+import 'lyrics/lrclib.dart';
 import 'player/engine.dart';
 import 'player/player.dart';
 import 'segue/client.dart';
@@ -14,7 +15,7 @@ import 'session.dart';
 
 /// Everything a signed-in session runs on.
 class Services {
-  Services(this.session, this.api, this.player, this.connect);
+  Services(this.session, this.api, this.player, this.connect, {this.lrclib});
 
   /// Starts a session: the API, this device's player and, if a hub is found, the connection to it.
   static Future<Services> start(Session session, {AudioEngine? engine}) async {
@@ -41,7 +42,13 @@ class Services {
               capabilities: CommandAction.values,
             ),
           );
-    final services = Services(session, api, player, ConnectController(player: player, client: client));
+    final services = Services(
+      session,
+      api,
+      player,
+      ConnectController(player: player, client: client),
+      lrclib: Lrclib(),
+    );
     unawaited(client?.start());
     return services;
   }
@@ -51,11 +58,15 @@ class Services {
   final PlayerController player;
   final ConnectController connect;
 
+  /// Where lyrics come from when the media server has none; null, nowhere.
+  final Lrclib? lrclib;
+
   Future<void> dispose() async {
     connect.dispose();
     await connect.client?.close();
     await player.dispose();
     api.close();
+    lrclib?.close();
   }
 }
 

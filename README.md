@@ -38,9 +38,10 @@ the device it runs on.
   through media_kit (libmpv), with a seek bar, shuffle and repeat (the queue or the track), in the
   player bar and in a full-screen player that the song in the bar opens, which shows the song's lyrics
   beside it, or under it on a phone (OpenSubsonic's songLyrics, as Navidrome's from the file's tags or
-  a .lrc next to it, or Jellyfin's): synced ones mark the line that plays and keep it in view, and a
-  line tapped goes there; a wide bar's lyrics button opens the player with them. In both, the song's
-  title
+  a .lrc next to it, or Jellyfin's; when the server has none, LRCLIB's, from lrclib.net, by the
+  song's title, artist, album and length): synced ones mark the line that plays and keep it in view,
+  with a note for a part with no singing, and a line tapped goes there; a wide bar's lyrics button
+  opens the player with them. In both, the song's title
   opens its album (as does the album's name, in the full-screen player) and its artist their page
   (the first artist, when it has several), whichever device it plays on; on a phone the whole song
   in the bar opens the player. A song the media server fails to give (as when it can't read its disk)
@@ -95,6 +96,7 @@ has been tried on a tablet and on an Android TV; the iOS build has not been trie
 | `lib/segue/` | The Segue protocol in Dart (its `SPEC.md` is in the segue repository), the hub client (reconnects by itself) and hub discovery |
 | `lib/player/` | `PlayerController` (queue, commands, state reports) over an `AudioEngine`; `MediaKitEngine` is the real one. `MediaControls`: the system's media controls. `AudioInterruptions`: calls and the like pausing the music, on iOS |
 | `lib/connect/` | `ConnectController`: which device the app controls, and moving the music between devices |
+| `lib/lyrics/` | LRCLIB (lrclib.net), where lyrics come from when the media server has none, and LRC |
 | `lib/ui/` | The pages: sign-in, home, albums, artists, album, artist, search, player bar and full-screen player, queue, device picker |
 | `test/` | Unit and widget tests, and tests against the real Go hub (`hub_test.dart`) |
 | `tool/` | A Docker image and script to build and test without installing Flutter; `icons.dart` makes every icon from the artwork, `icon.png` |

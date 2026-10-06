@@ -56,6 +56,9 @@ class _PlayerPageState extends State<PlayerPage> {
             final device = now?.device;
             return Scaffold(
               appBar: AppBar(
+                // The background's color, always: neither the lyrics nor, on a phone, the page tint it as
+                // they scroll under it.
+                notificationPredicate: (_) => false,
                 leading: IconButton(
                   tooltip: 'Fechar',
                   icon: const Icon(HugeIcons.strokeRoundedArrowDown01),
