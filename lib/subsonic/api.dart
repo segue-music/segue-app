@@ -230,6 +230,12 @@ class SubsonicApi implements MediaServer {
   @override
   Uri streamUrl(String songId) => _url('stream', {'id': songId});
 
+  /// A scrobble's submission, which counts the play. What plays shows in the server's now playing
+  /// through the hub instead, which counts nothing (SPEC.md, section 12).
+  @override
+  Future<void> scrobble(String songId, {required DateTime time}) =>
+      _get('scrobble', {'id': songId, 'submission': 'true', 'time': '${time.millisecondsSinceEpoch}'});
+
   @override
   Uri coverArtUrl(String id, {int size = 300}) => _url('getCoverArt', {'id': id, 'size': '$size'});
 

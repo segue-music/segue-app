@@ -1,9 +1,11 @@
 import 'dart:async';
 
+import 'package:clock/clock.dart';
 import 'package:segue/player/engine.dart';
 import 'package:segue/segue/protocol.dart';
 
-/// An engine with no audio: a queue and a clock, like the real one.
+/// An engine with no audio: a queue and a clock, like the real one. Its clock is [clock], so that a test
+/// in fake time (fake_async) plays in it.
 class FakeEngine implements AudioEngine {
   final _changes = StreamController<void>.broadcast(sync: true);
   List<Uri> tracks = [];
@@ -14,7 +16,7 @@ class FakeEngine implements AudioEngine {
   Repeat _repeat = Repeat.off;
   bool _shuffle = false;
   Duration _position = Duration.zero;
-  DateTime _since = DateTime.now();
+  DateTime _since = clock.now();
   bool _failed = false;
 
   @override
@@ -27,7 +29,7 @@ class FakeEngine implements AudioEngine {
   int get index => _index;
 
   @override
-  Duration get position => _playing ? _position + DateTime.now().difference(_since) : _position;
+  Duration get position => _playing ? _position + clock.now().difference(_since) : _position;
 
   @override
   int get volume => _volume;
@@ -150,6 +152,6 @@ class FakeEngine implements AudioEngine {
 
   void _seek(Duration position) {
     _position = position;
-    _since = DateTime.now();
+    _since = clock.now();
   }
 }

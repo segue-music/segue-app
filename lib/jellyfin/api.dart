@@ -253,6 +253,11 @@ class JellyfinApi implements MediaServer {
   @override
   Uri streamUrl(String songId) => _url('Audio/$songId/stream', {'static': 'true', 'ApiKey': credentials.token});
 
+  /// Nothing: Jellyfin counts a play as a playback starts (Sessions/Playing), which the hub reports for
+  /// the device (SPEC.md, section 12), and counting it here too would count it twice.
+  @override
+  Future<void> scrobble(String songId, {required DateTime time}) async {}
+
   /// Jellyfin serves images without a sign-in.
   @override
   Uri coverArtUrl(String id, {int size = 300}) =>

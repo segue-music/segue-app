@@ -99,6 +99,10 @@ abstract interface class MediaServer {
   /// Where a song's audio is, for the player: the URL carries the credentials.
   Uri streamUrl(String songId);
 
+  /// Counts a play of the song whose id is [songId], which started playing at [time], toward the
+  /// user's most played.
+  Future<void> scrobble(String songId, {required DateTime time});
+
   Uri coverArtUrl(String id, {int size = 300});
 
   /// The cover's image bytes.

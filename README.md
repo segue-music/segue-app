@@ -78,6 +78,11 @@ the device it runs on.
   (play, pause, skip, seek, shuffle, repeat, play an album there). Picking this device again moves the music here, at the
   same point. If the device it controls closes, its music stays here, paused. An app opened when
   nothing plays anywhere picks up where the music was.
+- plays count toward the user's most played: on a Subsonic server, the device that plays a song
+  scrobbles it once it has played half of it or four minutes (not one of 30 seconds or less), its
+  playing time added up across pauses and seeks, so that a song moved to another device halfway
+  doesn't count on both; on a Jellyfin server the hub counts them, as a song starts (with no hub,
+  nothing counts them there yet);
 
 - the system's media controls (through `audio_service`) show and command what the now-playing bar
   shows, the device it follows included: on Linux (MPRIS) the media keys, the desktop's player

@@ -9,6 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  # The time the player counts a song's play by, which tests fake (fake_async).
+  clock: ^1.1.3
   crypto: ^3.0.7
   flutter_secure_storage: ^11.2.0
   http: ^1.6.0
@@ -28,6 +30,7 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  fake_async: ^1.3.3
   flutter_lints: ^6.0.0
   image: ^4.10.1
   shared_preferences_platform_interface: ^2.4.2

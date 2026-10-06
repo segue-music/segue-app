@@ -330,6 +330,12 @@ void main() {
     expect(query, containsPair('Limit', '10'));
   });
 
+  test('a scrobble asks nothing of the server: the hub\'s Sessions/Playing counts the play', () async {
+    final asked = <http.Request>[];
+    await jellyfin((_) => items([]), asked).scrobble('s1', time: DateTime(2026, 10, 6));
+    expect(asked, isEmpty);
+  });
+
   test('with nothing played yet there are no most played albums, and no albums to ask for', () async {
     final asked = <http.Request>[];
     expect(await jellyfin((_) => items([]), asked).mostPlayedAlbums(), isEmpty);

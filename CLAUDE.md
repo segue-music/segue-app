@@ -109,6 +109,11 @@ Running two app instances on one machine as different devices:
   4001/4002/4003) and hub discovery (`/connect/v1/info` next to the server).
 - `MediaControls` (`lib/player/media_controls.dart`) mirrors `connect.nowPlaying` to the system's
   media controls: Linux (MPRIS) and iOS (Now Playing, also CarPlay's) for now.
+- `PlayCounter` (`lib/player/play_counter.dart`) counts the songs this device's player plays toward
+  the user's most played (`MediaServer.scrobble`; a no-op on Jellyfin, where the hub's
+  `Sessions/Playing` counts them). Only `Services.start` makes one: widget tests that build
+  `Services` themselves have none, since its timer would outlive them. Its tests run in fake time
+  (`fake_async`), which is why it and `FakeEngine` read the time from `clock`.
 - `AudioInterruptions` (`lib/player/audio_interruptions.dart`), on iOS only, sets the audio session
   up for music and pauses the local player for calls (resuming after, when iOS says to) and when the
   car or headphones go away. libmpv knows of neither.
