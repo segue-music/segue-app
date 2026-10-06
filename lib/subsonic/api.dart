@@ -49,7 +49,8 @@ class SubsonicApi implements MediaServer {
   Future<void> ping() => _get('ping');
 
   /// Albums by name are getAlbumList2's alphabeticalByName; the latest added, its newest; by release
-  /// date, its byYear over every year, which Navidrome sorts by the full date where it has one.
+  /// date, its byYear over every year, which Navidrome sorts by the full date where it has one; the most
+  /// played, its frequent.
   @override
   Future<List<Album>> albums({required AlbumOrder order, int size = 100, int offset = 0}) => _albumList(
     switch (order) {
@@ -57,6 +58,7 @@ class SubsonicApi implements MediaServer {
       AlbumOrder.name => {'type': 'alphabeticalByName'},
       // A range from a later year to an earlier one lists the latest first.
       AlbumOrder.released => {'type': 'byYear', 'fromYear': '9999', 'toYear': '0'},
+      AlbumOrder.mostPlayed => {'type': 'frequent'},
     },
     size: size,
     offset: offset,
@@ -67,12 +69,12 @@ class SubsonicApi implements MediaServer {
   @override
   Future<List<Album>> mostPlayedAlbums({int size = 20, String? genre}) async {
     if (genre == null) {
-      return _albumList({'type': 'frequent'}, size: size);
+      return albums(order: AlbumOrder.mostPlayed, size: size);
     }
 
-    final albums = await _albumListItems({'type': 'frequent'}, size: 500);
+    final mostPlayed = await _albumListItems({'type': 'frequent'}, size: 500);
     return [
-      for (final json in albums)
+      for (final json in mostPlayed)
         if (_albumGenres(json).contains(genre)) _album(json),
     ].take(size).toList();
   }

@@ -23,9 +23,11 @@ the device it runs on.
   it until the password changes);
 - a home, where the app opens, with a row of the latest released albums (by release date, or by
   year where the server has no more), one of the albums the user plays most and one of the latest
-  added to the library, 20 each, with arrows in each row's corner to go a screenful forward and
-  back (on a Jellyfin server, which counts plays only by song, an album's plays are its songs',
-  added up); albums (by name, the next ones coming as the grid nears its end), artists (by name,
+  added to the library, 30 each, with arrows in each row's corner to go a screenful forward and
+  back, and a title that opens the albums tab in the row's order (on a Jellyfin server, which counts
+  plays only by song, an album's plays are its songs', added up); albums (by name, the latest
+  released, the most played or the latest added, picked in chips above them, the next ones coming
+  as the grid nears its end), artists (by name,
   each with their albums) and genres (by name, each with its number of albums, under the ten the
   user listens to most, and its albums by name, under a row of those the user plays most: on a
   Subsonic server, which counts no plays by genre, both come from the 500 most played albums):

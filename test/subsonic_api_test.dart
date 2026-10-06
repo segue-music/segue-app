@@ -145,6 +145,23 @@ void main() {
     expect(asked.last.queryParameters, containsPair('type', 'newest'));
   });
 
+  test('albums by most played are getAlbumList2\'s frequent, a page at a time', () async {
+    late Uri asked;
+    final api = SubsonicApi(
+      Uri.parse('https://music.test'),
+      credentials,
+      client: MockClient((request) async {
+        asked = request.url;
+        return subsonic({'status': 'ok', 'albumList2': <String, Object?>{}});
+      }),
+    );
+    await api.albums(order: AlbumOrder.mostPlayed, size: 200, offset: 200);
+    expect(asked.path, '/rest/getAlbumList2.view');
+    expect(asked.queryParameters, containsPair('type', 'frequent'));
+    expect(asked.queryParameters, containsPair('size', '200'));
+    expect(asked.queryParameters, containsPair('offset', '200'));
+  });
+
   test('albums by release date are getAlbumList2\'s byYear, from the farthest year back to the first', () async {
     late Uri asked;
     final api = SubsonicApi(

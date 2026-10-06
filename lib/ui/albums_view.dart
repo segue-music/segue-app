@@ -12,15 +12,35 @@ import 'cover.dart';
 import 'focus_ring.dart';
 import 'spinner.dart';
 
-/// The library's albums, or a genre's, by name, a page at a time: the next as the grid nears its end.
+/// How the app names an order of albums, and what a list in it says when it has none.
+extension AlbumOrderText on AlbumOrder {
+  String get label => switch (this) {
+    AlbumOrder.name => 'Nome',
+    AlbumOrder.released => 'Lançamentos',
+    AlbumOrder.mostPlayed => 'Mais tocados',
+    AlbumOrder.latest => 'Adicionados recentemente',
+  };
+
+  String get emptyMessage =>
+      this == AlbumOrder.mostPlayed ? 'Os álbuns que você mais ouvir aparecem aqui.' : 'A biblioteca está vazia.';
+}
+
+/// The library's albums in [order], or a genre's by name, a page at a time: the next as the grid nears
+/// its end. Above the library's, chips pick the order.
 class AlbumsView extends StatefulWidget {
-  const AlbumsView({this.genre, this.header, super.key});
+  const AlbumsView({this.genre, this.header, this.order = AlbumOrder.name, this.onOrder, super.key});
 
   /// The genre whose albums it lists; null, the library's.
   final Genre? genre;
 
   /// Above the albums, scrolling with them.
   final Widget? header;
+
+  /// The order of the library's albums.
+  final AlbumOrder order;
+
+  /// Picks another order, from the chips; null, no chips.
+  final ValueChanged<AlbumOrder>? onOrder;
 
   @override
   State<AlbumsView> createState() => _AlbumsViewState();
@@ -55,6 +75,19 @@ class _AlbumsViewState extends State<AlbumsView> {
     }
   }
 
+  /// Another order lists them again, from the start.
+  @override
+  void didUpdateWidget(AlbumsView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (widget.order != oldWidget.order) {
+      _albums.clear();
+      _done = false;
+      _error = null;
+      scheduleMicrotask(() => _load(over: true)); // out of the build
+    }
+  }
+
   /// Asks for the next page; [over], for the first again, which replaces the albums when it comes.
   Future<void> _load({bool over = false}) async {
     if (!mounted || (!over && (_loading || _done || _error != null))) {
@@ -71,7 +104,7 @@ class _AlbumsViewState extends State<AlbumsView> {
     try {
       final offset = over ? 0 : _albums.length;
       final page = await switch (widget.genre) {
-        null => api.albums(order: AlbumOrder.name, size: _pageSize, offset: offset),
+        null => api.albums(order: widget.order, size: _pageSize, offset: offset),
         final genre => api.genreAlbums(genre.id, size: _pageSize, offset: offset),
       };
 
@@ -121,6 +154,22 @@ class _AlbumsViewState extends State<AlbumsView> {
 
   @override
   Widget build(BuildContext context) {
+    final onOrder = widget.onOrder;
+
+    if (onOrder == null) {
+      return _albumsGrid();
+    }
+
+    // The chips stay at the top, also while another order's albums come.
+    return Column(
+      children: [
+        _OrderChips(widget.order, onOrder: onOrder),
+        Expanded(child: _albumsGrid()),
+      ],
+    );
+  }
+
+  Widget _albumsGrid() {
     final error = _error;
 
     if (_albums.isEmpty) {
@@ -147,11 +196,44 @@ class _AlbumsViewState extends State<AlbumsView> {
                   padding: EdgeInsets.only(bottom: 16),
                   child: Center(child: Spinner()),
                 )
+              : _albums.isEmpty && widget.genre == null
+              ? Center(child: Text(widget.order.emptyMessage))
               : null,
         ),
       ),
     );
   }
+}
+
+/// The orders the library's albums can come in, as chips in a line that scrolls sideways when it doesn't
+/// fit: the one picked, and the others to pick.
+class _OrderChips extends StatelessWidget {
+  const _OrderChips(this.order, {required this.onOrder});
+
+  final AlbumOrder order;
+  final ValueChanged<AlbumOrder> onOrder;
+
+  static const _orders = [AlbumOrder.name, AlbumOrder.released, AlbumOrder.mostPlayed, AlbumOrder.latest];
+
+  @override
+  Widget build(BuildContext context) => SingleChildScrollView(
+    scrollDirection: Axis.horizontal,
+    padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+    child: Row(
+      children: [
+        for (final option in _orders)
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: ChoiceChip(
+              label: Text(option.label),
+              selected: option == order,
+              onSelected: (_) => onOrder(option),
+              mouseCursor: WidgetStateMouseCursor.clickable,
+            ),
+          ),
+      ],
+    ),
+  );
 }
 
 /// What went wrong, and a button to try again.

@@ -25,9 +25,10 @@ http.Response subsonic(Map<String, Object?> body) => http.Response(
 );
 
 /// The home page over a library of [count] albums, "Album 000" on, each by an artist of its own,
-/// "Artist 000" (id "ar000") on, opened on the albums tab. An artist's page has one album, "Only by"
-/// their id. The server fails the page at [failing] once. Returns the album lists asked for: their
-/// type, offset and size.
+/// "Artist 000" (id "ar000") on, opened on the albums tab. By name they come in that order; latest
+/// added or released, the other way around; and none has played. An artist's page has one album,
+/// "Only by" their id. The server fails the page at [failing] once. Returns the album lists the tab
+/// asks for: their type, offset and size.
 Future<List<String>> pumpAlbums(WidgetTester tester, {required int count, int? failing}) async {
   const credentials = SubsonicCredentials(username: 'a', token: 't', salt: 's');
   final names = [for (var i = 0; i < count; i++) 'Album ${'$i'.padLeft(3, '0')}'];
@@ -55,19 +56,20 @@ Future<List<String>> pumpAlbums(WidgetTester tester, {required int count, int? f
         return http.Response('', 404);
       }
 
-      if (query['type'] != 'alphabeticalByName') {
-        return subsonic({'albumList2': <String, Object?>{}});
-      }
-
       asked.add('${query['type']} ${query['offset']} ${query['size']}');
       final offset = int.parse(query['offset']!);
 
-      if (offset == failing) {
+      if (offset == failing && query['type'] == 'alphabeticalByName') {
         failing = null;
         return http.Response('', 500);
       }
 
-      final page = names.skip(offset).take(int.parse(query['size']!));
+      final inOrder = switch (query['type']) {
+        'alphabeticalByName' => names,
+        'newest' || 'byYear' => names.reversed,
+        _ => const <String>[],
+      };
+      final page = inOrder.skip(offset).take(int.parse(query['size']!));
       return subsonic({
         'albumList2': {
           'album': [
@@ -100,10 +102,17 @@ Future<List<String>> pumpAlbums(WidgetTester tester, {required int count, int? f
     ),
   );
   await tester.pumpAndSettle();
+  asked.clear(); // the home's rows
   await tester.tap(find.byTooltip('Álbuns'));
   await tester.pumpAndSettle();
   return asked;
 }
+
+/// The chip of the albums tab that picks the order [label] names.
+Finder order(String label) => find.widgetWithText(ChoiceChip, label);
+
+/// Whether [label]'s order is the one picked.
+bool picked(WidgetTester tester, String label) => tester.widget<ChoiceChip>(order(label)).selected;
 
 /// Scrolls the albums down as far as they go, [times] times.
 Future<void> scrollToEnd(WidgetTester tester, {int times = 1}) async {
@@ -114,6 +123,41 @@ Future<void> scrollToEnd(WidgetTester tester, {int times = 1}) async {
 }
 
 void main() {
+  testWidgets('the albums tab lists them by name, or as picked: the latest released, the most played or the latest '
+      'added', (tester) async {
+    final asked = await pumpAlbums(tester, count: 3);
+    expect(picked(tester, 'Nome'), isTrue);
+    expect(picked(tester, 'Adicionados recentemente'), isFalse);
+
+    await tester.tap(order('Adicionados recentemente'));
+    await tester.pumpAndSettle();
+    expect(asked.last, 'newest 0 200');
+    expect(picked(tester, 'Adicionados recentemente'), isTrue);
+    expect(picked(tester, 'Nome'), isFalse);
+    expect(tester.getRect(find.text('Album 001')).left, greaterThan(tester.getRect(find.text('Album 002')).left));
+
+    await tester.tap(order('Lançamentos'));
+    await tester.pumpAndSettle();
+    expect(asked.last, 'byYear 0 200');
+
+    await tester.tap(order('Mais tocados'));
+    await tester.pumpAndSettle();
+    expect(asked.last, 'frequent 0 200');
+    expect(find.text('Os álbuns que você mais ouvir aparecem aqui.'), findsOneWidget, reason: 'nothing has played');
+
+    await tester.tap(order('Nome'));
+    await tester.pumpAndSettle();
+    expect(asked.last, 'alphabeticalByName 0 200');
+    expect(tester.getRect(find.text('Album 002')).left, greaterThan(tester.getRect(find.text('Album 001')).left));
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('an empty library says so', (tester) async {
+    await pumpAlbums(tester, count: 0);
+    expect(find.text('A biblioteca está vazia.'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('the albums tab lists them by name', (tester) async {
     final asked = await pumpAlbums(tester, count: 3);
     expect(asked, ['alphabeticalByName 0 200']);

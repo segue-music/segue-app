@@ -6,6 +6,7 @@ import 'package:hugeicons/hugeicons.dart';
 import '../segue/client.dart';
 import '../segue/protocol.dart';
 import '../server/models.dart';
+import '../server/server.dart';
 import '../services.dart';
 import 'albums_view.dart';
 import 'artists_view.dart';
@@ -55,6 +56,9 @@ class _HomePageState extends State<HomePage> {
 
   _Section _section = _Section.home;
 
+  /// The order of the albums tab: by name, or a home row's, whose title opened it.
+  AlbumOrder _albumOrder = AlbumOrder.name;
+
   /// The sections opened so far: each loads the first time it is opened.
   final _opened = {_Section.home};
 
@@ -67,6 +71,12 @@ class _HomePageState extends State<HomePage> {
     if (_results != null) {
       _clearSearch();
     }
+  }
+
+  /// The albums tab, in [order].
+  void _showAlbums(AlbumOrder order) {
+    setState(() => _albumOrder = order);
+    _select(_Section.albums);
   }
 
   void _typed(String text) {
@@ -138,8 +148,11 @@ class _HomePageState extends State<HomePage> {
             key: ValueKey(section),
             offstage: results != null || section != _section,
             child: switch (section) {
-              _Section.home => const HomeView(),
-              _Section.albums => const AlbumsView(),
+              _Section.home => HomeView(onShowAll: _showAlbums),
+              _Section.albums => AlbumsView(
+                order: _albumOrder,
+                onOrder: (order) => setState(() => _albumOrder = order),
+              ),
               _Section.artists => const ArtistsView(),
               _Section.genres => const GenresView(),
             },

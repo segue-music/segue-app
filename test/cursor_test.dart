@@ -129,6 +129,14 @@ void main() {
       SystemMouseCursors.text,
       reason: 'the search bar',
     );
+    await expectHand('a row\'s title', find.text('Lançamentos'));
+
+    // The albums tab.
+    await tester.tap(find.byTooltip('Álbuns'));
+    await tester.pumpAndSettle();
+    await expectHand('an order', find.widgetWithText(ChoiceChip, 'Mais tocados'));
+    await tester.tap(find.byTooltip('Início'));
+    await tester.pumpAndSettle();
 
     // An album's page.
     await tester.tap(find.text('Toys in the Attic').first);

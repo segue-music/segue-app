@@ -343,6 +343,28 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('a row\'s title opens the albums tab, in the row\'s order', (tester) async {
+    final asked = await pumpHome(tester, const Size(1000, 700));
+
+    bool picked(String label) => tester.widget<ChoiceChip>(find.widgetWithText(ChoiceChip, label)).selected;
+
+    for (final (row, type) in [
+      ('Lançamentos', 'byYear'),
+      ('Mais tocados', 'frequent'),
+      ('Adicionados recentemente', 'newest'),
+    ]) {
+      await tester.tap(find.byTooltip('Início'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(row));
+      await tester.pumpAndSettle();
+      expect(title('Álbuns'), findsOneWidget, reason: row);
+      expect(picked(row), isTrue, reason: row);
+      expect(asked.last, allOf(containsPair('type', type), containsPair('size', '200')), reason: row);
+    }
+
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('a row whose albums all fit has no arrows', (tester) async {
     await pumpHome(tester, const Size(1000, 700));
     expect(find.text('Toys in the Attic'), findsOneWidget);
@@ -351,15 +373,15 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('a row has 20 albums at most, even from a server that sends more', (tester) async {
+  testWidgets('a row has 30 albums at most, even from a server that sends more', (tester) async {
     final asked = await pumpHome(
       tester,
       const Size(360, 640),
-      released: [for (var i = 0; i < 30; i++) 'Released $i'],
-      mostPlayed: [for (var i = 0; i < 30; i++) 'Most $i'],
-      latest: [for (var i = 0; i < 30; i++) 'Latest $i'],
+      released: [for (var i = 0; i < 40; i++) 'Released $i'],
+      mostPlayed: [for (var i = 0; i < 40; i++) 'Most $i'],
+      latest: [for (var i = 0; i < 40; i++) 'Latest $i'],
     );
-    expect([for (final query in asked) query['size']], ['20', '20', '20']);
+    expect([for (final query in asked) query['size']], ['30', '30', '30']);
 
     for (final prefix in ['Released', 'Most', 'Latest']) {
       // By its albums: the list builds the rows that show, which change as it scrolls.
@@ -368,8 +390,8 @@ void main() {
       await tester.pumpAndSettle();
       await tester.drag(row, const Offset(-10000, 0));
       await tester.pumpAndSettle();
-      expect(find.text('$prefix 19'), findsOneWidget);
-      expect(find.text('$prefix 20'), findsNothing);
+      expect(find.text('$prefix 29'), findsOneWidget);
+      expect(find.text('$prefix 30'), findsNothing);
     }
 
     await tester.pumpWidget(const SizedBox());

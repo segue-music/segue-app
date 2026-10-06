@@ -36,6 +36,9 @@ enum AlbumOrder {
 
   /// The latest released first, by release date.
   released,
+
+  /// The ones the user plays most first; none before anything has played.
+  mostPlayed,
 }
 
 /// The keys of [counts], the highest count first; a tie keeps their order in [counts].

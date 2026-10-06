@@ -78,25 +78,38 @@ class JellyfinApi implements MediaServer {
   Auth get auth => Auth.jellyfin(token: credentials.token);
 
   @override
-  Future<List<Album>> albums({required AlbumOrder order, int size = 100, int offset = 0}) async => [
-    for (final json in await _items({
-      'IncludeItemTypes': 'MusicAlbum',
-      ...switch (order) {
-        AlbumOrder.latest => {'SortBy': 'DateCreated,SortName', 'SortOrder': 'Descending'},
-        AlbumOrder.name => {'SortBy': 'SortName', 'SortOrder': 'Ascending'},
-        // The year first: an album may have one without a full date.
-        AlbumOrder.released => {'SortBy': 'ProductionYear,PremiereDate,SortName', 'SortOrder': 'Descending'},
-      },
-      'Limit': '$size',
-      'StartIndex': '$offset',
-    }))
-      _album(json),
-  ];
+  Future<List<Album>> albums({required AlbumOrder order, int size = 100, int offset = 0}) async {
+    final sort = switch (order) {
+      AlbumOrder.latest => {'SortBy': 'DateCreated,SortName', 'SortOrder': 'Descending'},
+      AlbumOrder.name => {'SortBy': 'SortName', 'SortOrder': 'Ascending'},
+      // The year first: an album may have one without a full date.
+      AlbumOrder.released => {'SortBy': 'ProductionYear,PremiereDate,SortName', 'SortOrder': 'Descending'},
+      // Not one of Jellyfin's: see [_mostPlayedAlbums].
+      AlbumOrder.mostPlayed => null,
+    };
+
+    if (sort == null) {
+      return _mostPlayedAlbums(size: size, offset: offset);
+    }
+
+    return [
+      for (final json in await _items({
+        'IncludeItemTypes': 'MusicAlbum',
+        ...sort,
+        'Limit': '$size',
+        'StartIndex': '$offset',
+      }))
+        _album(json),
+    ];
+  }
+
+  @override
+  Future<List<Album>> mostPlayedAlbums({int size = 20, String? genre}) => _mostPlayedAlbums(size: size, genre: genre);
 
   /// Jellyfin counts plays only by song: an album's are those of its songs, added up, among the user's
-  /// most played songs (a genre's: of that genre). A tie goes to the album with the more played song.
-  @override
-  Future<List<Album>> mostPlayedAlbums({int size = 20, String? genre}) async {
+  /// most played songs (a genre's: of that genre). A tie goes to the album with the more played song. A
+  /// page past the first ranks them all again, and takes its part.
+  Future<List<Album>> _mostPlayedAlbums({required int size, int offset = 0, String? genre}) async {
     final plays = <String, int>{};
 
     for (final song in await _mostPlayedSongs({'GenreIds': ?genre})) {
@@ -107,7 +120,7 @@ class JellyfinApi implements MediaServer {
       }
     }
 
-    final ids = rankedByCount(plays).take(size).toList();
+    final ids = rankedByCount(plays).skip(offset).take(size).toList();
 
     if (ids.isEmpty) {
       return const [];

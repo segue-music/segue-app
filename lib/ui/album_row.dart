@@ -7,10 +7,11 @@ import 'package:hugeicons/hugeicons.dart';
 import '../server/models.dart';
 import 'albums_view.dart';
 import 'spinner.dart';
+import 'text_link.dart';
 
 /// A titled row of albums, which scrolls sideways: by the arrows in its right corner, or dragged.
 class AlbumRow extends StatefulWidget {
-  const AlbumRow({required this.title, required this.albums, this.empty, super.key});
+  const AlbumRow({required this.title, required this.albums, this.empty, this.onShowAll, super.key});
 
   final String title;
   final Future<List<Album>> albums;
@@ -18,8 +19,11 @@ class AlbumRow extends StatefulWidget {
   /// What the row says when there are none; null, nothing, for a page that leaves an empty row out.
   final String? empty;
 
+  /// Shows all of them, past the row's: what its title, a link then, opens.
+  final VoidCallback? onShowAll;
+
   /// How many albums it shows at most.
-  static const maxAlbums = 20;
+  static const maxAlbums = 30;
 
   static const _tileWidth = 160.0;
   static const _gap = 16.0;
@@ -78,7 +82,17 @@ class _AlbumRowState extends State<AlbumRow> {
             height: 48, // the arrows' height, also without them
             child: Row(
               children: [
-                Expanded(child: Text(widget.title, style: text.titleLarge)),
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextLink(
+                      widget.title,
+                      tooltip: 'Ver todos',
+                      onTap: widget.onShowAll,
+                      style: text.titleLarge,
+                    ),
+                  ),
+                ),
                 _arrows(),
               ],
             ),

@@ -205,6 +205,35 @@ void main() {
     expect(asked.last.url.queryParameters, containsPair('Ids', 'a2,a1'));
   });
 
+  test('albums by most played are the most played albums, a page at a time', () async {
+    Map<String, Object?> played(String id, String albumId, int plays) => {
+      ...song,
+      'Id': id,
+      'AlbumId': albumId,
+      'UserData': {'PlayCount': plays, 'Played': true},
+    };
+
+    final asked = <http.Request>[];
+    final api = jellyfin((request) {
+      final query = request.url.queryParameters;
+
+      if (query['IncludeItemTypes'] == 'Audio') {
+        return items([played('s1', 'a1', 9), played('s2', 'a2', 6), played('s3', 'a3', 1)]);
+      }
+
+      return items([
+        for (final id in query['Ids']?.split(',') ?? const <String>[]) {...album, 'Id': id, 'Name': 'Album $id'},
+      ]);
+    }, asked);
+    final page = await api.albums(order: AlbumOrder.mostPlayed, size: 1, offset: 1);
+    expect([for (final album in page) album.name], ['Album a2']);
+    expect(asked.last.url.queryParameters, containsPair('Ids', 'a2'));
+
+    asked.clear();
+    expect(await api.albums(order: AlbumOrder.mostPlayed, size: 2, offset: 3), isEmpty, reason: 'past the last');
+    expect(asked, hasLength(1), reason: 'the songs alone: no albums to ask for');
+  });
+
   test('a genre\'s most played albums add up the plays of its songs', () async {
     final asked = <http.Request>[];
     await jellyfin((_) => items([]), asked).mostPlayedAlbums(genre: 'g1');
