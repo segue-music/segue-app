@@ -193,7 +193,7 @@ void main() {
     expect(find.byType(ArtistPage), findsOneWidget);
     expect(find.text('Only by ar001'), findsOneWidget, reason: 'the page of the album\'s artist, by their id');
     expect(find.byTooltip('Abrir o artista'), findsNothing, reason: 'their albums show the year, not them again');
-    await tester.pageBack();
+    await tester.tap(find.byTooltip('Voltar'));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Album 001'));

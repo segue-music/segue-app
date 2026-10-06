@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'player_page.dart';
 
 /// On a wide screen, the middle of the home, between its bars (the top one, the side rail and the player's), where
-/// pages open: an album, an artist, a genre, the queue, the full-screen player. The bars stay as they come and go.
+/// pages open: an album, an artist, a genre, the queue, the full-screen player. The bars stay as they come and go,
+/// and the top one's arrows go back and forward, so the pages have no back arrow of their own ([holds]).
 ///
 /// Pages opened from in it find its navigator as [Navigator.of] does; [PageArea.navigatorOf] finds it from outside it
 /// too, as from the player bar. Pages that cover the whole window (the cover) and sheets open in the app's.

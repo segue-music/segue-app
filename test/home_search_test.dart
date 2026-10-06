@@ -72,10 +72,9 @@ Future<(PlayerController, List<String?>)> pumpHome(WidgetTester tester, Size siz
   addTearDown(tester.view.reset);
   await tester.pumpWidget(
     MaterialApp(
-      home: ServicesScope(
-        services: services,
-        child: HomePage(onSignOut: () {}),
-      ),
+      // Above the navigator, as in the app: on a phone, pages open in it, over the home.
+      builder: (context, child) => ServicesScope(services: services, child: child!),
+      home: HomePage(onSignOut: () {}),
     ),
   );
   await tester.pump();

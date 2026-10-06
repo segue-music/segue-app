@@ -118,8 +118,7 @@ void main() {
     expect(otherIcons, findsNothing, reason: 'the home, with the player bar');
 
     await tap(tester, find.text('Toys in the Attic').first);
-    expect(find.byType(BackButton), findsOneWidget);
-    expect(otherIcons, findsNothing, reason: 'an album, with the back button');
+    expect(otherIcons, findsNothing, reason: 'an album');
 
     await tap(tester, find.byTooltip('Abrir o player'));
     expect(otherIcons, findsNothing, reason: 'the player');
@@ -127,8 +126,7 @@ void main() {
     await tap(tester, find.byTooltip('Fila'));
     expect(otherIcons, findsNothing, reason: 'the queue');
 
-    await tester.pageBack();
-    await tester.pumpAndSettle();
+    await tap(tester, find.byTooltip('Voltar'));
     // The player bar's: on a wide screen, the top bar's shows too, over the player.
     await tap(tester, find.byTooltip('Aparelhos').last);
     expect(find.textContaining('Este aparelho'), findsOneWidget);
@@ -136,10 +134,14 @@ void main() {
     await tester.pumpWidget(const SizedBox()); // stops the player bar's timers
   });
 
-  testWidgets('on a phone, the bar at the bottom too', (tester) async {
+  testWidgets('on a phone, the bar at the bottom too, and a page\'s back arrow', (tester) async {
     await pumpApp(tester, const Size(360, 640));
     expect(find.byType(NavigationBar), findsOneWidget);
     expect(otherIcons, findsNothing);
+
+    await tap(tester, find.text('Toys in the Attic').first);
+    expect(find.byType(BackButton), findsOneWidget);
+    expect(otherIcons, findsNothing, reason: 'an album, with the back arrow');
     await tester.pumpWidget(const SizedBox());
   });
 

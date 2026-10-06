@@ -161,9 +161,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Walk This Way'), findsOneWidget);
 
-    await tester.pageBack();
+    await tester.tap(find.byTooltip('Voltar'));
     await tester.pumpAndSettle();
-    await tester.pageBack();
+    await tester.tap(find.byTooltip('Voltar'));
     await tester.pumpAndSettle();
     expect(selectedInRail('Gêneros'), findsOneWidget);
     await tester.pumpWidget(const SizedBox()); // stops the player bar's timers

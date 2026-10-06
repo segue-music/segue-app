@@ -156,7 +156,7 @@ void main() {
     // An album's page.
     await tester.tap(find.text('Toys in the Attic').first);
     await tester.pumpAndSettle();
-    await expectHand('the back arrow', find.byType(BackButton));
+    await expectHand('the top bar\'s back arrow', find.byTooltip('Voltar'));
     await expectHand('the cover', find.byTooltip('Ver a capa'));
     await expectHand('the play button', find.text('Tocar'));
     await expectHand('a song', find.text('Walk This Way').first);

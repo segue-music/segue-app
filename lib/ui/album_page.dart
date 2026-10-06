@@ -8,6 +8,7 @@ import 'cover_page.dart';
 import 'current_song.dart';
 import 'errors.dart';
 import 'now_playing_bar.dart';
+import 'page_area.dart';
 import 'song_list_header.dart';
 import 'spinner.dart';
 import 'themed_icon.dart';
@@ -42,7 +43,11 @@ class _AlbumPageState extends State<AlbumPage> {
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     return Scaffold(
-      appBar: AppBar(title: Text(widget.album.name)),
+      appBar: AppBar(
+        // In the page area, the top bar's arrow goes back: no arrow of its own.
+        automaticallyImplyLeading: !PageArea.holds(context),
+        title: Text(widget.album.name),
+      ),
       body: FutureBuilder(
         future: _album,
         builder: (context, snapshot) {

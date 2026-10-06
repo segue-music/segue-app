@@ -311,7 +311,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(title('Aerosmith'), findsOneWidget);
     expect(find.text('1973'), findsOneWidget, reason: 'their albums');
-    await tester.pageBack();
+    await tester.tap(find.byTooltip('Voltar'));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Toys in the Attic'));
@@ -333,7 +333,7 @@ void main() {
     await tester.tap(link);
     await tester.pumpAndSettle();
     expect(title('Aerosmith'), findsOneWidget);
-    await tester.pageBack();
+    await tester.tap(find.byTooltip('Voltar'));
     await tester.pumpAndSettle();
 
     // Tab, as the remote's arrows, gets to it, and Enter, as its middle button, opens it.

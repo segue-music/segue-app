@@ -85,6 +85,24 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('a page has no back arrow of its own, the top bar\'s going back', (tester) async {
+    await pumpWide(tester);
+    await tapAndSettle(tester, album);
+    expect(find.byType(AlbumPage), findsOneWidget);
+    expect(find.byType(BackButton), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a phone, where pages open over the whole home, a page has its back arrow', (tester) async {
+    await pumpHome(tester, const Size(360, 800));
+    await tapAndSettle(tester, album);
+    expect(find.byType(AlbumPage), findsOneWidget);
+    expect(find.byType(BackButton), findsOneWidget);
+    await tapAndSettle(tester, find.byType(BackButton));
+    expect(find.byType(AlbumPage), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('the keyboard\'s arrows left and right go back and forward too, but while typing', (tester) async {
     await pumpWide(tester);
     await tapAndSettle(tester, album);

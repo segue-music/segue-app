@@ -5,6 +5,7 @@ import '../services.dart';
 import 'album_row.dart';
 import 'albums_view.dart';
 import 'now_playing_bar.dart';
+import 'page_area.dart';
 
 /// A genre's albums, by name, under a row of those the user plays most: once any has played.
 class GenrePage extends StatefulWidget {
@@ -29,7 +30,11 @@ class _GenrePageState extends State<GenrePage> {
   Widget build(BuildContext context) {
     final mostPlayed = _mostPlayed!;
     return Scaffold(
-      appBar: AppBar(title: Text(widget.genre.name)),
+      appBar: AppBar(
+        // In the page area, the top bar's arrow goes back: no arrow of its own.
+        automaticallyImplyLeading: !PageArea.holds(context),
+        title: Text(widget.genre.name),
+      ),
       body: AlbumsView(
         genre: widget.genre,
         header: FutureBuilder(

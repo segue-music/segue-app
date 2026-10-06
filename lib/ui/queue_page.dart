@@ -71,7 +71,11 @@ class _QueuePageState extends State<QueuePage> {
             }
 
             return Scaffold(
-              appBar: AppBar(title: Text(now?.device == null ? 'Fila' : 'Fila em ${now!.device}')),
+              appBar: AppBar(
+                // In the page area, the top bar's arrow goes back: no arrow of its own.
+                automaticallyImplyLeading: !PageArea.holds(context),
+                title: Text(now?.device == null ? 'Fila' : 'Fila em ${now!.device}'),
+              ),
               bottomNavigationBar: const NowPlayingBar(),
               body: tracks.isEmpty
                   ? const Center(child: Text('A fila está vazia.'))

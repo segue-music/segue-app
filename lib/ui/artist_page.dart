@@ -9,6 +9,7 @@ import 'cover.dart';
 import 'current_song.dart';
 import 'errors.dart';
 import 'now_playing_bar.dart';
+import 'page_area.dart';
 import 'spinner.dart';
 
 /// An artist and their albums, newest first, under the songs of theirs the user plays most: once any
@@ -41,6 +42,8 @@ class _ArtistPageState extends State<ArtistPage> {
       // Opened from a song, the name it comes with is the song's artists ("A, B") until the artist's own
       // arrives.
       appBar: AppBar(
+        // In the page area, the top bar's arrow goes back: no arrow of its own.
+        automaticallyImplyLeading: !PageArea.holds(context),
         title: FutureBuilder(
           future: _artist,
           builder: (context, snapshot) => Text(snapshot.data?.$1.name ?? widget.artist.name),
