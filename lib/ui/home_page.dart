@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -132,6 +133,11 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final services = ServicesScope.of(context);
     final results = _results;
+    final width = MediaQuery.sizeOf(context).width;
+    final narrow = width < 600;
+    // On a phone, on a line of its own, as wide as the screen; on a wide one, at most 600 and two fifths of the window,
+    // which on a TV's (960 wide) leaves the top bar more than the search.
+    final searchWidth = narrow ? width : min(600.0, width * 0.4);
     // Esc, as the clear button, staying in the bar for another search; with nothing typed, out of it, as Esc goes out
     // of anything else (UnfocusShortcut).
     final searchBar = CallbackShortcuts(
@@ -161,13 +167,12 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
         elevation: const WidgetStatePropertyAll(0),
-        constraints: const BoxConstraints(maxWidth: 600, minHeight: 44, maxHeight: 44),
+        constraints: BoxConstraints(maxWidth: searchWidth, minHeight: 44, maxHeight: 44),
         textInputAction: TextInputAction.search,
         onChanged: _typed,
         onSubmitted: _searchFor,
       ),
     );
-    final narrow = MediaQuery.sizeOf(context).width < 600;
     final logo = IconButton(
       tooltip: _Section.home.label,
       icon: Image.asset('assets/logo.png', width: 32, height: 32),

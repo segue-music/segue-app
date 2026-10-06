@@ -140,6 +140,14 @@ void main() {
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
   });
 
+  testWidgets('on a TV\'s window, the bar takes two fifths of it, and on a big one no more than 600', (tester) async {
+    await pumpHome(tester, const Size(960, 540));
+    expect(tester.getSize(find.byType(SearchBar)).width, moreOrLessEquals(384, epsilon: 1));
+    await pumpHome(tester, const Size(1920, 1080));
+    expect(tester.getSize(find.byType(SearchBar)).width, moreOrLessEquals(600, epsilon: 1));
+    await tester.pumpWidget(const SizedBox()); // stops the bar's timer
+  });
+
   testWidgets('where the middle has no room for it, the bar keeps clear of the arrows and the buttons', (tester) async {
     await pumpHome(tester, const Size(640, 640));
     final arrows = tester.getRect(find.byTooltip('Avançar'));
