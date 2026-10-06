@@ -22,6 +22,9 @@ class PlayerPage extends StatelessWidget {
   /// Whether the lyrics show: turned on and off at the top, or, on a wide screen, in the bar under the player.
   final ValueNotifier<bool> _lyrics;
 
+  /// How long the lyrics take to come in, beside the player or under it, and to go.
+  static const lyricsTransition = Duration(milliseconds: 350);
+
   /// Slides it up over the current page, with the lyrics if [lyrics]: on a wide screen, in the page area.
   static Future<void> open(BuildContext context, {bool lyrics = false}) =>
       PageArea.navigatorOf(context).push(PlayerRoute(lyrics: lyrics));
@@ -138,104 +141,140 @@ class _Player extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // How far the lyrics have come in, from 0 (gone) to 1 (there), as they come and go. Opened with them, the player
+    // shows them at once: the tween starts where it ends.
+    return TweenAnimationBuilder<double>(
+      tween: Tween(end: lyrics ? 1 : 0),
+      duration: PlayerPage.lyricsTransition,
+      curve: Curves.easeInOutCubic,
+      builder: (context, shown, _) => LayoutBuilder(builder: (context, box) => _layout(context, box, shown)),
+    );
+  }
+
+  /// The player and, [shown] of the way in, its lyrics, in [box].
+  Widget _layout(BuildContext context, BoxConstraints box, double shown) {
     final text = Theme.of(context).textTheme;
     final colors = Theme.of(context).colorScheme;
     final muted = colors.onSurfaceVariant;
-    return LayoutBuilder(
-      builder: (context, box) {
-        final beside = lyrics && box.maxWidth >= _lyricsBesideFrom;
-        // The cover as big as it fits (beside the lyrics, in half the screen), leaving room for the rest
-        // under it.
-        final width = (beside ? box.maxWidth / 2 : box.maxWidth) - 48;
-        final side = min(width, box.maxHeight - 280).clamp(96.0, _maxCover);
-        final player = SizedBox(
-          width: max(side, 280),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
+    final beside = box.maxWidth >= _lyricsBesideFrom;
+    // Beside the player, the lyrics take half the screen, the player the rest, which shrinks as they come in.
+    final room = beside ? box.maxWidth * (1 - shown / 2) : box.maxWidth;
+    // The cover as big as it fits, leaving room for the rest under it.
+    final width = room - 48;
+    final side = min(width, box.maxHeight - 280).clamp(96.0, _maxCover);
+    final player = SizedBox(
+      width: max(side, 280),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Center(
+            child: SizedBox.square(
+              dimension: side,
+              child: ClipRRect(borderRadius: BorderRadius.circular(12), child: Cover(now.coverArt, size: 800)),
+            ),
+          ),
+          const SizedBox(height: 24),
+          SongLink.title(
+            now,
+            style: text.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+            maxLines: 2,
+            textAlign: TextAlign.center,
+            replace: true,
+          ),
+          SongLink.artist(
+            now,
+            style: text.titleLarge?.copyWith(color: muted),
+            textAlign: TextAlign.center,
+            replace: true,
+          ),
+          if (now.album != null)
+            SongLink.album(
+              now,
+              style: text.titleMedium?.copyWith(color: muted),
+              textAlign: TextAlign.center,
+              replace: true,
+            ),
+          const SizedBox(height: 12),
+          SeekSlider(now, timesBelow: true),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              Center(
-                child: SizedBox.square(
-                  dimension: side,
-                  child: ClipRRect(borderRadius: BorderRadius.circular(12), child: Cover(now.coverArt, size: 800)),
-                ),
+              ShuffleButton(now),
+              IconButton(
+                tooltip: 'Anterior',
+                iconSize: 36,
+                icon: const Icon(HugeIcons.strokeRoundedPrevious),
+                onPressed: () => runCommand(context, connect.previous),
               ),
-              const SizedBox(height: 24),
-              SongLink.title(
-                now,
-                style: text.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
-                maxLines: 2,
-                textAlign: TextAlign.center,
-                replace: true,
+              IconButton.filled(
+                tooltip: now.playing ? 'Pausar' : 'Tocar',
+                iconSize: 40,
+                padding: const EdgeInsets.all(14),
+                icon: Icon(now.playing ? HugeIcons.strokeRoundedPause : HugeIcons.strokeRoundedPlay),
+                onPressed: () => runCommand(context, connect.toggle),
               ),
-              SongLink.artist(
-                now,
-                style: text.titleLarge?.copyWith(color: muted),
-                textAlign: TextAlign.center,
-                replace: true,
+              IconButton(
+                tooltip: 'Próxima',
+                iconSize: 36,
+                icon: const Icon(HugeIcons.strokeRoundedNext),
+                onPressed: () => runCommand(context, connect.next),
               ),
-              if (now.album != null)
-                SongLink.album(
-                  now,
-                  style: text.titleMedium?.copyWith(color: muted),
-                  textAlign: TextAlign.center,
-                  replace: true,
-                ),
-              const SizedBox(height: 12),
-              SeekSlider(now, timesBelow: true),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ShuffleButton(now),
-                  IconButton(
-                    tooltip: 'Anterior',
-                    iconSize: 36,
-                    icon: const Icon(HugeIcons.strokeRoundedPrevious),
-                    onPressed: () => runCommand(context, connect.previous),
-                  ),
-                  IconButton.filled(
-                    tooltip: now.playing ? 'Pausar' : 'Tocar',
-                    iconSize: 40,
-                    padding: const EdgeInsets.all(14),
-                    icon: Icon(now.playing ? HugeIcons.strokeRoundedPause : HugeIcons.strokeRoundedPlay),
-                    onPressed: () => runCommand(context, connect.toggle),
-                  ),
-                  IconButton(
-                    tooltip: 'Próxima',
-                    iconSize: 36,
-                    icon: const Icon(HugeIcons.strokeRoundedNext),
-                    onPressed: () => runCommand(context, connect.next),
-                  ),
-                  RepeatButton(now),
-                ],
-              ),
-              if (lyrics && !beside) ...[const SizedBox(height: 24), SizedBox(height: 400, child: LyricsView(now))],
+              RepeatButton(now),
             ],
           ),
-        );
-
-        if (!beside) {
-          return SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-            child: Center(child: player),
-          );
-        }
-
-        // Half the screen each: the player in the middle of its half, the lyrics all of theirs.
-        return Row(
-          children: [
-            Expanded(
-              child: Center(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                  child: player,
+          // Under the player, the lyrics' room grows as they fade in.
+          if (shown > 0 && !beside)
+            ClipRect(
+              child: Align(
+                alignment: Alignment.topCenter,
+                heightFactor: shown,
+                child: Opacity(
+                  opacity: shown,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 24),
+                    child: SizedBox(height: 400, child: LyricsView(now)),
+                  ),
                 ),
               ),
             ),
-            Expanded(child: LyricsView(now)),
-          ],
-        );
-      },
+        ],
+      ),
+    );
+
+    if (!beside) {
+      return SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+        child: Center(child: player),
+      );
+    }
+
+    // In the end, half the screen each: the player in the middle of its half, the lyrics all of theirs. On the
+    // way, they slide in from the right as the player makes room for them, laid out as they end up, rather than
+    // narrower, which would wrap their lines anew at every step.
+    return Row(
+      children: [
+        SizedBox(
+          width: room,
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              child: player,
+            ),
+          ),
+        ),
+        if (shown > 0)
+          Expanded(
+            child: ClipRect(
+              child: OverflowBox(
+                alignment: AlignmentDirectional.centerStart,
+                minWidth: box.maxWidth / 2,
+                maxWidth: box.maxWidth / 2,
+                child: Opacity(opacity: shown, child: LyricsView(now)),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

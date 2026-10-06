@@ -347,6 +347,67 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('the lyrics come in gracefully, the player making room for them, and go the same way', (tester) async {
+    await pumpBar(tester, server: withLyrics(verse), size: const Size(1280, 800));
+    await openPlayer(tester);
+    final lyrics = onPage(find.byType(LyricsView));
+    double shown() => tester.widget<Opacity>(find.ancestor(of: lyrics, matching: find.byType(Opacity)).first).opacity;
+
+    await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
+    await tester.pump();
+    await tester.pump(PlayerPage.lyricsTransition ~/ 2);
+    // Halfway: the player on its way to the left half, the lyrics sliding in from the right, fading in.
+    expect(tester.getCenter(playerCover).dx, inExclusiveRange(320, 640));
+    expect(tester.getRect(lyrics).left, inExclusiveRange(640, 1280));
+    expect(tester.getSize(lyrics).width, 640, reason: 'laid out as they end up, not narrower on the way');
+    expect(shown(), inExclusiveRange(0, 1));
+    await tester.pumpAndSettle();
+    expect(tester.getCenter(playerCover).dx, 320);
+    expect(tester.getRect(lyrics).left, 640);
+    expect(shown(), 1);
+
+    await tester.tap(onPage(find.byTooltip('Esconder a letra')));
+    await tester.pump();
+    await tester.pump(PlayerPage.lyricsTransition ~/ 2);
+    expect(tester.getCenter(playerCover).dx, inExclusiveRange(320, 640));
+    expect(tester.getRect(lyrics).left, inExclusiveRange(640, 1280));
+    expect(shown(), inExclusiveRange(0, 1));
+    await tester.pumpAndSettle();
+    expect(lyrics, findsNothing);
+    expect(tester.getCenter(playerCover).dx, 640);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a phone, the lyrics\' room under the player grows as they fade in', (tester) async {
+    await pumpBar(tester, server: withLyrics(verse));
+    await openPlayer(tester);
+    final lyrics = onPage(find.byType(LyricsView));
+    double room() => tester.getSize(find.ancestor(of: lyrics, matching: find.byType(ClipRect)).first).height;
+    double shown() => tester.widget<Opacity>(find.ancestor(of: lyrics, matching: find.byType(Opacity)).first).opacity;
+
+    await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
+    await tester.pump();
+    await tester.pump(PlayerPage.lyricsTransition ~/ 2);
+    final halfway = room();
+    expect(shown(), inExclusiveRange(0, 1));
+    await tester.pumpAndSettle();
+    expect(halfway, inExclusiveRange(0, room()));
+    expect(shown(), 1);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('a player opened with the lyrics shows them at once', (tester) async {
+    await pumpBar(tester, server: withLyrics(verse), size: const Size(1280, 800));
+    await tester.tap(find.byTooltip('Mostrar a letra'));
+    // The page's first frame is offstage, for the bar's hero to measure it; the next is the first that shows.
+    await tester.pump();
+    await tester.pump();
+    final lyrics = onPage(find.byType(LyricsView));
+    expect(tester.getRect(lyrics).left, 640);
+    expect(tester.widget<Opacity>(find.ancestor(of: lyrics, matching: find.byType(Opacity)).first).opacity, 1);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('a wide bar has a button for the lyrics, which opens the player with them', (tester) async {
     await pumpBar(tester, server: withLyrics(verse), size: const Size(1000, 700));
     await tester.tap(find.byTooltip('Mostrar a letra'));
