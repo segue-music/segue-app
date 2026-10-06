@@ -1,5 +1,9 @@
+import 'dart:io';
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image/image.dart' show decodePng;
 import 'package:segue/ui/theme.dart';
 
 double hue(Color color) => HSLColor.fromColor(color).hue;
@@ -16,14 +20,50 @@ double contrast(Color a, Color b) {
   return light > dark ? (light + 0.05) / (dark + 0.05) : (dark + 0.05) / (light + 0.05);
 }
 
+/// How far apart two colors are: the largest difference between their channels, from 0 to 1.
+double colorDistance(Color a, Color b) => [(a.r - b.r).abs(), (a.g - b.g).abs(), (a.b - b.b).abs()].reduce(max);
+
 void main() {
-  test('the theme\'s colors are the icon\'s: magenta first, then the purple and the pink of the ring', () {
+  test('the icon\'s colors are those of its artwork, tool/icon.png', () {
+    final artwork = decodePng(File('tool/icon.png').readAsBytesSync())!;
+
+    // The mean color of the 5 × 5 pixels around (x, y).
+    Color at(int x, int y) {
+      var (r, g, b) = (0.0, 0.0, 0.0);
+
+      for (var j = -2; j <= 2; j++) {
+        for (var i = -2; i <= 2; i++) {
+          final pixel = artwork.getPixel(x + i, y + j);
+          r += pixel.r;
+          g += pixel.g;
+          b += pixel.b;
+        }
+      }
+
+      return Color.fromARGB(255, (r / 25).round(), (g / 25).round(), (b / 25).round());
+    }
+
+    // Where each part is in the artwork, as measured on it: a new artwork needs these taken again, as it needs
+    // tool/icons.dart measured again.
+    final parts = {
+      'the rounded square': (iconPink, at(74, 330)),
+      'the left half of the ring': (iconDeepPink, at(131, 338)),
+      'the right half of the ring': (iconLightPink, at(525, 338)),
+      'the black around the square': (iconBlack, at(20, 20)),
+    };
+
+    for (final MapEntry(key: part, value: (color, painted)) in parts.entries) {
+      expect(colorDistance(color, painted), lessThan(12 / 255), reason: '$part: $color, and $painted in the artwork');
+    }
+  });
+
+  test('the theme\'s colors are the icon\'s: its pink first, then the deep and the light pink of the ring', () {
     for (final brightness in Brightness.values) {
       final colors = segueTheme(brightness).colorScheme;
       final roles = {
-        'primary': (colors.primary, iconMagenta),
-        'secondary': (colors.secondary, iconPurple),
-        'tertiary': (colors.tertiary, iconPink),
+        'primary': (colors.primary, iconPink),
+        'secondary': (colors.secondary, iconDeepPink),
+        'tertiary': (colors.tertiary, iconLightPink),
       };
 
       // HSL's hue, which drifts a little from Material's as a color gets lighter.
@@ -31,6 +71,10 @@ void main() {
         expect(hueDistance(hue(color), hue(icon)), lessThan(20), reason: '$brightness $role');
       }
     }
+  });
+
+  test('in the dark, the theme\'s color is the icon\'s pink itself, rather than Material\'s pastel', () {
+    expect(segueTheme(Brightness.dark).colorScheme.primary, iconPink);
   });
 
   test('in the dark, the app\'s background is the icon\'s black, and the bars and tiles stand out on it', () {
@@ -49,7 +93,7 @@ void main() {
     for (final brightness in Brightness.values) {
       final colors = segueTheme(brightness).colorScheme;
       final material = ColorScheme.fromSeed(
-        seedColor: iconMagenta,
+        seedColor: iconPink,
         brightness: brightness,
         dynamicSchemeVariant: DynamicSchemeVariant.vibrant,
       );
