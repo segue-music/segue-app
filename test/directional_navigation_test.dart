@@ -11,7 +11,10 @@ import 'package:segue/server/models.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
+import 'package:segue/ui/album_page.dart';
+import 'package:segue/ui/albums_view.dart';
 import 'package:segue/ui/home_page.dart';
+import 'package:segue/ui/home_view.dart';
 import 'package:segue/ui/now_playing_bar.dart';
 import 'package:segue/ui/shortcuts.dart';
 
@@ -72,6 +75,16 @@ Future<void> pumpTvHome(WidgetTester tester, {bool followingAnotherDevice = fals
     Uri.parse('https://music.test'),
     credentials,
     client: MockClient((request) async {
+      // Any album opened: twenty tracks, more than fit.
+      if (request.url.path.endsWith('getAlbum.view')) {
+        final songs = [for (var i = 0; i < 20; i++) '{"id": "t$i", "title": "Track $i", "duration": 200}'].join(',');
+        return http.Response(
+          '{"subsonic-response": {"status": "ok", "album": {"id": "a0", "name": "Album 0", "song": [$songs]}}}',
+          200,
+          headers: {'content-type': 'application/json'},
+        );
+      }
+
       if (!request.url.path.endsWith('getAlbumList2.view')) {
         return http.Response('', 404);
       }
@@ -269,4 +282,95 @@ void main() {
     expect(inBar(), isFalse);
     await tester.pumpWidget(const SizedBox());
   });
+
+  testWidgets('left from the first album goes to the side rail, and right comes back to the albums', (tester) async {
+    await pumpTvHome(tester);
+    await tabTo(tester, () => focusedIn<AlbumTile>());
+    await press(tester, LogicalKeyboardKey.arrowLeft);
+    expect(inRail(), isTrue, reason: 'out of the page');
+    await press(tester, LogicalKeyboardKey.arrowRight);
+    expect(focusedIn<AlbumTile>(), isTrue);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('up from the top of the page goes to the top bar, and down from its bottom to the player bar', (
+    tester,
+  ) async {
+    await pumpTvHome(tester);
+    await tabTo(tester, () => focusedIn<AlbumTile>());
+    await pressUntil(tester, LogicalKeyboardKey.arrowUp, inTopBar);
+    await press(tester, LogicalKeyboardKey.arrowDown);
+    expect(focusedIn<HomeView>(), isTrue, reason: 'back in the page');
+    await pressUntil(tester, LogicalKeyboardKey.arrowDown, inBar);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on an album over the home, the arrows go to the bars and back to the album, not the home under it', (
+    tester,
+  ) async {
+    await pumpTvHome(tester);
+    await tabTo(tester, () => focusedIn<AlbumTile>());
+    await press(tester, LogicalKeyboardKey.enter);
+    expect(find.byType(AlbumPage), findsOneWidget);
+    await pressUntil(tester, LogicalKeyboardKey.arrowDown, () => focusedIn<AlbumPage>());
+
+    await press(tester, LogicalKeyboardKey.arrowLeft);
+    expect(inRail(), isTrue);
+    await press(tester, LogicalKeyboardKey.arrowRight);
+    expect(focusedIn<AlbumPage>(), isTrue, reason: 'the album, not the home\'s albums under it');
+
+    await pressUntil(tester, LogicalKeyboardKey.arrowUp, inTopBar);
+    await press(tester, LogicalKeyboardKey.arrowDown);
+    expect(focusedIn<AlbumPage>(), isTrue);
+
+    await pressUntil(tester, LogicalKeyboardKey.arrowDown, inBar);
+    await press(tester, LogicalKeyboardKey.arrowUp);
+    await press(tester, LogicalKeyboardKey.arrowUp);
+    expect(focusedIn<AlbumPage>(), isTrue, reason: 'up from the slider, the album\'s last track');
+
+    // The remote's back: the album closes, and the focus is back on it, in the home.
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.byType(AlbumPage), findsNothing);
+    expect(focusedIn<AlbumTile>() && focusedIn<HomeView>(), isTrue);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('a section the rail opened, then left, takes no focus under the one shown', (tester) async {
+    await pumpTvHome(tester);
+    await shiftTabTo(tester, () => focusedTip() == 'Álbuns');
+    await press(tester, LogicalKeyboardKey.enter);
+    await press(tester, LogicalKeyboardKey.arrowRight);
+    expect(focusedIn<AlbumsView>(), isTrue);
+
+    await shiftTabTo(tester, () => focusedTip() == 'Início');
+    await press(tester, LogicalKeyboardKey.enter);
+    await tabTo(tester, () => focusedTip() == 'Álbuns');
+    await press(tester, LogicalKeyboardKey.arrowRight);
+    expect(focusedIn<HomeView>(), isTrue);
+
+    for (final key in [LogicalKeyboardKey.arrowDown, LogicalKeyboardKey.arrowRight, LogicalKeyboardKey.arrowDown]) {
+      await press(tester, key);
+      expect(focusedIn<AlbumsView>(), isFalse, reason: 'the albums section is hidden');
+    }
+
+    await tester.pumpWidget(const SizedBox());
+  });
+}
+
+bool focusedIn<T extends Widget>() =>
+    FocusManager.instance.primaryFocus?.context?.findAncestorWidgetOfExactType<T>() != null;
+
+bool inRail() => ['Álbuns', 'Artistas', 'Gêneros'].contains(focusedTip());
+
+/// In the home's top bar: the app's icon, the arrows, the search, the buttons at its end.
+bool inTopBar() => focusedIn<AppBar>() && focusedIn<HomePage>();
+
+/// Presses [key] until [there], a few times at most.
+Future<void> pressUntil(WidgetTester tester, LogicalKeyboardKey key, bool Function() there) async {
+  for (var i = 0; i < 30 && !there(); i++) {
+    await press(tester, key);
+  }
+
+  expect(there(), isTrue);
 }

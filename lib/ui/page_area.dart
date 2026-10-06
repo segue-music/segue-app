@@ -28,6 +28,36 @@ class PageArea extends InheritedWidget {
   bool updateShouldNotify(PageArea oldWidget) => navigator != oldWidget.navigator || history != oldWidget.history;
 }
 
+/// Keeps the arrows (a TV remote's) and Tab on the page on top of the page area, and on the bars around it: the pages
+/// under it, hidden, would otherwise be among the places the focus can go to, with their albums and buttons lying
+/// under the ones shown. They keep what had the focus in them, which gets it back when they show again: rather than
+/// taking their focus away, which would forget it, this leaves them out of the traversal.
+class TopPageTraversal extends NavigatorObserver {
+  /// Lets the arrows and Tab into [route] only while it is on top. A page about to be built has nothing to leave out.
+  static void _update(Route<dynamic>? route) {
+    final context = route is ModalRoute ? route.subtreeContext : null;
+
+    if (context != null) {
+      FocusScope.of(context, createDependency: false).descendantsAreTraversable = route!.isCurrent;
+    }
+  }
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) => _update(previousRoute);
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    _update(route);
+    _update(previousRoute);
+  }
+
+  @override
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) => _update(previousRoute);
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) => _update(newRoute);
+}
+
 /// The pages opened in the page area, as a browser's history: going back closes the page on top, and going forward
 /// opens again the last one closed, until another page opens.
 class PageHistory extends NavigatorObserver with ChangeNotifier {

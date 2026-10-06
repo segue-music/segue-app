@@ -70,7 +70,7 @@ class _HomePageState extends State<HomePage> {
   /// On a wide screen, the page area's navigator, and the pages opened in it.
   final _pages = GlobalKey<NavigatorState>();
   final _history = PageHistory();
-  late final _observers = [_history];
+  late final _observers = [_history, TopPageTraversal()];
 
   /// Shows [section], closing the pages over it.
   void _select(_Section section) {
@@ -186,11 +186,13 @@ class _HomePageState extends State<HomePage> {
       fit: StackFit.expand,
       children: [
         // Each section stays underneath once opened, also while searching: going back to it, or
-        // clearing the search, finds it where it was.
+        // clearing the search, finds it where it was. Hidden, it takes no focus, which the remote would otherwise move
+        // to its albums, under the one shown.
         for (final section in _opened)
-          Offstage(
+          Visibility(
             key: ValueKey(section),
-            offstage: results != null || section != _section,
+            visible: results == null && section == _section,
+            maintainState: true,
             child: switch (section) {
               _Section.home => HomeView(onShowAll: _showAlbums),
               _Section.albums => AlbumsView(
@@ -288,6 +290,9 @@ class _HomePageState extends State<HomePage> {
                     child: Navigator(
                       key: _pages,
                       observers: _observers,
+                      // The arrows (a TV remote's) go on from a page's edges to the bars around it, where a
+                      // navigator's pages would keep them.
+                      routeDirectionalTraversalEdgeBehavior: TraversalEdgeBehavior.parentScope,
                       pages: [
                         // A Material of its own for the lists' ink, which the page's transition would paint over.
                         MaterialPage<void>(

@@ -100,6 +100,11 @@ Running two app instances on one machine as different devices:
   `PageHistory` the top bar's arrows and the keyboard's left and right go back and forward through.
   From outside it (the player bar), pages open with `PageArea.navigatorOf(context)`, not
   `Navigator.of`; the full-screen cover and the sheets open in the app's navigator, over the window.
+  A navigator's pages keep the arrows in them, so the page area's lets them on from a page's edges
+  to the bars (`routeDirectionalTraversalEdgeBehavior`). The bars' scope holds every page, the
+  hidden ones too, so `TopPageTraversal` leaves those under the top one out of the traversal (not
+  out of the focus, which would forget where it was in them), and the sections not shown are out
+  of the focus (`Visibility`).
 - `MediaServer` (`lib/server/server.dart`) is what pages, the player and the media controls ask of
   the media server, in either API: `SubsonicApi` (`lib/subsonic/`) or `JellyfinApi`
   (`lib/jellyfin/`). The user types only the address: `signIn` (`lib/server/sign_in.dart`) asks it

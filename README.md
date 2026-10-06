@@ -182,9 +182,10 @@ env SEGUE_DEVICE_ID=second SEGUE_DEVICE_NAME="Second copy" segue/segue
 
 `tool/package-android.sh` builds `build/segue-android.apk` (with Flutter and the Android SDK from
 Docker, see below): one APK for every processor, signed with a debug key, to install by hand. On
-Android TV the app is in the home screen, and the remote drives it: the D-pad moves around (its
-center button presses, and a white ring shows where it is), and the play/pause, next and previous
-buttons drive playback.
+Android TV the app is in the home screen, and the remote drives it: the D-pad moves around, from
+the page out to the bars around it (the top one, the side rail, the player's) and back (its center
+button presses, and a white ring shows where it is), and the play/pause, next and previous buttons
+drive playback.
 
 To install it from a computer with adb (`android-tools` on Fedora), turn on the TV's developer
 options (Settings > Device Preferences > About: press "Build" seven times) and, in them, network
