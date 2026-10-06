@@ -52,13 +52,15 @@ class _ArtistsViewState extends State<ArtistsView> {
           setState(() => _artists = reload);
           await reload;
         },
+        // Pictures of up to 180 pixels, 16 from the edges and from one another, of which the tiles' room inside
+        // (_ArtistTile.padding) is part, as the albums' are; the rows as far apart as with no room inside.
         child: GridView.builder(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16 - _ArtistTile.padding),
           gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 180,
-            mainAxisSpacing: 16,
-            crossAxisSpacing: 16,
-            childAspectRatio: 0.72,
+            maxCrossAxisExtent: 180 + 2 * _ArtistTile.padding,
+            mainAxisSpacing: 16 - 2 * _ArtistTile.padding,
+            crossAxisSpacing: 16 - 2 * _ArtistTile.padding,
+            childAspectRatio: 0.74,
           ),
           itemCount: artists.length,
           itemBuilder: (context, i) => _ArtistTile(artists[i]),
@@ -74,6 +76,10 @@ class _ArtistTile extends StatefulWidget {
   const _ArtistTile(this.artist);
 
   final Artist artist;
+
+  /// The room inside, around the picture and the lines under it, where the tint (the pointer's, the focus's) shows, as
+  /// an album has (`AlbumTile.padding`). The grid takes it from the room around the artists.
+  static const padding = 8.0;
 
   @override
   State<_ArtistTile> createState() => _ArtistTileState();
@@ -95,30 +101,33 @@ class _ArtistTileState extends State<_ArtistTile> {
           mouseCursor: WidgetStateMouseCursor.clickable,
           borderRadius: BorderRadius.circular(8),
           onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ArtistPage(artist))),
-          child: Column(
-            children: [
-              AspectRatio(
-                aspectRatio: 1,
-                child: ClipOval(
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Cover(artist.coverArt, icon: HugeIcons.strokeRoundedUser),
-                      // The album cover's shade (AlbumPlayButton), coming and going in the same fade.
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 150),
-                        child: _hovered
-                            ? const ColoredBox(color: Colors.black26, child: SizedBox.expand())
-                            : const SizedBox.shrink(),
-                      ),
-                    ],
+          child: Padding(
+            padding: const EdgeInsets.all(_ArtistTile.padding),
+            child: Column(
+              children: [
+                AspectRatio(
+                  aspectRatio: 1,
+                  child: ClipOval(
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Cover(artist.coverArt, icon: HugeIcons.strokeRoundedUser),
+                        // The album cover's shade (AlbumPlayButton), coming and going in the same fade.
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 150),
+                          child: _hovered
+                              ? const ColoredBox(color: Colors.black26, child: SizedBox.expand())
+                              : const SizedBox.shrink(),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 6),
-              Text(artist.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: text.titleSmall),
-              Text(albumCount(artist.albumCount), maxLines: 1, style: text.bodySmall),
-            ],
+                const SizedBox(height: 6),
+                Text(artist.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: text.titleSmall),
+                Text(albumCount(artist.albumCount), maxLines: 1, style: text.bodySmall),
+              ],
+            ),
           ),
         ),
       ),

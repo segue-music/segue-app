@@ -292,6 +292,24 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets(
+    'an artist has room inside, around their picture, where the tint shows; the picture is 16 from the next',
+    (tester) async {
+      await pumpHome(tester, const Size(1000, 700));
+      await tester.tap(find.byTooltip('Artistas'));
+      await tester.pumpAndSettle();
+      Rect picture(String name) => tester.getRect(find.descendant(of: tile(name), matching: find.byType(Cover)));
+
+      final (artist, next) = ('Aerosmith', 'Cheap Trick');
+      expect(picture(artist).left - tester.getRect(tile(artist)).left, 8);
+      expect(picture(artist).top - tester.getRect(tile(artist)).top, 8);
+      expect(tester.getRect(tile(artist)).right - picture(artist).right, 8);
+      expect(picture(next).left - picture(artist).right, moreOrLessEquals(16));
+      expect(picture(artist).left - tester.getRect(find.byType(GridView)).left, moreOrLessEquals(16));
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
   testWidgets('search finds artists too, and one opens their page', (tester) async {
     await pumpHome(tester, const Size(1000, 700));
     await tester.enterText(find.byType(TextField), 'aero');
