@@ -72,7 +72,8 @@ the device it runs on.
   above it. A tap on a track plays it there;
 - the album's songs and the queue have a header naming their columns: the number ("#") or the
   cover, the title, and the duration as a clock; over the queue it stays as the tracks scroll;
-- on the album page, after its songs, the album's release date, as precisely as the server knows
+- on the album page, under the album's name, its artist with their picture, its year, how many songs
+  it has and how long they last; after its songs, its release date, as precisely as the server knows
   it, and its record labels (OpenSubsonic's; on a Jellyfin server, which reads no labels from music
   files, the album's studios, where someone set them), which the keyboard and the remote, coming to
   the last song, scroll on to;

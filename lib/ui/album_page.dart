@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../server/models.dart';
+import '../server/server.dart';
 import '../services.dart';
 import 'artist_link.dart';
+import 'cover.dart';
 import 'cover_page.dart';
 import 'current_song.dart';
 import 'errors.dart';
@@ -25,10 +27,32 @@ class AlbumPage extends StatefulWidget {
 class _AlbumPageState extends State<AlbumPage> {
   Future<(Album, List<Song>)>? _album;
 
+  /// The cover id of the picture of the album's artist.
+  Future<String?>? _artistPicture;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _album ??= ServicesScope.of(context).api.album(widget.album.id);
+    final api = ServicesScope.of(context).api;
+    final album = _album ??= api.album(widget.album.id);
+    _artistPicture ??= _pictureOfArtist(api, widget.album.artistId, album);
+  }
+
+  /// The cover id of the picture of the album's artist, [artistId] or, when the page opened without it, the one
+  /// [album] names: none when it names none, or the server fails, and the picture stays a placeholder.
+  static Future<String?> _pictureOfArtist(MediaServer api, String? artistId, Future<(Album, List<Song>)> album) async {
+    try {
+      final id = artistId ?? (await album).$1.artistId;
+
+      if (id == null) {
+        return null;
+      }
+
+      final (artist, _) = await api.artist(id);
+      return artist.coverArt;
+    } on Object {
+      return null;
+    }
   }
 
   Future<void> _play(List<Song> songs, int index) async {
@@ -73,7 +97,7 @@ class _AlbumPageState extends State<AlbumPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(album.name, style: text.titleLarge),
-                          AlbumByline(album, style: text.bodyMedium),
+                          _Byline(album, songs, artistPicture: _artistPicture!, style: text.bodyMedium),
                           const SizedBox(height: 12),
                           FilledButton.icon(
                             onPressed: songs.isEmpty ? null : () => _play(songs, 0),
@@ -117,6 +141,89 @@ class _AlbumPageState extends State<AlbumPage> {
       ),
     );
   }
+}
+
+/// Under the album's name: its artist, with their picture, a link to their page; its year; how many songs it has and
+/// how long they last. One paragraph, which a narrow screen wraps.
+class _Byline extends StatelessWidget {
+  const _Byline(this.album, this.songs, {required this.artistPicture, this.style});
+
+  final Album album;
+  final List<Song> songs;
+
+  /// The cover id of the artist's picture.
+  final Future<String?> artistPicture;
+
+  final TextStyle? style;
+
+  @override
+  Widget build(BuildContext context) {
+    final details = [if (album.year case final year?) '$year', if (songs.isNotEmpty) _songsLength(songs)].join(' · ');
+    return Text.rich(
+      TextSpan(
+        children: [
+          if (album.artist != null) ...[
+            WidgetSpan(
+              alignment: PlaceholderAlignment.middle,
+              child: ArtistLink.album(
+                album,
+                style: style,
+                picture: album.artistId == null ? null : _ArtistPicture(artistPicture),
+              ),
+            ),
+            if (details.isNotEmpty) const TextSpan(text: ' · '),
+          ],
+          TextSpan(text: details),
+        ],
+      ),
+      style: style,
+    );
+  }
+}
+
+/// How many songs there are, and how long they last together, where each says: "9 faixas, 37 min".
+String _songsLength(List<Song> songs) {
+  final count = songs.length == 1 ? '1 faixa' : '${songs.length} faixas';
+
+  if (songs.any((song) => song.duration == null)) {
+    return count;
+  }
+
+  final length = songs.fold(Duration.zero, (sum, song) => sum + song.duration!);
+  final (hours, minutes) = (length.inHours, length.inMinutes % 60);
+  final time = switch ((hours, minutes)) {
+    (0, 0) => '${length.inSeconds} s',
+    (0, _) => '$minutes min',
+    (_, 0) => '$hours h',
+    _ => '$hours h $minutes min',
+  };
+  return '$count, $time';
+}
+
+/// The picture of the album's artist, small and round, before their name: a person until it comes, and where the
+/// server has none.
+class _ArtistPicture extends StatelessWidget {
+  const _ArtistPicture(this.coverArt);
+
+  /// Its cover id.
+  final Future<String?> coverArt;
+
+  /// How big it is, square.
+  static const size = 24.0;
+
+  @override
+  Widget build(BuildContext context) => SizedBox.square(
+    dimension: size,
+    child: ClipOval(
+      child: IconTheme.merge(
+        data: const IconThemeData(size: 16),
+        child: FutureBuilder(
+          future: coverArt,
+          builder: (context, snapshot) => Cover(snapshot.data, size: 96, icon: HugeIcons.strokeRoundedUser),
+        ),
+      ),
+    ),
+  );
 }
 
 /// The album's last song, with what is known of its release under it, ending the list: its date, and the labels that

@@ -14,7 +14,6 @@ import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/album_page.dart';
-import 'package:segue/ui/artist_link.dart';
 import 'package:segue/ui/artist_page.dart';
 import 'package:segue/ui/cover_page.dart';
 
@@ -29,7 +28,8 @@ http.Response subsonic(Map<String, Object?> body) => http.Response(
 );
 
 /// The page of Toys in the Attic, with the cover [coverArt], two songs by Aerosmith and then [more] songs, the release
-/// date [releaseDate] and the record labels [recordLabels], on a 1000×700 screen. Returns the player's engine.
+/// date [releaseDate] and the record labels [recordLabels], on a 1000×700 screen. Aerosmith's picture is `ar-ar1`.
+/// Returns the player's engine.
 Future<FakeEngine> pumpAlbum(
   WidgetTester tester, {
   String? coverArt = 'al-a1',
@@ -44,7 +44,7 @@ Future<FakeEngine> pumpAlbum(
     client: MockClient((request) async {
       if (request.url.path.endsWith('getArtist.view')) {
         return subsonic({
-          'artist': {'id': 'ar1', 'name': 'Aerosmith', 'albumCount': 1},
+          'artist': {'id': 'ar1', 'name': 'Aerosmith', 'albumCount': 1, 'coverArt': 'ar-ar1'},
         });
       }
 
@@ -99,6 +99,14 @@ Finder coverAt(int size) => find.byWidgetPredicate(
       widget is Image &&
       widget.image is NetworkImage &&
       Uri.parse((widget.image as NetworkImage).url).queryParameters['size'] == '$size',
+);
+
+/// The image of the cover whose id is [id].
+Finder coverOf(String id) => find.byWidgetPredicate(
+  (widget) =>
+      widget is Image &&
+      widget.image is NetworkImage &&
+      Uri.parse((widget.image as NetworkImage).url).queryParameters['id'] == id,
 );
 
 Future<void> openCover(WidgetTester tester) async {
@@ -172,11 +180,27 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('under the album\'s name, its artist, and its year right after them', (tester) async {
-    await pumpAlbum(tester);
-    final artist = find.descendant(of: find.byType(AlbumByline), matching: find.text('Aerosmith'));
-    final year = find.descendant(of: find.byType(AlbumByline), matching: find.text(' · 1975'));
-    expect(tester.getTopLeft(year).dx, moreOrLessEquals(tester.getTopRight(artist).dx, epsilon: 1));
+  testWidgets(
+    'under the album\'s name, its artist, with their picture, then its year, its songs and how long they last',
+    (tester) async {
+      await pumpAlbum(tester);
+      final byline = find.textContaining(' · 1975 · 2 faixas, 8 min');
+      expect(byline, findsOneWidget);
+      final artist = find.descendant(of: byline, matching: find.text('Aerosmith'));
+      final picture = find.descendant(of: byline, matching: coverOf('ar-ar1'));
+      expect(tester.getSize(picture), const Size(24, 24));
+      expect(tester.getRect(picture).right, lessThan(tester.getRect(artist).left));
+      expect(tester.getCenter(picture).dy, moreOrLessEquals(tester.getCenter(artist).dy, epsilon: 1));
+      await tester.tap(picture);
+      await tester.pumpAndSettle();
+      expect(find.byType(ArtistPage), findsOneWidget, reason: 'the picture is part of the link');
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets('an album of an hour or more says how long in hours and minutes', (tester) async {
+    await pumpAlbum(tester, more: 20); // 494 seconds, and 20 songs of 200
+    expect(find.textContaining(' · 1975 · 22 faixas, 1 h 14 min'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 

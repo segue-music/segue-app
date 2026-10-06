@@ -6,15 +6,23 @@ import 'text_link.dart';
 
 /// An artist's name, a link to their page (when the server gave their id).
 class ArtistLink extends StatelessWidget {
-  /// An album's artist.
-  ArtistLink.album(Album album, {this.style, super.key}) : name = album.artist ?? '', artistId = album.artistId;
+  /// An album's artist, with [picture] before their name.
+  ArtistLink.album(Album album, {this.style, this.picture, super.key})
+    : name = album.artist ?? '',
+      artistId = album.artistId;
 
   /// A song's artist: the first, when it has several, though the link shows them all.
-  ArtistLink.song(Song song, {this.style, super.key}) : name = song.artist ?? '', artistId = song.artistId;
+  ArtistLink.song(Song song, {this.style, super.key})
+    : name = song.artist ?? '',
+      artistId = song.artistId,
+      picture = null;
 
   final String name;
   final String? artistId;
   final TextStyle? style;
+
+  /// Their picture, before their name, in the link.
+  final Widget? picture;
 
   @override
   Widget build(BuildContext context) {
@@ -30,6 +38,7 @@ class ArtistLink extends StatelessWidget {
               ),
             ),
       style: style,
+      leading: picture,
     );
   }
 }
