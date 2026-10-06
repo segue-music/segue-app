@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -154,6 +155,28 @@ void main() {
     expect(find.byType(ArtistPage), findsOneWidget);
     expect(find.descendant(of: find.byType(AppBar), matching: find.text('Aerosmith')), findsOneWidget);
     expect(engine.tracks, isEmpty, reason: 'the song didn\'t play');
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('only the artist\'s name is a link: the rest of its line, under the mouse, is the song\'s', (
+    tester,
+  ) async {
+    final engine = await pumpAlbum(tester);
+    final artist = find.descendant(of: song('Walk This Way'), matching: find.text('Aerosmith'));
+    TextDecoration? decoration() => tester.widget<Text>(artist).style?.decoration;
+    // On the artist's line, halfway along the song: well past their name.
+    final besideName = Offset(tester.getCenter(song('Walk This Way')).dx, tester.getCenter(artist).dy);
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer(location: Offset.zero);
+    addTearDown(mouse.removePointer);
+    await mouse.moveTo(besideName);
+    await tester.pump();
+    expect(decoration(), isNot(TextDecoration.underline));
+    await mouse.down(besideName);
+    await mouse.up();
+    await tester.pumpAndSettle();
+    expect(find.byType(ArtistPage), findsNothing);
+    expect(engine.tracks, isNotEmpty, reason: 'the song played');
     await tester.pumpWidget(const SizedBox());
   });
 

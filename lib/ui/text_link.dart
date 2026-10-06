@@ -49,10 +49,12 @@ class _TextLinkState extends State<TextLink> {
       ),
     );
 
-    if (widget.onTap == null) {
-      return link;
-    }
-
-    return Tooltip(message: widget.tooltip, child: link);
+    // Only as wide as its text, where a line stretches it (a song's artist in a list tile): the rest of
+    // that line, under the mouse or the finger, belongs to what holds it.
+    return Align(
+      alignment: widget.textAlign == TextAlign.center ? Alignment.center : AlignmentDirectional.centerStart,
+      heightFactor: 1,
+      child: widget.onTap == null ? link : Tooltip(message: widget.tooltip, child: link),
+    );
   }
 }
