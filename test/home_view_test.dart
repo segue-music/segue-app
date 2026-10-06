@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -111,6 +112,10 @@ Finder shown(String text) => find.text(text).hitTestable();
 /// Where the side rail ends: the line between it and the section.
 double railWidth(WidgetTester tester) => tester.getTopLeft(find.byType(VerticalDivider)).dx;
 
+/// The side rail's button for [section], which its tooltip names.
+Finder railButton(String section) =>
+    find.descendant(of: find.byTooltip(section), matching: find.byWidgetPredicate((widget) => widget is InkResponse));
+
 /// The name of the album that has the focus.
 String? focusedAlbum() =>
     FocusManager.instance.primaryFocus?.context?.findAncestorWidgetOfExactType<AlbumTile>()?.album.name;
@@ -159,11 +164,7 @@ void main() {
     expect(find.byTooltip('Recolher a barra lateral'), findsNothing, reason: 'it is always so');
 
     for (final section in ['Álbuns', 'Artistas', 'Gêneros']) {
-      final button = find.descendant(
-        of: find.byTooltip(section),
-        matching: find.byWidgetPredicate((widget) => widget is InkResponse),
-      );
-      expect(tester.getSize(button), const Size(40, 40), reason: section);
+      expect(tester.getSize(railButton(section)), const Size(40, 40), reason: section);
     }
 
     await tester.tap(find.byTooltip('Álbuns'));
@@ -171,11 +172,33 @@ void main() {
     expect(title('Álbuns'), findsOneWidget);
 
     bool selected(String section) => tester
-        .widget<IconButton>(find.ancestor(of: find.byTooltip(section), matching: find.byType(IconButton)))
+        .widget<IconButton>(find.ancestor(of: railButton(section), matching: find.byType(IconButton)))
         .isSelected!;
 
     expect(selected('Álbuns'), isTrue);
     expect(selected('Artistas'), isFalse);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('a section\'s name shows beside its icon, level with it, rather than over the icon below', (
+    tester,
+  ) async {
+    await pumpHome(tester, const Size(1000, 700));
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer(location: const Offset(999, 699));
+    addTearDown(mouse.removePointer);
+
+    for (final section in ['Álbuns', 'Artistas', 'Gêneros']) {
+      final icon = tester.getRect(railButton(section));
+      await mouse.moveTo(icon.center);
+      await tester.pumpAndSettle();
+      final name = tester.getRect(find.text(section));
+      expect(name.left, greaterThan(icon.right), reason: '$section: to the right of its icon');
+      expect(name.center.dy, moreOrLessEquals(icon.center.dy, epsilon: 1), reason: '$section: level with it');
+      await mouse.moveTo(const Offset(999, 699));
+      await tester.pumpAndSettle(const Duration(seconds: 2)); // the name goes away
+    }
+
     await tester.pumpWidget(const SizedBox());
   });
 

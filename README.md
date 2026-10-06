@@ -29,7 +29,7 @@ the device it runs on.
   each with their albums) and genres (by name, each with its number of albums, under the ten the
   user listens to most, and its albums by name, under a row of those the user plays most: on a
   Subsonic server, which counts no plays by genre, both come from the 500 most played albums):
-  albums, artists and genres in a side rail, as icons that name their sections on hover,
+  albums, artists and genres in a side rail, as icons that name their sections on hover, beside them,
   and the home under the app's icon, in the top bar's left corner (on a phone, the icon goes there
   too, and all four are in a bar at the bottom);
   the album page, whose cover opens full screen; search (artists, albums and songs); and playback

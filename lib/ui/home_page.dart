@@ -211,12 +211,18 @@ class _HomePageState extends State<HomePage> {
 
 /// The side rail: the sections' icons, each named by its tooltip, but the home's, which the app's icon above it
 /// opens. NavigationRail's highlight is 56 px wide, from one edge of so narrow a rail to the other; here it is the
-/// icon's button's.
+/// icon's button's. The tooltip shows to the right of its icon, level with it: below, where tooltips go, it would
+/// cover the icon under it.
 class _SideRail extends StatelessWidget {
   const _SideRail({required this.selected, required this.onSelected});
 
   final _Section selected;
   final ValueChanged<_Section> onSelected;
+
+  /// Where a tooltip's top left corner goes: to the right of its icon, level with it, as far from its center as a
+  /// tooltip below would be.
+  static Offset _besideIcon(TooltipPositionContext context) =>
+      Offset(context.target.dx + context.verticalOffset, context.target.dy - context.tooltipSize.height / 2);
 
   @override
   Widget build(BuildContext context) {
@@ -239,12 +245,15 @@ class _SideRail extends StatelessWidget {
             if (section != _Section.home)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4),
-                child: IconButton(
-                  tooltip: section.label,
-                  isSelected: section == selected,
-                  icon: Icon(section.icon),
-                  style: style,
-                  onPressed: () => onSelected(section),
+                child: Tooltip(
+                  message: section.label,
+                  positionDelegate: _besideIcon,
+                  child: IconButton(
+                    isSelected: section == selected,
+                    icon: Icon(section.icon),
+                    style: style,
+                    onPressed: () => onSelected(section),
+                  ),
                 ),
               ),
         ],
