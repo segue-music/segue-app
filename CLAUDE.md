@@ -91,6 +91,11 @@ Running two app instances on one machine as different devices:
   call `connect`, not `player`, for playback. It also follows whichever device starts playing, and
   restores the last playback on first connect. It links the player and the hub:
   `player.onReport → client.sendState` and `client.onCommand → player.obey`.
+- On a wide screen, `HomePage` keeps its bars (the top one, the side rail, the player's) and opens
+  pages between them, in a nested navigator, the page area (`lib/ui/page_area.dart`), whose
+  `PageHistory` the top bar's arrows and the keyboard's left and right go back and forward through.
+  From outside it (the player bar), pages open with `PageArea.navigatorOf(context)`, not
+  `Navigator.of`; the full-screen cover and the sheets open in the app's navigator, over the window.
 - `MediaServer` (`lib/server/server.dart`) is what pages, the player and the media controls ask of
   the media server, in either API: `SubsonicApi` (`lib/subsonic/`) or `JellyfinApi`
   (`lib/jellyfin/`). The user types only the address: `signIn` (`lib/server/sign_in.dart`) asks it

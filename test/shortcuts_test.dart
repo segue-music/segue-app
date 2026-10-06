@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -83,5 +85,146 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.mediaPlayPause);
     await tester.pump();
     expect(player.playing, isTrue);
+  });
+
+  group('the arrow left', () {
+    /// The library, with the shortcuts above the navigator, as in the app. [television] as on a TV.
+    Future<void> pumpLibrary(WidgetTester tester, {bool television = false}) => tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => DirectionalNavigation(
+          enabled: television,
+          child: TextFieldArrowShortcuts(child: BackShortcut(child: child!)),
+        ),
+        home: const Scaffold(body: Text('library')),
+      ),
+    );
+
+    Future<void> push(WidgetTester tester, Route<void> route) async {
+      unawaited(tester.state<NavigatorState>(find.byType(Navigator)).push(route));
+      await tester.pumpAndSettle();
+    }
+
+    /// Opens a page as an album's or an artist's opens, with a back arrow in its app bar.
+    Future<void> pushPage(WidgetTester tester, {Widget body = const SizedBox()}) => push(
+      tester,
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          appBar: AppBar(title: const Text('album')),
+          body: body,
+        ),
+      ),
+    );
+
+    Future<void> pressLeft(WidgetTester tester) async {
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('goes back from a page with a back arrow, as the arrow does', (tester) async {
+      await pumpLibrary(tester);
+      await pushPage(tester);
+      expect(find.byType(BackButton), findsOneWidget);
+      await pressLeft(tester);
+      expect(find.text('album'), findsNothing);
+      expect(find.text('library'), findsOneWidget);
+
+      // Also with a button of the page focused.
+      await pushPage(
+        tester,
+        body: TextButton(autofocus: true, onPressed: () {}, child: const Text('play')),
+      );
+      await pressLeft(tester);
+      expect(find.text('album'), findsNothing);
+    });
+
+    testWidgets('while typing, moves the caret instead', (tester) async {
+      final controller = TextEditingController.fromValue(
+        const TextEditingValue(text: 'abc', selection: TextSelection.collapsed(offset: 3)),
+      );
+      addTearDown(controller.dispose);
+      await pumpLibrary(tester);
+      await pushPage(tester, body: TextField(autofocus: true, controller: controller));
+      await pressLeft(tester);
+      expect(find.text('album'), findsOneWidget);
+      expect(controller.selection, const TextSelection.collapsed(offset: 2));
+    });
+
+    testWidgets('leaves the full-screen player and sheets, which have no back arrow, open', (tester) async {
+      await pumpLibrary(tester);
+      // The full-screen player and the cover, which close with a button of their own and Esc.
+      await push(tester, PageRouteBuilder(pageBuilder: (_, _, _) => const Scaffold(body: Text('player'))));
+      await pressLeft(tester);
+      expect(find.text('player'), findsOneWidget);
+
+      await pushPage(tester);
+      unawaited(
+        showModalBottomSheet<void>(context: tester.element(find.text('album')), builder: (_) => const Text('devices')),
+      );
+      await tester.pumpAndSettle();
+      await pressLeft(tester);
+      expect(find.text('devices'), findsOneWidget);
+      expect(find.text('album'), findsOneWidget);
+    });
+
+    testWidgets('on a TV, moves the focus, since the remote has a back button of its own', (tester) async {
+      await pumpLibrary(tester, television: true);
+      await pushPage(
+        tester,
+        body: Row(
+          children: [
+            TextButton(onPressed: () {}, child: const Text('play')),
+            TextButton(autofocus: true, onPressed: () {}, child: const Text('shuffle')),
+          ],
+        ),
+      );
+      await pressLeft(tester);
+      expect(find.text('album'), findsOneWidget);
+      expect(Focus.of(tester.element(find.text('play'))).hasPrimaryFocus, isTrue);
+    });
+  });
+
+  group('Esc', () {
+    Future<void> pumpPage(WidgetTester tester, Widget body) => tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => UnfocusShortcut(child: child!),
+        home: Scaffold(body: body),
+      ),
+    );
+
+    testWidgets('takes the focus off what has it, a button or a text field', (tester) async {
+      await pumpPage(
+        tester,
+        Column(
+          children: [
+            TextButton(autofocus: true, onPressed: () {}, child: const Text('play')),
+            const TextField(),
+          ],
+        ),
+      );
+      final button = Focus.of(tester.element(find.text('play')));
+      expect(button.hasPrimaryFocus, isTrue);
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pump();
+      expect(button.hasFocus, isFalse);
+
+      await tester.tap(find.byType(TextField));
+      await tester.pump();
+      final field = tester.state<EditableTextState>(find.byType(EditableText)).widget.focusNode;
+      expect(field.hasFocus, isTrue);
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pump();
+      expect(field.hasFocus, isFalse);
+    });
+
+    testWidgets('with nothing focused, closes a sheet, as ever', (tester) async {
+      await pumpPage(tester, const Text('album'));
+      unawaited(
+        showModalBottomSheet<void>(context: tester.element(find.text('album')), builder: (_) => const Text('devices')),
+      );
+      await tester.pumpAndSettle();
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      expect(find.text('devices'), findsNothing);
+    });
   });
 }

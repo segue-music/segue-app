@@ -57,6 +57,12 @@ the device it runs on.
   page the artist links too, and there the keyboard and the remote get to them (in the lists, each
   album is one stop), and each song's artist, under its title, opens their page too (the first
   artist, when it has several; for the keyboard and the remote, each song is one stop);
+- on a wide screen (a computer, a tablet, a TV), the top bar, the side rail and the player bar stay,
+  and pages (an album, an artist, a genre, the queue, the full-screen player) open between them, with
+  the search bar in the middle of the top bar. Arrows beside the app's icon go back and forward through
+  those pages, as a browser's do, and so do the keyboard's left and right (on a phone, left goes back
+  from a page with a back arrow). A section, or a search, closes them. Esc takes the focus off what
+  has it, leaving the search bar empty;
 - the queue of whichever device the app controls, from the full-screen player or, on a wide
   screen, the player bar: the current track on top, the next ones under it and what played before
   above it. A tap on a track plays it there;

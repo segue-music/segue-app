@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../services.dart';
 import 'cover.dart';
 import 'now_playing_bar.dart';
+import 'page_area.dart';
 import 'player_controls.dart';
 
 /// The queue of the device the app controls, in its play order (shuffled, or not): the current
@@ -12,8 +13,9 @@ import 'player_controls.dart';
 class QueuePage extends StatefulWidget {
   const QueuePage({super.key});
 
+  /// Opens it over the current page: on a wide screen, in the page area.
   static Future<void> open(BuildContext context) =>
-      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const QueuePage()));
+      PageArea.navigatorOf(context).push(MaterialPageRoute<void>(builder: (_) => const QueuePage()));
 
   @override
   State<QueuePage> createState() => _QueuePageState();

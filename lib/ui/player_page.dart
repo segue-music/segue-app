@@ -9,45 +9,22 @@ import 'cover.dart';
 import 'devices_sheet.dart';
 import 'lyrics_view.dart';
 import 'now_playing_bar.dart';
+import 'page_area.dart';
 import 'player_controls.dart';
 import 'queue_page.dart';
 import 'song_link.dart';
 
 /// The full-screen player: what plays, wherever it plays, big, with every control, and its lyrics beside
 /// it (on a phone, under it).
-class PlayerPage extends StatefulWidget {
-  const PlayerPage({this.lyrics = false, super.key});
+class PlayerPage extends StatelessWidget {
+  const PlayerPage(this._lyrics, {super.key});
 
-  /// Whether it opens with the lyrics.
-  final bool lyrics;
-
-  /// Slides it up over the current page, with the lyrics if [lyrics].
-  static Future<void> open(BuildContext context, {bool lyrics = false}) => Navigator.of(context).push(
-    PageRouteBuilder<void>(
-      pageBuilder: (_, _, _) => PlayerPage(lyrics: lyrics),
-      transitionsBuilder: (_, animation, _, child) => SlideTransition(
-        position: Tween(
-          begin: const Offset(0, 1),
-          end: Offset.zero,
-        ).chain(CurveTween(curve: Curves.easeOutCubic)).animate(animation),
-        child: child,
-      ),
-    ),
-  );
-
-  @override
-  State<PlayerPage> createState() => _PlayerPageState();
-}
-
-class _PlayerPageState extends State<PlayerPage> {
   /// Whether the lyrics show: turned on and off at the top, or, on a wide screen, in the bar under the player.
-  late final _lyrics = ValueNotifier(widget.lyrics);
+  final ValueNotifier<bool> _lyrics;
 
-  @override
-  void dispose() {
-    _lyrics.dispose();
-    super.dispose();
-  }
+  /// Slides it up over the current page, with the lyrics if [lyrics]: on a wide screen, in the page area.
+  static Future<void> open(BuildContext context, {bool lyrics = false}) =>
+      PageArea.navigatorOf(context).push(PlayerRoute(lyrics: lyrics));
 
   @override
   Widget build(BuildContext context) {
@@ -115,6 +92,32 @@ class _PlayerPageState extends State<PlayerPage> {
         ),
       ),
     );
+  }
+}
+
+/// The full-screen player's route, which slides it up, and holds whether it shows the lyrics: on a wide screen, the
+/// home's player bar under it turns them on and off.
+class PlayerRoute extends PageRouteBuilder<void> {
+  PlayerRoute({bool lyrics = false}) : this._(ValueNotifier(lyrics));
+
+  PlayerRoute._(this.lyrics)
+    : super(
+        pageBuilder: (_, _, _) => PlayerPage(lyrics),
+        transitionsBuilder: (_, animation, _, child) => SlideTransition(
+          position: Tween(
+            begin: const Offset(0, 1),
+            end: Offset.zero,
+          ).chain(CurveTween(curve: Curves.easeOutCubic)).animate(animation),
+          child: child,
+        ),
+      );
+
+  final ValueNotifier<bool> lyrics;
+
+  @override
+  void dispose() {
+    lyrics.dispose();
+    super.dispose();
   }
 }
 

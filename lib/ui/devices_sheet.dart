@@ -8,7 +8,13 @@ import 'errors.dart';
 
 /// The device picker: pick where the music plays.
 Future<void> showDevicesSheet(BuildContext context) =>
-    showModalBottomSheet<void>(context: context, showDragHandle: true, builder: (_) => const _DevicesSheet());
+    // Over the whole window, also from a page of the home's page area.
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      useRootNavigator: true,
+      builder: (_) => const _DevicesSheet(),
+    );
 
 class _DevicesSheet extends StatelessWidget {
   const _DevicesSheet();

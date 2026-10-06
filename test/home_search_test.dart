@@ -118,21 +118,35 @@ void main() {
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
   });
 
-  testWidgets('on a wide screen, the bar sits next to the title', (tester) async {
-    await pumpHome(tester, const Size(1000, 640));
-    final title = tester.getRect(find.descendant(of: find.byType(AppBar), matching: find.text('Início')));
-    final field = tester.getRect(find.byType(TextField));
-    expect(field.left, greaterThan(title.right));
-    expect(field.center.dy, moreOrLessEquals(title.center.dy, epsilon: 4));
+  testWidgets('on a wide screen, the bar sits in the middle of the window, past the arrows on its left', (
+    tester,
+  ) async {
+    await pumpHome(tester, const Size(1200, 640));
+    final arrows = tester.getRect(find.byTooltip('Avançar'));
+    final bar = tester.getRect(find.byType(SearchBar));
+    expect(bar.center.dx, moreOrLessEquals(600, epsilon: 1));
+    expect(bar.left, greaterThan(arrows.right));
+    expect(bar.center.dy, moreOrLessEquals(arrows.center.dy, epsilon: 4));
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
   });
 
-  testWidgets('Esc in the search bar clears it, as its clear button does', (tester) async {
+  testWidgets('where the middle has no room for it, the bar keeps clear of the arrows and the buttons', (tester) async {
+    await pumpHome(tester, const Size(640, 640));
+    final arrows = tester.getRect(find.byTooltip('Avançar'));
+    final bar = tester.getRect(find.byType(SearchBar));
+    expect(bar.left, greaterThan(arrows.right));
+    expect(bar.right, lessThan(tester.getRect(find.byTooltip('Aparelhos')).left));
+    await tester.pumpWidget(const SizedBox()); // stops the bar's timer
+  });
+
+  testWidgets('Esc in the search bar clears it, as its clear button does, and leaves it', (tester) async {
     await pumpHome(tester, const Size(1000, 640));
     await tester.enterText(find.byType(TextField), 'dream');
     await tester.pump(HomePage.searchTypingPause);
     await tester.pump();
     expect(find.text('Dream Police'), findsOneWidget);
+    final field = tester.state<EditableTextState>(find.byType(EditableText)).widget.focusNode;
+    expect(field.hasFocus, isTrue);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pump();
@@ -140,6 +154,7 @@ void main() {
     expect(find.text('Toys in the Attic'), findsOneWidget);
     expect(tester.widget<TextField>(find.byType(TextField)).controller?.text, isEmpty);
     expect(find.byTooltip('Limpar'), findsNothing);
+    expect(field.hasFocus, isFalse, reason: 'space plays and pauses again');
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
   });
 

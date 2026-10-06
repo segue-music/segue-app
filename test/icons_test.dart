@@ -130,7 +130,8 @@ void main() {
 
       await tester.pageBack();
       await tester.pumpAndSettle();
-      await tap(tester, find.byTooltip('Aparelhos'));
+      // The player bar's: on a wide screen, the top bar's shows too, over the player.
+      await tap(tester, find.byTooltip('Aparelhos').last);
       expect(find.textContaining('Este aparelho'), findsOneWidget);
       expect(otherIcons, findsNothing, reason: 'the devices');
       await tester.pumpWidget(const SizedBox()); // stops the player bar's timers

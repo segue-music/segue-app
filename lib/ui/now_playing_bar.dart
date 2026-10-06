@@ -4,6 +4,7 @@ import 'package:hugeicons/hugeicons.dart';
 import 'cover.dart';
 import 'devices_sheet.dart';
 import 'focus_ring.dart';
+import 'page_area.dart';
 import 'player_controls.dart';
 import 'player_page.dart';
 import 'queue_page.dart';
@@ -14,6 +15,8 @@ export 'player_controls.dart' show formatDuration;
 /// What plays, wherever it plays, with the controls and the device picker. The song opens the
 /// full-screen player, but for its title and artist on a wide screen, which open its album and
 /// artist. On a wide screen it stays under the full-screen player too, whose song closes it.
+///
+/// Each page has one, but for the pages of a [PageArea], under which the home's stays.
 class NowPlayingBar extends StatelessWidget {
   const NowPlayingBar({this.lyrics, super.key});
 
@@ -32,6 +35,11 @@ class NowPlayingBar extends StatelessWidget {
     // full-screen player).
     final wide = MediaQuery.sizeOf(context).width >= wideFrom;
     final lyrics = this.lyrics;
+
+    if (PageArea.holds(context)) {
+      return const SizedBox.shrink();
+    }
+
     return NowPlayingBuilder(
       builder: (context, connect, now) {
         if (now == null) {
@@ -66,7 +74,7 @@ class NowPlayingBar extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(4),
                                   onTap: lyrics == null
                                       ? () => PlayerPage.open(context)
-                                      : () => Navigator.of(context).maybePop(),
+                                      : () => PageArea.navigatorOf(context).maybePop(),
                                   child: Row(
                                     children: [
                                       SizedBox.square(

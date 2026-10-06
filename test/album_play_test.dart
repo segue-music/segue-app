@@ -16,6 +16,7 @@ import 'package:segue/ui/home_page.dart';
 import 'package:segue/ui/shortcuts.dart';
 
 import 'fakes.dart';
+import 'side_rail.dart';
 
 const credentials = SubsonicCredentials(username: 'a', token: 't', salt: 's');
 
@@ -101,8 +102,6 @@ Future<PlayerController> pumpAlbums(WidgetTester tester, {bool television = fals
 
 final playButton = find.byTooltip('Tocar o álbum');
 
-Finder title(String text) => find.descendant(of: find.byType(AppBar), matching: find.text(text));
-
 /// The tile of the album named [name].
 Finder tile(String name) => find.ancestor(of: find.text(name), matching: find.byType(AlbumTile));
 
@@ -169,7 +168,7 @@ void main() {
       expect([for (final song in player.queue) song.title], ['Walk This Way', 'Sweet Emotion']);
       expect(player.current?.title, 'Walk This Way');
       expect(player.playing, isTrue);
-      expect(title('Álbuns'), findsOneWidget, reason: 'still on the albums');
+      expect(selectedInRail('Álbuns'), findsOneWidget, reason: 'still on the albums');
       await tester.pumpWidget(const SizedBox());
     },
   );

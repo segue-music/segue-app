@@ -149,12 +149,12 @@ class _AlbumRowState extends State<AlbumRow> {
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
-              tooltip: 'Voltar',
+              tooltip: 'Anteriores',
               icon: const Icon(HugeIcons.strokeRoundedArrowLeft01),
               onPressed: position.extentBefore > 0 ? () => _page(-1) : null,
             ),
             IconButton(
-              tooltip: 'Avançar',
+              tooltip: 'Próximos',
               icon: const Icon(HugeIcons.strokeRoundedArrowRight01),
               onPressed: position.extentAfter > 0 ? () => _page(1) : null,
             ),

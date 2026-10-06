@@ -99,7 +99,9 @@ class _SegueAppState extends State<SegueApp> {
       builder: (context, child) {
         final page = DirectionalNavigation(
           enabled: widget.television,
-          child: TextFieldArrowShortcuts(child: child!),
+          child: TextFieldArrowShortcuts(
+            child: BackShortcut(child: UnfocusShortcut(child: child!)),
+          ),
         );
 
         return ThemedTitleBar(

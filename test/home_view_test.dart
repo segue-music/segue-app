@@ -17,6 +17,7 @@ import 'package:segue/ui/home_page.dart';
 import 'package:segue/ui/shortcuts.dart';
 
 import 'fakes.dart';
+import 'side_rail.dart';
 
 http.Response subsonic(Map<String, Object?> body) => http.Response(
   jsonEncode({
@@ -129,7 +130,7 @@ void main() {
   testWidgets('the app opens on the home: a row of the latest released albums, then the most played, then the latest '
       'added', (tester) async {
     await pumpHome(tester, const Size(1000, 700));
-    expect(title('Início'), findsOneWidget);
+    expectHomeInRail();
 
     final released = tester.getRect(find.text('Lançamentos'));
     final another = tester.getRect(find.text('Music from Another Dimension!'));
@@ -169,7 +170,7 @@ void main() {
 
     await tester.tap(find.byTooltip('Álbuns'));
     await tester.pumpAndSettle();
-    expect(title('Álbuns'), findsOneWidget);
+    expect(selectedInRail('Álbuns'), findsOneWidget);
 
     bool selected(String section) => tester
         .widget<IconButton>(find.ancestor(of: railButton(section), matching: find.byType(IconButton)))
@@ -217,12 +218,12 @@ void main() {
 
     await tester.tap(find.byTooltip('Artistas'));
     await tester.pumpAndSettle();
-    expect(title('Artistas'), findsOneWidget);
+    expect(selectedInRail('Artistas'), findsOneWidget);
     expect(shown('Mais tocados'), findsNothing);
 
     await tester.tap(logo);
     await tester.pumpAndSettle();
-    expect(title('Início'), findsOneWidget);
+    expectHomeInRail();
     expect(shown('Mais tocados'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
@@ -277,7 +278,7 @@ void main() {
     expect(Focus.of(tester.element(find.byType(Image).first)).hasFocus, isTrue);
 
     await press(tester, LogicalKeyboardKey.enter);
-    expect(title('Início'), findsOneWidget);
+    expectHomeInRail();
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -302,8 +303,8 @@ void main() {
       latest: [for (var i = 0; i < 20; i++) 'Latest $i'],
     );
     expect(find.byType(Scrollbar), findsNothing);
-    final back = find.byTooltip('Voltar').first;
-    final forward = find.byTooltip('Avançar').first;
+    final back = find.byTooltip('Anteriores').first;
+    final forward = find.byTooltip('Próximos').first;
     final heading = tester.getRect(find.text('Mais tocados'));
     expect(tester.getRect(back).left, greaterThan(heading.right));
     expect(tester.getRect(forward).left, greaterThan(tester.getRect(back).right - 1));
@@ -357,7 +358,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text(row));
       await tester.pumpAndSettle();
-      expect(title('Álbuns'), findsOneWidget, reason: row);
+      expect(selectedInRail('Álbuns'), findsOneWidget, reason: row);
       expect(picked(row), isTrue, reason: row);
       expect(asked.last, allOf(containsPair('type', type), containsPair('size', '200')), reason: row);
     }
@@ -368,8 +369,8 @@ void main() {
   testWidgets('a row whose albums all fit has no arrows', (tester) async {
     await pumpHome(tester, const Size(1000, 700));
     expect(find.text('Toys in the Attic'), findsOneWidget);
-    expect(find.byTooltip('Avançar'), findsNothing);
-    expect(find.byTooltip('Voltar'), findsNothing);
+    expect(find.byTooltip('Próximos'), findsNothing);
+    expect(find.byTooltip('Anteriores'), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
 

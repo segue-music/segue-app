@@ -12,8 +12,9 @@ class CoverPage extends StatelessWidget {
 
   final String id;
 
-  /// Fades it in over the current page, the cover growing out of its [CoverButton].
-  static Future<void> open(BuildContext context, String id) => Navigator.of(context).push(
+  /// Fades it in over the current page, the cover growing out of its [CoverButton]: over the whole window, also
+  /// from a page of the home's page area.
+  static Future<void> open(BuildContext context, String id) => Navigator.of(context, rootNavigator: true).push(
     PageRouteBuilder<void>(
       pageBuilder: (_, _, _) => CoverPage(id),
       transitionsBuilder: (_, animation, _, child) => FadeTransition(opacity: animation, child: child),

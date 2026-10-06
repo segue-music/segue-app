@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../services.dart';
+import 'page_area.dart';
 import 'player_controls.dart';
 
 /// Keyboard shortcuts for playback, on every page: space plays or pauses what the now-playing bar
@@ -68,8 +69,7 @@ class _PlayPauseAction extends Action<PlayPauseIntent> {
     }
 
     final focused = FocusManager.instance.primaryFocus?.context;
-    return focused == null ||
-        (focused.widget is! EditableText && focused.findAncestorWidgetOfExactType<EditableText>() == null);
+    return focused == null || !_inTextField(focused);
   }
 
   @override
@@ -101,6 +101,148 @@ class TextFieldArrowShortcuts extends StatelessWidget {
     },
     child: child,
   );
+}
+
+/// Whether [focused], the focused widget's context, is in a text field, which takes the keys typed.
+bool _inTextField(BuildContext focused) =>
+    focused.widget is EditableText || focused.findAncestorWidgetOfExactType<EditableText>() != null;
+
+/// The arrow left goes back from a page with a back arrow (an album's, an artist's, the queue...), as
+/// that arrow does: on a phone, since a wide screen's home takes it first ([HistoryShortcuts]). Not
+/// while typing, where it moves the caret, nor on a TV, where the D-pad's left moves the focus and the
+/// remote has a back button of its own.
+class BackShortcut extends StatelessWidget {
+  const BackShortcut({required this.child, super.key});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Shortcuts(
+    shortcuts: const {SingleActivator(LogicalKeyboardKey.arrowLeft): _BackIntent()},
+    child: Actions(actions: {_BackIntent: _BackAction()}, child: child),
+  );
+}
+
+class _BackIntent extends Intent {
+  const _BackIntent();
+}
+
+class _BackAction extends Action<_BackIntent> {
+  /// The page the focus is on, when the arrow left goes back from it: one pushed as a
+  /// [MaterialPageRoute], whose app bar has a back arrow. The full-screen player and the cover, pushed
+  /// otherwise, close with a button of their own instead, and a sheet has none.
+  ModalRoute<Object?>? get _page {
+    final focused = FocusManager.instance.primaryFocus?.context;
+    if (focused == null ||
+        _inTextField(focused) ||
+        MediaQuery.maybeNavigationModeOf(focused) == NavigationMode.directional) {
+      return null;
+    }
+
+    final route = ModalRoute.of(focused);
+    // As the app bar decides on its back arrow.
+    return route is MaterialPageRoute && route.isCurrent && route.impliesAppBarDismissal ? route : null;
+  }
+
+  /// Disabled elsewhere, so that the key goes on: to the text field, or to move the focus.
+  @override
+  bool isEnabled(_BackIntent intent) => _page != null;
+
+  @override
+  Object? invoke(_BackIntent intent) {
+    _page?.navigator?.maybePop();
+    return null;
+  }
+}
+
+/// On a wide screen, the arrows left and right go back and forward through the pages of the home's page area, as its
+/// top bar's arrows do, wherever the focus is in the home. Not while typing, where they move the caret, nor on a TV,
+/// where they move the focus and the remote has a back button of its own.
+class HistoryShortcuts extends StatelessWidget {
+  const HistoryShortcuts({required this.history, required this.child, super.key});
+
+  final PageHistory history;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Shortcuts(
+    shortcuts: const {
+      SingleActivator(LogicalKeyboardKey.arrowLeft): _HistoryIntent(forward: false),
+      SingleActivator(LogicalKeyboardKey.arrowRight): _HistoryIntent(forward: true),
+    },
+    child: Actions(actions: {_HistoryIntent: _HistoryAction(history)}, child: child),
+  );
+}
+
+class _HistoryIntent extends Intent {
+  const _HistoryIntent({required this.forward});
+
+  final bool forward;
+}
+
+class _HistoryAction extends Action<_HistoryIntent> {
+  _HistoryAction(this._history);
+
+  final PageHistory _history;
+
+  /// Disabled with nowhere to go, so that the key goes on: to the text field, or to move the focus.
+  @override
+  bool isEnabled(_HistoryIntent intent) {
+    final focused = FocusManager.instance.primaryFocus?.context;
+
+    if (focused == null ||
+        _inTextField(focused) ||
+        MediaQuery.maybeNavigationModeOf(focused) == NavigationMode.directional) {
+      return false;
+    }
+
+    return intent.forward ? _history.canGoForward : _history.canGoBack;
+  }
+
+  @override
+  Object? invoke(_HistoryIntent intent) {
+    if (intent.forward) {
+      _history.forward();
+    } else {
+      _history.back();
+    }
+
+    return null;
+  }
+}
+
+/// Esc takes the focus off what has it: the tint or the ring the theme gives it goes, and a text field
+/// lets go of the keys, space among them. With nothing focused, Esc goes on, closing a sheet as ever;
+/// the pages that Esc closes take it first.
+class UnfocusShortcut extends StatelessWidget {
+  const UnfocusShortcut({required this.child, super.key});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Shortcuts(
+    shortcuts: const {SingleActivator(LogicalKeyboardKey.escape): _UnfocusIntent()},
+    child: Actions(actions: {_UnfocusIntent: _UnfocusAction()}, child: child),
+  );
+}
+
+class _UnfocusIntent extends Intent {
+  const _UnfocusIntent();
+}
+
+class _UnfocusAction extends Action<_UnfocusIntent> {
+  /// Disabled when only a page or a sheet has the focus, nothing on it.
+  @override
+  bool isEnabled(_UnfocusIntent intent) {
+    final focused = FocusManager.instance.primaryFocus;
+    return focused != null && focused is! FocusScopeNode;
+  }
+
+  @override
+  Object? invoke(_UnfocusIntent intent) {
+    FocusManager.instance.primaryFocus?.unfocus();
+    return null;
+  }
 }
 
 /// On a TV, Flutter's directional navigation: the D-pad moves the focus, and a slider only takes

@@ -13,6 +13,7 @@ import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/home_page.dart';
 
 import 'fakes.dart';
+import 'side_rail.dart';
 
 http.Response subsonic(Map<String, Object?> body) => http.Response(
   jsonEncode({
@@ -138,11 +139,11 @@ void main() {
   ) async {
     await pumpHome(tester, const Size(1000, 700));
     expect(find.byType(NavigationBar), findsNothing);
-    expect(title('Início'), findsOneWidget);
+    expectHomeInRail();
 
     await tester.tap(find.byTooltip('Artistas'));
     await tester.pumpAndSettle();
-    expect(title('Artistas'), findsOneWidget);
+    expect(selectedInRail('Artistas'), findsOneWidget);
     expect(find.text('Aerosmith'), findsOneWidget);
     expect(find.text('Cheap Trick'), findsOneWidget);
     expect(find.text('2 álbuns'), findsOneWidget);

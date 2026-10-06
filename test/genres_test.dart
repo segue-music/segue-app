@@ -12,6 +12,7 @@ import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/home_page.dart';
 
 import 'fakes.dart';
+import 'side_rail.dart';
 
 http.Response subsonic(Map<String, Object?> body) => http.Response(
   jsonEncode({
@@ -137,7 +138,7 @@ void main() {
     final asked = await pumpHome(tester, const Size(1000, 700));
     await tester.tap(find.byTooltip('Gêneros'));
     await tester.pumpAndSettle();
-    expect(title('Gêneros'), findsOneWidget);
+    expect(selectedInRail('Gêneros'), findsOneWidget);
 
     final [blues, hardRock, rock] = [
       for (final name in ['Blues', 'hard rock', 'Rock']) tester.getRect(tile(name)),
@@ -164,7 +165,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.pageBack();
     await tester.pumpAndSettle();
-    expect(title('Gêneros'), findsOneWidget);
+    expect(selectedInRail('Gêneros'), findsOneWidget);
     await tester.pumpWidget(const SizedBox()); // stops the player bar's timers
   });
 

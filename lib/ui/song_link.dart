@@ -7,6 +7,7 @@ import '../server/models.dart';
 import '../services.dart';
 import 'album_page.dart';
 import 'artist_page.dart';
+import 'page_area.dart';
 import 'text_link.dart';
 
 /// The title or the album of the song that plays, a link to the album, or its artist, a link to their
@@ -54,7 +55,7 @@ class _SongLinkState extends State<SongLink> {
   /// Opens the album or the artist, or says why it can't. The song comes from the media server: the
   /// hub gives other devices' songs without their album's and artist's ids.
   Future<void> _open(String songId) async {
-    final navigator = Navigator.of(context);
+    final navigator = PageArea.navigatorOf(context);
     final messenger = ScaffoldMessenger.of(context);
     Widget? page;
     Object? error;
