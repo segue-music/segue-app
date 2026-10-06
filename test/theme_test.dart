@@ -88,4 +88,33 @@ void main() {
       }
     }
   });
+
+  testWidgets('a top bar keeps its color as a page scrolls under it, in the light and in the dark', (tester) async {
+    for (final brightness in Brightness.values) {
+      final theme = segueTheme(brightness);
+      await tester.pumpWidget(
+        MaterialApp(
+          key: ValueKey(brightness), // each from the start, rather than the one before turning into it
+          theme: theme,
+          home: Scaffold(
+            appBar: AppBar(title: const Text('Álbuns')),
+            body: ListView(children: [for (var i = 0; i < 100; i++) ListTile(title: Text('Album $i'))]),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      (Color?, double) bar() {
+        final material = tester.widget<Material>(
+          find.descendant(of: find.byType(AppBar), matching: find.byType(Material)).first,
+        );
+        return (material.color, material.elevation);
+      }
+
+      expect(bar(), (theme.colorScheme.surface, 0), reason: '$brightness');
+      await tester.drag(find.byType(ListView), const Offset(0, -600));
+      await tester.pumpAndSettle();
+      expect(bar(), (theme.colorScheme.surface, 0), reason: '$brightness, scrolled under');
+    }
+  });
 }
