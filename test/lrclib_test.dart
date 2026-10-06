@@ -93,6 +93,32 @@ void main() {
     expect(asked.last.url.queryParameters, {'track_name': 'Sweet Emotion', 'artist_name': 'Aerosmith'});
   });
 
+  test('synced lyrics win: an exact match with plain ones only gives way to a song of the same title, lasting '
+      'about as long, with synced ones', () async {
+    // As LRCLIB has some songs twice: from the album, with plain lyrics, and from a single, a few seconds
+    // longer, with synced ones.
+    final found = lrclib(
+      get: record(plain: 'Plain'),
+      search: [
+        record(plain: 'Plain'),
+        record(title: 'Sweet Emotion (Live)', synced: '[00:01.00] Live'),
+        record(duration: 277, synced: '[00:01.00] Synced'),
+      ],
+    );
+    expect(await lines(found), [(const Duration(seconds: 1), 'Synced')]);
+  });
+
+  test('plain lyrics when no synced ones are near enough', () async {
+    final found = lrclib(
+      get: record(plain: 'Plain'),
+      search: [
+        record(duration: 290, synced: '[00:01.00] Another version'),
+        record(title: 'Sweet Emotion (Live)', synced: '[00:01.00] Live'),
+      ],
+    );
+    expect(await lines(found), [(null, 'Plain')]);
+  });
+
   test('none found is none; an instrumental, a part with no singing', () async {
     expect(await lines(lrclib(search: [record(duration: 100, plain: 'Too short')])), isNull);
     expect(await lines(lrclib(get: record(instrumental: true))), [(Duration.zero, '')]);

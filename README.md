@@ -39,7 +39,8 @@ the device it runs on.
   player bar and in a full-screen player that the song in the bar opens, which shows the song's lyrics
   beside it, or under it on a phone (OpenSubsonic's songLyrics, as Navidrome's from the file's tags or
   a .lrc next to it, or Jellyfin's; when the server has none, LRCLIB's, from lrclib.net, by the
-  song's title, artist, album and length): synced ones mark the line that plays and keep it in view,
+  song's title, artist, album and length, synced ones wherever it has them, also in another entry
+  of the song, as a single's): synced ones mark the line that plays and keep it in view,
   with a note for a part with no singing, and a line tapped goes there; a wide bar's lyrics button
   opens the player with them. The bar stays put from page to page, and on a wide screen under the
   full-screen player too, whose top then leaves the lyrics, the queue and the devices to it. In both,

@@ -18,47 +18,48 @@ class Lrclib {
   /// LRCLIB asks apps to say who they are.
   static const _userAgent = '$clientName $appVersion (https://github.com/segue-music/segue-app)';
 
-  /// How far from the song's length another can be and still be taken for it, as LRCLIB's own match.
-  static const _lengthSlack = Duration(seconds: 2);
+  /// How far from the song's length another of the same title can be and still be taken for it: LRCLIB has
+  /// some songs twice, from an album and from a single a few seconds longer, with synced lyrics in one only.
+  static const _lengthSlack = Duration(seconds: 5);
 
-  /// The lyrics of the song [title] by [artist]: those of the song LRCLIB has by these, with its [album] and
-  /// [duration] too when known; else of the first it finds by that title and artist that lasts as long. An
-  /// instrumental is a part with no singing, from its start. Null when LRCLIB has none.
+  /// The lyrics of the song [title] by [artist], synced ones wherever LRCLIB has them: of the song it has
+  /// by these, with its [album] and [duration] too when known, or else of another of that title by that
+  /// artist that lasts about as long. Plain ones only when none of these has synced ones. An instrumental
+  /// is a part with no singing, from its start. Null when LRCLIB has none.
   Future<Lyrics?> find({required String title, required String artist, String? album, Duration? duration}) async {
-    final song = await _get('api/get', {
+    final exact = await _get('api/get', {
       'track_name': title,
       'artist_name': artist,
       'album_name': ?album,
       'duration': ?duration?.inSeconds.toString(),
     });
+    final song = exact is Map<String, dynamic> ? exact : null;
 
-    if (song is Map<String, dynamic>) {
+    if (song != null && _timed(song)) {
       return _lyrics(song);
     }
 
     final found = await _get('api/search', {'track_name': title, 'artist_name': artist});
+    final others = [
+      for (final other in found is List ? found : const [])
+        if (other is Map<String, dynamic> && _same(other, title, duration)) other,
+    ];
+    // Synced ones first, from any of them; then the plain ones of the song, or else of another.
+    return [...others.where(_timed), ?song, ...others].map(_lyrics).nonNulls.firstOrNull;
+  }
 
-    for (final song in found is List ? found : const []) {
-      if (song is! Map<String, dynamic>) {
-        continue;
-      }
+  /// Whether [song] has synced lyrics, or is an instrumental, whose silence is timed too.
+  static bool _timed(Map<String, dynamic> song) =>
+      song['instrumental'] == true || (song['syncedLyrics'] as String? ?? '').trim().isNotEmpty;
 
-      final length = song['duration'] as num?;
-      final lasts =
-          duration == null ||
-          length == null ||
-          (Duration(milliseconds: (length * 1000).round()) - duration).abs() <= _lengthSlack;
-
-      if (!lasts) {
-        continue;
-      }
-
-      if (_lyrics(song) case final lyrics?) {
-        return lyrics;
-      }
-    }
-
-    return null;
+  /// Whether [song] is [title] (not a live or an acoustic one, say), lasting about as long as [duration].
+  static bool _same(Map<String, dynamic> song, String title, Duration? duration) {
+    final name = song['trackName'] as String? ?? '';
+    final length = song['duration'] as num?;
+    return name.trim().toLowerCase() == title.trim().toLowerCase() &&
+        (duration == null ||
+            length == null ||
+            (Duration(milliseconds: (length * 1000).round()) - duration).abs() <= _lengthSlack);
   }
 
   /// A song's lyrics: synced where LRCLIB has them so, else plain.
