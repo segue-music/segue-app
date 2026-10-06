@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,6 +11,7 @@ import 'package:segue/player/player.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
+import 'package:segue/ui/cover.dart';
 import 'package:segue/ui/home_page.dart';
 
 import 'fakes.dart';
@@ -133,6 +135,21 @@ Future<void> pumpHome(WidgetTester tester, Size size) async {
 
 Finder title(String text) => find.descendant(of: find.byType(AppBar), matching: find.text(text));
 
+/// The tile of the artist named [name], in the artists' grid.
+Finder tile(String name) => find.ancestor(of: find.text(name), matching: find.byType(InkWell)).first;
+
+/// What darkens the picture of the artist named [name]: black, a little.
+Finder shade(String name) => find.descendant(
+  of: tile(name),
+  matching: find.byWidgetPredicate(
+    (widget) =>
+        widget is ColoredBox &&
+        (widget.color.r, widget.color.g, widget.color.b) == (0.0, 0.0, 0.0) &&
+        widget.color.a > 0 &&
+        widget.color.a < 0.5,
+  ),
+);
+
 void main() {
   testWidgets('on a wide screen, a side rail goes to the artists, and an artist shows their albums, newest first', (
     tester,
@@ -170,6 +187,40 @@ void main() {
     await tester.pumpAndSettle();
     expect(title('Artistas'), findsOneWidget);
     expect(find.text('Cheap Trick'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('an artist\'s picture darkens a little while the pointer is over the artist, as an album\'s cover does', (
+    tester,
+  ) async {
+    await pumpHome(tester, const Size(1000, 700));
+    await tester.tap(find.byTooltip('Artistas'));
+    await tester.pumpAndSettle();
+    final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await gesture.addPointer(location: const Offset(999, 699));
+    addTearDown(gesture.removePointer);
+    expect(shade('Aerosmith'), findsNothing);
+
+    await gesture.moveTo(tester.getCenter(find.text('Aerosmith')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 75));
+    final fade = tester.widget<FadeTransition>(
+      find.ancestor(of: shade('Aerosmith'), matching: find.byType(FadeTransition)).first,
+    );
+    expect(fade.opacity.value, inExclusiveRange(0, 1), reason: 'it fades in, as the cover\'s shade does');
+    await tester.pumpAndSettle();
+    final picture = find.descendant(of: tile('Aerosmith'), matching: find.byType(Cover));
+    expect(tester.getRect(shade('Aerosmith')), tester.getRect(picture), reason: 'all of the picture');
+    expect(
+      find.ancestor(of: shade('Aerosmith'), matching: find.byType(ClipOval)),
+      findsOneWidget,
+      reason: 'round',
+    );
+    expect(shade('Cheap Trick'), findsNothing);
+
+    await gesture.moveTo(const Offset(999, 699));
+    await tester.pumpAndSettle();
+    expect(shade('Aerosmith'), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
 

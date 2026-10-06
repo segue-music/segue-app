@@ -68,29 +68,58 @@ class _ArtistsViewState extends State<ArtistsView> {
   );
 }
 
-class _ArtistTile extends StatelessWidget {
+/// An artist's picture, with their name and how many albums they have, which opens their page. While the pointer is
+/// over the artist, the picture darkens a little, as an album's cover does under its play button.
+class _ArtistTile extends StatefulWidget {
   const _ArtistTile(this.artist);
 
   final Artist artist;
 
   @override
+  State<_ArtistTile> createState() => _ArtistTileState();
+}
+
+class _ArtistTileState extends State<_ArtistTile> {
+  /// The pointer is over the artist: their picture darkens.
+  bool _hovered = false;
+
+  @override
   Widget build(BuildContext context) {
+    final artist = widget.artist;
     final text = Theme.of(context).textTheme;
-    return FocusRing(
-      child: InkWell(
-        mouseCursor: WidgetStateMouseCursor.clickable,
-        borderRadius: BorderRadius.circular(8),
-        onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ArtistPage(artist))),
-        child: Column(
-          children: [
-            AspectRatio(
-              aspectRatio: 1,
-              child: ClipOval(child: Cover(artist.coverArt, icon: HugeIcons.strokeRoundedUser)),
-            ),
-            const SizedBox(height: 6),
-            Text(artist.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: text.titleSmall),
-            Text(albumCount(artist.albumCount), maxLines: 1, style: text.bodySmall),
-          ],
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: FocusRing(
+        child: InkWell(
+          mouseCursor: WidgetStateMouseCursor.clickable,
+          borderRadius: BorderRadius.circular(8),
+          onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ArtistPage(artist))),
+          child: Column(
+            children: [
+              AspectRatio(
+                aspectRatio: 1,
+                child: ClipOval(
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Cover(artist.coverArt, icon: HugeIcons.strokeRoundedUser),
+                      // The album cover's shade (AlbumPlayButton), coming and going in the same fade.
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 150),
+                        child: _hovered
+                            ? const ColoredBox(color: Colors.black26, child: SizedBox.expand())
+                            : const SizedBox.shrink(),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(artist.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: text.titleSmall),
+              Text(albumCount(artist.albumCount), maxLines: 1, style: text.bodySmall),
+            ],
+          ),
         ),
       ),
     );
