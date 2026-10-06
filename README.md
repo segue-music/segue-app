@@ -184,7 +184,8 @@ env SEGUE_DEVICE_ID=second SEGUE_DEVICE_NAME="Second copy" segue/segue
 Docker, see below): one APK for every processor, signed with a debug key, to install by hand. On
 Android TV the app is in the home screen, and the remote drives it: the D-pad moves around, from
 the page out to the bars around it (the top one, the side rail, the player's) and back (its center
-button presses, and a white ring shows where it is), and the play/pause, next and previous buttons
+button presses, and a white ring shows where it is), the keyboard opens on the search bar with the
+center button rather than as the focus passes by, and the play/pause, next and previous buttons
 drive playback.
 
 To install it from a computer with adb (`android-tools` on Fedora), turn on the TV's developer

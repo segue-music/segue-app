@@ -56,6 +56,11 @@ class _HomePageState extends State<HomePage> {
   final _search = TextEditingController();
   Timer? _typing;
   String _query = '';
+  final _searchFocus = FocusNode(debugLabel: 'Search');
+
+  /// On a TV, whether the search bar takes what is typed: from the remote's center button on it, which opens the
+  /// keyboard, until the focus leaves it.
+  bool _searchEditable = false;
 
   /// What the search bar found; null shows the section.
   Future<SearchResults>? _results;
@@ -72,6 +77,12 @@ class _HomePageState extends State<HomePage> {
   final _pages = GlobalKey<NavigatorState>();
   final _history = PageHistory();
   late final _observers = [_history, TopPageTraversal()];
+
+  @override
+  void initState() {
+    super.initState();
+    _searchFocus.addListener(_searchFocusChanged);
+  }
 
   /// Shows [section], closing the pages over it.
   void _select(_Section section) {
@@ -116,6 +127,26 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  /// On a TV, opens the keyboard on the search bar. Read-only until then, it leaves the keyboard closed as the focus
+  /// comes to it, which would otherwise cover the bottom half of the screen and take the D-pad, on the way across the
+  /// top bar or up to it from a page. Elsewhere a tap opens it itself.
+  void _openKeyboard() {
+    if (!_searchEditable) {
+      // The field opens the keyboard as it stops being read-only.
+      setState(() => _searchEditable = true);
+    } else {
+      // Typing, with the keyboard closed since: open again.
+      _searchFocus.context?.findAncestorStateOfType<EditableTextState>()?.requestKeyboard();
+    }
+  }
+
+  /// On a TV, the search bar read-only again once the focus leaves it, for the keyboard to stay closed as it comes back.
+  void _searchFocusChanged() {
+    if (!_searchFocus.hasFocus && _searchEditable) {
+      setState(() => _searchEditable = false);
+    }
+  }
+
   void _clearSearch() {
     _search.clear();
     _searchFor('');
@@ -125,6 +156,7 @@ class _HomePageState extends State<HomePage> {
   void dispose() {
     _typing?.cancel();
     _search.dispose();
+    _searchFocus.dispose();
     _history.dispose();
     super.dispose();
   }
@@ -135,6 +167,7 @@ class _HomePageState extends State<HomePage> {
     final results = _results;
     final width = MediaQuery.sizeOf(context).width;
     final narrow = width < 600;
+    final television = MediaQuery.maybeNavigationModeOf(context) == NavigationMode.directional;
     // On a phone, on a line of its own, as wide as the screen; on a wide one, at most 600 and two fifths of the window,
     // which on a TV's (960 wide) leaves the top bar more than the search.
     final searchWidth = narrow ? width : min(600.0, width * 0.4);
@@ -152,6 +185,10 @@ class _HomePageState extends State<HomePage> {
       },
       child: SearchBar(
         controller: _search,
+        focusNode: _searchFocus,
+        readOnly: television && !_searchEditable,
+        // A tap, or the remote's center button.
+        onTap: television ? _openKeyboard : null,
         hintText: 'Buscar álbum, artista ou música',
         leading: const ThemedIcon(HugeIcons.strokeRoundedSearch01),
         trailing: [

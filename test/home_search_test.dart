@@ -157,6 +157,19 @@ void main() {
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
   });
 
+  testWidgets('off a TV, the keyboard opens as the focus comes to the search bar', (tester) async {
+    await pumpHome(tester, const Size(1000, 640));
+    expect(tester.testTextInput.isVisible, isFalse);
+
+    for (var i = 0; i < 20 && !tester.testTextInput.isVisible; i++) {
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+    }
+
+    expect(tester.testTextInput.isVisible, isTrue);
+    await tester.pumpWidget(const SizedBox()); // stops the bar's timer
+  });
+
   testWidgets('Esc in the search bar clears it, as its clear button does; empty, it leaves it', (tester) async {
     await pumpHome(tester, const Size(1000, 640));
     await tester.enterText(find.byType(TextField), 'dream');

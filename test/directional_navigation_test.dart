@@ -356,7 +356,33 @@ void main() {
 
     await tester.pumpWidget(const SizedBox());
   });
+
+  testWidgets('the search bar opens the keyboard on the center button, not as the focus comes to it', (tester) async {
+    await pumpTvHome(tester);
+    await shiftTabTo(tester, inSearch);
+    expect(tester.testTextInput.isVisible, isFalse, reason: 'the focus only passing by');
+    await press(tester, LogicalKeyboardKey.select);
+    expect(inSearch(), isTrue);
+    expect(tester.testTextInput.isVisible, isTrue);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('left and right go on from the search bar to the buttons beside it', (tester) async {
+    await pumpTvHome(tester);
+    await shiftTabTo(tester, inSearch);
+    await press(tester, LogicalKeyboardKey.arrowRight);
+    expect(focusedTip(), 'Aparelhos');
+    expect(inTopBar(), isTrue);
+    await press(tester, LogicalKeyboardKey.arrowLeft);
+    expect(inSearch(), isTrue);
+    await press(tester, LogicalKeyboardKey.arrowLeft);
+    expect(focusedTip(), 'Avançar', reason: 'on a TV, a button that can\'t be pressed still takes the focus');
+    await tester.pumpWidget(const SizedBox());
+  });
 }
+
+/// The search bar's text field has the focus.
+bool inSearch() => focusedIn<TextField>() && inTopBar();
 
 bool focusedIn<T extends Widget>() =>
     FocusManager.instance.primaryFocus?.context?.findAncestorWidgetOfExactType<T>() != null;

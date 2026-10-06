@@ -81,7 +81,8 @@ class _PlayPauseAction extends Action<PlayPauseIntent> {
 
 /// The arrows up and down (a TV remote's D-pad) leave a text field for the one above or below. By
 /// default they stay in it, moving the caret, and a remote has no other way out. Left and right
-/// still move the caret.
+/// still move the caret, but on a TV, where they leave it too: there the keyboard, which takes the
+/// D-pad, is open while typing, and with it closed the caret is out of sight.
 class TextFieldArrowShortcuts extends StatelessWidget {
   const TextFieldArrowShortcuts({required this.child, super.key});
 
@@ -89,15 +90,25 @@ class TextFieldArrowShortcuts extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Shortcuts(
-    shortcuts: const {
-      SingleActivator(LogicalKeyboardKey.arrowUp): DirectionalFocusIntent(
+    shortcuts: {
+      const SingleActivator(LogicalKeyboardKey.arrowUp): const DirectionalFocusIntent(
         TraversalDirection.up,
         ignoreTextFields: false,
       ),
-      SingleActivator(LogicalKeyboardKey.arrowDown): DirectionalFocusIntent(
+      const SingleActivator(LogicalKeyboardKey.arrowDown): const DirectionalFocusIntent(
         TraversalDirection.down,
         ignoreTextFields: false,
       ),
+      if (MediaQuery.maybeNavigationModeOf(context) == NavigationMode.directional) ...const {
+        SingleActivator(LogicalKeyboardKey.arrowLeft): DirectionalFocusIntent(
+          TraversalDirection.left,
+          ignoreTextFields: false,
+        ),
+        SingleActivator(LogicalKeyboardKey.arrowRight): DirectionalFocusIntent(
+          TraversalDirection.right,
+          ignoreTextFields: false,
+        ),
+      },
     },
     child: child,
   );

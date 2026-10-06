@@ -135,7 +135,10 @@ Running two app instances on one machine as different devices:
   since rebuilding the child would drop its focus as soon as it arrived. On a TV
   (`lib/television.dart`, asking `MainActivity.kt`), focus highlights are always on: Flutter starts
   Android in touch mode and ignores key events from virtual keyboards, which is what
-  `adb shell input keyevent` sends. `TextFieldArrowShortcuts` lets up and down leave text fields.
+  `adb shell input keyevent` sends. `TextFieldArrowShortcuts` lets up and down leave text fields
+  (on a TV, left and right too). A text field opens the keyboard as the focus comes to it, and on a
+  TV the keyboard covers half the screen and takes the D-pad, so there the home's search bar stays
+  read-only until the center button (its `onTap`) opens it.
 - `MainActivity` extends audio_service's `AudioServiceActivity`, so the screen and the plugin share
   one Flutter engine. With a plain `FlutterActivity`, audio_service started an engine of its own,
   and with it a second, hidden copy of the app that connected to the hub as the same device. It
