@@ -8,6 +8,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 # media_kit builds mimalloc with plain Makefiles, which look for cc and c++.
 ENV CC=clang CXX=clang++
+# On a Flutter update, check the Linux renderer: linux/runner/my_application.cc turns Impeller off
+# for Skia, which Flutter may drop on Linux, and the reason may be gone (see CLAUDE.md).
 ARG FLUTTER_VERSION=3.47.6
 ENV PATH=/opt/flutter/bin:$PATH
 # All in one layer: a precache or chmod in a layer of its own would store the whole SDK twice.

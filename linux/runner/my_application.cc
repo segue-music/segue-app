@@ -156,6 +156,11 @@ static void my_application_activate(GApplication* application) {
   }
 
   g_autoptr(FlDartProject) project = fl_dart_project_new();
+  // Skia, not Impeller: on OpenGL Impeller clips without antialiasing, and the round edges of the
+  // covers and the artists' pictures (ClipRRect, ClipOval) come out jagged. That was Flutter 3.47's;
+  // on each Flutter update, see whether Linux still has Skia, and whether Impeller still does that
+  // (without this line, the first thing the app logs is "Using the Impeller rendering backend").
+  fl_dart_project_set_enable_impeller(project, FALSE);
   fl_dart_project_set_dart_entrypoint_arguments(
       project, self->dart_entrypoint_arguments);
 
