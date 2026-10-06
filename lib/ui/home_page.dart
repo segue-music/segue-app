@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../segue/client.dart';
@@ -114,27 +115,31 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final services = ServicesScope.of(context);
     final results = _results;
-    final searchBar = SearchBar(
-      controller: _search,
-      hintText: 'Buscar álbum, artista ou música',
-      leading: const Icon(HugeIcons.strokeRoundedSearch01),
-      trailing: [
-        ListenableBuilder(
-          listenable: _search,
-          builder: (context, _) => _search.text.isEmpty
-              ? const SizedBox.shrink()
-              : IconButton(
-                  tooltip: 'Limpar',
-                  icon: const Icon(HugeIcons.strokeRoundedCancel01),
-                  onPressed: _clearSearch,
-                ),
-        ),
-      ],
-      elevation: const WidgetStatePropertyAll(0),
-      constraints: const BoxConstraints(maxWidth: 600, minHeight: 44, maxHeight: 44),
-      textInputAction: TextInputAction.search,
-      onChanged: _typed,
-      onSubmitted: _searchFor,
+    // Esc, as the clear button.
+    final searchBar = CallbackShortcuts(
+      bindings: {const SingleActivator(LogicalKeyboardKey.escape): _clearSearch},
+      child: SearchBar(
+        controller: _search,
+        hintText: 'Buscar álbum, artista ou música',
+        leading: const Icon(HugeIcons.strokeRoundedSearch01),
+        trailing: [
+          ListenableBuilder(
+            listenable: _search,
+            builder: (context, _) => _search.text.isEmpty
+                ? const SizedBox.shrink()
+                : IconButton(
+                    tooltip: 'Limpar',
+                    icon: const Icon(HugeIcons.strokeRoundedCancel01),
+                    onPressed: _clearSearch,
+                  ),
+          ),
+        ],
+        elevation: const WidgetStatePropertyAll(0),
+        constraints: const BoxConstraints(maxWidth: 600, minHeight: 44, maxHeight: 44),
+        textInputAction: TextInputAction.search,
+        onChanged: _typed,
+        onSubmitted: _searchFor,
+      ),
     );
     // Next to the title when there is room for both; on a phone, on a line of its own under it.
     final narrow = MediaQuery.sizeOf(context).width < 600;

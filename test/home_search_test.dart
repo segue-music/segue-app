@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -123,6 +124,22 @@ void main() {
     final field = tester.getRect(find.byType(TextField));
     expect(field.left, greaterThan(title.right));
     expect(field.center.dy, moreOrLessEquals(title.center.dy, epsilon: 4));
+    await tester.pumpWidget(const SizedBox()); // stops the bar's timer
+  });
+
+  testWidgets('Esc in the search bar clears it, as its clear button does', (tester) async {
+    await pumpHome(tester, const Size(1000, 640));
+    await tester.enterText(find.byType(TextField), 'dream');
+    await tester.pump(HomePage.searchTypingPause);
+    await tester.pump();
+    expect(find.text('Dream Police'), findsOneWidget);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump();
+    expect(find.text('Dream Police'), findsNothing);
+    expect(find.text('Toys in the Attic'), findsOneWidget);
+    expect(tester.widget<TextField>(find.byType(TextField)).controller?.text, isEmpty);
+    expect(find.byTooltip('Limpar'), findsNothing);
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
   });
 
