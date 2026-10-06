@@ -275,13 +275,15 @@ class AlbumGrid extends StatelessWidget {
   Widget build(BuildContext context) => CustomScrollView(
     slivers: [
       if (header != null) SliverToBoxAdapter(child: header),
+      // Covers of up to 180 pixels, 16 from the edges and from one another, of which the tiles' room inside
+      // (AlbumTile.padding) is part.
       SliverPadding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16 - AlbumTile.padding),
         sliver: SliverGrid.builder(
           gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 180,
-            mainAxisSpacing: 16,
-            crossAxisSpacing: 16,
+            maxCrossAxisExtent: 180 + 2 * AlbumTile.padding,
+            mainAxisSpacing: 16 - 2 * AlbumTile.padding,
+            crossAxisSpacing: 16 - 2 * AlbumTile.padding,
             childAspectRatio: 0.75,
           ),
           itemCount: albums.length,
@@ -303,6 +305,10 @@ class AlbumTile extends StatefulWidget {
   /// The line under the name; the artist, by default.
   final String? subtitle;
 
+  /// The room inside, around the cover and the lines under it, where the tint (the pointer's, the focus's) shows. The
+  /// grid and the rows take it from the room around the albums, so that the covers line up with what is over them.
+  static const padding = 8.0;
+
   @override
   State<AlbumTile> createState() => _AlbumTileState();
 }
@@ -323,30 +329,33 @@ class _AlbumTileState extends State<AlbumTile> {
           mouseCursor: WidgetStateMouseCursor.clickable,
           borderRadius: BorderRadius.circular(8),
           onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => AlbumPage(album))),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              AspectRatio(
-                aspectRatio: 1,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Positioned.fill(
-                      child: ClipRRect(borderRadius: BorderRadius.circular(8), child: Cover(album.coverArt)),
-                    ),
-                    Positioned.fill(child: AlbumPlayButton(album, hovered: _hovered)),
-                  ],
+          child: Padding(
+            padding: const EdgeInsets.all(AlbumTile.padding),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AspectRatio(
+                  aspectRatio: 1,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Positioned.fill(
+                        child: ClipRRect(borderRadius: BorderRadius.circular(8), child: Cover(album.coverArt)),
+                      ),
+                      Positioned.fill(child: AlbumPlayButton(album, hovered: _hovered)),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 6),
-              Text(album.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: text.titleSmall),
-              if (widget.subtitle case final line?)
-                Text(line, maxLines: 1, overflow: TextOverflow.ellipsis, style: text.bodySmall)
-              else
-                // The artist takes no focus: for the keyboard and the remote the album stays one stop, as
-                // the song in the player bar is. The album's page links them too.
-                ExcludeFocus(child: ArtistLink.album(album, style: text.bodySmall)),
-            ],
+                const SizedBox(height: 6),
+                Text(album.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: text.titleSmall),
+                if (widget.subtitle case final line?)
+                  Text(line, maxLines: 1, overflow: TextOverflow.ellipsis, style: text.bodySmall)
+                else
+                  // The artist takes no focus: for the keyboard and the remote the album stays one stop, as
+                  // the song in the player bar is. The album's page links them too.
+                  ExcludeFocus(child: ArtistLink.album(album, style: text.bodySmall)),
+              ],
+            ),
           ),
         ),
       ),

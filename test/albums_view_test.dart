@@ -12,6 +12,7 @@ import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/album_page.dart';
 import 'package:segue/ui/albums_view.dart';
 import 'package:segue/ui/artist_page.dart';
+import 'package:segue/ui/cover.dart';
 import 'package:segue/ui/home_page.dart';
 
 import 'fakes.dart';
@@ -155,6 +156,27 @@ void main() {
   testWidgets('the order chips start at the left, lined up with the albums', (tester) async {
     await pumpAlbums(tester, count: 3);
     expect(tester.getRect(order('Nome')).left, tester.getRect(find.text('Album 000')).left);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('an album has room inside, around its cover, where the tint shows; its cover is 16 from the next', (
+    tester,
+  ) async {
+    await pumpAlbums(tester, count: 3);
+    Rect tile(String name) => tester.getRect(find.ancestor(of: find.text(name), matching: find.byType(AlbumTile)));
+    Rect cover(String name) => tester.getRect(
+      find.descendant(
+        of: find.ancestor(of: find.text(name), matching: find.byType(AlbumTile)),
+        matching: find.byType(Cover),
+      ),
+    );
+
+    final (album, next) = ('Album 000', 'Album 001');
+    expect(cover(album).left - tile(album).left, 8);
+    expect(cover(album).top - tile(album).top, 8);
+    expect(tile(album).right - cover(album).right, 8);
+    expect(cover(next).left - cover(album).right, moreOrLessEquals(16));
+    expect(cover(album).left, moreOrLessEquals(tester.getRect(order('Nome')).left), reason: 'lined up with the chips');
     await tester.pumpWidget(const SizedBox());
   });
 

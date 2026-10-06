@@ -26,8 +26,11 @@ class AlbumRow extends StatefulWidget {
   /// How many albums it shows at most.
   static const maxAlbums = 30;
 
-  static const _tileWidth = 160.0;
-  static const _gap = 16.0;
+  /// Covers of 160 pixels, 16 from the edges (lined up with the title) and from one another, of which the tiles' room
+  /// inside ([AlbumTile.padding]) is part.
+  static const _tileWidth = 160 + 2 * AlbumTile.padding;
+  static const _edge = 16 - AlbumTile.padding;
+  static const _gap = 16 - 2 * AlbumTile.padding;
 
   /// As tall as a tile of the album grid this wide.
   static const _height = _tileWidth / 0.75;
@@ -54,7 +57,7 @@ class _AlbumRowState extends State<AlbumRow> {
   void _page(int direction) {
     final position = _scroll.position;
     const stride = AlbumRow._tileWidth + AlbumRow._gap;
-    final perScreen = max(1, ((position.viewportDimension - AlbumRow._gap) / stride).floor());
+    final perScreen = max(1, ((position.viewportDimension - 2 * AlbumRow._edge + AlbumRow._gap) / stride).floor());
     // A bit of slack, so that an album a hair off the edge still counts as at it.
     final at = position.pixels / stride;
     final album = direction > 0 ? (at + 0.01).floor() + perScreen : (at - 0.01).ceil() - perScreen;
@@ -178,7 +181,7 @@ class _AlbumRowState extends State<AlbumRow> {
       child: ListView.separated(
         controller: _scroll,
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: AlbumRow._gap),
+        padding: const EdgeInsets.symmetric(horizontal: AlbumRow._edge),
         itemCount: albums.length,
         separatorBuilder: (_, _) => const SizedBox(width: AlbumRow._gap),
         itemBuilder: (context, i) => SizedBox(width: AlbumRow._tileWidth, child: AlbumTile(albums[i])),
