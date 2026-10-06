@@ -21,6 +21,7 @@ import 'package:segue/ui/cover.dart';
 import 'package:segue/ui/lyrics_view.dart';
 import 'package:segue/ui/now_playing_bar.dart';
 import 'package:segue/ui/player_page.dart';
+import 'package:segue/ui/queue_page.dart';
 
 import 'fakes.dart';
 
@@ -226,6 +227,28 @@ Future<void> openPlayer(WidgetTester tester) async {
 
 Finder onPage(Finder finder) => find.descendant(of: find.byType(PlayerPage), matching: finder);
 
+/// What [matches] in the full-screen player itself, rather than in the bar it keeps under it on a wide
+/// screen.
+Finder inPlayer(bool Function(Widget widget) matches) => find.byElementPredicate((element) {
+  if (!matches(element.widget)) {
+    return false;
+  }
+
+  var (inPage, inBar) = (false, false);
+  element.visitAncestorElements((ancestor) {
+    inBar |= ancestor.widget is NowPlayingBar;
+    inPage |= ancestor.widget is PlayerPage;
+    return !inPage;
+  });
+  return inPage && !inBar;
+});
+
+/// The full-screen player's own cover.
+final playerCover = inPlayer((widget) => widget is Cover);
+
+/// The full-screen player's own [tooltip].
+Finder playerTip(String tooltip) => inPlayer((widget) => widget is Tooltip && widget.message == tooltip);
+
 void main() {
   testWidgets('the bar opens the full-screen player: the song, its times and every control, even on a phone', (
     tester,
@@ -244,6 +267,14 @@ void main() {
       expect(onPage(find.byTooltip(tooltip)), findsOneWidget, reason: tooltip);
     }
 
+    // On a phone, whose bar has no room for them, the lyrics and the queue are at the top, and the bar
+    // isn't under the player.
+    for (final tooltip in ['Mostrar a letra', 'Fila', 'Aparelhos']) {
+      expect(find.descendant(of: onPage(find.byType(AppBar)), matching: find.byTooltip(tooltip)), findsOneWidget);
+    }
+
+    expect(onPage(find.byType(NowPlayingBar)), findsNothing);
+
     await tester.tap(onPage(find.byTooltip('Tocar')));
     await tester.pump();
     expect(player.playing, isTrue);
@@ -259,14 +290,14 @@ void main() {
     final player = await pumpBar(tester, server: withLyrics(verse), size: const Size(1280, 800));
     await player.seek(const Duration(seconds: 6));
     await openPlayer(tester);
-    final cover = tester.getRect(onPage(find.byType(Cover)));
+    final cover = tester.getRect(playerCover);
     expect(onPage(find.text('That nobody cares')), findsNothing);
 
     await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
     await tester.pumpAndSettle();
     // Half the screen each: the player in the middle of the left half, the lyrics all of the right.
-    expect(tester.getRect(onPage(find.byType(Cover))).size, cover.size, reason: 'the cover stays as it was');
-    expect(tester.getCenter(onPage(find.byType(Cover))).dx, 320);
+    expect(tester.getRect(playerCover).size, cover.size, reason: 'the cover stays as it was');
+    expect(tester.getCenter(playerCover).dx, 320);
     final lyrics = tester.getRect(onPage(find.byType(LyricsView)));
     expect((lyrics.left, lyrics.right), (640, 1280));
     expect(lyrics.top, lessThan(cover.bottom), reason: 'level with it');
@@ -295,7 +326,7 @@ void main() {
     await tester.tap(onPage(find.byTooltip('Esconder a letra')));
     await tester.pumpAndSettle();
     expect(onPage(find.byType(LyricsView)), findsNothing);
-    expect(tester.getRect(onPage(find.byType(Cover))), cover, reason: 'back where it was');
+    expect(tester.getRect(playerCover), cover, reason: 'back where it was');
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -303,10 +334,10 @@ void main() {
     await pumpBar(tester, server: withLyrics(verse));
     expect(find.byTooltip('Mostrar a letra'), findsNothing, reason: 'in the bar');
     await openPlayer(tester);
-    final cover = tester.getRect(onPage(find.byType(Cover)));
+    final cover = tester.getRect(playerCover);
     await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
     await tester.pumpAndSettle();
-    expect(tester.getRect(onPage(find.byType(Cover))), cover);
+    expect(tester.getRect(playerCover), cover);
     expect(
       tester.getRect(onPage(find.byType(LyricsView))).top,
       greaterThan(tester.getRect(onPage(find.byTooltip('Tocar'))).bottom),
@@ -566,6 +597,115 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('on a big screen the cover is as big as the height leaves room for, with the rest in view', (
+    tester,
+  ) async {
+    await pumpBar(tester, server: withLyrics(verse), size: const Size(1920, 1080));
+    await openPlayer(tester);
+
+    void expectBig(String what) {
+      expect(tester.getSize(playerCover).height, greaterThan(600), reason: what);
+      expect(
+        tester.getRect(playerTip('Repetir a lista')).bottom,
+        lessThanOrEqualTo(tester.getRect(onPage(find.byType(NowPlayingBar))).top),
+        reason: what,
+      );
+    }
+
+    expectBig('alone');
+    await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
+    await tester.pumpAndSettle();
+    expectBig('beside the lyrics');
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('the song\'s title, artist and album show in the middle, big, the title in bold', (tester) async {
+    await pumpBar(tester, size: const Size(1280, 800));
+    await openPlayer(tester);
+    final cover = tester.getRect(playerCover);
+    final text = Theme.of(tester.element(playerCover)).textTheme;
+
+    for (final (line, size, bold) in [
+      ('Sweet Emotion', text.headlineMedium, true),
+      ('Aerosmith', text.titleLarge, false),
+      ('Toys in the Attic', text.titleMedium, false),
+    ]) {
+      final shown = inPlayer((widget) => widget is Text && widget.data == line);
+      final style = tester.widget<Text>(shown).style;
+      expect(style?.fontSize, size?.fontSize, reason: line);
+      expect(style?.fontWeight == FontWeight.bold, bold, reason: line);
+      expect(tester.widget<Text>(shown).textAlign, TextAlign.center, reason: line);
+      expect(tester.getCenter(shown).dx, moreOrLessEquals(cover.center.dx, epsilon: 1), reason: line);
+    }
+
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a wide screen the minimized player stays under the full-screen one, with the lyrics, the queue and '
+      'the devices, which leave its top bar', (tester) async {
+    await pumpBar(tester, server: withLyrics(verse), size: const Size(1280, 800));
+    await openPlayer(tester);
+    final bar = onPage(find.byType(NowPlayingBar));
+    expect(bar, findsOneWidget);
+
+    for (final tooltip in ['Mostrar a letra', 'Fila', 'Aparelhos']) {
+      expect(find.descendant(of: onPage(find.byType(AppBar)), matching: find.byTooltip(tooltip)), findsNothing);
+      expect(
+        find.descendant(of: bar, matching: find.byTooltip(tooltip)),
+        findsOneWidget,
+        reason: tooltip,
+      );
+    }
+
+    await tester.tap(find.descendant(of: bar, matching: find.byTooltip('Mostrar a letra')));
+    await tester.pumpAndSettle();
+    expect(find.byType(PlayerPage), findsOneWidget, reason: 'in this player, not another');
+    expect(onPage(find.byType(LyricsView)), findsOneWidget);
+    await tester.tap(find.descendant(of: bar, matching: find.byTooltip('Esconder a letra')));
+    await tester.pumpAndSettle();
+    expect(onPage(find.byType(LyricsView)), findsNothing);
+
+    // Its song closes the full-screen player.
+    await tester.tap(find.descendant(of: bar, matching: find.byTooltip('Fechar o player')));
+    await tester.pumpAndSettle();
+    expect(find.byType(PlayerPage), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a wide screen the bar stays put as the full-screen player slides up over the page', (tester) async {
+    await pumpBar(tester, size: const Size(1280, 800));
+    final devices = tester.getRect(find.byTooltip('Aparelhos')); // in the bar alone
+    await tester.tap(find.byTooltip('Abrir o player'));
+    await tester.pump();
+
+    for (var i = 0; i < 4; i++) {
+      await tester.pump(const Duration(milliseconds: 80));
+      expect(tester.getRect(find.byTooltip('Aparelhos')), devices, reason: 'as the player slides up');
+    }
+
+    await tester.pumpAndSettle();
+    expect(find.byType(PlayerPage), findsOneWidget);
+    expect(tester.getRect(find.byTooltip('Aparelhos')), devices, reason: 'under the player');
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('the bar stays put from page to page: the queue has it too', (tester) async {
+    await pumpBar(tester, size: const Size(1280, 800));
+    final next = tester.getRect(find.byTooltip('Próxima'));
+    await tester.tap(find.byTooltip('Fila'));
+    await tester.pump();
+
+    for (var i = 0; i < 4; i++) {
+      await tester.pump(const Duration(milliseconds: 80));
+      expect(tester.getRect(find.byTooltip('Próxima')), next, reason: 'as the queue comes in');
+    }
+
+    await tester.pumpAndSettle();
+    expect(find.byType(QueuePage), findsOneWidget);
+    expect(tester.getRect(find.byTooltip('Próxima')), next, reason: 'under the queue');
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('Esc closes the full-screen player', (tester) async {
     await pumpBar(tester);
     await openPlayer(tester);
@@ -698,11 +838,11 @@ void main() {
     await openPlayer(tester);
     expect(find.byType(PlayerPage), findsOneWidget);
     expect(
-      onPage(find.byTooltip('Abrir o álbum')),
+      playerTip('Abrir o álbum'),
       findsNWidgets(2),
       reason: 'the player\'s links say where they go: its title and its album\'s name open the album',
     );
-    expect(onPage(find.byTooltip('Abrir o artista')), findsOneWidget);
+    expect(playerTip('Abrir o artista'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 

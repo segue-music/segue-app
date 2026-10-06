@@ -15,20 +15,21 @@ import 'text_link.dart';
 /// links nowhere.
 class SongLink extends StatefulWidget {
   /// The song's title, which opens its album.
-  const SongLink.title(this.now, {this.style, this.maxLines = 1, this.replace = false, super.key})
+  const SongLink.title(this.now, {this.style, this.maxLines = 1, this.textAlign, this.replace = false, super.key})
     : _part = _Part.title;
 
   /// The name of the song's album, which opens it.
-  const SongLink.album(this.now, {this.style, this.maxLines = 1, this.replace = false, super.key})
+  const SongLink.album(this.now, {this.style, this.maxLines = 1, this.textAlign, this.replace = false, super.key})
     : _part = _Part.album;
 
   /// The song's artist, who opens their page.
-  const SongLink.artist(this.now, {this.style, this.maxLines = 1, this.replace = false, super.key})
+  const SongLink.artist(this.now, {this.style, this.maxLines = 1, this.textAlign, this.replace = false, super.key})
     : _part = _Part.artist;
 
   final NowPlaying now;
   final TextStyle? style;
   final int maxLines;
+  final TextAlign? textAlign;
 
   /// Whether the page goes in place of the current one (the full-screen player), rather than over it.
   final bool replace;
@@ -98,6 +99,7 @@ class _SongLinkState extends State<SongLink> {
       onTap: songId == null ? null : () => _open(songId),
       style: widget.style,
       maxLines: widget.maxLines,
+      textAlign: widget.textAlign,
     );
   }
 }

@@ -41,7 +41,9 @@ the device it runs on.
   a .lrc next to it, or Jellyfin's; when the server has none, LRCLIB's, from lrclib.net, by the
   song's title, artist, album and length): synced ones mark the line that plays and keep it in view,
   with a note for a part with no singing, and a line tapped goes there; a wide bar's lyrics button
-  opens the player with them. In both, the song's title
+  opens the player with them. The bar stays put from page to page, and on a wide screen under the
+  full-screen player too, whose top then leaves the lyrics, the queue and the devices to it. In both,
+  the song's title
   opens its album (as does the album's name, in the full-screen player) and its artist their page
   (the first artist, when it has several), whichever device it plays on; on a phone the whole song
   in the bar opens the player. A song the media server fails to give (as when it can't read its disk)

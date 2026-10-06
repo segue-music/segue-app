@@ -8,6 +8,7 @@ import '../connect/connect.dart';
 import 'cover.dart';
 import 'devices_sheet.dart';
 import 'lyrics_view.dart';
+import 'now_playing_bar.dart';
 import 'player_controls.dart';
 import 'queue_page.dart';
 import 'song_link.dart';
@@ -39,59 +40,78 @@ class PlayerPage extends StatefulWidget {
 }
 
 class _PlayerPageState extends State<PlayerPage> {
-  /// Whether the lyrics show.
-  late bool _lyrics = widget.lyrics;
+  /// Whether the lyrics show: turned on and off at the top, or, on a wide screen, in the bar under the player.
+  late final _lyrics = ValueNotifier(widget.lyrics);
+
+  @override
+  void dispose() {
+    _lyrics.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     void close() => Navigator.of(context).maybePop();
 
+    // On a wide screen the bar stays under the player, with what would be at its top: the lyrics, the
+    // queue and the devices. A phone's bar has no room for the first two, which stay at the top.
+    final wide = MediaQuery.sizeOf(context).width >= NowPlayingBar.wideFrom;
     return CallbackShortcuts(
       bindings: {const SingleActivator(LogicalKeyboardKey.escape): close},
       child: Focus(
         autofocus: true,
-        child: NowPlayingBuilder(
-          builder: (context, connect, now) {
-            final colors = Theme.of(context).colorScheme;
-            final device = now?.device;
-            return Scaffold(
-              appBar: AppBar(
-                // The background's color, always: neither the lyrics nor, on a phone, the page tint it as
-                // they scroll under it.
-                notificationPredicate: (_) => false,
-                leading: IconButton(
-                  tooltip: 'Fechar',
-                  icon: const Icon(HugeIcons.strokeRoundedArrowDown01),
-                  onPressed: close,
-                ),
-                centerTitle: true,
-                title: device == null
-                    ? null
-                    : Text(
-                        '${now!.playing ? 'Tocando' : 'Pausado'} em $device',
-                        style: Theme.of(context).textTheme.titleSmall,
+        child: ListenableBuilder(
+          listenable: _lyrics,
+          builder: (context, _) => NowPlayingBuilder(
+            builder: (context, connect, now) {
+              final lyrics = _lyrics.value;
+              final colors = Theme.of(context).colorScheme;
+              final device = now?.device;
+              return Scaffold(
+                appBar: AppBar(
+                  // The background's color, always: neither the lyrics nor, on a phone, the page tint it as
+                  // they scroll under it.
+                  notificationPredicate: (_) => false,
+                  leading: IconButton(
+                    tooltip: 'Fechar',
+                    icon: const Icon(HugeIcons.strokeRoundedArrowDown01),
+                    onPressed: close,
+                  ),
+                  centerTitle: true,
+                  title: device == null
+                      ? null
+                      : Text(
+                          '${now!.playing ? 'Tocando' : 'Pausado'} em $device',
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                  actions: [
+                    if (!wide) ...[
+                      IconButton(
+                        tooltip: lyrics ? 'Esconder a letra' : 'Mostrar a letra',
+                        icon: Icon(HugeIcons.strokeRoundedMic01, color: lyrics ? colors.primary : null),
+                        onPressed: () => _lyrics.value = !lyrics,
                       ),
-                actions: [
-                  IconButton(
-                    tooltip: _lyrics ? 'Esconder a letra' : 'Mostrar a letra',
-                    icon: Icon(HugeIcons.strokeRoundedMic01, color: _lyrics ? colors.primary : null),
-                    onPressed: () => setState(() => _lyrics = !_lyrics),
-                  ),
-                  IconButton(
-                    tooltip: 'Fila',
-                    icon: const Icon(HugeIcons.strokeRoundedPlaylist03),
-                    onPressed: () => QueuePage.open(context),
-                  ),
-                  IconButton(
-                    tooltip: 'Aparelhos',
-                    icon: Icon(HugeIcons.strokeRoundedComputerPhoneSync, color: device == null ? null : colors.primary),
-                    onPressed: () => showDevicesSheet(context),
-                  ),
-                ],
-              ),
-              body: now == null ? const Center(child: Text('Nada tocando')) : _Player(now, connect, lyrics: _lyrics),
-            );
-          },
+                      IconButton(
+                        tooltip: 'Fila',
+                        icon: const Icon(HugeIcons.strokeRoundedPlaylist03),
+                        onPressed: () => QueuePage.open(context),
+                      ),
+                      IconButton(
+                        tooltip: 'Aparelhos',
+                        icon: Icon(
+                          HugeIcons.strokeRoundedComputerPhoneSync,
+                          color: device == null ? null : colors.primary,
+                        ),
+                        onPressed: () => showDevicesSheet(context),
+                      ),
+                    ],
+                  ],
+                ),
+                body: now == null ? const Center(child: Text('Nada tocando')) : _Player(now, connect, lyrics: lyrics),
+                bottomNavigationBar: wide ? NowPlayingBar(lyrics: _lyrics) : null,
+              );
+            },
+          ),
         ),
       ),
     );
@@ -110,6 +130,9 @@ class _Player extends StatelessWidget {
   /// From how wide the lyrics go beside the player rather than under it.
   static const _lyricsBesideFrom = 720.0;
 
+  /// How big the cover gets, at most: as big as the image asked of the server.
+  static const _maxCover = 800.0;
+
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
@@ -121,11 +144,11 @@ class _Player extends StatelessWidget {
         // The cover as big as it fits (beside the lyrics, in half the screen), leaving room for the rest
         // under it.
         final width = (beside ? box.maxWidth / 2 : box.maxWidth) - 48;
-        final side = min(width, box.maxHeight - 260).clamp(96.0, 520.0);
+        final side = min(width, box.maxHeight - 280).clamp(96.0, _maxCover);
         final player = SizedBox(
           width: max(side, 280),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Center(
                 child: SizedBox.square(
@@ -134,9 +157,26 @@ class _Player extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
-              SongLink.title(now, style: text.headlineSmall, maxLines: 2, replace: true),
-              SongLink.artist(now, style: text.titleMedium?.copyWith(color: muted), replace: true),
-              if (now.album != null) SongLink.album(now, style: text.bodyMedium?.copyWith(color: muted), replace: true),
+              SongLink.title(
+                now,
+                style: text.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+                maxLines: 2,
+                textAlign: TextAlign.center,
+                replace: true,
+              ),
+              SongLink.artist(
+                now,
+                style: text.titleLarge?.copyWith(color: muted),
+                textAlign: TextAlign.center,
+                replace: true,
+              ),
+              if (now.album != null)
+                SongLink.album(
+                  now,
+                  style: text.titleMedium?.copyWith(color: muted),
+                  textAlign: TextAlign.center,
+                  replace: true,
+                ),
               const SizedBox(height: 12),
               SeekSlider(now, timesBelow: true),
               const SizedBox(height: 8),

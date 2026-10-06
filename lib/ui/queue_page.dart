@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../services.dart';
 import 'cover.dart';
+import 'now_playing_bar.dart';
 import 'player_controls.dart';
 
 /// The queue of the device the app controls, in its play order (shuffled, or not): the current
@@ -68,6 +69,7 @@ class _QueuePageState extends State<QueuePage> {
 
             return Scaffold(
               appBar: AppBar(title: Text(now?.device == null ? 'Fila' : 'Fila em ${now!.device}')),
+              bottomNavigationBar: const NowPlayingBar(),
               body: tracks.isEmpty
                   ? const Center(child: Text('A fila está vazia.'))
                   // The list starts at the track on top; the ones before it go up from there.

@@ -79,7 +79,18 @@ Future<void> openQueue(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-Finder inQueue(Finder finder) => find.descendant(of: find.byType(QueuePage), matching: finder);
+/// What [finder] finds in the queue itself, rather than in the bar under it. Each call looks afresh.
+Finder inQueue(Finder finder) {
+  Set<Element>? inside;
+  return find.byElementPredicate((element) {
+    inside ??= find
+        .descendant(of: find.byType(QueuePage), matching: finder)
+        .evaluate()
+        .toSet()
+        .difference(find.descendant(of: find.byType(NowPlayingBar), matching: finder).evaluate().toSet());
+    return inside!.contains(element);
+  });
+}
 
 ListTile tile(WidgetTester tester, String title) =>
     tester.widget<ListTile>(find.ancestor(of: inQueue(find.text(title)), matching: find.byType(ListTile)));
