@@ -175,7 +175,7 @@ void main() {
     await tester.tap(find.byTooltip('Gêneros'));
     await tester.pumpAndSettle();
 
-    final heading = tester.getRect(find.text('Mais ouvidos'));
+    final heading = tester.getRect(find.text('Mais tocados'));
     final rock = tester.getRect(button('Rock'));
     final hardRock = tester.getRect(button('hard rock'));
     final all = tester.getRect(find.text('Todos os gêneros'));
@@ -197,7 +197,7 @@ void main() {
     await tester.tap(find.byTooltip('Gêneros'));
     await tester.pumpAndSettle();
     expect(tile('Blues'), findsOneWidget);
-    expect(find.text('Mais ouvidos'), findsNothing);
+    expect(find.text('Mais tocados'), findsNothing);
     expect(find.text('Todos os gêneros'), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
@@ -222,7 +222,7 @@ void main() {
       reason: 'never played',
     );
 
-    final mostPlayed = tester.getRect(find.text('Mais ouvidos'));
+    final mostPlayed = tester.getRect(find.text('Mais tocados'));
     final all = tester.getRect(find.text('Álbuns'));
     expect(tester.getRect(row).top, greaterThan(mostPlayed.bottom));
     expect(all.top, greaterThan(tester.getRect(row).bottom));
@@ -237,7 +237,7 @@ void main() {
     await tester.tap(tile('Blues'));
     await tester.pumpAndSettle();
     expect(find.text('Honky Tonk Blues'), findsOneWidget);
-    expect(find.text('Mais ouvidos'), findsNothing);
+    expect(find.text('Mais tocados'), findsNothing);
     expect(find.text('Álbuns'), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });

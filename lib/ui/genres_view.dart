@@ -101,7 +101,7 @@ class _MostPlayed extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Mais ouvidos', style: text.titleLarge),
+          Text('Mais tocados', style: text.titleLarge),
           const SizedBox(height: 12),
           Wrap(
             spacing: 8,

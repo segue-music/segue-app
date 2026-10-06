@@ -43,7 +43,7 @@ class _GenrePageState extends State<GenrePage> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                AlbumRow(title: 'Mais ouvidos', albums: mostPlayed),
+                AlbumRow(title: 'Mais tocados', albums: mostPlayed),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
                   child: Text('Álbuns', style: Theme.of(context).textTheme.titleLarge),
