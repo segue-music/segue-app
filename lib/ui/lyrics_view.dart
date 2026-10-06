@@ -10,6 +10,7 @@ import '../server/models.dart';
 import '../services.dart';
 import 'player_controls.dart';
 import 'spinner.dart';
+import 'themed_icon.dart';
 
 /// The lyrics of what plays, wherever it plays. Synced ones mark the line that plays and keep it in view,
 /// and a line tapped goes there; others show as they are.
@@ -251,7 +252,7 @@ class _LyricsViewState extends State<LyricsView> {
                         // A blank line of synced lyrics is a part with no singing; of others, a gap between
                         // verses.
                         child: lyrics.synced && line.text.trim().isEmpty
-                            ? Icon(
+                            ? ThemedIcon(
                                 LyricsView.instrumentalIcon,
                                 size: style?.fontSize,
                                 color: i == playing ? ink : faded,

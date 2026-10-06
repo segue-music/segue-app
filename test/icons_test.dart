@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:segue/connect/connect.dart';
 import 'package:segue/player/player.dart';
 import 'package:segue/server/models.dart';
@@ -12,6 +13,7 @@ import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/home_page.dart';
 import 'package:segue/ui/theme.dart';
+import 'package:segue/ui/themed_icon.dart';
 
 import 'fakes.dart';
 
@@ -97,12 +99,11 @@ Future<void> pumpApp(WidgetTester tester, Size size) async {
   await tester.pumpAndSettle();
 }
 
-/// Icons in Hugeicons' font, which the engine smooths as text, where it leaves thin strokes drawn as
-/// paths jagged (Impeller, on Linux).
-final hugeIcons = find.byWidgetPredicate((widget) => widget is Icon && widget.icon?.fontFamily == 'HgiStrokeRounded');
+/// Hugeicons' icons, sized by the theme (ThemedIcon).
+final hugeIcons = find.byType(ThemedIcon);
 
-/// Any other icon, as Material's.
-final otherIcons = find.byWidgetPredicate((widget) => widget is Icon && widget.icon?.fontFamily != 'HgiStrokeRounded');
+/// Any icon from a font, as Material's.
+final otherIcons = find.byType(Icon);
 
 Future<void> tap(WidgetTester tester, Finder finder) async {
   await tester.tap(finder);
@@ -110,38 +111,56 @@ Future<void> tap(WidgetTester tester, Finder finder) async {
 }
 
 void main() {
-  testWidgets(
-    'the app\'s icons are Hugeicons\' font, none of Material\'s: the home, an album, the player, its queue and '
-    'the devices',
-    (tester) async {
-      await pumpApp(tester, const Size(1000, 700));
-      expect(hugeIcons, findsWidgets);
-      expect(otherIcons, findsNothing, reason: 'the home, with the player bar');
+  testWidgets('the app\'s icons are Hugeicons\', none of Material\'s: the home, an album, the player, its queue and '
+      'the devices', (tester) async {
+    await pumpApp(tester, const Size(1000, 700));
+    expect(hugeIcons, findsWidgets);
+    expect(otherIcons, findsNothing, reason: 'the home, with the player bar');
 
-      await tap(tester, find.text('Toys in the Attic').first);
-      expect(find.byType(BackButton), findsOneWidget);
-      expect(otherIcons, findsNothing, reason: 'an album, with the back button');
+    await tap(tester, find.text('Toys in the Attic').first);
+    expect(find.byType(BackButton), findsOneWidget);
+    expect(otherIcons, findsNothing, reason: 'an album, with the back button');
 
-      await tap(tester, find.byTooltip('Abrir o player'));
-      expect(otherIcons, findsNothing, reason: 'the player');
+    await tap(tester, find.byTooltip('Abrir o player'));
+    expect(otherIcons, findsNothing, reason: 'the player');
 
-      await tap(tester, find.byTooltip('Fila'));
-      expect(otherIcons, findsNothing, reason: 'the queue');
+    await tap(tester, find.byTooltip('Fila'));
+    expect(otherIcons, findsNothing, reason: 'the queue');
 
-      await tester.pageBack();
-      await tester.pumpAndSettle();
-      // The player bar's: on a wide screen, the top bar's shows too, over the player.
-      await tap(tester, find.byTooltip('Aparelhos').last);
-      expect(find.textContaining('Este aparelho'), findsOneWidget);
-      expect(otherIcons, findsNothing, reason: 'the devices');
-      await tester.pumpWidget(const SizedBox()); // stops the player bar's timers
-    },
-  );
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    // The player bar's: on a wide screen, the top bar's shows too, over the player.
+    await tap(tester, find.byTooltip('Aparelhos').last);
+    expect(find.textContaining('Este aparelho'), findsOneWidget);
+    expect(otherIcons, findsNothing, reason: 'the devices');
+    await tester.pumpWidget(const SizedBox()); // stops the player bar's timers
+  });
 
   testWidgets('on a phone, the bar at the bottom too', (tester) async {
     await pumpApp(tester, const Size(360, 640));
     expect(find.byType(NavigationBar), findsOneWidget);
     expect(otherIcons, findsNothing);
     await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('an icon is the size the theme gives it, as an icon button\'s, and its own when it has one', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const Directionality(
+        textDirection: TextDirection.ltr,
+        child: IconTheme(
+          data: IconThemeData(size: 40),
+          child: Row(
+            children: [
+              ThemedIcon(HugeIcons.strokeRoundedPlay, key: Key('theme')),
+              ThemedIcon(HugeIcons.strokeRoundedClock01, size: 18, key: Key('own')),
+            ],
+          ),
+        ),
+      ),
+    );
+    expect(tester.getSize(find.byKey(const Key('theme'))), const Size.square(40));
+    expect(tester.getSize(find.byKey(const Key('own'))), const Size.square(18));
   });
 }

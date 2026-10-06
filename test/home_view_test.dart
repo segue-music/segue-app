@@ -15,9 +15,11 @@ import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/albums_view.dart';
 import 'package:segue/ui/home_page.dart';
 import 'package:segue/ui/shortcuts.dart';
+import 'package:segue/ui/themed_icon.dart';
 
 import 'fakes.dart';
 import 'side_rail.dart';
+import 'themed_icons.dart';
 
 http.Response subsonic(Map<String, Object?> body) => http.Response(
   jsonEncode({
@@ -210,7 +212,7 @@ void main() {
     final logo = find.byTooltip('Início');
     expect(logo, findsOneWidget, reason: 'the app\'s icon alone');
     expect(find.descendant(of: logo, matching: find.byType(Image)), findsOneWidget);
-    expect(find.byIcon(HugeIcons.strokeRoundedHome01), findsNothing);
+    expect(themedIcon(HugeIcons.strokeRoundedHome01), findsNothing);
     final corner = tester.getRect(logo);
     expect(corner.left, lessThan(16));
     expect(corner.top, lessThan(16));
@@ -233,11 +235,12 @@ void main() {
     (tester) async {
       await pumpHome(tester, const Size(1000, 700));
 
-      Rect icon(IconData icon) => tester.getRect(find.descendant(of: find.byType(AppBar), matching: find.byIcon(icon)));
+      Rect icon(HugeIconData icon) =>
+          tester.getRect(find.descendant(of: find.byType(AppBar), matching: themedIcon(icon)));
 
       final (hub, devices, signOut) = (
         icon(HugeIcons.strokeRoundedUnlink02),
-        icon(HugeIcons.strokeRoundedComputerPhoneSync),
+        icon(HugeIcons.strokeRoundedMonitorSpeaker),
         icon(HugeIcons.strokeRoundedLogout01),
       );
       expect(devices.left - hub.right, signOut.left - devices.right);
@@ -272,7 +275,8 @@ void main() {
     await pumpHome(tester, const Size(960, 540), television: true);
     await tester.tap(find.byTooltip('Álbuns'));
     await tester.pumpAndSettle();
-    Focus.of(tester.element(find.descendant(of: find.byTooltip('Álbuns'), matching: find.byType(Icon)))).requestFocus();
+    Focus.of(tester.element(find.descendant(of: find.byTooltip('Álbuns'), matching: find.byType(ThemedIcon))))
+        .requestFocus();
     await tester.pump();
     await press(tester, LogicalKeyboardKey.arrowUp);
     expect(Focus.of(tester.element(find.byType(Image).first)).hasFocus, isTrue);

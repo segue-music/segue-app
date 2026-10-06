@@ -9,6 +9,7 @@ import 'player_controls.dart';
 import 'player_page.dart';
 import 'queue_page.dart';
 import 'song_link.dart';
+import 'themed_icon.dart';
 
 export 'player_controls.dart' show formatDuration;
 
@@ -116,17 +117,17 @@ class NowPlayingBar extends StatelessWidget {
                           if (wide) ShuffleButton(now),
                           IconButton(
                             tooltip: 'Anterior',
-                            icon: const Icon(HugeIcons.strokeRoundedPrevious),
+                            icon: const ThemedIcon(HugeIcons.strokeRoundedPrevious),
                             onPressed: () => runCommand(context, connect.previous),
                           ),
                           IconButton(
                             tooltip: now.playing ? 'Pausar' : 'Tocar',
-                            icon: Icon(now.playing ? HugeIcons.strokeRoundedPause : HugeIcons.strokeRoundedPlay),
+                            icon: ThemedIcon(now.playing ? HugeIcons.strokeRoundedPause : HugeIcons.strokeRoundedPlay),
                             onPressed: () => runCommand(context, connect.toggle),
                           ),
                           IconButton(
                             tooltip: 'Próxima',
-                            icon: const Icon(HugeIcons.strokeRoundedNext),
+                            icon: const ThemedIcon(HugeIcons.strokeRoundedNext),
                             onPressed: () => runCommand(context, connect.next),
                           ),
                           if (wide) RepeatButton(now),
@@ -134,14 +135,14 @@ class NowPlayingBar extends StatelessWidget {
                             switch (lyrics) {
                               null => IconButton(
                                 tooltip: 'Mostrar a letra',
-                                icon: const Icon(HugeIcons.strokeRoundedMic01),
+                                icon: const ThemedIcon(HugeIcons.strokeRoundedMicVocal),
                                 onPressed: () => PlayerPage.open(context, lyrics: true),
                               ),
                               final shown => ValueListenableBuilder(
                                 valueListenable: shown,
                                 builder: (context, on, _) => IconButton(
                                   tooltip: on ? 'Esconder a letra' : 'Mostrar a letra',
-                                  icon: Icon(HugeIcons.strokeRoundedMic01, color: on ? colors.primary : null),
+                                  icon: ThemedIcon(HugeIcons.strokeRoundedMicVocal, color: on ? colors.primary : null),
                                   onPressed: () => shown.value = !on,
                                 ),
                               ),
@@ -149,13 +150,13 @@ class NowPlayingBar extends StatelessWidget {
                           if (wide)
                             IconButton(
                               tooltip: 'Fila',
-                              icon: const Icon(HugeIcons.strokeRoundedPlaylist03),
+                              icon: const ThemedIcon(HugeIcons.strokeRoundedPlaylist03),
                               onPressed: () => QueuePage.open(context),
                             ),
                           IconButton(
                             tooltip: 'Aparelhos',
-                            icon: Icon(
-                              HugeIcons.strokeRoundedComputerPhoneSync,
+                            icon: ThemedIcon(
+                              HugeIcons.strokeRoundedMonitorSpeaker,
                               color: now.device == null ? null : colors.primary,
                             ),
                             onPressed: () => showDevicesSheet(context),
@@ -171,7 +172,7 @@ class NowPlayingBar extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                         child: Row(
                           children: [
-                            Icon(HugeIcons.strokeRoundedSpeaker, size: 16, color: colors.onPrimaryContainer),
+                            ThemedIcon(HugeIcons.strokeRoundedSpeaker, size: 16, color: colors.onPrimaryContainer),
                             const SizedBox(width: 6),
                             Text(
                               '${now.playing ? 'Tocando' : 'Pausado'} em ${now.device}',

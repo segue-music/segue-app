@@ -8,6 +8,7 @@ import '../server/models.dart';
 import 'albums_view.dart';
 import 'spinner.dart';
 import 'text_link.dart';
+import 'themed_icon.dart';
 
 /// A titled row of albums, which scrolls sideways: by the arrows in its right corner, or dragged.
 class AlbumRow extends StatefulWidget {
@@ -150,12 +151,12 @@ class _AlbumRowState extends State<AlbumRow> {
           children: [
             IconButton(
               tooltip: 'Anteriores',
-              icon: const Icon(HugeIcons.strokeRoundedArrowLeft01),
+              icon: const ThemedIcon(HugeIcons.strokeRoundedArrowLeft01),
               onPressed: position.extentBefore > 0 ? () => _page(-1) : null,
             ),
             IconButton(
               tooltip: 'Próximos',
-              icon: const Icon(HugeIcons.strokeRoundedArrowRight01),
+              icon: const ThemedIcon(HugeIcons.strokeRoundedArrowRight01),
               onPressed: position.extentAfter > 0 ? () => _page(1) : null,
             ),
           ],

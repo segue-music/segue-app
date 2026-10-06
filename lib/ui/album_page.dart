@@ -10,6 +10,7 @@ import 'errors.dart';
 import 'now_playing_bar.dart';
 import 'song_list_header.dart';
 import 'spinner.dart';
+import 'themed_icon.dart';
 
 class AlbumPage extends StatefulWidget {
   const AlbumPage(this.album, {super.key});
@@ -73,7 +74,7 @@ class _AlbumPageState extends State<AlbumPage> {
                           const SizedBox(height: 12),
                           FilledButton.icon(
                             onPressed: songs.isEmpty ? null : () => _play(songs, 0),
-                            icon: const Icon(HugeIcons.strokeRoundedPlay),
+                            icon: const ThemedIcon(HugeIcons.strokeRoundedPlay),
                             label: const Text('Tocar'),
                           ),
                         ],
@@ -90,7 +91,7 @@ class _AlbumPageState extends State<AlbumPage> {
                     selected: current,
                     leading: SizedBox(
                       width: SongListHeader.numberWidth,
-                      child: playing ? const Icon(CurrentSong.icon) : Text('${i + 1}', textAlign: TextAlign.end),
+                      child: playing ? const ThemedIcon(CurrentSong.icon) : Text('${i + 1}', textAlign: TextAlign.end),
                     ),
                     title: Text(song.title),
                     // The artist takes no focus: for the keyboard and the remote the song stays one stop, as an

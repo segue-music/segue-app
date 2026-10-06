@@ -18,6 +18,7 @@ import 'package:segue/ui/queue_page.dart';
 import 'package:segue/ui/shortcuts.dart';
 
 import 'fakes.dart';
+import 'themed_icons.dart';
 
 const credentials = SubsonicCredentials(username: 'a', token: 't', salt: 's');
 
@@ -141,7 +142,7 @@ void main() {
 
     expect(tile(tester, 'Two').selected, isTrue, reason: 'the current track stands out');
     expect(tile(tester, 'Three').selected, isFalse);
-    expect(inQueue(find.byIcon(HugeIcons.strokeRoundedAudioWave01)), findsOneWidget, reason: 'it plays');
+    expect(inQueue(themedIcon(HugeIcons.strokeRoundedAudioWave01)), findsOneWidget, reason: 'it plays');
     expect(inQueue(find.text('3:20')), findsOneWidget, reason: 'how long it lasts');
     final top = tester.getTopLeft(find.byType(CustomScrollView)).dy;
     expect(tester.getTopLeft(find.ancestor(of: inQueue(find.text('Two')), matching: find.byType(ListTile))).dy, top);

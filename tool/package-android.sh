@@ -4,10 +4,10 @@
 # (adb install). Build the image first: docker build -t segue-flutter-android -f tool/android.Dockerfile tool
 set -e
 cd "$(dirname "$0")/.."
-# The whole icon font, for the same reason as in package-linux.sh. The version code counts the
-# commits (tool/build-number.sh), so each build goes up: Android refuses an update with a lower one,
-# and launchers keep the icon they have of an app until its version code changes.
-SEGUE_FLUTTER_IMAGE=segue-flutter-android tool/flutter.sh build apk --release --no-tree-shake-icons \
+# The version code counts the commits (tool/build-number.sh), so each build goes up: Android refuses
+# an update with a lower one, and launchers keep the icon they have of an app until its version code
+# changes.
+SEGUE_FLUTTER_IMAGE=segue-flutter-android tool/flutter.sh build apk --release \
   --build-number="$(tool/build-number.sh)"
 cp build/app/outputs/flutter-apk/app-release.apk build/segue-android.apk
 echo "$(pwd)/build/segue-android.apk"

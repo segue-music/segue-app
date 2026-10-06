@@ -19,6 +19,7 @@ import 'page_area.dart';
 import 'player_page.dart';
 import 'search_results.dart';
 import 'shortcuts.dart';
+import 'themed_icon.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({required this.onSignOut, super.key});
@@ -39,7 +40,7 @@ enum _Section {
   home('Início', HugeIcons.strokeRoundedHome01),
   albums('Álbuns', HugeIcons.strokeRoundedCd),
   artists('Artistas', HugeIcons.strokeRoundedUser),
-  genres('Gêneros', HugeIcons.strokeRoundedDashboardSquare01);
+  genres('Gêneros', HugeIcons.strokeRoundedTag01);
 
   const _Section(this.label, this.icon);
 
@@ -47,7 +48,7 @@ enum _Section {
 
   /// The same selected or not: Hugeicons' free set has no filled icons. The selected section is on a
   /// tint.
-  final IconData icon;
+  final HugeIconData icon;
 }
 
 class _HomePageState extends State<HomePage> {
@@ -146,7 +147,7 @@ class _HomePageState extends State<HomePage> {
       child: SearchBar(
         controller: _search,
         hintText: 'Buscar álbum, artista ou música',
-        leading: const Icon(HugeIcons.strokeRoundedSearch01),
+        leading: const ThemedIcon(HugeIcons.strokeRoundedSearch01),
         trailing: [
           ListenableBuilder(
             listenable: _search,
@@ -154,7 +155,7 @@ class _HomePageState extends State<HomePage> {
                 ? const SizedBox.shrink()
                 : IconButton(
                     tooltip: 'Limpar',
-                    icon: const Icon(HugeIcons.strokeRoundedCancel01),
+                    icon: const ThemedIcon(HugeIcons.strokeRoundedCancel01),
                     onPressed: _clearSearch,
                   ),
           ),
@@ -176,10 +177,10 @@ class _HomePageState extends State<HomePage> {
       _HubStatus(client: services.connect.client),
       IconButton(
         tooltip: 'Aparelhos',
-        icon: const Icon(HugeIcons.strokeRoundedComputerPhoneSync),
+        icon: const ThemedIcon(HugeIcons.strokeRoundedMonitorSpeaker),
         onPressed: () => showDevicesSheet(context),
       ),
-      IconButton(tooltip: 'Sair', icon: const Icon(HugeIcons.strokeRoundedLogout01), onPressed: widget.onSignOut),
+      IconButton(tooltip: 'Sair', icon: const ThemedIcon(HugeIcons.strokeRoundedLogout01), onPressed: widget.onSignOut),
     ];
     final sections = Stack(
       fit: StackFit.expand,
@@ -228,7 +229,7 @@ class _HomePageState extends State<HomePage> {
               onDestinationSelected: (index) => _select(_Section.values[index]),
               destinations: [
                 for (final section in _Section.values)
-                  NavigationDestination(icon: Icon(section.icon), label: section.label),
+                  NavigationDestination(icon: ThemedIcon(section.icon), label: section.label),
               ],
             ),
           ],
@@ -258,12 +259,12 @@ class _HomePageState extends State<HomePage> {
                     SizedBox.square(dimension: kToolbarHeight, child: logo),
                     IconButton(
                       tooltip: 'Voltar',
-                      icon: const Icon(HugeIcons.strokeRoundedArrowLeft02),
+                      icon: const ThemedIcon(HugeIcons.strokeRoundedArrowLeft02),
                       onPressed: _history.canGoBack ? _history.back : null,
                     ),
                     IconButton(
                       tooltip: 'Avançar',
-                      icon: const Icon(HugeIcons.strokeRoundedArrowRight02),
+                      icon: const ThemedIcon(HugeIcons.strokeRoundedArrowRight02),
                       onPressed: _history.canGoForward ? _history.forward : null,
                     ),
                   ],
@@ -362,7 +363,7 @@ class _SideRail extends StatelessWidget {
                   positionDelegate: _besideIcon,
                   child: IconButton(
                     isSelected: section == selected,
-                    icon: Icon(section.icon),
+                    icon: ThemedIcon(section.icon),
                     style: style,
                     onPressed: () => onSelected(section),
                   ),
@@ -386,11 +387,11 @@ class _HubStatus extends StatelessWidget {
     // As big as the icon buttons beside it, so that the icons in the bar are evenly spaced.
     final size = _buttonSize(context);
 
-    Widget status(String message, IconData icon) => Tooltip(
+    Widget status(String message, HugeIconData icon) => Tooltip(
       message: message,
       child: SizedBox.square(
         dimension: size,
-        child: Center(child: Icon(icon)),
+        child: Center(child: ThemedIcon(icon)),
       ),
     );
 
@@ -401,14 +402,14 @@ class _HubStatus extends StatelessWidget {
     return ListenableBuilder(
       listenable: client,
       builder: (context, _) => switch (client.status) {
-        HubStatus.connected => status('Conectado ao hub', HugeIcons.strokeRoundedCloudSavingDone01),
+        HubStatus.connected => status('Conectado ao hub', HugeIcons.strokeRoundedCloudCheck),
         HubStatus.connecting => status('Conectando ao hub…', HugeIcons.strokeRoundedCloudLoading),
-        HubStatus.offline => status('Hub fora do ar; tentando de novo', HugeIcons.strokeRoundedUnlink02),
+        HubStatus.offline => status('Hub fora do ar; tentando de novo', HugeIcons.strokeRoundedCloudOff),
         HubStatus.rejected => status(
           client.lastClose?.code == CloseCode.replaced
               ? 'Este aparelho se conectou de novo em outro lugar (outra cópia do app aberta?)'
               : 'O hub recusou este aparelho',
-          HugeIcons.strokeRoundedAlertCircle,
+          HugeIcons.strokeRoundedCloudAlert,
         ),
       },
     );

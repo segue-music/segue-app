@@ -22,8 +22,10 @@ import 'package:segue/ui/lyrics_view.dart';
 import 'package:segue/ui/now_playing_bar.dart';
 import 'package:segue/ui/player_page.dart';
 import 'package:segue/ui/queue_page.dart';
+import 'package:segue/ui/themed_icon.dart';
 
 import 'fakes.dart';
+import 'themed_icons.dart';
 
 const credentials = SubsonicCredentials(username: 'a', token: 't', salt: 's');
 
@@ -547,17 +549,17 @@ void main() {
     await tester.pumpAndSettle();
     final note = find.descendant(
       of: onPage(find.byType(LyricsView)),
-      matching: find.byIcon(LyricsView.instrumentalIcon),
+      matching: themedIcon(LyricsView.instrumentalIcon),
     );
     expect(note, findsOneWidget);
     expect(tester.getCenter(note).dy, greaterThan(tester.getRect(onPage(find.text('Sweet emotion'))).bottom));
     expect(tester.getCenter(note).dy, lessThan(tester.getRect(onPage(find.text('Talk about things'))).top));
-    expect(tester.widget<Icon>(note).color?.a, 1, reason: 'it plays');
+    expect(tester.widget<ThemedIcon>(note).color?.a, 1, reason: 'it plays');
     expect(marked(tester, 'Sweet emotion'), isFalse);
 
     await player.seek(const Duration(seconds: 11));
     await tester.pumpAndSettle();
-    expect(tester.widget<Icon>(note).color?.a, lessThan(0.5));
+    expect(tester.widget<ThemedIcon>(note).color?.a, lessThan(0.5));
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -573,16 +575,16 @@ void main() {
     await tester.pumpAndSettle();
     final note = find.descendant(
       of: onPage(find.byType(LyricsView)),
-      matching: find.byIcon(LyricsView.instrumentalIcon),
+      matching: themedIcon(LyricsView.instrumentalIcon),
     );
     expect(note, findsOneWidget);
     expect(tester.getCenter(note).dy, lessThan(tester.getRect(onPage(find.text('Sweet emotion'))).top));
-    expect(tester.widget<Icon>(note).color?.a, 1);
+    expect(tester.widget<ThemedIcon>(note).color?.a, 1);
 
     await player.seek(const Duration(seconds: 9));
     await tester.pumpAndSettle();
     expect(marked(tester, 'Sweet emotion'), isTrue);
-    expect(tester.widget<Icon>(note).color?.a, lessThan(0.5));
+    expect(tester.widget<ThemedIcon>(note).color?.a, lessThan(0.5));
     await tester.pumpWidget(const SizedBox());
   });
 

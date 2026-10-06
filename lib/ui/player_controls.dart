@@ -7,6 +7,7 @@ import '../connect/connect.dart';
 import '../segue/protocol.dart';
 import '../services.dart';
 import 'errors.dart';
+import 'themed_icon.dart';
 
 /// The pieces the player bar and the full-screen player share.
 
@@ -177,7 +178,10 @@ class ShuffleButton extends StatelessWidget {
     final connect = ServicesScope.of(context).connect;
     return IconButton(
       tooltip: now.shuffle ? 'Desativar aleatório' : 'Ativar aleatório',
-      icon: Icon(HugeIcons.strokeRoundedShuffle, color: now.shuffle ? Theme.of(context).colorScheme.primary : null),
+      icon: ThemedIcon(
+        HugeIcons.strokeRoundedShuffle,
+        color: now.shuffle ? Theme.of(context).colorScheme.primary : null,
+      ),
       onPressed: now.canShuffle ? () => runCommand(context, () => connect.setShuffle(!now.shuffle)) : null,
     );
   }
@@ -198,7 +202,7 @@ class RepeatButton extends StatelessWidget {
         Repeat.all => 'Repetir a faixa',
         Repeat.one => 'Não repetir',
       },
-      icon: Icon(
+      icon: ThemedIcon(
         now.repeat == Repeat.one ? HugeIcons.strokeRoundedRepeatOne01 : HugeIcons.strokeRoundedRepeat,
         color: now.repeat == Repeat.off ? null : Theme.of(context).colorScheme.primary,
       ),

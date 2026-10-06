@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import 'cover.dart';
 import 'focus_ring.dart';
+import 'themed_icon.dart';
 
 /// A cover full screen, on black: as big as the screen's shorter side, and asked of the server at
 /// that size. A tap anywhere, Esc or "Fechar" closes it.
@@ -61,7 +62,7 @@ class CoverPage extends StatelessWidget {
                     padding: const EdgeInsets.all(8),
                     child: IconButton(
                       tooltip: 'Fechar',
-                      icon: const Icon(HugeIcons.strokeRoundedCancel01),
+                      icon: const ThemedIcon(HugeIcons.strokeRoundedCancel01),
                       color: Colors.white,
                       onPressed: close,
                     ),

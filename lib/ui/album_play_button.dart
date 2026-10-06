@@ -5,6 +5,7 @@ import '../server/models.dart';
 import '../services.dart';
 import 'errors.dart';
 import 'spinner.dart';
+import 'themed_icon.dart';
 
 /// A button that plays an album from its first song without opening it, in the middle of its cover,
 /// which it fills. On a computer it shows while the pointer is over the album ([hovered]), the cover
@@ -107,7 +108,7 @@ class _AlbumPlayButtonState extends State<AlbumPlayButton> {
         onPressed: _play,
         icon: _loading
             ? Spinner(size: iconSize, strokeWidth: 2.5, color: colors.onPrimary)
-            : const Icon(HugeIcons.strokeRoundedPlay),
+            : const ThemedIcon(HugeIcons.strokeRoundedPlay),
       ),
     );
   }

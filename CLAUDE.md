@@ -146,15 +146,16 @@ Running two app instances on one machine as different devices:
   abbreviations, noun phrases for values, verbs for side effects, no `get` prefix, ...) are by hand.
   `avoid_positional_boolean_parameters` stays off: the guideline exempts setters, and a method like
   `setShuffle(true)` is one that can't be a setter, being async.
-- Icons come from Hugeicons' font (`Icon(HugeIcons.strokeRounded...)`), held at its last font version,
-  0.0.11: from 1.0 the package draws SVG paths, whose thin strokes Impeller leaves jagged on Linux,
-  where it smooths a font's glyphs as text. No Material icon is left, and `test/icons_test.dart`
-  keeps it so; the back arrow Flutter adds to a page comes from the theme (`actionIconTheme`).
+- Icons come from Hugeicons (`ThemedIcon(HugeIcons.strokeRounded...)`, `lib/ui/themed_icon.dart`),
+  which draws them as SVG paths, and never through its own `HugeIcon`: that one is 24 pixels
+  whatever the `IconTheme` says, so an icon button's `iconSize` or a navigation bar's theme would
+  miss it. No Material icon is left, and `test/icons_test.dart` keeps it so; the back arrow Flutter
+  adds to a page comes from the theme (`actionIconTheme`).
 - The Linux build renders with Skia, not Impeller (`linux/runner/my_application.cc`): Flutter
   3.47's Impeller, on OpenGL, clips without antialiasing, so the round edges of covers and artists'
-  pictures came out jagged. On each Flutter update (`tool/dev.Dockerfile`, `codemagic.yaml`), check
-  that Linux still has Skia, and try Impeller again: without that line, look at a cover's edges in a
-  Linux desktop session. Skia also smooths SVG strokes, which bears on the Hugeicons note above.
+  pictures came out jagged, and it left the icons' thin strokes jagged too. On each Flutter update
+  (`tool/dev.Dockerfile`, `codemagic.yaml`), check that Linux still has Skia, and try Impeller
+  again: without that line, look at a cover's edges and at the icons in a Linux desktop session.
 - On a computer the pointer is a hand over what can be clicked, which Flutter leaves to the web: the
   theme (`segueTheme`) gives it to buttons and list tiles, and an `InkWell`, which no theme reaches,
   takes `mouseCursor: WidgetStateMouseCursor.clickable`. `test/cursor_test.dart` goes over them.

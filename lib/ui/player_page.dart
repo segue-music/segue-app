@@ -13,6 +13,7 @@ import 'page_area.dart';
 import 'player_controls.dart';
 import 'queue_page.dart';
 import 'song_link.dart';
+import 'themed_icon.dart';
 
 /// The full-screen player: what plays, wherever it plays, big, with every control, and its lyrics beside
 /// it (on a phone, under it).
@@ -54,7 +55,7 @@ class PlayerPage extends StatelessWidget {
                   notificationPredicate: (_) => false,
                   leading: IconButton(
                     tooltip: 'Fechar',
-                    icon: const Icon(HugeIcons.strokeRoundedArrowDown01),
+                    icon: const ThemedIcon(HugeIcons.strokeRoundedArrowDown01),
                     onPressed: close,
                   ),
                   centerTitle: true,
@@ -68,18 +69,18 @@ class PlayerPage extends StatelessWidget {
                     if (!wide) ...[
                       IconButton(
                         tooltip: lyrics ? 'Esconder a letra' : 'Mostrar a letra',
-                        icon: Icon(HugeIcons.strokeRoundedMic01, color: lyrics ? colors.primary : null),
+                        icon: ThemedIcon(HugeIcons.strokeRoundedMicVocal, color: lyrics ? colors.primary : null),
                         onPressed: () => _lyrics.value = !lyrics,
                       ),
                       IconButton(
                         tooltip: 'Fila',
-                        icon: const Icon(HugeIcons.strokeRoundedPlaylist03),
+                        icon: const ThemedIcon(HugeIcons.strokeRoundedPlaylist03),
                         onPressed: () => QueuePage.open(context),
                       ),
                       IconButton(
                         tooltip: 'Aparelhos',
-                        icon: Icon(
-                          HugeIcons.strokeRoundedComputerPhoneSync,
+                        icon: ThemedIcon(
+                          HugeIcons.strokeRoundedMonitorSpeaker,
                           color: device == null ? null : colors.primary,
                         ),
                         onPressed: () => showDevicesSheet(context),
@@ -204,20 +205,20 @@ class _Player extends StatelessWidget {
               IconButton(
                 tooltip: 'Anterior',
                 iconSize: 36,
-                icon: const Icon(HugeIcons.strokeRoundedPrevious),
+                icon: const ThemedIcon(HugeIcons.strokeRoundedPrevious),
                 onPressed: () => runCommand(context, connect.previous),
               ),
               IconButton.filled(
                 tooltip: now.playing ? 'Pausar' : 'Tocar',
                 iconSize: 40,
                 padding: const EdgeInsets.all(14),
-                icon: Icon(now.playing ? HugeIcons.strokeRoundedPause : HugeIcons.strokeRoundedPlay),
+                icon: ThemedIcon(now.playing ? HugeIcons.strokeRoundedPause : HugeIcons.strokeRoundedPlay),
                 onPressed: () => runCommand(context, connect.toggle),
               ),
               IconButton(
                 tooltip: 'Próxima',
                 iconSize: 36,
-                icon: const Icon(HugeIcons.strokeRoundedNext),
+                icon: const ThemedIcon(HugeIcons.strokeRoundedNext),
                 onPressed: () => runCommand(context, connect.next),
               ),
               RepeatButton(now),

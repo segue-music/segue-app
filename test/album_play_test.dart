@@ -14,6 +14,7 @@ import 'package:segue/ui/albums_view.dart';
 import 'package:segue/ui/cover.dart';
 import 'package:segue/ui/home_page.dart';
 import 'package:segue/ui/shortcuts.dart';
+import 'package:segue/ui/themed_icon.dart';
 
 import 'fakes.dart';
 import 'side_rail.dart';
@@ -244,7 +245,7 @@ void main() {
     await tester.pump(HomePage.searchTypingPause);
     await tester.pumpAndSettle();
     expect(playButton, findsOneWidget);
-    final icon = tester.element(find.descendant(of: playButton, matching: find.byType(Icon)));
+    final icon = tester.element(find.descendant(of: playButton, matching: find.byType(ThemedIcon)));
     expect(
       IconTheme.of(icon).color,
       Theme.of(icon).colorScheme.onPrimary,

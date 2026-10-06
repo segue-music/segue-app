@@ -3,6 +3,7 @@ import 'package:hugeicons/hugeicons.dart';
 
 import '../services.dart';
 import 'current_song.dart';
+import 'themed_icon.dart';
 
 /// A cover from the media server, or a placeholder.
 class Cover extends StatelessWidget {
@@ -14,13 +15,13 @@ class Cover extends StatelessWidget {
   final int size;
 
   /// What the placeholder shows.
-  final IconData icon;
+  final HugeIconData icon;
 
   @override
   Widget build(BuildContext context) {
     final placeholder = ColoredBox(
       color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      child: Center(child: Icon(icon)),
+      child: Center(child: ThemedIcon(icon)),
     );
     final id = this.id;
 
@@ -66,7 +67,7 @@ class Thumbnail extends StatelessWidget {
                 if (playing)
                   ColoredBox(
                     color: Colors.black54,
-                    child: Icon(CurrentSong.icon, color: Theme.of(context).colorScheme.primaryFixedDim),
+                    child: ThemedIcon(CurrentSong.icon, color: Theme.of(context).colorScheme.primaryFixedDim),
                   ),
               ],
             ),

@@ -5,6 +5,7 @@ import '../segue/protocol.dart';
 import '../services.dart';
 
 import 'errors.dart';
+import 'themed_icon.dart';
 
 /// The device picker: pick where the music plays.
 Future<void> showDevicesSheet(BuildContext context) =>
@@ -48,7 +49,7 @@ class _DevicesSheet extends StatelessWidget {
             child: Text('Conectar a um aparelho', style: Theme.of(context).textTheme.titleLarge),
           ),
           ListTile(
-            leading: const Icon(HugeIcons.strokeRoundedComputer),
+            leading: const ThemedIcon(HugeIcons.strokeRoundedComputer),
             title: Text('Este aparelho (${services.session.deviceName})'),
             selected: connect.activeId == null,
             trailing: _marks(playing: connect.player.playing, active: connect.activeId == null),
@@ -56,13 +57,13 @@ class _DevicesSheet extends StatelessWidget {
           ),
           if (client == null)
             ListTile(
-              leading: const Icon(HugeIcons.strokeRoundedInformationCircle),
+              leading: const ThemedIcon(HugeIcons.strokeRoundedInformationCircle),
               title: const Text('Nenhum hub encontrado'),
               subtitle: Text('Sem o hub em ${services.session.server.host}, só dá para tocar aqui.'),
             ),
           for (final device in connect.devices)
             ListTile(
-              leading: const Icon(HugeIcons.strokeRoundedSpeaker),
+              leading: const ThemedIcon(HugeIcons.strokeRoundedSpeaker),
               title: Text(device.info.name),
               subtitle: Text(_describe(device)),
               selected: connect.activeId == device.id,
@@ -83,8 +84,8 @@ class _DevicesSheet extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (playing) const Icon(HugeIcons.strokeRoundedAudioWave01),
-        if (active) const Icon(HugeIcons.strokeRoundedTick02),
+        if (playing) const ThemedIcon(HugeIcons.strokeRoundedAudioWave01),
+        if (active) const ThemedIcon(HugeIcons.strokeRoundedTick02),
       ],
     );
   }

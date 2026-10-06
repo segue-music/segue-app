@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import 'cover.dart';
+import 'themed_icon.dart';
 
 /// The header of a list of songs, naming its columns over them: their numbers ("#") or covers (unnamed), their
 /// title, and their duration, as a clock. A list tile as they are, so that its columns line up with theirs; disabled,
@@ -32,7 +33,7 @@ class SongListHeader extends StatelessWidget {
           title: Text('Título', style: style),
           trailing: Tooltip(
             message: 'Duração',
-            child: Icon(HugeIcons.strokeRoundedClock01, size: 18, color: muted),
+            child: ThemedIcon(HugeIcons.strokeRoundedClock01, size: 18, color: muted),
           ),
         ),
         const Divider(height: 1, indent: 16, endIndent: 16),

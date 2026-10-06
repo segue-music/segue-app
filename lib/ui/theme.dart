@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
+import 'themed_icon.dart';
+
 /// The pink of the app's icon (tool/icon.png): its rounded square.
 const iconPink = Color(0xFFF9358E);
 
@@ -38,7 +40,7 @@ ThemeData segueTheme(Brightness brightness) {
     iconButtonTheme: IconButtonThemeData(style: buttons),
     // The back arrow that Flutter puts in a page's top bar by itself, from Hugeicons as the rest.
     actionIconTheme: ActionIconThemeData(
-      backButtonIconBuilder: (context) => const Icon(HugeIcons.strokeRoundedArrowLeft02),
+      backButtonIconBuilder: (context) => const ThemedIcon(HugeIcons.strokeRoundedArrowLeft02),
     ),
     filledButtonTheme: FilledButtonThemeData(style: buttons),
     textButtonTheme: TextButtonThemeData(style: buttons),
