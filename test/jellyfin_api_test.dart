@@ -205,6 +205,43 @@ void main() {
     expect(asked.last.url.queryParameters, containsPair('Ids', 'a2,a1'));
   });
 
+  test('lyrics are Audio/{id}/Lyrics, their starts in ticks; a song without them has none', () async {
+    final asked = <http.Request>[];
+    final api = jellyfin(
+      (request) =>
+          switch (request.url.pathSegments.last == 'Lyrics' ? request.url.pathSegments.reversed.elementAt(1) : '') {
+            's1' => json({
+              'Metadata': {'IsSynced': true},
+              'Lyrics': [
+                {'Text': 'First', 'Start': 10000000},
+                {'Text': 'Second', 'Start': 25000000},
+              ],
+            }),
+            's2' => json({
+              'Metadata': {'IsSynced': false},
+              'Lyrics': [
+                {'Text': 'One'},
+                {'Text': 'Two'},
+              ],
+            }),
+            _ => json({}, 404),
+          },
+      asked,
+    );
+    final synced = (await api.lyrics('s1'))!;
+    expect(asked.single.url.path, '/jellyfin/Audio/s1/Lyrics');
+    expect(synced.synced, isTrue);
+    expect(synced.provider, 'Jellyfin');
+    expect(
+      [for (final line in synced.lines) (line.start, line.text)],
+      [(const Duration(seconds: 1), 'First'), (const Duration(milliseconds: 2500), 'Second')],
+    );
+    final plain = (await api.lyrics('s2'))!;
+    expect(plain.synced, isFalse);
+    expect([for (final line in plain.lines) (line.start, line.text)], [(null, 'One'), (null, 'Two')]);
+    expect(await api.lyrics('s3'), isNull, reason: 'Jellyfin answers 404');
+  });
+
   test('albums by most played are the most played albums, a page at a time', () async {
     Map<String, Object?> played(String id, String albumId, int plays) => {
       ...song,

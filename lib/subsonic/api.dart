@@ -135,6 +135,40 @@ class SubsonicApi implements MediaServer {
   @override
   Future<Song> song(String id) async => _song((await _get('getSong', {'id': id}))['song'] as Map<String, dynamic>);
 
+  /// OpenSubsonic's getLyricsBySongId (its songLyrics extension, which Navidrome has, from the file's
+  /// tags or a .lrc next to it): the first synced lyrics, else the first. Their offset shifts every line,
+  /// a positive one sooner. They come from the server, by the name OpenSubsonic gives it (navidrome).
+  @override
+  Future<Lyrics?> lyrics(String songId) async {
+    final body = await _get('getLyricsBySongId', {'id': songId});
+    final all = [
+      for (final json in (body['lyricsList'] as Map<String, dynamic>?)?['structuredLyrics'] as List? ?? const [])
+        json as Map<String, dynamic>,
+    ];
+    final chosen = all.where((json) => json['synced'] == true).firstOrNull ?? all.firstOrNull;
+
+    if (chosen == null) {
+      return null;
+    }
+
+    final synced = chosen['synced'] == true;
+    final offset = Duration(milliseconds: (chosen['offset'] as num?)?.toInt() ?? 0);
+    final lines = [
+      for (final json in chosen['line'] as List? ?? const [])
+        if (json case {'value': final String text})
+          LyricLine(
+            text,
+            start: synced && json['start'] is num
+                ? Duration(milliseconds: (json['start'] as num).toInt()) - offset
+                : null,
+          ),
+    ];
+    final type = body['type'] as String? ?? '';
+    return lines.isEmpty
+        ? null
+        : Lyrics(lines, provider: type.isEmpty ? null : '${type[0].toUpperCase()}${type.substring(1)}');
+  }
+
   /// Artists, albums and songs whose name, title or artist matches [query] (search3).
   @override
   Future<SearchResults> search(String query, {int artists = 5, int albums = 10, int songs = 50}) async {

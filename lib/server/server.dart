@@ -80,6 +80,9 @@ abstract interface class MediaServer {
   /// A song, with its album's and its artist's ids.
   Future<Song> song(String id);
 
+  /// A song's lyrics, the synced ones where the server has both; null when it has none.
+  Future<Lyrics?> lyrics(String songId);
+
   /// Artists, albums and songs whose name, title or artist matches [query].
   Future<SearchResults> search(String query, {int artists = 5, int albums = 10, int songs = 50});
 

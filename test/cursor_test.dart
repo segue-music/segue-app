@@ -29,9 +29,24 @@ http.Response subsonic(Map<String, Object?> body) => http.Response(
 
 const album = {'id': 'a1', 'name': 'Toys in the Attic', 'artist': 'Aerosmith', 'artistId': 'ar1', 'coverArt': 'a1'};
 
-/// A library of one album, with one song.
+/// A library of one album, with one song, and its lyrics.
 http.Response server(http.Request request) {
   final path = request.url.path;
+
+  if (path.endsWith('getLyricsBySongId.view')) {
+    return subsonic({
+      'lyricsList': {
+        'structuredLyrics': [
+          {
+            'synced': true,
+            'line': [
+              {'start': 0, 'value': 'Backstroke lover'},
+            ],
+          },
+        ],
+      },
+    });
+  }
 
   if (path.endsWith('getAlbumList2.view')) {
     return subsonic({
@@ -149,6 +164,15 @@ void main() {
       'its artist',
       find.descendant(of: find.widgetWithText(ListTile, 'Walk This Way'), matching: find.text('Aerosmith')),
     );
+
+    // The full-screen player's lyrics.
+    await tester.tap(find.byTooltip('Abrir o player'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Mostrar a letra'));
+    await tester.pumpAndSettle();
+    await expectHand('a line of the lyrics', find.text('Backstroke lover'));
+    await tester.tap(find.byTooltip('Fechar'));
+    await tester.pumpAndSettle();
 
     // The devices, and a line that only tells.
     await tester.tap(find.byTooltip('Aparelhos').first);

@@ -36,7 +36,11 @@ the device it runs on.
   too, and all four are in a bar at the bottom);
   the album page, whose cover opens full screen; search (artists, albums and songs); and playback
   through media_kit (libmpv), with a seek bar, shuffle and repeat (the queue or the track), in the
-  player bar and in a full-screen player that the song in the bar opens. In both, the song's title
+  player bar and in a full-screen player that the song in the bar opens, which shows the song's lyrics
+  beside it, or under it on a phone (OpenSubsonic's songLyrics, as Navidrome's from the file's tags or
+  a .lrc next to it, or Jellyfin's): synced ones mark the line that plays and keep it in view, and a
+  line tapped goes there; a wide bar's lyrics button opens the player with them. In both, the song's
+  title
   opens its album (as does the album's name, in the full-screen player) and its artist their page
   (the first artist, when it has several), whichever device it plays on; on a phone the whole song
   in the bar opens the player. A song the media server fails to give (as when it can't read its disk)

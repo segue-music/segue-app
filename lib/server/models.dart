@@ -67,6 +67,28 @@ class Song {
       QueueItem(id: id, title: title, artist: artist, album: album, durationMs: duration?.inMilliseconds);
 }
 
+/// A song's lyrics, line by line, each with when it starts when they're synced to the song.
+class Lyrics {
+  const Lyrics(this.lines, {this.provider});
+
+  final List<LyricLine> lines;
+
+  /// Who gives them: the media server, by its name (Navidrome, Jellyfin); null when it doesn't say.
+  final String? provider;
+
+  /// Whether each line says when it starts.
+  bool get synced => lines.every((line) => line.start != null);
+}
+
+class LyricLine {
+  const LyricLine(this.text, {this.start});
+
+  final String text;
+
+  /// When it starts in the song; null in lyrics that aren't synced.
+  final Duration? start;
+}
+
 class Artist {
   const Artist({required this.id, required this.name, this.coverArt, this.albumCount});
 

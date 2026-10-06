@@ -16,6 +16,8 @@ import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/album_page.dart';
 import 'package:segue/ui/artist_page.dart';
+import 'package:segue/ui/cover.dart';
+import 'package:segue/ui/lyrics_view.dart';
 import 'package:segue/ui/now_playing_bar.dart';
 import 'package:segue/ui/player_page.dart';
 
@@ -171,6 +173,49 @@ Future<PlayerController> pumpBar(
   return player;
 }
 
+/// A media server whose lyrics for every song are [lines]: (start in seconds, text), synced, or with
+/// no starts, not; none at all, without lines.
+http.Response Function(http.Request request) withLyrics(List<(int?, String)> lines) => (request) {
+  if (!request.url.path.endsWith('getLyricsBySongId.view')) {
+    return http.Response('', 404);
+  }
+
+  return subsonic({
+    'type': 'navidrome',
+    'lyricsList': {
+      'structuredLyrics': [
+        if (lines.isNotEmpty)
+          {
+            'synced': lines.first.$1 != null,
+            'line': [
+              for (final (start, text) in lines) {'start': ?(start == null ? null : start * 1000), 'value': text},
+            ],
+          },
+      ],
+    },
+  });
+};
+
+const verse = [
+  (0, 'You talk about things'),
+  (5, 'That nobody cares'),
+  (10, 'You\'re wearing out things'),
+  (15, 'That nobody wears'),
+];
+
+/// The size of the lyrics' [line], and the theme's [size] of text, to compare it to.
+(double?, double?) lyricsSize(WidgetTester tester, String line, TextStyle? Function(TextTheme text) size) => (
+  tester.widget<Text>(onPage(find.text(line))).style?.fontSize,
+  size(Theme.of(tester.element(onPage(find.byType(LyricsView)))).textTheme)?.fontSize,
+);
+
+/// How opaque the lyrics' [line] is.
+double? opacity(WidgetTester tester, String line) => tester.widget<Text>(onPage(find.text(line))).style?.color?.a;
+
+/// Whether the lyrics mark [line] as the one that plays.
+bool marked(WidgetTester tester, String line) =>
+    tester.widget<Text>(onPage(find.text(line))).style?.fontWeight == FontWeight.bold;
+
 Future<void> openPlayer(WidgetTester tester) async {
   await tester.tap(find.byTooltip('Abrir o player'));
   await tester.pumpAndSettle();
@@ -205,6 +250,192 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(PlayerPage), findsNothing);
     await tester.pumpWidget(const SizedBox()); // stops the timers
+  });
+
+  testWidgets('the lyrics show beside the player, the line that plays marked as the song goes on', (tester) async {
+    final player = await pumpBar(tester, server: withLyrics(verse), size: const Size(1280, 800));
+    await player.seek(const Duration(seconds: 6));
+    await openPlayer(tester);
+    final cover = tester.getRect(onPage(find.byType(Cover)));
+    expect(onPage(find.text('That nobody cares')), findsNothing);
+
+    await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
+    await tester.pumpAndSettle();
+    // Half the screen each: the player in the middle of the left half, the lyrics all of the right.
+    expect(tester.getRect(onPage(find.byType(Cover))).size, cover.size, reason: 'the cover stays as it was');
+    expect(tester.getCenter(onPage(find.byType(Cover))).dx, 320);
+    final lyrics = tester.getRect(onPage(find.byType(LyricsView)));
+    expect((lyrics.left, lyrics.right), (640, 1280));
+    expect(lyrics.top, lessThan(cover.bottom), reason: 'level with it');
+    // On the player's background, each line in the middle.
+    expect(
+      find.ancestor(
+        of: onPage(find.byType(LyricsView)),
+        matching: onPage(find.byWidgetPredicate((widget) => widget is ColoredBox || widget is DecoratedBox)),
+      ),
+      findsNothing,
+    );
+    expect(tester.widget<Text>(onPage(find.text('That nobody cares'))).textAlign, TextAlign.center);
+    final (size, headline) = lyricsSize(tester, 'You talk about things', (text) => text.headlineMedium);
+    expect(size, headline, reason: 'big, with half the screen for them');
+    expect(marked(tester, 'That nobody cares'), isTrue);
+    expect(opacity(tester, 'That nobody cares'), 1, reason: 'the line that plays, whole');
+    expect(opacity(tester, 'You talk about things'), lessThan(0.5), reason: 'the others, faded');
+    expect(opacity(tester, 'That nobody wears'), lessThan(0.5));
+    expect(marked(tester, 'You talk about things'), isFalse);
+
+    await player.seek(const Duration(seconds: 11));
+    await tester.pumpAndSettle();
+    expect(marked(tester, 'You\'re wearing out things'), isTrue);
+    expect(marked(tester, 'That nobody cares'), isFalse);
+
+    await tester.tap(onPage(find.byTooltip('Esconder a letra')));
+    await tester.pumpAndSettle();
+    expect(onPage(find.byType(LyricsView)), findsNothing);
+    expect(tester.getRect(onPage(find.byType(Cover))), cover, reason: 'back where it was');
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a phone, the lyrics show under the player, whose bar has no room for their button', (tester) async {
+    await pumpBar(tester, server: withLyrics(verse));
+    expect(find.byTooltip('Mostrar a letra'), findsNothing, reason: 'in the bar');
+    await openPlayer(tester);
+    final cover = tester.getRect(onPage(find.byType(Cover)));
+    await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
+    await tester.pumpAndSettle();
+    expect(tester.getRect(onPage(find.byType(Cover))), cover);
+    expect(
+      tester.getRect(onPage(find.byType(LyricsView))).top,
+      greaterThan(tester.getRect(onPage(find.byTooltip('Tocar'))).bottom),
+    );
+    final (size, headline) = lyricsSize(tester, 'You talk about things', (text) => text.headlineSmall);
+    expect(size, headline, reason: 'a bit smaller, in a phone\'s width');
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('a wide bar has a button for the lyrics, which opens the player with them', (tester) async {
+    await pumpBar(tester, server: withLyrics(verse), size: const Size(1000, 700));
+    await tester.tap(find.byTooltip('Mostrar a letra'));
+    await tester.pumpAndSettle();
+    expect(find.byType(PlayerPage), findsOneWidget);
+    expect(onPage(find.byType(LyricsView)), findsOneWidget);
+    expect(onPage(find.text('You talk about things')), findsOneWidget);
+    expect(onPage(find.byTooltip('Esconder a letra')), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('long lyrics scroll to the line that plays, which stays in their upper half while there is more to '
+      'scroll, and the page stays where it was', (tester) async {
+    final player = await pumpBar(tester, server: withLyrics([for (var i = 0; i < 60; i++) (i * 4, 'Line $i')]));
+    await openPlayer(tester);
+    final title = tester.getRect(onPage(find.text('Sweet Emotion')));
+    await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
+    await tester.pumpAndSettle();
+    final lyrics = tester.getRect(onPage(find.byType(LyricsView)));
+
+    final scroll = tester
+        .state<ScrollableState>(find.descendant(of: onPage(find.byType(LyricsView)), matching: find.byType(Scrollable)))
+        .position;
+
+    await player.seek(const Duration(seconds: 160));
+    await tester.pumpAndSettle();
+    expect(marked(tester, 'Line 40'), isTrue);
+    var line = tester.getRect(onPage(find.text('Line 40')));
+    expect(line.top, greaterThan(lyrics.top), reason: 'in view');
+    expect(line.bottom, lessThan(lyrics.center.dy), reason: 'not past the middle');
+
+    // With no more to scroll, the last lines go on down.
+    await player.seek(const Duration(seconds: 237));
+    await tester.pumpAndSettle();
+    expect(marked(tester, 'Line 59'), isTrue);
+    line = tester.getRect(onPage(find.text('Line 59')));
+    expect(line.top, greaterThan(lyrics.center.dy));
+    expect(line.bottom, lessThanOrEqualTo(lyrics.bottom), reason: 'in view');
+    expect(scroll.pixels, scroll.maxScrollExtent);
+
+    expect(tester.getRect(onPage(find.text('Sweet Emotion'))), title);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('the lyrics scroll by themselves with no scrollbar, which shows when the user scrolls them', (
+    tester,
+  ) async {
+    final player = await pumpBar(
+      tester,
+      server: withLyrics([for (var i = 0; i < 60; i++) (i * 4, 'Line $i')]),
+      size: const Size(1280, 800),
+    );
+    await openPlayer(tester);
+    await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
+    await tester.pumpAndSettle();
+    final scrollbar = find.descendant(of: onPage(find.byType(LyricsView)), matching: find.byType(Scrollbar));
+    expect(scrollbar, findsOneWidget);
+
+    await player.seek(const Duration(seconds: 160));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150)); // as they scroll
+    expect(scrollbar, isNot(paints..rrect()));
+    await tester.pumpAndSettle();
+    expect(scrollbar, isNot(paints..rrect()));
+
+    await tester.drag(onPage(find.text('Line 40')), const Offset(0, 200));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150)); // as it fades in
+    expect(scrollbar, paints..rrect());
+    await tester.pumpWidget(const SizedBox());
+  }, variant: TargetPlatformVariant.only(TargetPlatform.linux));
+
+  testWidgets('the lyrics end saying where they come from', (tester) async {
+    await pumpBar(tester, server: withLyrics(verse), size: const Size(1280, 800));
+    await openPlayer(tester);
+    await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
+    await tester.pumpAndSettle();
+    final credit = onPage(find.text('Letras providas por Navidrome'));
+    expect(credit, findsOneWidget);
+    expect(tester.getRect(credit).top, greaterThan(tester.getRect(onPage(find.text('That nobody wears'))).bottom));
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('a line of synced lyrics, tapped, goes there', (tester) async {
+    final player = await pumpBar(tester, server: withLyrics(verse), size: const Size(1280, 800));
+    await openPlayer(tester);
+    await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
+    await tester.pumpAndSettle();
+    await tester.tap(onPage(find.text('That nobody wears')));
+    await tester.pumpAndSettle();
+    expect(player.position.inSeconds, 15);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('lyrics that aren\'t synced show as they are, with no line marked', (tester) async {
+    final player = await pumpBar(
+      tester,
+      server: withLyrics([for (final (_, text) in verse) (null, text)]),
+      size: const Size(1280, 800),
+    );
+    await player.seek(const Duration(seconds: 6));
+    await openPlayer(tester);
+    await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
+    await tester.pumpAndSettle();
+
+    for (final (_, text) in verse) {
+      expect(marked(tester, text), isFalse, reason: text);
+      expect(opacity(tester, text), 1, reason: '$text: none faded, with none playing');
+    }
+
+    await tester.tap(onPage(find.text('That nobody wears')));
+    await tester.pumpAndSettle();
+    expect(player.position.inSeconds, 6, reason: 'not a place in the song');
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('a song without lyrics says so', (tester) async {
+    await pumpBar(tester, server: withLyrics([]));
+    await openPlayer(tester);
+    await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
+    await tester.pumpAndSettle();
+    expect(onPage(find.text('Esta música não tem letra.')), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
   });
 
   testWidgets('Esc closes the full-screen player', (tester) async {

@@ -20,7 +20,7 @@ class NowPlayingBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    // Shuffle, repeat and the queue need room; a phone-sized bar has none (they are in the
+    // Shuffle, repeat, the lyrics and the queue need room; a phone-sized bar has none (they are in the
     // full-screen player).
     final wide = MediaQuery.sizeOf(context).width >= 600;
     return NowPlayingBuilder(
@@ -107,6 +107,12 @@ class NowPlayingBar extends StatelessWidget {
                           onPressed: () => runCommand(context, connect.next),
                         ),
                         if (wide) RepeatButton(now),
+                        if (wide)
+                          IconButton(
+                            tooltip: 'Mostrar a letra',
+                            icon: const Icon(HugeIcons.strokeRoundedMic01),
+                            onPressed: () => PlayerPage.open(context, lyrics: true),
+                          ),
                         if (wide)
                           IconButton(
                             tooltip: 'Fila',

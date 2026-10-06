@@ -185,6 +185,29 @@ class JellyfinApi implements MediaServer {
   @override
   Future<Song> song(String id) async => _song(_only(await _items({'Ids': id}), id));
 
+  /// Jellyfin's lyrics of a song (Audio/{id}/Lyrics), from the file's tags or a .lrc next to it: a 404
+  /// when it has none. Their starts are in ticks, of 100 ns.
+  @override
+  Future<Lyrics?> lyrics(String songId) async {
+    final response = await _http.get(_url('Audio/${Uri.encodeComponent(songId)}/Lyrics'), headers: _headers);
+
+    if (response.statusCode == 404) {
+      return null;
+    }
+
+    final json = _decode(server, response) as Map<String, dynamic>;
+    final synced = (json['Metadata'] as Map<String, dynamic>?)?['IsSynced'] != false;
+    final lines = [
+      for (final line in json['Lyrics'] as List? ?? const [])
+        if (line case {'Text': final String text})
+          LyricLine(
+            text,
+            start: synced && line['Start'] is num ? Duration(microseconds: (line['Start'] as num).toInt() ~/ 10) : null,
+          ),
+    ];
+    return lines.isEmpty ? null : Lyrics(lines, provider: 'Jellyfin');
+  }
+
   @override
   Future<SearchResults> search(String query, {int artists = 5, int albums = 10, int songs = 50}) async {
     final [foundArtists, foundAlbums, foundSongs] = await Future.wait([

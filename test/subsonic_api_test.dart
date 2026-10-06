@@ -145,6 +145,78 @@ void main() {
     expect(asked.last.queryParameters, containsPair('type', 'newest'));
   });
 
+  test('lyrics are OpenSubsonic\'s getLyricsBySongId: the synced ones first, shifted by their offset', () async {
+    late Uri asked;
+    final api = SubsonicApi(
+      Uri.parse('https://music.test'),
+      credentials,
+      client: MockClient((request) async {
+        asked = request.url;
+        return subsonic({
+          'status': 'ok',
+          'type': 'navidrome', // OpenSubsonic's name of the server
+          'lyricsList': {
+            'structuredLyrics': [
+              {
+                'lang': 'eng',
+                'synced': false,
+                'line': [
+                  {'value': 'Plain'},
+                ],
+              },
+              {
+                'lang': 'eng',
+                'synced': true,
+                'offset': 100, // they show 100 ms sooner
+                'line': [
+                  {'start': 1000, 'value': 'First'},
+                  {'start': 2500, 'value': 'Second'},
+                ],
+              },
+            ],
+          },
+        });
+      }),
+    );
+    final lyrics = (await api.lyrics('s1'))!;
+    expect(asked.path, '/rest/getLyricsBySongId.view');
+    expect(asked.queryParameters, containsPair('id', 's1'));
+    expect(lyrics.synced, isTrue);
+    expect(
+      [for (final line in lyrics.lines) (line.start, line.text)],
+      [(const Duration(milliseconds: 900), 'First'), (const Duration(milliseconds: 2400), 'Second')],
+    );
+    expect(lyrics.provider, 'Navidrome', reason: 'the server, by its name');
+  });
+
+  test('a song without lyrics has none, and lyrics that aren\'t synced come as they are', () async {
+    var body = <String, Object?>{'lyricsList': <String, Object?>{}};
+    final api = SubsonicApi(
+      Uri.parse('https://music.test'),
+      credentials,
+      client: MockClient((_) async => subsonic({'status': 'ok', ...body})),
+    );
+    expect(await api.lyrics('s1'), isNull);
+
+    body = {
+      'lyricsList': {
+        'structuredLyrics': [
+          {
+            'synced': false,
+            'line': [
+              {'value': 'One'},
+              {'value': 'Two'},
+            ],
+          },
+        ],
+      },
+    };
+    final plain = (await api.lyrics('s1'))!;
+    expect(plain.synced, isFalse);
+    expect([for (final line in plain.lines) (line.start, line.text)], [(null, 'One'), (null, 'Two')]);
+    expect(plain.provider, isNull, reason: 'a server that doesn\'t say its name');
+  });
+
   test('albums by most played are getAlbumList2\'s frequent, a page at a time', () async {
     late Uri asked;
     final api = SubsonicApi(

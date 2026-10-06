@@ -219,6 +219,8 @@ void main() {
     await press(tester, LogicalKeyboardKey.arrowRight);
     expect(focusedTip(), 'Repetir a lista');
     await press(tester, LogicalKeyboardKey.arrowRight);
+    expect(focusedTip(), 'Mostrar a letra');
+    await press(tester, LogicalKeyboardKey.arrowRight);
     expect(focusedTip(), 'Fila');
     await press(tester, LogicalKeyboardKey.arrowRight);
     expect(focusedTip(), 'Aparelhos');
@@ -234,13 +236,15 @@ void main() {
     await press(tester, LogicalKeyboardKey.arrowRight);
     expect(focusedTip(), 'Repetir a faixa', reason: 'not the album under the bar');
     await press(tester, LogicalKeyboardKey.arrowRight);
+    expect(focusedTip(), 'Mostrar a letra');
+    await press(tester, LogicalKeyboardKey.arrowRight);
     expect(focusedTip(), 'Fila');
     await press(tester, LogicalKeyboardKey.arrowRight);
     expect(focusedTip(), 'Aparelhos');
     await press(tester, LogicalKeyboardKey.arrowRight);
     expect(focusedTip(), 'Aparelhos');
 
-    for (var i = 0; i < 4; i++) {
+    for (var i = 0; i < 5; i++) {
       await press(tester, LogicalKeyboardKey.arrowLeft);
     }
 
