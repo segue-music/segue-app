@@ -85,7 +85,8 @@ the device it runs on.
 
 Not yet: playlists, editing the queue (play next, add to it, reorder it), the media controls on the other platforms (Android's
 media session), on a Jellyfin server the cover of a song that came from another device
-when its file has none of its own (Jellyfin doesn't fall back to the album's), an offline cache, settings, and CarPlay as an app of its own (browsing the library
+when its file has none of its own (Jellyfin doesn't fall back to the album's), an offline cache, settings, sending the music
+to speakers and TVs that don't run the app (Google Cast, UPnP/DLNA), and CarPlay as an app of its own (browsing the library
 on the car's screen, which needs Apple's CarPlay entitlement and native code). The Android build
 has been tried on a tablet and on an Android TV; the iOS build has not been tried on a device yet.
 
