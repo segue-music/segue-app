@@ -3,7 +3,7 @@ import 'package:hugeicons/hugeicons.dart';
 
 import '../server/models.dart';
 import '../services.dart';
-import 'album_artist_link.dart';
+import 'artist_link.dart';
 import 'cover_page.dart';
 import 'current_song.dart';
 import 'errors.dart';
@@ -91,7 +91,9 @@ class _AlbumPageState extends State<AlbumPage> {
                       child: playing ? const Icon(CurrentSong.icon) : Text('${i + 1}', textAlign: TextAlign.end),
                     ),
                     title: Text(song.title),
-                    subtitle: song.artist == album.artist ? null : Text(song.artist ?? ''),
+                    // The artist takes no focus: for the keyboard and the remote the song stays one stop, as an
+                    // album in the grid is.
+                    subtitle: song.artist == null ? null : ExcludeFocus(child: ArtistLink.song(song)),
                     trailing: Text(formatDuration(song.duration)),
                     onTap: () => _play(songs, i),
                   ),

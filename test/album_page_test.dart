@@ -12,6 +12,7 @@ import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/album_page.dart';
+import 'package:segue/ui/artist_page.dart';
 import 'package:segue/ui/cover_page.dart';
 
 import 'fakes.dart';
@@ -24,27 +25,37 @@ http.Response subsonic(Map<String, Object?> body) => http.Response(
   headers: {'content-type': 'application/json'},
 );
 
-/// The page of Toys in the Attic, with the cover [coverArt], on a 1000×700 screen.
-Future<void> pumpAlbum(WidgetTester tester, {String? coverArt = 'al-a1'}) async {
+/// The page of Toys in the Attic, with the cover [coverArt] and two songs by Aerosmith, on a 1000×700
+/// screen. Returns the player's engine.
+Future<FakeEngine> pumpAlbum(WidgetTester tester, {String? coverArt = 'al-a1'}) async {
   const credentials = SubsonicCredentials(username: 'a', token: 't', salt: 's');
   final api = SubsonicApi(
     Uri.parse('https://music.test'),
     credentials,
-    client: MockClient(
-      (request) async => subsonic({
+    client: MockClient((request) async {
+      if (request.url.path.endsWith('getArtist.view')) {
+        return subsonic({
+          'artist': {'id': 'ar1', 'name': 'Aerosmith', 'albumCount': 1},
+        });
+      }
+
+      return subsonic({
         'album': {
           'id': 'a1',
           'name': 'Toys in the Attic',
           'artist': 'Aerosmith',
+          'artistId': 'ar1',
           'coverArt': ?coverArt,
           'song': [
-            {'id': 's1', 'title': 'Walk This Way', 'artist': 'Aerosmith', 'duration': 220},
+            {'id': 's1', 'title': 'Walk This Way', 'artist': 'Aerosmith', 'artistId': 'ar1', 'duration': 220},
+            {'id': 's2', 'title': 'Sweet Emotion', 'artist': 'Aerosmith', 'artistId': 'ar1', 'duration': 274},
           ],
         },
-      }),
-    ),
+      });
+    }),
   );
-  final player = PlayerController(FakeEngine(), api);
+  final engine = FakeEngine();
+  final player = PlayerController(engine, api);
   final services = Services(
     Session(server: Uri.parse('https://music.test'), credentials: credentials, deviceId: 'me', deviceName: 'me'),
     api,
@@ -61,7 +72,11 @@ Future<void> pumpAlbum(WidgetTester tester, {String? coverArt = 'al-a1'}) async 
     ),
   );
   await tester.pumpAndSettle();
+  return engine;
 }
+
+/// The song titled [title] in the album's list.
+Finder song(String title) => find.widgetWithText(ListTile, title);
 
 /// The cover as asked of the server at [size] pixels.
 Finder coverAt(int size) => find.byWidgetPredicate(
@@ -127,6 +142,33 @@ void main() {
   testWidgets('an album without a cover has none to open', (tester) async {
     await pumpAlbum(tester, coverArt: null);
     expect(find.byTooltip('Ver a capa'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('under each song, its artist, a link to their page that doesn\'t play the song', (tester) async {
+    final engine = await pumpAlbum(tester);
+    final artist = find.descendant(of: song('Walk This Way'), matching: find.text('Aerosmith'));
+    expect(artist, findsOneWidget, reason: 'also when they are the album\'s artist');
+    await tester.tap(artist);
+    await tester.pumpAndSettle();
+    expect(find.byType(ArtistPage), findsOneWidget);
+    expect(find.descendant(of: find.byType(AppBar), matching: find.text('Aerosmith')), findsOneWidget);
+    expect(engine.tracks, isEmpty, reason: 'the song didn\'t play');
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('a song\'s artist takes no focus: for the keyboard and a remote, each song is one stop', (tester) async {
+    await pumpAlbum(tester);
+
+    for (var i = 0; i < 10 && FocusManager.instance.primaryFocus?.rect != tester.getRect(song('Walk This Way')); i++) {
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+    }
+
+    expect(FocusManager.instance.primaryFocus?.rect, tester.getRect(song('Walk This Way')));
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.pump();
+    expect(FocusManager.instance.primaryFocus?.rect, tester.getRect(song('Sweet Emotion')));
     await tester.pumpWidget(const SizedBox());
   });
 }

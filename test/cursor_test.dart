@@ -137,6 +137,10 @@ void main() {
     await expectHand('the cover', find.byTooltip('Ver a capa'));
     await expectHand('the play button', find.text('Tocar'));
     await expectHand('a song', find.text('Walk This Way').first);
+    await expectHand(
+      'its artist',
+      find.descendant(of: find.widgetWithText(ListTile, 'Walk This Way'), matching: find.text('Aerosmith')),
+    );
 
     // The devices, and a line that only tells.
     await tester.tap(find.byTooltip('Aparelhos').first);

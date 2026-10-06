@@ -5,9 +5,9 @@ import 'package:flutter/material.dart';
 import '../server/models.dart';
 import '../server/server.dart';
 import '../services.dart';
-import 'album_artist_link.dart';
 import 'album_page.dart';
 import 'album_play_button.dart';
+import 'artist_link.dart';
 import 'cover.dart';
 import 'focus_ring.dart';
 import 'spinner.dart';
@@ -260,7 +260,7 @@ class _AlbumTileState extends State<AlbumTile> {
               else
                 // The artist takes no focus: for the keyboard and the remote the album stays one stop, as
                 // the song in the player bar is. The album's page links them too.
-                ExcludeFocus(child: AlbumArtistLink(album, style: text.bodySmall)),
+                ExcludeFocus(child: ArtistLink.album(album, style: text.bodySmall)),
             ],
           ),
         ),

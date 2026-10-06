@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../server/models.dart';
 import '../services.dart';
-import 'album_artist_link.dart';
 import 'album_page.dart';
 import 'album_play_button.dart';
+import 'artist_link.dart';
 import 'artist_page.dart';
 import 'artists_view.dart';
 import 'cover.dart';
