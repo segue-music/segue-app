@@ -160,8 +160,10 @@ class _AlbumsViewState extends State<AlbumsView> {
       return _albumsGrid();
     }
 
-    // The chips stay at the top, also while another order's albums come.
+    // The chips stay at the top, also while another order's albums come. Their line takes the whole width, the chips
+    // starting at its left, lined up with the albums.
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _OrderChips(widget.order, onOrder: onOrder),
         Expanded(child: _albumsGrid()),

@@ -152,6 +152,12 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('the order chips start at the left, lined up with the albums', (tester) async {
+    await pumpAlbums(tester, count: 3);
+    expect(tester.getRect(order('Nome')).left, tester.getRect(find.text('Album 000')).left);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('the order chips keep some room between them and the albums, also as these scroll', (tester) async {
     await pumpAlbums(tester, count: 300);
     double gap() => tester.getRect(find.byType(AlbumGrid)).top - tester.getRect(order('Nome')).bottom;
