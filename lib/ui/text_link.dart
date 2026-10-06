@@ -49,10 +49,12 @@ class _TextLinkState extends State<TextLink> {
       ),
     );
 
-    // Only as wide as its text, where a line stretches it (a song's artist in a list tile): the rest of
-    // that line, under the mouse or the finger, belongs to what holds it.
+    // Only as wide as its text, also where a line stretches it (a song's artist in a list tile): the rest
+    // of that line, under the mouse or the finger, belongs to what holds it. Where nothing stretches it,
+    // it takes no more room than its text, leaving the rest to what follows it (an album's year).
     return Align(
       alignment: widget.textAlign == TextAlign.center ? Alignment.center : AlignmentDirectional.centerStart,
+      widthFactor: 1,
       heightFactor: 1,
       child: widget.onTap == null ? link : Tooltip(message: widget.tooltip, child: link),
     );

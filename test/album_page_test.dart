@@ -13,6 +13,7 @@ import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/album_page.dart';
+import 'package:segue/ui/artist_link.dart';
 import 'package:segue/ui/artist_page.dart';
 import 'package:segue/ui/cover_page.dart';
 
@@ -46,6 +47,7 @@ Future<FakeEngine> pumpAlbum(WidgetTester tester, {String? coverArt = 'al-a1'}) 
           'name': 'Toys in the Attic',
           'artist': 'Aerosmith',
           'artistId': 'ar1',
+          'year': 1975,
           'coverArt': ?coverArt,
           'song': [
             {'id': 's1', 'title': 'Walk This Way', 'artist': 'Aerosmith', 'artistId': 'ar1', 'duration': 220},
@@ -155,6 +157,14 @@ void main() {
     expect(find.byType(ArtistPage), findsOneWidget);
     expect(find.descendant(of: find.byType(AppBar), matching: find.text('Aerosmith')), findsOneWidget);
     expect(engine.tracks, isEmpty, reason: 'the song didn\'t play');
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('under the album\'s name, its artist, and its year right after them', (tester) async {
+    await pumpAlbum(tester);
+    final artist = find.descendant(of: find.byType(AlbumByline), matching: find.text('Aerosmith'));
+    final year = find.descendant(of: find.byType(AlbumByline), matching: find.text(' · 1975'));
+    expect(tester.getTopLeft(year).dx, moreOrLessEquals(tester.getTopRight(artist).dx, epsilon: 1));
     await tester.pumpWidget(const SizedBox());
   });
 
