@@ -160,6 +160,30 @@ void main() {
     await tester.pumpWidget(const SizedBox()); // stops the timers
   });
 
+  testWidgets('over the queue, a header names its columns, lined up with the tracks, and stays as they scroll', (
+    tester,
+  ) async {
+    await pumpBar(tester);
+    await openQueue(tester);
+    final title = inQueue(find.text('Título'));
+    expect(tester.getRect(title).left, tester.getRect(inQueue(find.text('Two'))).left);
+    expect(
+      tester.getRect(inQueue(find.byTooltip('Duração'))).right,
+      moreOrLessEquals(tester.getRect(inQueue(find.text('3:20'))).right, epsilon: 1),
+    );
+    final top = tester.getRect(title).top;
+
+    // Down, to what played before, above the current track.
+    await tester.drag(inQueue(find.byType(CustomScrollView)), const Offset(0, 300));
+    await tester.pumpAndSettle();
+    expect(tester.getRect(inQueue(find.text('Título'))).top, top);
+    expect(
+      tester.getRect(inQueue(find.text('One'))).top,
+      greaterThan(tester.getRect(inQueue(find.text('Título'))).bottom),
+    );
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('a tap on a track in the queue plays it, from its start', (tester) async {
     final player = await pumpBar(tester);
     await player.pause();

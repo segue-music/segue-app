@@ -118,6 +118,17 @@ void main() {
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
   });
 
+  testWidgets('the songs found have no header over them, just their heading', (tester) async {
+    await pumpHome(tester, const Size(1000, 640));
+    await tester.enterText(find.byType(TextField), 'dream');
+    await tester.pump(HomePage.searchTypingPause);
+    await tester.pump();
+    expect(find.text('Músicas'), findsOneWidget);
+    expect(find.text('Título'), findsNothing);
+    expect(find.byTooltip('Duração'), findsNothing);
+    await tester.pumpWidget(const SizedBox()); // stops the bar's timer
+  });
+
   testWidgets('on a wide screen, the bar sits in the middle of the window, past the arrows on its left', (
     tester,
   ) async {

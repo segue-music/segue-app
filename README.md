@@ -66,6 +66,8 @@ the device it runs on.
 - the queue of whichever device the app controls, from the full-screen player or, on a wide
   screen, the player bar: the current track on top, the next ones under it and what played before
   above it. A tap on a track plays it there;
+- the album's songs and the queue have a header naming their columns: the number ("#") or the
+  cover, the title, and the duration as a clock; over the queue it stays as the tracks scroll;
 - on the album page and in search, the current song (on whichever device the app controls) stands
   out in the theme's color, with an equalizer in place of its number, or over its cover, while it
   plays;

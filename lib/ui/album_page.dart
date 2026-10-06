@@ -8,6 +8,7 @@ import 'cover_page.dart';
 import 'current_song.dart';
 import 'errors.dart';
 import 'now_playing_bar.dart';
+import 'song_list_header.dart';
 import 'spinner.dart';
 
 class AlbumPage extends StatefulWidget {
@@ -81,13 +82,14 @@ class _AlbumPageState extends State<AlbumPage> {
                   ],
                 ),
               ),
+              const SongListHeader(numbered: true),
               for (final (i, song) in songs.indexed)
                 CurrentSong(
                   song,
                   builder: (context, current, playing) => ListTile(
                     selected: current,
                     leading: SizedBox(
-                      width: 24,
+                      width: SongListHeader.numberWidth,
                       child: playing ? const Icon(CurrentSong.icon) : Text('${i + 1}', textAlign: TextAlign.end),
                     ),
                     title: Text(song.title),

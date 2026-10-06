@@ -6,6 +6,7 @@ import 'cover.dart';
 import 'now_playing_bar.dart';
 import 'page_area.dart';
 import 'player_controls.dart';
+import 'song_list_header.dart';
 
 /// The queue of the device the app controls, in its play order (shuffled, or not): the current
 /// track on top, the next ones under it, and what played before above it. A tap on a track plays it
@@ -74,15 +75,23 @@ class _QueuePageState extends State<QueuePage> {
               bottomNavigationBar: const NowPlayingBar(),
               body: tracks.isEmpty
                   ? const Center(child: Text('A fila está vazia.'))
-                  // The list starts at the track on top; the ones before it go up from there.
-                  : CustomScrollView(
-                      center: _fromTop,
-                      slivers: [
-                        SliverList.builder(itemCount: top, itemBuilder: (_, i) => tile(top - 1 - i)),
-                        SliverList.builder(
-                          key: _fromTop,
-                          itemCount: tracks.length - top,
-                          itemBuilder: (_, i) => tile(top + i),
+                  // The header stays over the tracks, which go up from the one on top as much as down from it.
+                  : Column(
+                      children: [
+                        const SongListHeader(),
+                        Expanded(
+                          // The list starts at the track on top; the ones before it go up from there.
+                          child: CustomScrollView(
+                            center: _fromTop,
+                            slivers: [
+                              SliverList.builder(itemCount: top, itemBuilder: (_, i) => tile(top - 1 - i)),
+                              SliverList.builder(
+                                key: _fromTop,
+                                itemCount: tracks.length - top,
+                                itemBuilder: (_, i) => tile(top + i),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),

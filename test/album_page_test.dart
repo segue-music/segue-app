@@ -168,6 +168,25 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('over the songs, a header names their columns, lined up with them: #, the title, the duration', (
+    tester,
+  ) async {
+    await pumpAlbum(tester);
+    final first = song('Walk This Way');
+    expect(
+      tester.getRect(find.text('#')).right,
+      tester.getRect(find.descendant(of: first, matching: find.text('1'))).right,
+    );
+    expect(tester.getRect(find.text('Título')).left, tester.getRect(find.text('Walk This Way')).left);
+    expect(
+      tester.getRect(find.byTooltip('Duração')).right,
+      moreOrLessEquals(tester.getRect(find.text('3:40')).right, epsilon: 1),
+    );
+    expect(tester.getRect(find.text('Título')).bottom, lessThan(tester.getRect(first).top));
+    expect(Focus.maybeOf(tester.element(find.text('Título')))?.canRequestFocus ?? false, isFalse, reason: 'no stop');
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('only the artist\'s name is a link: the rest of its line, under the mouse, is the song\'s', (
     tester,
   ) async {

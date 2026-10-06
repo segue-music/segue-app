@@ -48,9 +48,12 @@ class Thumbnail extends StatelessWidget {
   /// A song's that plays: the equalizer goes over it, on a veil.
   final bool playing;
 
+  /// How big it is, square.
+  static const size = 48.0;
+
   @override
   Widget build(BuildContext context) => SizedBox.square(
-    dimension: 48,
+    dimension: size,
     child: round
         ? ClipOval(child: Cover(coverArt, size: 96, icon: HugeIcons.strokeRoundedUser))
         : ClipRRect(
