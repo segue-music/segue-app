@@ -11,6 +11,7 @@ class Album {
     this.year,
     this.songCount,
     this.artistId,
+    this.releaseDate,
     this.recordLabels = const [],
   });
 
@@ -25,8 +26,24 @@ class Album {
   /// server gives none.
   final String? artistId;
 
+  /// When it came out; null when the server doesn't say.
+  final ReleaseDate? releaseDate;
+
   /// The labels that put it out; none when the server doesn't say.
   final List<String> recordLabels;
+}
+
+/// A date as precisely as the server knows it: a day, or only a month, or only a year.
+class ReleaseDate {
+  const ReleaseDate(this.year, {this.month, this.day});
+
+  final int year;
+
+  /// From 1, January, to 12; null when only the year is known.
+  final int? month;
+
+  /// The day of the month; null when only the month or the year is known.
+  final int? day;
 }
 
 class Song {

@@ -105,6 +105,42 @@ void main() {
     expect(songs.single.toQueueItem().durationMs, 268000);
   });
 
+  test(
+    'an album\'s release date is OpenSubsonic\'s, its edition\'s or else the original, as precise as it is',
+    () async {
+      Future<(int?, int?, int?)> released(Map<String, Object?> dates) async {
+        final api = SubsonicApi(
+          Uri.parse('https://music.test'),
+          credentials,
+          client: MockClient(
+            (_) async => subsonic({
+              'status': 'ok',
+              'album': {'id': 'a1', 'name': 'Rocks', 'year': 1976, ...dates},
+            }),
+          ),
+        );
+        final date = (await api.album('a1')).$1.releaseDate;
+        return (date?.year, date?.month, date?.day);
+      }
+
+      expect(
+        await released({
+          'releaseDate': {'year': 1993, 'month': 9, 'day': 7},
+          'originalReleaseDate': {'year': 1976, 'month': 5, 'day': 14},
+        }),
+        (1993, 9, 7),
+      );
+      expect(
+        await released({
+          'releaseDate': <String, Object?>{},
+          'originalReleaseDate': {'year': 1976, 'month': 5},
+        }),
+        (1976, 5, null),
+      );
+      expect(await released({'releaseDate': <String, Object?>{}}), (null, null, null), reason: 'only the year');
+    },
+  );
+
   test('a song comes with the ids of its album and its artist (getSong)', () async {
     late Uri asked;
     final api = SubsonicApi(

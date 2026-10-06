@@ -28,12 +28,13 @@ http.Response subsonic(Map<String, Object?> body) => http.Response(
   headers: {'content-type': 'application/json'},
 );
 
-/// The page of Toys in the Attic, with the cover [coverArt], two songs by Aerosmith and then [more] songs, and the
-/// record labels [recordLabels], on a 1000×700 screen. Returns the player's engine.
+/// The page of Toys in the Attic, with the cover [coverArt], two songs by Aerosmith and then [more] songs, the release
+/// date [releaseDate] and the record labels [recordLabels], on a 1000×700 screen. Returns the player's engine.
 Future<FakeEngine> pumpAlbum(
   WidgetTester tester, {
   String? coverArt = 'al-a1',
   int more = 0,
+  Map<String, int>? releaseDate,
   List<String> recordLabels = const [],
 }) async {
   const credentials = SubsonicCredentials(username: 'a', token: 't', salt: 's');
@@ -55,6 +56,7 @@ Future<FakeEngine> pumpAlbum(
           'artistId': 'ar1',
           'year': 1975,
           'coverArt': ?coverArt,
+          'releaseDate': ?releaseDate,
           'recordLabels': [
             for (final label in recordLabels) {'name': label},
           ],
@@ -247,13 +249,33 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('after the last song, the album\'s record labels, lined up with its cover', (tester) async {
-    await pumpAlbum(tester, recordLabels: ['Columbia', 'Sony']);
-    final labels = find.text('Columbia, Sony');
-    expect(tester.getRect(labels).top, greaterThan(tester.getRect(song('Sweet Emotion')).bottom));
-    expect(tester.getRect(labels).left, tester.getRect(find.byTooltip('Ver a capa')).left);
-    expect(Focus.maybeOf(tester.element(labels))?.canRequestFocus ?? false, isFalse, reason: 'no stop');
+  testWidgets('after the last song, the album\'s release date and its record labels, lined up with its cover', (
+    tester,
+  ) async {
+    await pumpAlbum(tester, releaseDate: {'year': 1975, 'month': 4, 'day': 8}, recordLabels: ['Columbia', 'Sony']);
+    final (date, labels) = (find.text('8 de abril de 1975'), find.text('Columbia, Sony'));
+    expect(tester.getRect(date).top, greaterThan(tester.getRect(song('Sweet Emotion')).bottom));
+    expect(tester.getRect(labels).top, greaterThanOrEqualTo(tester.getRect(date).bottom));
+    expect(tester.getRect(date).left, tester.getRect(find.byTooltip('Ver a capa')).left);
+    expect(tester.getRect(labels).left, tester.getRect(date).left);
+
+    for (final text in [date, labels]) {
+      expect(Focus.maybeOf(tester.element(text))?.canRequestFocus ?? false, isFalse, reason: 'no stop');
+    }
+
     await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('the release date as precisely as the server knows it', (tester) async {
+    for (final (date, text) in [
+      ({'year': 1975, 'month': 4, 'day': 1}, '1º de abril de 1975'),
+      ({'year': 1975, 'month': 4}, 'abril de 1975'),
+      ({'year': 1975}, '1975'),
+    ]) {
+      await pumpAlbum(tester, releaseDate: date);
+      expect(find.text(text), findsOneWidget, reason: '$date');
+      await tester.pumpWidget(const SizedBox());
+    }
   });
 
   testWidgets('as the keyboard or a remote comes to the last song, the list scrolls on to the labels', (tester) async {

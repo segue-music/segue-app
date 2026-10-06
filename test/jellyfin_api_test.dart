@@ -379,6 +379,24 @@ void main() {
     expect(first.coverArt, 'a1');
   });
 
+  test(
+    'an album\'s release date is its PremiereDate; on the first of January, which a year alone gets, its year',
+    () async {
+      Future<(int?, int?, int?)> released(String premiere) async {
+        final (found, _) = await jellyfin(
+          (request) => items([
+            if (request.url.queryParameters['Ids'] == 'a1') {...album, 'PremiereDate': premiere},
+          ]),
+        ).album('a1');
+        final date = found.releaseDate;
+        return (date?.year, date?.month, date?.day);
+      }
+
+      expect(await released('1976-05-14T00:00:00.0000000Z'), (1976, 5, 14));
+      expect(await released('1976-01-01T00:00:00.0000000Z'), (1976, null, null));
+    },
+  );
+
   test('a song comes with the ids of its album and its first artist, or its album artist\'s', () async {
     final duet = {
       ...song,

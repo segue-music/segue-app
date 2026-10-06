@@ -370,6 +370,20 @@ Duration? _duration(Map<String, dynamic> json) {
   return ticks == null ? null : Duration(microseconds: ticks.toInt() ~/ 10);
 }
 
+/// When an album came out, by its PremiereDate, a day. The first of January stands for its year only: that's the date
+/// Jellyfin gives music whose tags have only a year.
+ReleaseDate? _releaseDate(String? premiere) {
+  final date = premiere == null ? null : DateTime.tryParse(premiere);
+
+  if (date == null) {
+    return null;
+  }
+
+  return date.month == 1 && date.day == 1
+      ? ReleaseDate(date.year)
+      : ReleaseDate(date.year, month: date.month, day: date.day);
+}
+
 /// An album's artist is its album artist, or its artists when it has none, as is its artist id.
 Album _album(Map<String, dynamic> json) => Album(
   id: json['Id'] as String,
@@ -379,6 +393,7 @@ Album _album(Map<String, dynamic> json) => Album(
   year: (json['ProductionYear'] as num?)?.toInt(),
   songCount: (json['ChildCount'] as num?)?.toInt(),
   artistId: _firstId(json['AlbumArtists']) ?? _firstId(json['ArtistItems']),
+  releaseDate: _releaseDate(json['PremiereDate'] as String?),
   recordLabels: [
     for (final studio in json['Studios'] as List? ?? const [])
       if ((studio as Map<String, dynamic>)['Name'] case final String name) name,

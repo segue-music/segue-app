@@ -88,10 +88,7 @@ class _AlbumPageState extends State<AlbumPage> {
               ),
               const SongListHeader(numbered: true),
               for (var i = 0; i < songs.length; i++)
-                if (i == songs.length - 1 && album.recordLabels.isNotEmpty)
-                  _LastSong(_song(songs, i), recordLabels: album.recordLabels)
-                else
-                  _song(songs, i),
+                if (i == songs.length - 1) _LastSong(_song(songs, i), album: album) else _song(songs, i),
             ],
           );
         },
@@ -122,17 +119,28 @@ class _AlbumPageState extends State<AlbumPage> {
   }
 }
 
-/// The album's last song, with its record labels under it, ending the list. The keyboard and the remote stop at the
-/// songs only, so as the focus comes to the last one the list scrolls on to show the labels too.
+/// The album's last song, with what is known of its release under it, ending the list: its date, and the labels that
+/// put it out. The keyboard and the remote stop at the songs only, so as the focus comes to the last one the list
+/// scrolls on to show these too.
 class _LastSong extends StatelessWidget {
-  const _LastSong(this.song, {required this.recordLabels});
+  const _LastSong(this.song, {required this.album});
 
   final Widget song;
-  final List<String> recordLabels;
+  final Album album;
 
   @override
   Widget build(BuildContext context) {
+    final lines = [
+      if (album.releaseDate case final date?) _formatDate(date),
+      if (album.recordLabels.isNotEmpty) album.recordLabels.join(', '),
+    ];
+
+    if (lines.isEmpty) {
+      return song;
+    }
+
     final theme = Theme.of(context);
+    final style = theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant);
     return Focus(
       canRequestFocus: false,
       onFocusChange: (focused) {
@@ -146,13 +154,44 @@ class _LastSong extends StatelessWidget {
           song,
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-            child: Text(
-              recordLabels.join(', '),
-              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [for (final line in lines) Text(line, style: style)],
             ),
           ),
         ],
       ),
     );
   }
+}
+
+const _months = [
+  'janeiro',
+  'fevereiro',
+  'março',
+  'abril',
+  'maio',
+  'junho',
+  'julho',
+  'agosto',
+  'setembro',
+  'outubro',
+  'novembro',
+  'dezembro',
+];
+
+/// [date] in Portuguese, as precisely as it is known: "8 de abril de 1975", "abril de 1975", "1975".
+String _formatDate(ReleaseDate date) {
+  final ReleaseDate(:year, :month, :day) = date;
+
+  if (month == null || month > 12) {
+    return '$year';
+  }
+
+  final monthAndYear = '${_months[month - 1]} de $year';
+  return switch (day) {
+    null => monthAndYear,
+    1 => '1º de $monthAndYear',
+    _ => '$day de $monthAndYear',
+  };
 }
