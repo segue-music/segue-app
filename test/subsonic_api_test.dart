@@ -412,6 +412,86 @@ void main() {
     expect(await api.mostPlayedGenres(), hasLength(4));
   });
 
+  test('an artist\'s most played songs are their albums\' songs, by plays, from the albums that have played', () async {
+    final asked = <Uri>[];
+    final api = SubsonicApi(
+      Uri.parse('https://music.test'),
+      credentials,
+      client: MockClient((request) async {
+        asked.add(request.url);
+        final id = request.url.queryParameters['id'];
+
+        if (request.url.path.endsWith('getArtist.view')) {
+          return subsonic({
+            'status': 'ok',
+            'artist': {
+              'id': id,
+              'name': 'Aerosmith',
+              'album': [
+                {'id': 'a1', 'name': 'Toys in the Attic', 'playCount': 9},
+                // Never played: without a count, or with 0.
+                {'id': 'a0', 'name': 'Aerosmith'},
+                {'id': 'a2', 'name': 'Pump', 'playCount': 0},
+                {'id': 'a3', 'name': 'Rocks', 'playCount': 4},
+              ],
+            },
+          });
+        }
+
+        final songs = switch (id) {
+          'a1' => [
+            {'id': 's1', 'title': 'Walk This Way', 'playCount': 5},
+            {'id': 's2', 'title': 'Big Ten Inch Record'},
+            {'id': 's3', 'title': 'Sweet Emotion', 'playCount': 4},
+          ],
+          _ => [
+            {'id': 's4', 'title': 'Back in the Saddle', 'playCount': 4},
+          ],
+        };
+        return subsonic({
+          'status': 'ok',
+          'album': {'id': id, 'name': 'Album $id', 'song': songs},
+        });
+      }),
+    );
+    final songs = await api.mostPlayedSongs('ar1');
+    expect(asked.first.queryParameters, containsPair('id', 'ar1'));
+    expect(
+      [for (final url in asked.skip(1)) url.queryParameters['id']],
+      unorderedEquals(['a1', 'a3']),
+      reason: 'the played albums alone, at once',
+    );
+    expect(
+      [for (final song in songs) song.title],
+      ['Walk This Way', 'Sweet Emotion', 'Back in the Saddle'],
+      reason: 'a tie keeps the albums\' order',
+    );
+    expect(await api.mostPlayedSongs('ar1', size: 1), hasLength(1));
+  });
+
+  test('an artist none of whose albums has played has no most played songs, and no albums to open', () async {
+    final asked = <Uri>[];
+    final api = SubsonicApi(
+      Uri.parse('https://music.test'),
+      credentials,
+      client: MockClient((request) async {
+        asked.add(request.url);
+        return subsonic({
+          'status': 'ok',
+          'artist': {
+            'id': 'ar1',
+            'name': 'Aerosmith',
+            'album': [
+              {'id': 'a1', 'name': 'Toys in the Attic'},
+            ],
+          },
+        });
+      }),
+    );
+    expect(await api.mostPlayedSongs('ar1'), isEmpty);
+    expect(asked.single.path, '/rest/getArtist.view');
+  });
+
   test('search asks for artists, albums and songs', () async {
     late Uri asked;
     final api = SubsonicApi(

@@ -308,6 +308,28 @@ void main() {
     expect(songs['Fields'], contains('Genres'));
   });
 
+  test('an artist\'s most played songs are the most played songs they are an artist or the album artist of', () async {
+    final asked = <http.Request>[];
+    final songs = await jellyfin(
+      (_) => items([
+        {
+          ...song,
+          'UserData': {'PlayCount': 5, 'Played': true},
+        },
+      ]),
+      asked,
+    ).mostPlayedSongs('ar1');
+    expect(songs.single.title, 'Walk This Way');
+    expect(songs.single.album, 'Toys in the Attic');
+    final query = asked.single.url.queryParameters;
+    expect(query, containsPair('IncludeItemTypes', 'Audio'));
+    expect(query, containsPair('ArtistIds', 'ar1'));
+    expect(query, containsPair('Filters', 'IsPlayed'));
+    expect(query, containsPair('SortBy', 'PlayCount'));
+    expect(query, containsPair('SortOrder', 'Descending'));
+    expect(query, containsPair('Limit', '10'));
+  });
+
   test('with nothing played yet there are no most played albums, and no albums to ask for', () async {
     final asked = <http.Request>[];
     expect(await jellyfin((_) => items([]), asked).mostPlayedAlbums(), isEmpty);

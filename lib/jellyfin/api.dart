@@ -152,6 +152,13 @@ class JellyfinApi implements MediaServer {
     return [for (final id in rankedByCount(plays).take(size)) Genre(id: id, name: names[id]!)];
   }
 
+  /// The user's most played songs that have the artist among their artists or as their album artist
+  /// (ArtistIds), also on another artist's album.
+  @override
+  Future<List<Song>> mostPlayedSongs(String artistId, {int size = 10}) async => [
+    for (final json in await _mostPlayedSongs({'ArtistIds': artistId, 'Limit': '$size'})) _song(json),
+  ];
+
   /// Every music genre, with how many albums it has. MusicGenres, which Jellyfin keeps next to Genres:
   /// that one lists the music genres only under a music library's id.
   @override
@@ -282,8 +289,8 @@ class JellyfinApi implements MediaServer {
   Future<List<Map<String, dynamic>>> _items(Map<String, String> query) =>
       _list('Items', {'Recursive': 'true', ...query});
 
-  /// The user's most played songs, the most played first, as many as 1000, that match [query]: where
-  /// Jellyfin keeps the plays.
+  /// The user's most played songs, the most played first, that match [query]; as many as 1000 where it
+  /// gives no Limit. Songs are where Jellyfin keeps the plays.
   Future<List<Map<String, dynamic>>> _mostPlayedSongs(Map<String, String> query) => _items({
     'IncludeItemTypes': 'Audio',
     'Filters': 'IsPlayed',

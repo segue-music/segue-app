@@ -6,10 +6,13 @@ import '../services.dart';
 import 'albums_view.dart';
 import 'artists_view.dart';
 import 'cover.dart';
+import 'current_song.dart';
+import 'errors.dart';
 import 'now_playing_bar.dart';
 import 'spinner.dart';
 
-/// An artist and their albums, newest first.
+/// An artist and their albums, newest first, under the songs of theirs the user plays most: once any
+/// has played.
 class ArtistPage extends StatefulWidget {
   const ArtistPage(this.artist, {super.key});
 
@@ -21,11 +24,14 @@ class ArtistPage extends StatefulWidget {
 
 class _ArtistPageState extends State<ArtistPage> {
   Future<(Artist, List<Album>)>? _artist;
+  Future<List<Song>>? _mostPlayed;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _artist ??= ServicesScope.of(context).api.artist(widget.artist.id);
+    final api = ServicesScope.of(context).api;
+    _artist ??= api.artist(widget.artist.id);
+    _mostPlayed ??= api.mostPlayedSongs(widget.artist.id);
   }
 
   @override
@@ -58,28 +64,34 @@ class _ArtistPageState extends State<ArtistPage> {
           return AlbumGrid(
             newestFirst,
             subtitle: (album) => album.year?.toString() ?? '',
-            header: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              child: Row(
-                children: [
-                  SizedBox.square(
-                    dimension: 140,
-                    child: ClipOval(
-                      child: Cover(artist.coverArt ?? widget.artist.coverArt, icon: HugeIcons.strokeRoundedUser),
-                    ),
+            header: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                  child: Row(
+                    children: [
+                      SizedBox.square(
+                        dimension: 140,
+                        child: ClipOval(
+                          child: Cover(artist.coverArt ?? widget.artist.coverArt, icon: HugeIcons.strokeRoundedUser),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(artist.name, style: text.titleLarge),
+                            Text(albumCount(artist.albumCount ?? albums.length), style: text.bodyMedium),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(artist.name, style: text.titleLarge),
-                        Text(albumCount(artist.albumCount ?? albums.length), style: text.bodyMedium),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+                ),
+                _MostPlayedSongs(_mostPlayed!),
+              ],
             ),
           );
         },
@@ -87,4 +99,66 @@ class _ArtistPageState extends State<ArtistPage> {
       bottomNavigationBar: const NowPlayingBar(),
     );
   }
+}
+
+/// The artist's songs the user plays most, over a title for the albums under them. Each plays the list
+/// from it, as an album's songs do. Nothing while they come, nor before any has played: the albums
+/// alone.
+class _MostPlayedSongs extends StatelessWidget {
+  const _MostPlayedSongs(this.songs);
+
+  final Future<List<Song>> songs;
+
+  static Future<void> _play(BuildContext context, List<Song> songs, int index) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final result = await ServicesScope.of(context).connect.playSongs(songs, index);
+
+    if (!result.ok) {
+      messenger.showSnackBar(SnackBar(content: Text(describeError(result.error))));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder(
+    future: songs,
+    builder: (context, snapshot) {
+      final text = Theme.of(context).textTheme;
+      final songs = snapshot.data ?? const <Song>[];
+
+      if (songs.isEmpty && !snapshot.hasError) {
+        return const SizedBox.shrink();
+      }
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+            child: Text('Mais tocadas', style: text.titleLarge),
+          ),
+          if (snapshot.hasError)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text('Não consegui listar as músicas: ${snapshot.error}', style: text.bodyMedium),
+            ),
+          for (final (i, song) in songs.indexed)
+            CurrentSong(
+              song,
+              builder: (context, current, playing) => ListTile(
+                selected: current,
+                leading: Thumbnail(song.coverArt, playing: playing),
+                title: Text(song.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+                subtitle: song.album == null ? null : Text(song.album!, maxLines: 1, overflow: TextOverflow.ellipsis),
+                trailing: Text(formatDuration(song.duration)),
+                onTap: () => _play(context, songs, i),
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+            child: Text('Álbuns', style: text.titleLarge),
+          ),
+        ],
+      );
+    },
+  );
 }

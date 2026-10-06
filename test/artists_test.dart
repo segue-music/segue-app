@@ -11,6 +11,7 @@ import 'package:segue/player/player.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
+import 'package:segue/ui/artist_page.dart';
 import 'package:segue/ui/cover.dart';
 import 'package:segue/ui/home_page.dart';
 
@@ -25,10 +26,12 @@ http.Response subsonic(Map<String, Object?> body) => http.Response(
   headers: {'content-type': 'application/json'},
 );
 
-/// A server with two artists: Aerosmith, with two albums, and Cheap Trick. A search for "toys" finds
-/// an album; any other, the artist Aerosmith.
+/// A server with two artists: Aerosmith, with two albums, none of them played, and Cheap Trick, with
+/// one, two of whose songs have played. A search for "toys" finds an album; any other, the artist
+/// Aerosmith.
 http.Response server(http.Request request) {
   final path = request.url.path;
+  final id = request.url.queryParameters['id'];
 
   if (path.endsWith('getAlbumList2.view')) {
     return subsonic({'albumList2': <String, Object?>{}});
@@ -55,6 +58,19 @@ http.Response server(http.Request request) {
     });
   }
 
+  if (path.endsWith('getArtist.view') && id == 'ar2') {
+    return subsonic({
+      'artist': {
+        'id': 'ar2',
+        'name': 'Cheap Trick',
+        'albumCount': 1,
+        'album': [
+          {'id': 'a3', 'name': 'In Color', 'artist': 'Cheap Trick', 'year': 1977, 'playCount': 7},
+        ],
+      },
+    });
+  }
+
   if (path.endsWith('getArtist.view')) {
     return subsonic({
       'artist': {
@@ -64,6 +80,23 @@ http.Response server(http.Request request) {
         'album': [
           {'id': 'a1', 'name': 'Aerosmith', 'artist': 'Aerosmith', 'year': 1973},
           {'id': 'a2', 'name': 'Toys in the Attic', 'artist': 'Aerosmith', 'year': 1975},
+        ],
+      },
+    });
+  }
+
+  if (path.endsWith('getAlbum.view') && id == 'a3') {
+    return subsonic({
+      'album': {
+        'id': 'a3',
+        'name': 'In Color',
+        'artist': 'Cheap Trick',
+        'artistId': 'ar2',
+        'year': 1977,
+        'song': [
+          {'id': 's2', 'title': 'Hello There', 'album': 'In Color', 'duration': 101, 'playCount': 2},
+          {'id': 's3', 'title': 'Big Eyes', 'album': 'In Color', 'duration': 187},
+          {'id': 's4', 'title': 'I Want You to Want Me', 'album': 'In Color', 'duration': 191, 'playCount': 5},
         ],
       },
     });
@@ -107,14 +140,16 @@ http.Response server(http.Request request) {
   return http.Response('', 404);
 }
 
-Future<void> pumpHome(WidgetTester tester, Size size) async {
+/// Opens the home; what the player plays goes to the engine it returns.
+Future<FakeEngine> pumpHome(WidgetTester tester, Size size) async {
   const credentials = SubsonicCredentials(username: 'a', token: 't', salt: 's');
   final api = SubsonicApi(
     Uri.parse('https://music.test'),
     credentials,
     client: MockClient((request) async => server(request)),
   );
-  final player = PlayerController(FakeEngine(), api);
+  final engine = FakeEngine();
+  final player = PlayerController(engine, api);
   final services = Services(
     Session(server: Uri.parse('https://music.test'), credentials: credentials, deviceId: 'me', deviceName: 'me'),
     api,
@@ -131,6 +166,7 @@ Future<void> pumpHome(WidgetTester tester, Size size) async {
     ),
   );
   await tester.pumpAndSettle();
+  return engine;
 }
 
 Finder title(String text) => find.descendant(of: find.byType(AppBar), matching: find.text(text));
@@ -172,11 +208,39 @@ void main() {
     final newer = tester.getTopLeft(find.text('Toys in the Attic'));
     final older = tester.getTopLeft(find.text('1973'));
     expect(newer.dx < older.dx || newer.dy < older.dy, isTrue, reason: 'the 1975 album comes first');
+    expect(find.text('Mais tocadas'), findsNothing, reason: 'none of their songs has played');
 
     await tester.tap(find.text('Toys in the Attic'));
     await tester.pumpAndSettle();
     expect(find.text('Walk This Way'), findsOneWidget);
     await tester.pumpWidget(const SizedBox()); // stops the player bar's timers
+  });
+
+  testWidgets('an artist\'s songs the user plays most come over their albums, and play from the one picked', (
+    tester,
+  ) async {
+    final engine = await pumpHome(tester, const Size(1000, 700));
+    await tester.tap(find.byTooltip('Artistas'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cheap Trick'));
+    await tester.pumpAndSettle();
+    expect(title('Cheap Trick'), findsOneWidget);
+    final heading = find.descendant(of: find.byType(ArtistPage), matching: find.text('Mais tocadas'));
+    final albums = find.descendant(of: find.byType(ArtistPage), matching: find.text('Álbuns'));
+    expect(heading, findsOneWidget);
+    expect(find.text('Big Eyes'), findsNothing, reason: 'it hasn\'t played');
+    final top = find.text('I Want You to Want Me');
+    final second = find.text('Hello There');
+    expect(tester.getTopLeft(heading).dy, lessThan(tester.getTopLeft(top).dy));
+    expect(tester.getTopLeft(top).dy, lessThan(tester.getTopLeft(second).dy), reason: 'the most played first');
+    expect(tester.getTopLeft(second).dy, lessThan(tester.getTopLeft(albums).dy), reason: 'the albums under them');
+    expect(find.text('1977'), findsOneWidget, reason: 'the album, in the grid');
+
+    await tester.tap(second);
+    await tester.pumpAndSettle();
+    expect([for (final track in engine.tracks) track.queryParameters['id']], ['s4', 's2'], reason: 'the songs listed');
+    expect(engine.index, 1, reason: 'from the one picked');
+    await tester.pumpWidget(const SizedBox());
   });
 
   testWidgets('on a phone, the sections are in a bar at the bottom', (tester) async {
