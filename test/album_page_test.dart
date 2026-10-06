@@ -28,9 +28,14 @@ http.Response subsonic(Map<String, Object?> body) => http.Response(
   headers: {'content-type': 'application/json'},
 );
 
-/// The page of Toys in the Attic, with the cover [coverArt] and two songs by Aerosmith, on a 1000×700
-/// screen. Returns the player's engine.
-Future<FakeEngine> pumpAlbum(WidgetTester tester, {String? coverArt = 'al-a1'}) async {
+/// The page of Toys in the Attic, with the cover [coverArt], two songs by Aerosmith and then [more] songs, and the
+/// record labels [recordLabels], on a 1000×700 screen. Returns the player's engine.
+Future<FakeEngine> pumpAlbum(
+  WidgetTester tester, {
+  String? coverArt = 'al-a1',
+  int more = 0,
+  List<String> recordLabels = const [],
+}) async {
   const credentials = SubsonicCredentials(username: 'a', token: 't', salt: 's');
   final api = SubsonicApi(
     Uri.parse('https://music.test'),
@@ -50,9 +55,13 @@ Future<FakeEngine> pumpAlbum(WidgetTester tester, {String? coverArt = 'al-a1'}) 
           'artistId': 'ar1',
           'year': 1975,
           'coverArt': ?coverArt,
+          'recordLabels': [
+            for (final label in recordLabels) {'name': label},
+          ],
           'song': [
             {'id': 's1', 'title': 'Walk This Way', 'artist': 'Aerosmith', 'artistId': 'ar1', 'duration': 220},
             {'id': 's2', 'title': 'Sweet Emotion', 'artist': 'Aerosmith', 'artistId': 'ar1', 'duration': 274},
+            for (var i = 1; i <= more; i++) {'id': 'm$i', 'title': 'Song $i', 'artist': 'Aerosmith', 'duration': 200},
           ],
         },
       });
@@ -235,6 +244,36 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(ArtistPage), findsNothing);
     expect(engine.tracks, isNotEmpty, reason: 'the song played');
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('after the last song, the album\'s record labels, lined up with its cover', (tester) async {
+    await pumpAlbum(tester, recordLabels: ['Columbia', 'Sony']);
+    final labels = find.text('Columbia, Sony');
+    expect(tester.getRect(labels).top, greaterThan(tester.getRect(song('Sweet Emotion')).bottom));
+    expect(tester.getRect(labels).left, tester.getRect(find.byTooltip('Ver a capa')).left);
+    expect(Focus.maybeOf(tester.element(labels))?.canRequestFocus ?? false, isFalse, reason: 'no stop');
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('as the keyboard or a remote comes to the last song, the list scrolls on to the labels', (tester) async {
+    await pumpAlbum(tester, more: 20, recordLabels: ['Columbia']);
+
+    for (var i = 0; i < 10 && FocusManager.instance.primaryFocus?.rect != tester.getRect(song('Walk This Way')); i++) {
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+    }
+
+    for (var i = 0; i < 21; i++) {
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pump();
+    }
+
+    expect(FocusManager.instance.primaryFocus?.rect, tester.getRect(song('Song 20')));
+    expect(
+      tester.getRect(find.text('Columbia')).bottom,
+      lessThanOrEqualTo(tester.getRect(find.byType(ListView)).bottom),
+    );
     await tester.pumpWidget(const SizedBox());
   });
 

@@ -87,28 +87,72 @@ class _AlbumPageState extends State<AlbumPage> {
                 ),
               ),
               const SongListHeader(numbered: true),
-              for (final (i, song) in songs.indexed)
-                CurrentSong(
-                  song,
-                  builder: (context, current, playing) => ListTile(
-                    selected: current,
-                    leading: SizedBox(
-                      width: SongListHeader.numberWidth,
-                      child: playing ? const ThemedIcon(CurrentSong.icon) : SongNumber(i + 1),
-                    ),
-                    title: Text(song.title),
-                    // The artist takes no focus: for the keyboard and the remote the song stays one stop, as an
-                    // album in the grid is.
-                    subtitle: song.artist == null ? null : ExcludeFocus(child: ArtistLink.song(song)),
-                    trailing: SongDuration(song.duration),
-                    onTap: () => _play(songs, i),
-                  ),
-                ),
+              for (var i = 0; i < songs.length; i++)
+                if (i == songs.length - 1 && album.recordLabels.isNotEmpty)
+                  _LastSong(_song(songs, i), recordLabels: album.recordLabels)
+                else
+                  _song(songs, i),
             ],
           );
         },
       ),
       bottomNavigationBar: const NowPlayingBar(),
+    );
+  }
+
+  /// The album's song at [index] in its list, which plays the album from it.
+  Widget _song(List<Song> songs, int index) {
+    final song = songs[index];
+    return CurrentSong(
+      song,
+      builder: (context, current, playing) => ListTile(
+        selected: current,
+        leading: SizedBox(
+          width: SongListHeader.numberWidth,
+          child: playing ? const ThemedIcon(CurrentSong.icon) : SongNumber(index + 1),
+        ),
+        title: Text(song.title),
+        // The artist takes no focus: for the keyboard and the remote the song stays one stop, as an album in the grid
+        // is.
+        subtitle: song.artist == null ? null : ExcludeFocus(child: ArtistLink.song(song)),
+        trailing: SongDuration(song.duration),
+        onTap: () => _play(songs, index),
+      ),
+    );
+  }
+}
+
+/// The album's last song, with its record labels under it, ending the list. The keyboard and the remote stop at the
+/// songs only, so as the focus comes to the last one the list scrolls on to show the labels too.
+class _LastSong extends StatelessWidget {
+  const _LastSong(this.song, {required this.recordLabels});
+
+  final Widget song;
+  final List<String> recordLabels;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Focus(
+      canRequestFocus: false,
+      onFocusChange: (focused) {
+        if (focused) {
+          Scrollable.ensureVisible(context, alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd);
+        }
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          song,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+            child: Text(
+              recordLabels.join(', '),
+              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

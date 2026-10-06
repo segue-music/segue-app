@@ -179,11 +179,13 @@ class JellyfinApi implements MediaServer {
       _album(json),
   ];
 
+  /// An album and its songs. Jellyfin has no record labels: an album's studios stand for them, where someone set them
+  /// (it reads no label from the tags of songs, only of audiobooks), and it gives them only when asked (Fields).
   @override
   Future<(Album, List<Song>)> album(String id) async {
     // Future.wait throws the first failure as it came, where a record's wait would wrap it.
     final [albums, songs] = await Future.wait([
-      _items({'Ids': id}),
+      _items({'Ids': id, 'Fields': 'Studios'}),
       _items({'ParentId': id, 'IncludeItemTypes': 'Audio', 'SortBy': 'ParentIndexNumber,IndexNumber,SortName'}),
     ]);
     return (_album(_only(albums, id)), [for (final json in songs) _song(json)]);
@@ -377,6 +379,10 @@ Album _album(Map<String, dynamic> json) => Album(
   year: (json['ProductionYear'] as num?)?.toInt(),
   songCount: (json['ChildCount'] as num?)?.toInt(),
   artistId: _firstId(json['AlbumArtists']) ?? _firstId(json['ArtistItems']),
+  recordLabels: [
+    for (final studio in json['Studios'] as List? ?? const [])
+      if ((studio as Map<String, dynamic>)['Name'] case final String name) name,
+  ],
 );
 
 /// A song's cover is its own image or else its album's, as Jellyfin's apps show it. Its artists are

@@ -293,6 +293,7 @@ class SubsonicApi implements MediaServer {
   void close() => _http.close();
 }
 
+/// An album's record labels are OpenSubsonic's recordLabels, which a plain Subsonic server doesn't give.
 Album _album(Map<String, dynamic> json) => Album(
   id: json['id'] as String,
   name: json['name'] as String? ?? '',
@@ -301,6 +302,10 @@ Album _album(Map<String, dynamic> json) => Album(
   year: (json['year'] as num?)?.toInt(),
   songCount: (json['songCount'] as num?)?.toInt(),
   artistId: json['artistId'] as String?,
+  recordLabels: [
+    for (final label in json['recordLabels'] as List? ?? const [])
+      if ((label as Map<String, dynamic>)['name'] case final String name) name,
+  ],
 );
 
 /// An album's genres: Subsonic's genre, its first, and OpenSubsonic's genres, all of them.

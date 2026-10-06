@@ -11,6 +11,7 @@ class Album {
     this.year,
     this.songCount,
     this.artistId,
+    this.recordLabels = const [],
   });
 
   final String id;
@@ -23,6 +24,9 @@ class Album {
   /// The id of its artist, the one its [artist] names (the first, when it has several); null when the
   /// server gives none.
   final String? artistId;
+
+  /// The labels that put it out; none when the server doesn't say.
+  final List<String> recordLabels;
 }
 
 class Song {

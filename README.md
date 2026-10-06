@@ -72,6 +72,9 @@ the device it runs on.
   above it. A tap on a track plays it there;
 - the album's songs and the queue have a header naming their columns: the number ("#") or the
   cover, the title, and the duration as a clock; over the queue it stays as the tracks scroll;
+- the album's record labels end its list of songs (OpenSubsonic's; on a Jellyfin server, which reads
+  no labels from music files, the album's studios, where someone set them), and the keyboard and the
+  remote, coming to the last song, scroll on to them;
 - on the album page and in search, the current song (on whichever device the app controls) stands
   out in the theme's color, with an equalizer in place of its number, or over its cover, while it
   plays;

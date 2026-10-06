@@ -78,7 +78,8 @@ abstract interface class MediaServer {
   /// none before any of theirs has played.
   Future<List<Song>> mostPlayedSongs(String artistId, {int size = 10});
 
-  /// An album and its songs, in order.
+  /// An album and its songs, in order. The album may say more than in a list of albums: its record labels, on a
+  /// Jellyfin server.
   Future<(Album, List<Song>)> album(String id);
 
   /// A song, with its album's and its artist's ids.

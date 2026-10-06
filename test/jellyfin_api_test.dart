@@ -348,7 +348,15 @@ void main() {
       final query = request.url.queryParameters;
 
       if (query['Ids'] == 'a1') {
-        return items([album]);
+        return items([
+          {
+            ...album,
+            if (query['Fields']?.split(',').contains('Studios') ?? false)
+              'Studios': [
+                {'Name': 'Columbia', 'Id': 'st1'},
+              ],
+          },
+        ]);
       }
 
       if (query['ParentId'] == 'a1') {
@@ -358,6 +366,7 @@ void main() {
       return http.Response('', 404);
     }, asked).album('a1');
     expect(found.name, 'Toys in the Attic');
+    expect(found.recordLabels, ['Columbia'], reason: 'its studios, which come only when asked for');
     final tracks = asked.firstWhere((request) => request.url.queryParameters['ParentId'] == 'a1').url.queryParameters;
     expect(tracks, containsPair('IncludeItemTypes', 'Audio'));
     expect(tracks['SortBy'], startsWith('ParentIndexNumber,IndexNumber'));
