@@ -81,10 +81,14 @@ Running two app instances on one machine as different devices:
   over itself on a jump to it, which mpv ignores. It reports when a track starts over on repeat. It
   stops on a track that fails to load (`failed`), paused where it was, where mpv would move on to the
   next and, with a media server that fails them all, through the whole queue in a moment; mpv's log
-  tells which track failed, since its events can announce the next one first. And opened paused (the
-  last playback, as the app opens), it loads nothing until play or a jump, so that a failure comes
-  only from something the user did. The play order (`order`) maps the shuffled playlist back to the
-  songs.
+  tells which track failed, since its events can announce the next one first. Opened paused (the
+  last playback, as the app opens), it loads the track all the same, so that play starts at once, but
+  keeps a failure then quiet (`failed` stays false) until play or a jump: play tries the track again,
+  and only a failure that follows is told. It tries a track again with mpv's `playlist-play-index`:
+  right after the failure mpv may still be on it, in its youtube-dl hook, and ignores a write of
+  `playlist-pos` to it. Until a track it opened paused, or at a position, has
+  loaded, it holds a seek, play and pause for when it has, since mpv can't seek before. The play order
+  (`order`) maps the shuffled playlist back to the songs.
 - `ConnectController` (`lib/connect/`) follows the Connect model: the app controls one device at a
   time (`activeId`, null meaning this device). UI actions go through it (`playSongs`, `toggle`,
   `seek`, ...): it either runs them on the local player or sends them as hub commands. The UI should

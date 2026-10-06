@@ -32,8 +32,9 @@ abstract class AudioEngine {
   /// [jump] and [open] go on to others.
   bool get failed;
 
-  /// Opened paused, the tracks load only when they play, on [play] or a [jump]: until then the media
-  /// server is asked nothing, and a track it can't give fails only once asked to play.
+  /// Opened paused, the current track loads all the same, so that [play] starts it at once. Should it
+  /// fail then, the engine stops on it without telling ([failed] stays false), since nothing asked it
+  /// to play: [play] tries it again, and tells if it fails again.
   Future<void> open(List<Uri> tracks, {required int index, required Duration position, required bool play});
   Future<void> play();
   Future<void> pause();
@@ -65,9 +66,8 @@ class MediaKitEngine implements AudioEngine {
       stream.playlist.listen((playlist) {
         final inOrder = [for (final media in playlist.medias) media.uri];
 
-        // Opened paused, mpv has none of these tracks; and what it says of others (the ones before,
-        // or none as it stops) can come late.
-        if (_unloaded || !_ours(inOrder)) {
+        // What mpv says of other tracks (the ones before, or none as it stops) can come late.
+        if (!_ours(inOrder)) {
           return;
         }
 
@@ -134,18 +134,25 @@ class MediaKitEngine implements AudioEngine {
   // mpv's events can't tell: they can announce the next track before the log says this one failed.
   String? _loading;
 
-  // Opened paused: mpv has none of these tracks until they play.
-  bool _unloaded = false;
-
-  // Stopped on a track that failed to load; completed when it does, for a load waiting to seek.
+  // Stopped on a track that failed to load; completed once stopped there, for a load waiting for it.
   bool _failed = false;
   Completer<void>? _failure;
 
-  // Where play goes on from, while the tracks are unloaded or stopped on a failure.
-  Duration _held = Duration.zero;
+  // Opened paused, until play or a jump: a failure then is no one's doing, so [failed] keeps it quiet.
+  bool _quiet = false;
 
-  // The track a load or a jump last started, and where from: where its failure leaves playback.
-  ({String? track, Duration position})? _starting;
+  // A load waiting for its track to load, before which mpv can't seek. A seek moves [_held], where
+  // the load then seeks; play and pause say whether it plays then.
+  bool _waiting = false;
+  bool _playOnLoad = false;
+
+  // Counts the loads and jumps: a load that another one, or a jump, took over leaves the rest to it.
+  int _loads = 0;
+
+  // The track a load or a jump last started, and where from: where a failure of it leaves playback.
+  // While the track loads, or once it failed, a seek moves that place, which play goes on from.
+  String? _starting;
+  Duration _held = Duration.zero;
 
   static String? _at(List<String> tracks, int index) => index >= 0 && index < tracks.length ? tracks[index] : null;
 
@@ -170,14 +177,14 @@ class MediaKitEngine implements AudioEngine {
   Stream<void> get changes => _changes.stream;
 
   @override
-  bool get playing => !_unloaded && !_failed && _player.state.playing;
+  bool get playing => !_failed && _player.state.playing;
 
   @override
   int get index => _index;
 
   @override
   Duration get position {
-    if (_unloaded || _failed) {
+    if (_waiting || _failed) {
       return _held;
     }
 
@@ -226,7 +233,7 @@ class MediaKitEngine implements AudioEngine {
   bool get shuffle => _shuffle;
 
   @override
-  bool get failed => _failed;
+  bool get failed => _failed && !_quiet;
 
   @override
   Future<void> setRepeat(Repeat mode) async {
@@ -243,8 +250,7 @@ class MediaKitEngine implements AudioEngine {
     await _ready;
     _shuffle = on;
 
-    // Unloaded, the tracks get it when they load.
-    if (_opened.isNotEmpty && !_unloaded) {
+    if (_opened.isNotEmpty) {
       await _player.setShuffle(on);
     }
 
@@ -255,25 +261,11 @@ class MediaKitEngine implements AudioEngine {
   Future<void> open(List<Uri> tracks, {required int index, required Duration position, required bool play}) async {
     await _ready;
     _failed = false;
+    _quiet = !play;
     _opened = _inOrder = [for (final track in tracks) Media(track.toString()).uri];
     _index = index;
-
-    if (play) {
-      return _load(position);
-    }
-
-    // What mpv had stops, and these wait.
-    _unloaded = true;
-    _held = position;
-    await _player.stop();
-    _changes.add(null);
-  }
-
-  /// Loads the tracks into mpv and plays the current one from [position].
-  Future<void> _load(Duration position) async {
-    _unloaded = false;
-    final playlist = Playlist([for (final track in _opened) Media(track)], index: _index);
-    await _playFrom(position, () => _player.open(playlist, play: false));
+    final playlist = Playlist([for (final track in _opened) Media(track)], index: index);
+    await _playFrom(position, () => _player.open(playlist, play: false), play: play);
 
     if (_shuffle) {
       await _player.setShuffle(true);
@@ -281,39 +273,58 @@ class MediaKitEngine implements AudioEngine {
   }
 
   /// After a failure, mpv keeps its playlist, stopped: plays its track at [index] from [position].
+  /// Right after the failure, mpv may still be on the failed track (its youtube-dl hook trying it
+  /// before giving up), where a write of its playlist-pos would be ignored; playlist-play-index
+  /// starts it over all the same.
   Future<void> _resume(int index, Duration position) {
     _failed = false;
     _index = index;
-    return _playFrom(position, () => (_player.platform as NativePlayer).setProperty('playlist-pos', '$index'));
+    return _playFrom(position, () => (_player.platform as NativePlayer).command(['playlist-play-index', '$index']));
   }
 
-  /// Plays from [position] the track that [load] loads paused: seeking only works once it has loaded,
-  /// which the duration announces. If it fails instead, it stays there.
-  Future<void> _playFrom(Duration position, Future<void> Function() load) async {
+  /// Plays from [position] the track that [load] loads paused, or, unless [play], only takes it there.
+  /// Seeking only works once it has loaded, which the duration announces: until then, a seek moves
+  /// where it goes, and play and pause say whether it plays. If it fails instead, it stays there.
+  Future<void> _playFrom(Duration position, Future<void> Function() load, {bool play = true}) async {
+    final loads = ++_loads;
     _moved(position);
-    _starting = (track: _at(_inOrder, _index), position: position);
+    _starting = _at(_inOrder, _index);
+    _held = position;
+    _playOnLoad = play;
     final failure = _failure = Completer<void>();
-    final loaded = position == Duration.zero ? null : _player.stream.duration.firstWhere((d) => d > Duration.zero);
+    // From its start, a track that plays needn't wait; one that stays paused does, for a seek first.
+    _waiting = position != Duration.zero || !play;
+    final loaded = _waiting ? _player.stream.duration.firstWhere((d) => d > Duration.zero) : null;
     await load();
 
     if (loaded != null) {
       await Future.any([loaded, failure.future]).timeout(const Duration(seconds: 10), onTimeout: () => null);
 
-      if (!_failed) {
-        await seek(position);
+      if (loads != _loads) {
+        return;
+      }
+
+      _waiting = false;
+
+      if (!_failed && _held != Duration.zero) {
+        await seek(_held);
       }
     }
 
-    if (!_failed) {
+    if (!_failed && _playOnLoad) {
       await _player.play();
     }
   }
 
-  /// Plays; tracks opened paused load now, and a track that failed is tried again, from where it was.
+  /// Plays; a track still loading plays once it has, and a track that failed is tried again, from
+  /// where it was.
   @override
   Future<void> play() {
-    if (_unloaded) {
-      return _load(_held);
+    _quiet = false;
+
+    if (_waiting) {
+      _playOnLoad = true;
+      return Future.value();
     }
 
     if (_failed) {
@@ -324,11 +335,15 @@ class MediaKitEngine implements AudioEngine {
   }
 
   @override
-  Future<void> pause() => _player.pause();
+  Future<void> pause() {
+    _playOnLoad = false;
+    return _player.pause();
+  }
 
   @override
   Future<void> stop() {
-    _unloaded = _failed = false;
+    _loads++;
+    _failed = _quiet = _waiting = false;
     _index = 0;
     _opened = _inOrder = const [];
     _moved(Duration.zero);
@@ -337,19 +352,20 @@ class MediaKitEngine implements AudioEngine {
 
   @override
   Future<void> jump(int index) async {
-    if (_unloaded) {
-      _index = index;
-      return _load(Duration.zero);
-    }
+    _quiet = false;
 
     if (_failed) {
       return _resume(index, Duration.zero);
     }
 
+    // A load still waiting for its track leaves it to the jump.
+    _loads++;
+    _waiting = false;
     final again = index == _index && !_player.state.completed;
     _index = index;
     _moved(Duration.zero);
-    _starting = (track: _at(_inOrder, index), position: Duration.zero);
+    _starting = _at(_inOrder, index);
+    _held = Duration.zero;
 
     if (!again) {
       return _player.jump(index); // which plays too
@@ -374,9 +390,8 @@ class MediaKitEngine implements AudioEngine {
   /// next, through the whole queue when the media server fails them all. Paused, so that play tries it
   /// again.
   Future<void> _fail(String? track) async {
-    // mpv may have gone on to the next before it stopped, and failed that one too. Unloaded, mpv has
-    // none of these tracks.
-    if (_failed || _unloaded || track == null) {
+    // mpv may have gone on to the next before it stopped, and failed that one too.
+    if (_failed || track == null) {
       return;
     }
 
@@ -387,20 +402,26 @@ class MediaKitEngine implements AudioEngine {
     }
 
     // Where it was to play from, unless mpv failed it moving on by itself.
-    _held = _starting?.track == track ? _starting!.position : Duration.zero;
+    if (_starting != track) {
+      _held = Duration.zero;
+    }
+
     _failed = true;
     _index = at;
-    _failure?.complete();
+    final failure = _failure;
     _failure = null;
     await _player.pause();
     await (_player.platform as NativePlayer).command(['stop', 'keep-playlist']);
+    // Only now does a load waiting for the track go on: a play right after it, trying the track again,
+    // would be stopped by this stop.
+    failure?.complete();
     _changes.add(null);
   }
 
   @override
   Future<void> seek(Duration position) async {
-    // Where play goes on from.
-    if (_unloaded || _failed) {
+    // Where it goes once loaded, or tried again.
+    if (_waiting || _failed) {
       _held = position;
       return;
     }

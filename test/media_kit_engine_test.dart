@@ -56,10 +56,10 @@ Uint8List wav(int n, {double seconds = 4}) {
 Uri tone(Directory dir, int n, {double seconds = 4}) =>
     (File('${dir.path}/t$n.wav')..writeAsBytesSync(wav(n, seconds: seconds))).uri;
 
-/// Tracks over HTTP, as a media server gives them: `ok<n>` a tone of 4 s and `short<n>` one of 1 s;
-/// `fail<n>` an error 500, as for a file the server can't read; `json<n>` an error in JSON, which
-/// isn't audio; and `flaky<n>` the error while [flakyFails], the tone after. It keeps the paths asked
-/// of it in [requests].
+/// Tracks over HTTP, as a media server gives them: `ok<n>` a tone of 4 s, `short<n>` one of 1 s and
+/// `slow<n>` the tone of 4 s half a second late; `fail<n>` an error 500, as for a file the server
+/// can't read; `json<n>` an error in JSON, which isn't audio; and `flaky<n>` the error while
+/// [flakyFails], the tone after. It keeps the paths asked of it in [requests].
 class TrackServer {
   TrackServer._(this._server) {
     _server.listen(_answer);
@@ -79,6 +79,10 @@ class TrackServer {
     final response = request.response;
     final n = int.parse(path.replaceAll(RegExp('[^0-9]'), ''));
     requests.add(path);
+
+    if (path.startsWith('/slow')) {
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+    }
 
     if (path.startsWith('/fail') || (path.startsWith('/flaky') && flakyFails)) {
       response.statusCode = HttpStatus.internalServerError;
@@ -195,7 +199,8 @@ void main() {
     expect(engine.position.inMilliseconds, closeTo(2000, 200));
   }, skip: hasLibmpv ? false : 'needs libmpv');
 
-  // Opened paused, as the app opens on the last playback, the track loads only when it plays.
+  // Opened paused, as the app opens on the last playback, the track loads all the same, so that play
+  // starts it at once.
 
   test('opened paused at a position, it plays from there', () async {
     await engine.open([tone(dir, 0), tone(dir, 1)], index: 1, position: const Duration(seconds: 2), play: false);
@@ -218,6 +223,53 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 500));
     expect(engine.playing, isTrue);
     expect(engine.position, greaterThan(const Duration(seconds: 2)));
+  }, skip: hasLibmpv ? false : 'needs libmpv');
+
+  group('opened paused from the media server', () {
+    late TrackServer server;
+
+    setUp(() async => server = await TrackServer.start());
+    tearDown(() => server.close());
+
+    test('it is asked of the server at once, and play starts it from its place without asking again', () async {
+      final tracks = [server.track('ok0'), server.track('ok1')];
+      await engine.open(tracks, index: 1, position: const Duration(seconds: 2), play: false);
+      expect(server.requests, contains('/ok1'));
+      expect((engine.index, engine.playing), (1, false));
+      expect(engine.position.inMilliseconds, closeTo(2000, 200));
+      server.requests.clear();
+      await engine.play();
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      expect(server.requests, isEmpty);
+      expect(engine.playing, isTrue);
+      expect(engine.position, greaterThan(const Duration(seconds: 2)));
+      expect(engine.position, lessThan(const Duration(milliseconds: 3500)));
+    });
+
+    test('while it loads, a seek moves where it plays from, and play plays it from there once loaded', () async {
+      final opening = engine.open([server.track('slow0')], index: 0, position: Duration.zero, play: false);
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      await engine.seek(const Duration(seconds: 2));
+      expect(engine.position.inMilliseconds, closeTo(2000, 200));
+      await engine.play();
+      await opening;
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      expect(engine.playing, isTrue);
+      expect(engine.position, greaterThan(const Duration(seconds: 2)));
+      expect(engine.position, lessThan(const Duration(milliseconds: 3500)));
+    });
+
+    test('while it loads, a jump plays the track picked from its start', () async {
+      final tracks = [server.track('ok0'), server.track('slow1'), server.track('ok2')];
+      final opening = engine.open(tracks, index: 1, position: const Duration(seconds: 2), play: false);
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      await engine.jump(2);
+      await opening;
+      await Future<void>.delayed(const Duration(milliseconds: 800));
+      expect(engine.index, 2);
+      expect(engine.playing, isTrue);
+      expect(engine.position, lessThan(const Duration(milliseconds: 1500)));
+    });
   }, skip: hasLibmpv ? false : 'needs libmpv');
 
   test('a new track, by a jump or moving on by itself, announces itself at its start', () async {
@@ -361,18 +413,38 @@ void main() {
       expect(engine.playing, isFalse);
     });
 
-    test('opened paused, it is asked of the server, and fails, only when it plays: in its place', () async {
+    // As when the app opens on the last playback: no one asked it to play.
+    test('opened paused, it is asked of the server at once, but fails only once play tries it again', () async {
       final tracks = [server.track('ok0'), server.track('fail1'), server.track('ok2')];
+      final told = <bool>[];
+      final subscription = engine.changes.listen((_) => told.add(engine.failed));
       await engine.open(tracks, index: 1, position: const Duration(seconds: 30), play: false);
-      await Future<void>.delayed(const Duration(seconds: 1));
-      expect(server.requests, isEmpty);
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      expect(server.requests, contains('/fail1'));
       expect(engine.failed, isFalse);
+      expect(told, everyElement(isFalse));
       expect((engine.index, engine.position, engine.playing), (1, const Duration(seconds: 30), false));
+      server.requests.clear();
       await engine.play();
       await Future<void>.delayed(const Duration(seconds: 1));
       expect(server.requests, contains('/fail1'));
       expect(engine.failed, isTrue);
+      expect(told.last, isTrue);
       expect((engine.index, engine.position, engine.playing), (1, const Duration(seconds: 30), false));
+      await subscription.cancel();
+    });
+
+    test('opened paused, a jump from its failure plays the track picked, with nothing to tell', () async {
+      final tracks = [server.track('ok0'), server.track('fail1'), server.track('ok2')];
+      final told = <bool>[];
+      final subscription = engine.changes.listen((_) => told.add(engine.failed));
+      await engine.open(tracks, index: 1, position: Duration.zero, play: false);
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      await engine.jump(2);
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      expect((engine.index, engine.failed, engine.playing), (2, false, true));
+      expect(told, everyElement(isFalse));
+      await subscription.cancel();
     });
 
     test('once the server gives it, play goes on from its place', () async {
