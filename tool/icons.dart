@@ -1,4 +1,4 @@
-// Makes the app's icons from tool/icon.png, the artwork: a magenta rounded square, with a ring around the note, on a
+// Makes the app's icons from tool/icon.png, the artwork: a pink rounded square, with a ring around the note, on a
 // near-black background. Run it after changing the artwork: DART=1 tool/flutter.sh run tool/icons.dart
 //
 // - Android: the launcher icon, adaptive (Android 8 and later, mipmap-anydpi-v26/ic_launcher.xml) and as a plain image
@@ -16,7 +16,7 @@ import 'package:image/image.dart';
 
 /// The rounded square in the artwork, in its pixels, and how far the drawing in it reaches from the square's centre
 /// (the outer edge of the ring around the note), as measured on it. A new artwork needs these measured again.
-const _left = 95.0, _top = 101.0, _right = 789.5, _bottom = 765.5, _radius = 136.0, _reach = 290.0;
+const _left = 68.8, _top = 76.8, _right = 590.9, _bottom = 582.7, _radius = 94.0, _reach = 220.0;
 
 const _res = 'android/app/src/main/res';
 
@@ -35,7 +35,7 @@ void main() {
     _write('$_res/mipmap-$density/ic_launcher_foreground.png', art.inside((108 * scale).round(), 66 / 108));
   }
 
-  // The Android TV banner, 320 × 180 dp: the artwork with its glow, on its own background.
+  // The Android TV banner, 320 × 180 dp: the whole artwork, on its own background.
   _write('$_res/drawable-xhdpi/banner.png', art.banner(640, 360));
   _write('linux/runner/resources/app_icon.png', art.shape(256, 0.84));
   // iOS cuts the icon to its own rounded square, so it is the artwork's square from edge to edge, the drawing as big in
