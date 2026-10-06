@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:segue/connect/connect.dart';
 import 'package:segue/player/player.dart';
 import 'package:segue/segue/client.dart';
@@ -10,8 +11,10 @@ import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/devices_sheet.dart';
+import 'package:segue/ui/themed_icon.dart';
 
 import 'fakes.dart';
+import 'themed_icons.dart';
 
 Device player(String id, String name, {required bool online}) => Device(
   info: DeviceInfo(
@@ -25,8 +28,15 @@ Device player(String id, String name, {required bool online}) => Device(
   online: online,
 );
 
-/// Opens the device picker with [devices] as the user's other devices.
-Future<void> openSheet(WidgetTester tester, List<Device> devices) async {
+/// Opens the device picker with [devices] as the user's other devices, on a screen of [size] (the test's, by
+/// default), on a [television] or not.
+Future<void> openSheet(WidgetTester tester, List<Device> devices, {Size? size, bool television = false}) async {
+  if (size != null) {
+    tester.view.physicalSize = size;
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+  }
+
   const credentials = SubsonicCredentials(username: 'a', token: 't', salt: 's');
   final api = SubsonicApi(
     Uri.parse('https://music.test'),
@@ -53,7 +63,12 @@ Future<void> openSheet(WidgetTester tester, List<Device> devices) async {
   await tester.pumpWidget(
     MaterialApp(
       // Above the navigator, as in the app, so that the sheet sees it.
-      builder: (context, child) => ServicesScope(services: services, child: child!),
+      builder: (context, child) => MediaQuery(
+        // As DirectionalNavigation says it, on a TV.
+        data: MediaQuery.of(context)
+            .copyWith(navigationMode: television ? NavigationMode.directional : NavigationMode.traditional),
+        child: ServicesScope(services: services, child: child!),
+      ),
       home: Builder(
         builder: (context) => Scaffold(
           body: TextButton(onPressed: () => showDevicesSheet(context), child: const Text('abrir')),
@@ -65,6 +80,10 @@ Future<void> openSheet(WidgetTester tester, List<Device> devices) async {
   await tester.pumpAndSettle();
 }
 
+/// The icon beside "Este aparelho".
+Finder thisDevice(HugeIconData icon) =>
+    find.descendant(of: find.widgetWithText(ListTile, 'Este aparelho (Notebook)'), matching: themedIcon(icon));
+
 void main() {
   testWidgets('the picker lists only the devices that are online', (tester) async {
     await openSheet(tester, [
@@ -74,5 +93,29 @@ void main() {
     expect(find.text('Este aparelho (Notebook)'), findsOneWidget);
     expect(find.text('Sala de estar'), findsOneWidget);
     expect(find.text('Celular antigo'), findsNothing);
+  });
+
+  testWidgets('this device shows as a computer on a computer', variant: TargetPlatformVariant.desktop(), (
+    tester,
+  ) async {
+    await openSheet(tester, []);
+    expect(thisDevice(HugeIcons.strokeRoundedComputer), findsOneWidget);
+  });
+
+  testWidgets('as a phone on a phone', variant: TargetPlatformVariant.mobile(), (tester) async {
+    await openSheet(tester, [], size: const Size(360, 640));
+    expect(thisDevice(HugeIcons.strokeRoundedSmartphone), findsOneWidget);
+  });
+
+  testWidgets('as a tablet on a touch screen as wide as a tablet\'s', variant: TargetPlatformVariant.mobile(), (
+    tester,
+  ) async {
+    await openSheet(tester, [], size: const Size(800, 1280));
+    expect(thisDevice(HugeIcons.strokeRoundedTablet01), findsOneWidget);
+  });
+
+  testWidgets('and as a TV on a TV, which the remote drives, whatever its size', (tester) async {
+    await openSheet(tester, [], size: const Size(1920, 1080), television: true);
+    expect(thisDevice(HugeIcons.strokeRoundedTv01), findsOneWidget);
   });
 }

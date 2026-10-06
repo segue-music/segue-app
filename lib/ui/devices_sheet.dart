@@ -49,7 +49,7 @@ class _DevicesSheet extends StatelessWidget {
             child: Text('Conectar a um aparelho', style: Theme.of(context).textTheme.titleLarge),
           ),
           ListTile(
-            leading: const ThemedIcon(HugeIcons.strokeRoundedComputer),
+            leading: ThemedIcon(_thisDeviceIcon(context)),
             title: Text('Este aparelho (${services.session.deviceName})'),
             selected: connect.activeId == null,
             trailing: _marks(playing: connect.player.playing, active: connect.activeId == null),
@@ -73,6 +73,23 @@ class _DevicesSheet extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// What this device is: a TV, which the remote drives; a phone or a tablet, by its touch screen and how wide it
+  /// is (600 across or more, as Material counts, a tablet); or else a computer. Of the other devices the protocol
+  /// says nothing of the kind, so they are all speakers.
+  static HugeIconData _thisDeviceIcon(BuildContext context) {
+    if (MediaQuery.navigationModeOf(context) == NavigationMode.directional) {
+      return HugeIcons.strokeRoundedTv01;
+    }
+
+    return switch (Theme.of(context).platform) {
+      TargetPlatform.android || TargetPlatform.iOS || TargetPlatform.fuchsia =>
+        MediaQuery.sizeOf(context).shortestSide >= 600
+            ? HugeIcons.strokeRoundedTablet01
+            : HugeIcons.strokeRoundedSmartphone,
+      TargetPlatform.linux || TargetPlatform.macOS || TargetPlatform.windows => HugeIcons.strokeRoundedComputer,
+    };
   }
 
   /// Which device plays (equalizer) and which one the app controls (check).
