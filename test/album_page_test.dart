@@ -155,7 +155,7 @@ void main() {
     await tester.tap(artist);
     await tester.pumpAndSettle();
     expect(find.byType(ArtistPage), findsOneWidget);
-    expect(find.descendant(of: find.byType(AppBar), matching: find.text('Aerosmith')), findsOneWidget);
+    expect(find.descendant(of: find.byType(ArtistPage), matching: find.text('Aerosmith')).first, findsOneWidget);
     expect(engine.tracks, isEmpty, reason: 'the song didn\'t play');
     await tester.pumpWidget(const SizedBox());
   });

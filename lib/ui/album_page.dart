@@ -43,11 +43,9 @@ class _AlbumPageState extends State<AlbumPage> {
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     return Scaffold(
-      appBar: AppBar(
-        // In the page area, the top bar's arrow goes back: no arrow of its own.
-        automaticallyImplyLeading: !PageArea.holds(context),
-        title: Text(widget.album.name),
-      ),
+      // No title: the album's name is by its cover. In the page area, where the top bar's arrow goes back, that leaves
+      // nothing for a bar of its own; elsewhere (on a phone) it has the back arrow.
+      appBar: PageArea.holds(context) ? null : AppBar(),
       body: FutureBuilder(
         future: _album,
         builder: (context, snapshot) {

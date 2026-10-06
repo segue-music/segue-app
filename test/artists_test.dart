@@ -171,6 +171,10 @@ Future<FakeEngine> pumpHome(WidgetTester tester, Size size) async {
 
 Finder title(String text) => find.descendant(of: find.byType(AppBar), matching: find.text(text));
 
+/// The artist's name, by their picture, over their page: its first text that says it, since an album can be named
+/// after them too.
+Finder artistName(String name) => find.descendant(of: find.byType(ArtistPage), matching: find.text(name)).first;
+
 /// The tile of the artist named [name], in the artists' grid.
 Finder tile(String name) => find.ancestor(of: find.text(name), matching: find.byType(InkWell)).first;
 
@@ -204,7 +208,7 @@ void main() {
 
     await tester.tap(find.text('Aerosmith'));
     await tester.pumpAndSettle();
-    expect(title('Aerosmith'), findsOneWidget);
+    expect(artistName('Aerosmith'), findsOneWidget);
     final newer = tester.getTopLeft(find.text('Toys in the Attic'));
     final older = tester.getTopLeft(find.text('1973'));
     expect(newer.dx < older.dx || newer.dy < older.dy, isTrue, reason: 'the 1975 album comes first');
@@ -224,7 +228,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Cheap Trick'));
     await tester.pumpAndSettle();
-    expect(title('Cheap Trick'), findsOneWidget);
+    expect(artistName('Cheap Trick'), findsOneWidget);
     final heading = find.descendant(of: find.byType(ArtistPage), matching: find.text('Mais tocadas'));
     final albums = find.descendant(of: find.byType(ArtistPage), matching: find.text('Álbuns'));
     expect(heading, findsOneWidget);
@@ -296,7 +300,7 @@ void main() {
     expect(find.text('Artistas'), findsWidgets);
     await tester.tap(find.text('Aerosmith'));
     await tester.pumpAndSettle();
-    expect(title('Aerosmith'), findsOneWidget);
+    expect(artistName('Aerosmith'), findsOneWidget);
     expect(find.text('Toys in the Attic'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
@@ -309,7 +313,7 @@ void main() {
     expect(find.textContaining('1975'), findsOneWidget);
     await tester.tap(find.byTooltip('Abrir o artista'));
     await tester.pumpAndSettle();
-    expect(title('Aerosmith'), findsOneWidget);
+    expect(artistName('Aerosmith'), findsOneWidget);
     expect(find.text('1973'), findsOneWidget, reason: 'their albums');
     await tester.tap(find.byTooltip('Voltar'));
     await tester.pumpAndSettle();
@@ -332,7 +336,7 @@ void main() {
     final link = find.byTooltip('Abrir o artista');
     await tester.tap(link);
     await tester.pumpAndSettle();
-    expect(title('Aerosmith'), findsOneWidget);
+    expect(artistName('Aerosmith'), findsOneWidget);
     await tester.tap(find.byTooltip('Voltar'));
     await tester.pumpAndSettle();
 
@@ -345,7 +349,7 @@ void main() {
     expect(FocusManager.instance.primaryFocus?.rect, tester.getRect(link));
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pumpAndSettle();
-    expect(title('Aerosmith'), findsOneWidget);
+    expect(artistName('Aerosmith'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 }

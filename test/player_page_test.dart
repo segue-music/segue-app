@@ -805,7 +805,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(PlayerPage), findsNothing);
     expect(find.byType(AlbumPage), findsOneWidget);
-    expect(find.widgetWithText(AppBar, 'Toys in the Attic'), findsOneWidget);
+    expect(find.descendant(of: find.byType(AlbumPage), matching: find.text('Toys in the Attic')), findsOneWidget);
 
     await tester.pageBack();
     await tester.pumpAndSettle();
@@ -828,7 +828,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(PlayerPage), findsNothing);
     expect(find.byType(AlbumPage), findsOneWidget);
-    expect(find.widgetWithText(AppBar, 'Toys in the Attic'), findsOneWidget);
+    expect(find.descendant(of: find.byType(AlbumPage), matching: find.text('Toys in the Attic')), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -844,7 +844,7 @@ void main() {
     await tester.tap(onPage(find.text('Run-DMC, Aerosmith')));
     await tester.pumpAndSettle();
     expect(find.byType(ArtistPage), findsOneWidget);
-    expect(find.widgetWithText(AppBar, 'Run-DMC'), findsOneWidget);
+    expect(find.descendant(of: find.byType(ArtistPage), matching: find.text('Run-DMC')), findsOneWidget);
     expect(find.text('Raising Hell'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
@@ -886,7 +886,7 @@ void main() {
     await tester.tap(find.byTooltip('Abrir o álbum'));
     await tester.pumpAndSettle();
     expect(find.byType(AlbumPage), findsOneWidget);
-    expect(find.widgetWithText(AppBar, 'Toys in the Attic'), findsOneWidget);
+    expect(find.descendant(of: find.byType(AlbumPage), matching: find.text('Toys in the Attic')), findsOneWidget);
     await tester.pageBack();
     await tester.pumpAndSettle();
 

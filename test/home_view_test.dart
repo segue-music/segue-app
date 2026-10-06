@@ -12,6 +12,7 @@ import 'package:segue/player/player.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
+import 'package:segue/ui/album_page.dart';
 import 'package:segue/ui/albums_view.dart';
 import 'package:segue/ui/home_page.dart';
 import 'package:segue/ui/shortcuts.dart';
@@ -151,7 +152,7 @@ void main() {
 
     await tester.tap(find.text('Pump'));
     await tester.pumpAndSettle();
-    expect(title('Pump'), findsOneWidget);
+    expect(find.descendant(of: find.byType(AlbumPage), matching: find.text('Pump')), findsOneWidget);
     expect(find.text('Love in an Elevator'), findsOneWidget);
     await tester.pumpWidget(const SizedBox()); // stops the player bar's timers
   });

@@ -90,6 +90,11 @@ void main() {
     await tapAndSettle(tester, album);
     expect(find.byType(AlbumPage), findsOneWidget);
     expect(find.byType(BackButton), findsNothing);
+    expect(
+      find.descendant(of: find.byType(AlbumPage), matching: find.byType(AppBar)),
+      findsNothing,
+      reason: 'an album\'s, nor a bar: its name is by its cover',
+    );
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -98,6 +103,11 @@ void main() {
     await tapAndSettle(tester, album);
     expect(find.byType(AlbumPage), findsOneWidget);
     expect(find.byType(BackButton), findsOneWidget);
+    expect(
+      find.descendant(of: find.byType(AppBar), matching: album),
+      findsNothing,
+      reason: 'no title: the name is by the cover',
+    );
     await tapAndSettle(tester, find.byType(BackButton));
     expect(find.byType(AlbumPage), findsNothing);
     await tester.pumpWidget(const SizedBox());

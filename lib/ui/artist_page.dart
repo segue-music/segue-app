@@ -39,16 +39,9 @@ class _ArtistPageState extends State<ArtistPage> {
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     return Scaffold(
-      // Opened from a song, the name it comes with is the song's artists ("A, B") until the artist's own
-      // arrives.
-      appBar: AppBar(
-        // In the page area, the top bar's arrow goes back: no arrow of its own.
-        automaticallyImplyLeading: !PageArea.holds(context),
-        title: FutureBuilder(
-          future: _artist,
-          builder: (context, snapshot) => Text(snapshot.data?.$1.name ?? widget.artist.name),
-        ),
-      ),
+      // No title: the artist's name is by their picture. In the page area, where the top bar's arrow goes back, that
+      // leaves nothing for a bar of its own; elsewhere (on a phone) it has the back arrow.
+      appBar: PageArea.holds(context) ? null : AppBar(),
       body: FutureBuilder(
         future: _artist,
         builder: (context, snapshot) {
