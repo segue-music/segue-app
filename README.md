@@ -255,9 +255,14 @@ starting with `ios-`:
 git tag ios-1 && git push origin ios-1
 ```
 
-It takes about 15 minutes, plus Apple's processing. The build then shows in the TestFlight app on the
-iPhone, from the internal group's invitation, for 90 days. The first time the app reaches a server
-in the local network, iOS asks for permission.
+It takes about 15 minutes, plus Apple's processing (the first build took about an hour). The build then
+shows in the TestFlight app on the iPhone, from the internal group's invitation, for 90 days. The
+first time the app reaches a server in the local network, iOS asks for permission.
+
+Codemagic may report the upload as failed when App Store Connect answers it with server errors (500),
+even though the log says `UPLOAD SUCCEEDED`. The build often arrived anyway, so look in App Store
+Connect's TestFlight tab before building again. Building the same commit again doesn't help either
+way: the build number counts the commits, and App Store Connect refuses a number it already has.
 
 What iOS does differently:
 - In the background, iOS keeps the app running only while it plays. Paused, or just controlling
