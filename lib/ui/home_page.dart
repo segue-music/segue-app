@@ -282,8 +282,15 @@ class _HomePageState extends State<HomePage> {
     }
 
     // On a wide screen the bars stay, the top one, the side rail and the player's, and pages open between them, in the
-    // page area. The arrows beside the app's icon go back and forward through them, as do the keyboard's.
-    final arrow = _buttonSize(context);
+    // page area. The arrows beside the app's icon go back and forward through them, as do the keyboard's. They sit
+    // close together, as a browser's: smaller buttons than the rest, without the room Material leaves around them on a
+    // touch screen.
+    const arrow = 32.0;
+    final arrows = IconButton.styleFrom(
+      padding: const EdgeInsets.all(4),
+      minimumSize: const Size.square(arrow),
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    );
     return HistoryShortcuts(
       history: _history,
       // The home's own scope, where the focus goes back to (as Esc leaves the search bar): in the app's, outside the
@@ -303,11 +310,13 @@ class _HomePageState extends State<HomePage> {
                     SizedBox.square(dimension: kToolbarHeight, child: logo),
                     IconButton(
                       tooltip: 'Voltar',
+                      style: arrows,
                       icon: const ThemedIcon(HugeIcons.strokeRoundedArrowLeft02),
                       onPressed: _history.canGoBack ? _history.back : null,
                     ),
                     IconButton(
                       tooltip: 'Avançar',
+                      style: arrows,
                       icon: const ThemedIcon(HugeIcons.strokeRoundedArrowRight02),
                       onPressed: _history.canGoForward ? _history.forward : null,
                     ),

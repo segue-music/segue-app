@@ -62,6 +62,17 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets(
+    'the arrows sit close together, as a browser\'s, also on a touch screen',
+    variant: const TargetPlatformVariant({TargetPlatform.linux, TargetPlatform.android}),
+    (tester) async {
+      await pumpWide(tester);
+      expect(tester.getSize(back), const Size.square(32));
+      expect(tester.getCenter(forward).dx - tester.getCenter(back).dx, 32, reason: 'the icons 8 apart');
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
   testWidgets('the arrows go back and forward through the pages opened, as a browser\'s do', (tester) async {
     await pumpWide(tester);
     expect(enabled(tester, back), isFalse);
