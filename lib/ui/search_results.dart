@@ -10,7 +10,7 @@ import 'artists_view.dart';
 import 'cover.dart';
 import 'current_song.dart';
 import 'errors.dart';
-import 'now_playing_bar.dart';
+import 'song_list_header.dart';
 import 'spinner.dart';
 
 /// What a search found: artists and albums, which open their page, and songs, which play.
@@ -74,7 +74,7 @@ class SearchResultsList extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                trailing: Text(formatDuration(song.duration)),
+                trailing: SongDuration(song.duration),
                 onTap: () => _play(context, songs, i),
               ),
             ),

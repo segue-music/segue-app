@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -184,6 +185,26 @@ void main() {
     );
     expect(tester.getRect(find.text('Título')).bottom, lessThan(tester.getRect(first).top));
     expect(Focus.maybeOf(tester.element(find.text('Título')))?.canRequestFocus ?? false, isFalse, reason: 'no stop');
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('a song\'s duration is as big as the artist\'s line beside it, and in its title\'s color', (
+    tester,
+  ) async {
+    await pumpAlbum(tester);
+    TextStyle? style(Finder text) => tester.renderObject<RenderParagraph>(text).text.style;
+    final duration = find.descendant(of: song('Walk This Way'), matching: find.text('3:40'));
+    final artist = find.descendant(of: song('Walk This Way'), matching: find.text('Aerosmith'));
+    expect(style(duration)?.fontSize, style(artist)?.fontSize);
+    expect(style(duration)?.fontSize, greaterThan(11), reason: 'bigger than a list tile\'s own');
+
+    await tester.tap(find.text('Walk This Way'));
+    await tester.pump();
+    await tester.pump(kThemeChangeDuration); // the tile's colors change in this
+    final title = find.descendant(of: song('Walk This Way'), matching: find.text('Walk This Way'));
+    expect(style(duration)?.color, style(title)?.color, reason: 'the song that plays, tinted');
+    final other = find.descendant(of: song('Sweet Emotion'), matching: find.text('4:34'));
+    expect(style(duration)?.color, isNot(style(other)?.color), reason: 'unlike the song that doesn\'t play');
     await tester.pumpWidget(const SizedBox());
   });
 

@@ -2,7 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import 'cover.dart';
+import 'player_controls.dart';
 import 'themed_icon.dart';
+
+/// A song's duration, in the last column of a list of songs: in the color the list tile gives it (the current song's,
+/// when it is), at the size of the artist's line beside it, which a list tile's own, the theme's smallest, is well
+/// under.
+class SongDuration extends StatelessWidget {
+  const SongDuration(this.duration, {super.key});
+
+  final Duration? duration;
+
+  @override
+  Widget build(BuildContext context) => Text(
+    formatDuration(duration),
+    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: DefaultTextStyle.of(context).style.color),
+  );
+}
 
 /// The header of a list of songs, naming its columns over them: their numbers ("#") or covers (unnamed), their
 /// title, and their duration, as a clock. A list tile as they are, so that its columns line up with theirs; disabled,

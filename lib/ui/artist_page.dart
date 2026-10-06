@@ -10,6 +10,7 @@ import 'current_song.dart';
 import 'errors.dart';
 import 'now_playing_bar.dart';
 import 'page_area.dart';
+import 'song_list_header.dart';
 import 'spinner.dart';
 
 /// An artist and their albums, newest first, under the songs of theirs the user plays most: once any
@@ -145,7 +146,7 @@ class _MostPlayedSongs extends StatelessWidget {
                 leading: Thumbnail(song.coverArt, playing: playing),
                 title: Text(song.title, maxLines: 1, overflow: TextOverflow.ellipsis),
                 subtitle: song.album == null ? null : Text(song.album!, maxLines: 1, overflow: TextOverflow.ellipsis),
-                trailing: Text(formatDuration(song.duration)),
+                trailing: SongDuration(song.duration),
                 onTap: () => _play(context, songs, i),
               ),
             ),
