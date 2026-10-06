@@ -6,7 +6,8 @@ class MainFlutterWindow: NSWindow {
     let flutterViewController = FlutterViewController()
     let windowFrame = self.frame
     self.contentViewController = flutterViewController
-    self.setFrame(windowFrame, display: true)
+    // It opens maximized: the whole screen but the menu bar and the Dock.
+    self.setFrame(NSScreen.main?.visibleFrame ?? windowFrame, display: true)
 
     RegisterGeneratedPlugins(registry: flutterViewController)
 

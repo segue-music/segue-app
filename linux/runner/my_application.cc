@@ -141,7 +141,9 @@ static void my_application_activate(GApplication* application) {
     gtk_window_set_title(window, "Segue");
   }
 
+  // It opens maximized; this is its size once the user restores it.
   gtk_window_set_default_size(window, 1280, 720);
+  gtk_window_maximize(window);
 
   // The icon in the bundle, next to the executable. Wayland desktops ignore it: they take the one of
   // the .desktop file named after APPLICATION_ID, which install-desktop-entry.sh adds.

@@ -149,8 +149,9 @@ bool Win32Window::Create(const std::wstring& title,
   return OnCreate();
 }
 
+// It opens maximized; the size it was created with is the one it takes once the user restores it.
 bool Win32Window::Show() {
-  return ShowWindow(window_handle_, SW_SHOWNORMAL);
+  return ShowWindow(window_handle_, SW_SHOWMAXIMIZED);
 }
 
 // static
