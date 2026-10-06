@@ -139,7 +139,7 @@ void main() {
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
   });
 
-  testWidgets('Esc in the search bar clears it, as its clear button does, and leaves it', (tester) async {
+  testWidgets('Esc in the search bar clears it, as its clear button does; empty, it leaves it', (tester) async {
     await pumpHome(tester, const Size(1000, 640));
     await tester.enterText(find.byType(TextField), 'dream');
     await tester.pump(HomePage.searchTypingPause);
@@ -154,6 +154,10 @@ void main() {
     expect(find.text('Toys in the Attic'), findsOneWidget);
     expect(tester.widget<TextField>(find.byType(TextField)).controller?.text, isEmpty);
     expect(find.byTooltip('Limpar'), findsNothing);
+    expect(field.hasFocus, isTrue, reason: 'ready for another search');
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump();
     expect(field.hasFocus, isFalse, reason: 'space plays and pauses again');
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
   });

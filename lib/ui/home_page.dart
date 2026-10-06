@@ -131,12 +131,16 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final services = ServicesScope.of(context);
     final results = _results;
-    // Esc, as the clear button, and out of the bar, as it does elsewhere (UnfocusShortcut).
+    // Esc, as the clear button, staying in the bar for another search; with nothing typed, out of it, as Esc goes out
+    // of anything else (UnfocusShortcut).
     final searchBar = CallbackShortcuts(
       bindings: {
         const SingleActivator(LogicalKeyboardKey.escape): () {
-          _clearSearch();
-          FocusManager.instance.primaryFocus?.unfocus();
+          if (_search.text.isEmpty) {
+            FocusManager.instance.primaryFocus?.unfocus();
+          } else {
+            _clearSearch();
+          }
         },
       },
       child: SearchBar(

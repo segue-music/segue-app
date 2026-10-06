@@ -62,7 +62,7 @@ the device it runs on.
   the search bar in the middle of the top bar. Arrows beside the app's icon go back and forward through
   those pages, as a browser's do, and so do the keyboard's left and right (on a phone, left goes back
   from a page with a back arrow). A section, or a search, closes them. Esc takes the focus off what
-  has it, leaving the search bar empty;
+  has it; in the search bar, it first clears what was typed;
 - the queue of whichever device the app controls, from the full-screen player or, on a wide
   screen, the player bar: the current track on top, the next ones under it and what played before
   above it. A tap on a track plays it there;
