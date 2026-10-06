@@ -15,6 +15,7 @@ class FakeEngine implements AudioEngine {
   bool _shuffle = false;
   Duration _position = Duration.zero;
   DateTime _since = DateTime.now();
+  bool _failed = false;
 
   @override
   Stream<void> get changes => _changes.stream;
@@ -41,7 +42,19 @@ class FakeEngine implements AudioEngine {
   bool get shuffle => _shuffle;
 
   @override
+  bool get failed => _failed;
+
+  /// As when the current track fails to load: the engine stops on it, paused.
+  void fail() {
+    _failed = true;
+    _seek(Duration.zero);
+    _playing = false;
+    _changes.add(null);
+  }
+
+  @override
   Future<void> open(List<Uri> tracks, {required int index, required Duration position, required bool play}) async {
+    _failed = false;
     this.tracks = tracks;
     _order = [for (var i = 0; i < tracks.length; i++) i];
     _index = index;
@@ -98,6 +111,7 @@ class FakeEngine implements AudioEngine {
 
   @override
   Future<void> stop() async {
+    _failed = false;
     tracks = [];
     _order = [];
     _index = 0;
@@ -108,6 +122,7 @@ class FakeEngine implements AudioEngine {
 
   @override
   Future<void> jump(int index) async {
+    _failed = false;
     _index = index;
     _seek(Duration.zero);
     _playing = true;
@@ -127,6 +142,7 @@ class FakeEngine implements AudioEngine {
   Future<void> dispose() => _changes.close();
 
   void _setPlaying(bool playing) {
+    _failed &= !playing; // play tries the track again
     _seek(position);
     _playing = playing;
     _changes.add(null);

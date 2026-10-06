@@ -35,6 +35,9 @@ class PlayerController extends ChangeNotifier {
   bool get shuffle => _engine.shuffle;
   Song? get current => index >= 0 && index < _queue.length ? _queue[index] : null;
 
+  /// Whether the current song failed to load: the player stopped on it, paused.
+  bool get failed => _engine.failed;
+
   PlaybackStatus get status => _queue.isEmpty
       ? PlaybackStatus.stopped
       : playing

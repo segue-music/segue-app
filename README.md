@@ -37,7 +37,10 @@ the device it runs on.
   player bar and in a full-screen player that the song in the bar opens. In both, the song's title
   opens its album (as does the album's name, in the full-screen player) and its artist their page
   (the first artist, when it has several), whichever device it plays on; on a phone the whole song
-  in the bar opens the player. Wherever albums are listed (the home's rows, the albums tab and
+  in the bar opens the player. A song the media server fails to give (as when it can't read its disk)
+  stops the player on it, paused where it was, and says so, rather than the player skipping through
+  the queue; play tries it again. Paused music, as the app opens on the last playback, asks the server
+  for nothing until it plays. Wherever albums are listed (the home's rows, the albums tab and
   search), an album's artist opens their page, a button in the middle of its cover plays it from
   its first song (on a computer, while the pointer is over the album; on a phone or a tablet,
   always; on a TV, which goes from album to album, never), and the rest of it opens the album; on the album's

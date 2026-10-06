@@ -4,6 +4,7 @@ import 'player/audio_interruptions.dart';
 import 'player/media_controls.dart';
 import 'services.dart';
 import 'session.dart';
+import 'ui/failed_song_message.dart';
 import 'ui/home_page.dart';
 import 'ui/login_page.dart';
 import 'ui/shortcuts.dart';
@@ -107,7 +108,10 @@ class _SegueAppState extends State<SegueApp> {
               : ServicesScope(
                   services: services,
                   // The media keys, too, where no system media session takes them.
-                  child: PlaybackShortcuts(mediaKeys: widget.mediaControls == null, child: page),
+                  child: PlaybackShortcuts(
+                    mediaKeys: widget.mediaControls == null,
+                    child: FailedSongMessage(child: page),
+                  ),
                 ),
         );
       },

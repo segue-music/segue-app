@@ -78,7 +78,13 @@ Running two app instances on one machine as different devices:
   media_kit's `state.playlist.index` briefly drops to 0 on every open. It keeps the position it
   commanded (seek, jump, open) until media_kit's catches up, so the report right after isn't stale.
   It reapplies shuffle after each open, since media_kit turns it off. It starts the current track
-  over itself on a jump to it, which mpv ignores. And it reports when a track starts over on repeat. The play order (`order`) maps the shuffled playlist back to the songs.
+  over itself on a jump to it, which mpv ignores. It reports when a track starts over on repeat. It
+  stops on a track that fails to load (`failed`), paused where it was, where mpv would move on to the
+  next and, with a media server that fails them all, through the whole queue in a moment; mpv's log
+  tells which track failed, since its events can announce the next one first. And opened paused (the
+  last playback, as the app opens), it loads nothing until play or a jump, so that a failure comes
+  only from something the user did. The play order (`order`) maps the shuffled playlist back to the
+  songs.
 - `ConnectController` (`lib/connect/`) follows the Connect model: the app controls one device at a
   time (`activeId`, null meaning this device). UI actions go through it (`playSongs`, `toggle`,
   `seek`, ...): it either runs them on the local player or sends them as hub commands. The UI should
