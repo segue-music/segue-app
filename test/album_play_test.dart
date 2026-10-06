@@ -105,6 +105,22 @@ final playButton = find.byTooltip('Tocar o álbum');
 /// The tile of the album named [name].
 Finder tile(String name) => find.ancestor(of: find.text(name), matching: find.byType(AlbumTile));
 
+/// What darkens the cover of the album named [name]: black, a little.
+Finder shade(String name) => find.descendant(
+  of: tile(name),
+  matching: find.byWidgetPredicate(
+    (widget) =>
+        widget is ColoredBox &&
+        (widget.color.r, widget.color.g, widget.color.b) == (0.0, 0.0, 0.0) &&
+        widget.color.a > 0 &&
+        widget.color.a < 0.5,
+  ),
+);
+
+/// How opaque [finder] is, as the fade it comes in with stands.
+double fade(WidgetTester tester, Finder finder) =>
+    tester.widget<FadeTransition>(find.ancestor(of: finder, matching: find.byType(FadeTransition)).first).opacity.value;
+
 /// A mouse, over nothing yet.
 Future<TestGesture> mouse(WidgetTester tester) async {
   final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
@@ -156,6 +172,32 @@ void main() {
   );
 
   testWidgets(
+    'on a computer, the cover darkens a little as the play button shows over it, and back as it goes',
+    variant: TargetPlatformVariant.desktop(),
+    (tester) async {
+      await pumpAlbums(tester);
+      final gesture = await mouse(tester);
+      expect(shade('Toys in the Attic'), findsNothing);
+
+      await gesture.moveTo(tester.getCenter(find.text('Toys in the Attic')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 75));
+      // Halfway in, together.
+      expect(fade(tester, shade('Toys in the Attic')), inExclusiveRange(0, 1));
+      expect(fade(tester, shade('Toys in the Attic')), fade(tester, playButton));
+      await tester.pumpAndSettle();
+      final cover = find.descendant(of: tile('Toys in the Attic'), matching: find.byType(Cover));
+      expect(tester.getRect(shade('Toys in the Attic')), tester.getRect(cover), reason: 'all of the cover');
+      expect(shade('Pump'), findsNothing);
+
+      await gesture.moveTo(const Offset(999, 699));
+      await tester.pumpAndSettle();
+      expect(shade('Toys in the Attic'), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets(
     'clicked, it plays the album from its first song, without opening it',
     variant: TargetPlatformVariant.desktop(),
     (tester) async {
@@ -179,6 +221,7 @@ void main() {
     (tester) async {
       final player = await pumpAlbums(tester);
       expect(playButton, findsNWidgets(2));
+      expect(shade('Toys in the Attic'), findsNothing, reason: 'with nothing to hover with, the covers stay');
       await tester.tap(find.descendant(of: tile('Toys in the Attic'), matching: playButton));
       await tester.pumpAndSettle();
       expect(player.current?.title, 'Walk This Way');

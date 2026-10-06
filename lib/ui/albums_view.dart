@@ -332,7 +332,7 @@ class _AlbumTileState extends State<AlbumTile> {
                     Positioned.fill(
                       child: ClipRRect(borderRadius: BorderRadius.circular(8), child: Cover(album.coverArt)),
                     ),
-                    AlbumPlayButton(album, hovered: _hovered),
+                    Positioned.fill(child: AlbumPlayButton(album, hovered: _hovered)),
                   ],
                 ),
               ),

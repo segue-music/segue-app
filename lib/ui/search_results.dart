@@ -122,7 +122,7 @@ class _AlbumResultState extends State<_AlbumResult> {
           alignment: Alignment.center,
           children: [
             Thumbnail(album.coverArt),
-            AlbumPlayButton(album, hovered: _hovered, small: true),
+            Positioned.fill(child: AlbumPlayButton(album, hovered: _hovered, small: true)),
           ],
         ),
         title: Text(album.name, maxLines: 1, overflow: TextOverflow.ellipsis),

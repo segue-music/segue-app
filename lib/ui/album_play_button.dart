@@ -6,9 +6,10 @@ import '../services.dart';
 import 'errors.dart';
 import 'spinner.dart';
 
-/// A button that plays an album from its first song without opening it, to go over its cover. On a
-/// computer it shows while the pointer is over the album ([hovered]); on a phone or a tablet, with
-/// nothing to hover with, always. On a TV it doesn't: the remote goes from album to album, and would
+/// A button that plays an album from its first song without opening it, in the middle of its cover,
+/// which it fills. On a computer it shows while the pointer is over the album ([hovered]), the cover
+/// darkening a little under it as it comes; on a phone or a tablet, with nothing to hover with,
+/// always, on the cover as it is. On a TV it doesn't: the remote goes from album to album, and would
 /// have to stop at each one's button too. There an album plays from its page.
 class AlbumPlayButton extends StatefulWidget {
   const AlbumPlayButton(this.album, {required this.hovered, this.small = false, super.key});
@@ -68,7 +69,22 @@ class _AlbumPlayButtonState extends State<AlbumPlayButton> {
     };
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 150),
-      child: touch || widget.hovered || _loading ? _button(context) : const SizedBox.shrink(),
+      child: touch
+          ? Center(child: _button(context))
+          : widget.hovered || _loading
+          // The shade comes and goes with the button, in the same fade, rounded as the thumbnail's or the
+          // cover's corners are.
+          ? Stack(
+              fit: StackFit.expand,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(widget.small ? 4 : 8),
+                  child: const ColoredBox(color: Colors.black26),
+                ),
+                Center(child: _button(context)),
+              ],
+            )
+          : const SizedBox.shrink(),
     );
   }
 
