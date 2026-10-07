@@ -10,6 +10,7 @@ import '../segue/protocol.dart';
 import '../server/models.dart';
 import '../server/server.dart';
 import '../services.dart';
+import '../theme_choice.dart';
 import 'albums_view.dart';
 import 'artists_view.dart';
 import 'genres_view.dart';
@@ -19,12 +20,17 @@ import 'page_area.dart';
 import 'player_page.dart';
 import 'search_results.dart';
 import 'shortcuts.dart';
+import 'theme_fade.dart';
 import 'themed_icon.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({required this.onSignOut, super.key});
+  const HomePage({required this.onSignOut, this.themeChoice, super.key});
 
   final VoidCallback onSignOut;
+
+  /// The theme picked, which a button in the top bar switches between light and dark, on a wide screen; none, no
+  /// button.
+  final ThemeChoice? themeChoice;
 
   /// How long typing in the search bar has to stop before the search goes out, so that it isn't one
   /// per key.
@@ -227,7 +233,9 @@ class _HomePageState extends State<HomePage> {
       icon: Image.asset('assets/logo.png', width: 32, height: 32),
       onPressed: () => _select(_Section.home),
     );
+    final themeChoice = widget.themeChoice;
     final actions = [
+      if (!narrow && themeChoice != null) _ThemeButton(themeChoice),
       _HubStatus(client: services.connect.client),
       IconButton(tooltip: 'Sair', icon: const ThemedIcon(HugeIcons.strokeRoundedLogout01), onPressed: widget.onSignOut),
     ];
@@ -468,6 +476,34 @@ class _SideRail extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+/// Switches to the light theme from the dark one, and back: to the other of the one showing, which until then may be the
+/// system's. The old theme fades into the new one (ThemeFade).
+class _ThemeButton extends StatelessWidget {
+  const _ThemeButton(this.choice);
+
+  final ThemeChoice choice;
+
+  @override
+  Widget build(BuildContext context) {
+    void pick(ThemeMode mode) {
+      ThemeFade.start(context);
+      choice.pick(mode);
+    }
+
+    return Theme.of(context).brightness == Brightness.dark
+        ? IconButton(
+            tooltip: 'Tema claro',
+            icon: const ThemedIcon(HugeIcons.strokeRoundedSun03),
+            onPressed: () => pick(ThemeMode.light),
+          )
+        : IconButton(
+            tooltip: 'Tema escuro',
+            icon: const ThemedIcon(HugeIcons.strokeRoundedMoon02),
+            onPressed: () => pick(ThemeMode.dark),
+          );
   }
 }
 

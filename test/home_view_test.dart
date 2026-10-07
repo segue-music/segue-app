@@ -12,11 +12,16 @@ import 'package:segue/player/player.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
+import 'package:segue/theme_choice.dart';
 import 'package:segue/ui/album_page.dart';
 import 'package:segue/ui/albums_view.dart';
 import 'package:segue/ui/home_page.dart';
 import 'package:segue/ui/shortcuts.dart';
+import 'package:segue/ui/theme.dart';
+import 'package:segue/ui/theme_fade.dart';
 import 'package:segue/ui/themed_icon.dart';
+import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 import 'fakes.dart';
 import 'side_rail.dart';
@@ -40,7 +45,8 @@ http.Response albumList(List<String> names) => subsonic({
 
 /// The home page on a screen of [size], over a server whose latest released albums are [released],
 /// whose most played are [mostPlayed] (null: it fails to list them) and whose latest added are
-/// [latest], however many are asked for. Returns the queries of the album lists asked for.
+/// [latest], however many are asked for. In the app's themes, as [themeChoice] picks them, which the home switches, as
+/// the app does (ThemeFade). Returns the queries of the album lists asked for.
 Future<List<Map<String, String>>> pumpHome(
   WidgetTester tester,
   Size size, {
@@ -48,6 +54,7 @@ Future<List<Map<String, String>>> pumpHome(
   List<String>? mostPlayed = const ['Pump', 'Toys in the Attic'],
   List<String> latest = const ['Night in the Ruts'],
   bool television = false,
+  ThemeChoice? themeChoice,
 }) async {
   const credentials = SubsonicCredentials(username: 'a', token: 't', salt: 's');
   final asked = <Map<String, String>>[];
@@ -92,14 +99,22 @@ Future<List<Map<String, String>>> pumpHome(
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
-  await tester.pumpWidget(
-    MaterialApp(
-      builder: (context, child) => ServicesScope(
+  Widget app() => MaterialApp(
+    theme: themeChoice == null ? null : segueTheme(Brightness.light),
+    darkTheme: themeChoice == null ? null : segueTheme(Brightness.dark),
+    themeMode: themeChoice?.value ?? ThemeMode.system,
+    themeAnimationDuration: Duration.zero,
+    builder: (context, child) => ThemeFade(
+      child: ServicesScope(
         services: services,
         child: DirectionalNavigation(enabled: television, child: child!),
       ),
-      home: HomePage(onSignOut: () {}),
     ),
+    home: HomePage(onSignOut: () {}, themeChoice: themeChoice),
+  );
+
+  await tester.pumpWidget(
+    themeChoice == null ? app() : ListenableBuilder(listenable: themeChoice, builder: (context, _) => app()),
   );
   await tester.pumpAndSettle();
   return asked;
@@ -130,6 +145,9 @@ Future<void> press(WidgetTester tester, LogicalKeyboardKey key) async {
 }
 
 void main() {
+  // Where the theme picked is kept.
+  setUpAll(() => SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty());
+
   testWidgets('the app opens on the home: a row of the latest released albums, then the most played, then the latest '
       'added', (tester) async {
     await pumpHome(tester, const Size(1000, 700));
@@ -228,6 +246,106 @@ void main() {
     await tester.pumpAndSettle();
     expectHomeInRail();
     expect(shown('Lançamentos'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a wide screen, a button in the top bar switches to the dark theme and back, which stays picked', (
+    tester,
+  ) async {
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
+    addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+    final choice = ThemeChoice();
+    addTearDown(choice.dispose);
+    await pumpHome(tester, const Size(1000, 700), themeChoice: choice);
+    Brightness shown() => Theme.of(tester.element(find.byType(HomePage))).brightness;
+    Finder inTopBar(String tooltip) => find.descendant(of: find.byType(AppBar), matching: find.byTooltip(tooltip));
+
+    expect(shown(), Brightness.light, reason: 'the system\'s, until a pick');
+    expect(inTopBar('Tema escuro'), findsOneWidget);
+    expect(find.descendant(of: inTopBar('Tema escuro'), matching: themedIcon(HugeIcons.strokeRoundedMoon02)), findsOne);
+    expect(
+      tester.getRect(inTopBar('Tema escuro')).right,
+      lessThanOrEqualTo(tester.getRect(find.byTooltip('Sem hub: só toca neste aparelho')).left),
+      reason: 'before the hub\'s status and signing out',
+    );
+
+    await tester.tap(inTopBar('Tema escuro'));
+    await tester.pumpAndSettle();
+    expect(shown(), Brightness.dark);
+    expect((await ThemeChoice.load()).value, ThemeMode.dark, reason: 'kept for the next launch');
+    expect(inTopBar('Tema escuro'), findsNothing);
+    expect(find.descendant(of: inTopBar('Tema claro'), matching: themedIcon(HugeIcons.strokeRoundedSun03)), findsOne);
+
+    await tester.tap(inTopBar('Tema claro'));
+    await tester.pumpAndSettle();
+    expect(shown(), Brightness.light);
+    expect((await ThemeChoice.load()).value, ThemeMode.light, reason: 'no longer the system\'s, even where it agrees');
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('the app in the old theme fades away over the new one', (tester) async {
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
+    addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+    final choice = ThemeChoice();
+    addTearDown(choice.dispose);
+    await pumpHome(tester, const Size(1000, 700), themeChoice: choice);
+    final old = find.byKey(ThemeFade.oldThemeKey);
+    double opacity() => tester.widget<FadeTransition>(old).opacity.value;
+
+    await tester.tap(find.byTooltip('Tema escuro'));
+    await tester.pump();
+    expect(Theme.of(tester.element(find.byType(HomePage))).brightness, Brightness.dark, reason: 'at once, under it');
+    expect(old, findsOneWidget, reason: 'the app as it was, in the light theme');
+    expect(tester.getRect(old), Offset.zero & const Size(1000, 700), reason: 'over all of it');
+    expect(opacity(), 1);
+
+    await tester.pump(ThemeFade.duration ~/ 4);
+    final quarter = opacity();
+    expect(quarter, lessThan(1));
+    await tester.pump(ThemeFade.duration ~/ 4);
+    expect(opacity(), moreOrLessEquals(0.5, epsilon: 0.01));
+    expect(1 - quarter, lessThan(0.25), reason: 'slow at the start, fast through the middle, where it is gray');
+
+    await tester.pumpAndSettle();
+    expect(old, findsNothing, reason: 'faded away');
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('where the system asks for less motion, the new theme shows at once', (tester) async {
+    tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(disableAnimations: true);
+    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+    final choice = ThemeChoice();
+    addTearDown(choice.dispose);
+    await pumpHome(tester, const Size(1000, 700), themeChoice: choice);
+    await tester.tap(find.byTooltip('Tema escuro'));
+    await tester.pump();
+    expect(find.byKey(ThemeFade.oldThemeKey), findsNothing);
+    expect(find.byTooltip('Tema claro'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('in a dark system the button switches to the light theme', (tester) async {
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
+    addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+    final choice = ThemeChoice();
+    addTearDown(choice.dispose);
+    await pumpHome(tester, const Size(1000, 700), themeChoice: choice);
+    expect(find.byTooltip('Tema escuro'), findsNothing);
+
+    await tester.tap(find.byTooltip('Tema claro'));
+    await tester.pumpAndSettle();
+    expect(Theme.of(tester.element(find.byType(HomePage))).brightness, Brightness.light);
+    expect(find.byTooltip('Tema escuro'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a phone, the top bar has no theme button', (tester) async {
+    final choice = ThemeChoice();
+    addTearDown(choice.dispose);
+    await pumpHome(tester, const Size(360, 640), themeChoice: choice);
+    expect(find.byTooltip('Tema escuro'), findsNothing);
+    expect(find.byTooltip('Tema claro'), findsNothing);
+    expect(find.byTooltip('Sair'), findsOneWidget, reason: 'the top bar\'s other buttons stay');
     await tester.pumpWidget(const SizedBox());
   });
 

@@ -6,6 +6,7 @@ import 'player/audio_interruptions.dart';
 import 'player/media_controls.dart';
 import 'session.dart';
 import 'device.dart';
+import 'theme_choice.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,6 +17,7 @@ Future<void> main() async {
   runApp(
     SegueApp(
       session: await Session.load(),
+      themeChoice: await ThemeChoice.load(),
       mediaControls: controls,
       interruptions: interruptions,
       television: television,
