@@ -12,9 +12,10 @@ import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/cover.dart';
 import 'package:segue/ui/now_playing_bar.dart';
+import 'package:segue/ui/themed_icon.dart';
 
 import 'fakes.dart';
-import 'player_page_test.dart' show pumpBar;
+import 'player_page_test.dart' show pumpBar, tvPlaying;
 
 void main() {
   for (final (screen, size) in [('a wide screen', const Size(960, 540)), ('a phone', const Size(360, 640))]) {
@@ -67,7 +68,9 @@ void main() {
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
   });
 
-  testWidgets('on a phone-sized screen, the bar shows what plays on another device, and where', (tester) async {
+  testWidgets('on a phone-sized screen, the bar shows what plays on another device, its devices button tinted', (
+    tester,
+  ) async {
     const credentials = SubsonicCredentials(username: 'a', token: 't', salt: 's');
     final api = SubsonicApi(
       Uri.parse('https://music.test'),
@@ -122,9 +125,31 @@ void main() {
     );
     expect(find.text('Dream On'), findsOneWidget);
     expect(find.text('Aerosmith'), findsOneWidget);
-    expect(find.text('Tocando em Sala de estar'), findsOneWidget);
+    expect(find.textContaining('Sala de estar'), findsNothing, reason: 'no strip under the bar saying where');
+    expect(
+      tester
+          .widget<ThemedIcon>(find.descendant(of: find.byTooltip('Aparelhos'), matching: find.byType(ThemedIcon)))
+          .color,
+      Theme.of(tester.element(find.byType(NowPlayingBar))).colorScheme.primary,
+    );
     expect(find.text('1:01'), findsOneWidget);
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
+  });
+
+  testWidgets('on a wide screen, a strip under the bar says where it plays, when that is another device', (
+    tester,
+  ) async {
+    await pumpBar(tester, size: const Size(960, 540));
+    expect(find.textContaining('Tocando em'), findsNothing, reason: 'it plays here');
+    await tester.pumpWidget(const SizedBox());
+
+    await pumpBar(
+      tester,
+      client: tvPlaying(const QueueItem(id: 's1', title: 'Dream On', artist: 'Aerosmith', album: 'Aerosmith')),
+      size: const Size(960, 540),
+    );
+    expect(find.text('Tocando em Sala de estar'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
   });
 
   testWidgets('the slider jumps to where it is tapped, or to where a drag lets go', (tester) async {

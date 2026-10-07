@@ -816,9 +816,31 @@ void main() {
     await pumpBar(
       tester,
       client: tvPlaying(const QueueItem(id: 's1', title: 'Dream On', artist: 'Aerosmith', album: 'Aerosmith')),
+      size: const Size(1280, 800),
     );
     await openPlayer(tester);
-    expect(onPage(find.text('Tocando em Sala de estar')), findsOneWidget);
+    expect(inPlayer((widget) => widget is Text && widget.data == 'Tocando em Sala de estar'), findsOneWidget);
+    expect(inPlayer((widget) => widget is Text && widget.data == 'Dream On'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a phone, its devices button says that it plays on another device, tinted', (tester) async {
+    Color? devicesColor() => tester
+        .widget<ThemedIcon>(find.descendant(of: onPage(find.byTooltip('Aparelhos')), matching: find.byType(ThemedIcon)))
+        .color;
+
+    await pumpBar(tester);
+    await openPlayer(tester);
+    expect(devicesColor(), isNull, reason: 'it plays here');
+    await tester.pumpWidget(const SizedBox());
+
+    await pumpBar(
+      tester,
+      client: tvPlaying(const QueueItem(id: 's1', title: 'Dream On', artist: 'Aerosmith', album: 'Aerosmith')),
+    );
+    await openPlayer(tester);
+    expect(onPage(find.textContaining('Sala de estar')), findsNothing, reason: 'no room at the top for where');
+    expect(devicesColor(), Theme.of(tester.element(find.byType(PlayerPage))).colorScheme.primary);
     expect(onPage(find.text('Dream On')), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });

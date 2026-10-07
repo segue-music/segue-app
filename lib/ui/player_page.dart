@@ -61,7 +61,9 @@ class PlayerPage extends StatelessWidget {
                     onPressed: close,
                   ),
                   centerTitle: true,
-                  title: device == null
+                  // Where it plays, when that's another device. A phone's top has no room for it beside its
+                  // buttons: there the devices button, tinted, says so.
+                  title: device == null || !wide
                       ? null
                       : Text(
                           '${now!.playing ? 'Tocando' : 'Pausado'} em $device',

@@ -200,8 +200,9 @@ class NowPlayingBar extends StatelessWidget {
                         ),
                       ),
                     ),
-                    // Where it plays, when that's another device, in a strip under the player.
-                    if (now.device != null)
+                    // Where it plays, when that's another device, in a strip under the player. On a phone, where the
+                    // strip would take room from the page, the devices button, tinted, says so.
+                    if (wide && now.device != null)
                       Container(
                         width: double.infinity,
                         color: colors.primaryContainer,
