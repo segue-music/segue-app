@@ -81,9 +81,9 @@ class _AlbumRowState extends State<AlbumRow> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 8, 4),
+          padding: const EdgeInsets.fromLTRB(16, 12, 12, 4),
           child: SizedBox(
-            height: 48, // the arrows' height, also without them
+            height: 48, // the same with the arrows or without them
             child: Row(
               children: [
                 Expanded(
@@ -134,7 +134,9 @@ class _AlbumRowState extends State<AlbumRow> {
   }
 
   /// Back and forward, each while there are albums that way; none when they all fit. Out of the
-  /// focus's way: the keyboard and the remote go along the albums themselves.
+  /// focus's way: the keyboard and the remote go along the albums themselves. Close together, as the
+  /// top bar's: smaller buttons than the rest, without the room Material leaves around them on a
+  /// touch screen.
   Widget _arrows() => ListenableBuilder(
     listenable: Listenable.merge([_scroll, _metrics]),
     builder: (context, _) {
@@ -148,17 +150,24 @@ class _AlbumRowState extends State<AlbumRow> {
         return const SizedBox.shrink();
       }
 
+      final arrows = IconButton.styleFrom(
+        padding: const EdgeInsets.all(4),
+        minimumSize: const Size.square(32),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      );
       return ExcludeFocus(
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
               tooltip: 'Anteriores',
+              style: arrows,
               icon: const ThemedIcon(HugeIcons.strokeRoundedArrowLeft01),
               onPressed: position.extentBefore > 0 ? () => _page(-1) : null,
             ),
             IconButton(
               tooltip: 'Próximos',
+              style: arrows,
               icon: const ThemedIcon(HugeIcons.strokeRoundedArrowRight01),
               onPressed: position.extentAfter > 0 ? () => _page(1) : null,
             ),
