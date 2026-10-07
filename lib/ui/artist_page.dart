@@ -11,11 +11,12 @@ import 'errors.dart';
 import 'now_playing_bar.dart';
 import 'page_area.dart';
 import 'page_header.dart';
+import 'release_types.dart';
 import 'song_list_header.dart';
 import 'spinner.dart';
 
-/// An artist and their albums, newest first, under the songs of theirs the user plays most (once any has played) and,
-/// if they have any albums, a title for them.
+/// An artist and their albums, newest first, under the songs of theirs the user plays most (once any has played): their
+/// albums, then their singles and EPs, each under a title.
 class ArtistPage extends StatefulWidget {
   const ArtistPage(this.artist, {super.key});
 
@@ -50,10 +51,13 @@ class _ArtistPageState extends State<ArtistPage> {
           body: switch (data) {
             _ when snapshot.hasError => Center(child: Text('Não consegui abrir o artista: ${snapshot.error}')),
             null => const Center(child: Spinner()),
-            (final artist, final albums) => AlbumGrid(
-              // Newest first.
-              [...albums]..sort((a, b) => (b.year ?? 0).compareTo(a.year ?? 0)),
-              subtitle: (album) => album.year?.toString() ?? '',
+            (final artist, final albums) => AlbumGrid.sections(
+              _sections(albums),
+              // Its year, and its type where it isn't an album: "2020 · EP".
+              subtitle: (album) => [
+                if (album.year case final year?) '$year',
+                if (album.releaseType case final type? when type != ReleaseType.album) releaseTypeName(type),
+              ].join(' · '),
               header: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -86,12 +90,6 @@ class _ArtistPageState extends State<ArtistPage> {
                     ),
                   ),
                   _MostPlayedSongs(_mostPlayed!),
-                  // Over the albums, whether the songs above are there or not; with none, nothing to name.
-                  if (albums.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
-                      child: Text('Álbuns', style: text.titleLarge),
-                    ),
                 ],
               ),
             ),
@@ -104,6 +102,25 @@ class _ArtistPageState extends State<ArtistPage> {
         );
       },
     );
+  }
+
+  /// [albums], newest first, in sections: the artist's albums (with those the server says no type of), then their
+  /// singles and EPs. A section of none isn't there, nor its title, even with the songs above.
+  static List<AlbumSection> _sections(List<Album> albums) {
+    const short = {ReleaseType.single, ReleaseType.ep};
+    final newest = [...albums]..sort((a, b) => (b.year ?? 0).compareTo(a.year ?? 0));
+    final full = [
+      for (final album in newest)
+        if (!short.contains(album.releaseType)) album,
+    ];
+    final singles = [
+      for (final album in newest)
+        if (short.contains(album.releaseType)) album,
+    ];
+    return [
+      if (full.isNotEmpty) (title: 'Álbuns', albums: full),
+      if (singles.isNotEmpty) (title: 'Singles e EPs', albums: singles),
+    ];
   }
 }
 

@@ -27,10 +27,11 @@ the device it runs on.
   back, and a title that opens the albums tab in the row's order (on a Jellyfin server, which counts
   plays only by song, an album's plays are its songs', added up); albums (by name, the latest
   released, the most played or the latest added, picked in chips above them, the next ones coming
-  as the grid nears its end), artists (by name, each with their albums, under the five songs of theirs
-  the user plays most, numbered, once any has played, which play from the one picked: on a Subsonic
-  server, which lists no songs by plays, those of the artist's albums, from the albums that have
-  played) and genres (by name, each with its number of albums, under the ten the user listens to
+  as the grid nears its end), artists (by name, each with their albums and then, apart, their
+  singles and EPs, where the server says which are, under the five songs of theirs the user plays
+  most, numbered, once any has played, which play from the one picked: on a Subsonic server, which
+  lists no songs by plays, those of the artist's albums, from the albums that have played) and
+  genres (by name, each with its number of albums, under the ten the user listens to
   most, and its albums by name, under a row of those the user plays most: on a Subsonic server,
   which counts no plays by genre, both come from the 500 most played albums):
   albums, artists and genres in a side rail, as icons that name their sections on hover, beside them,

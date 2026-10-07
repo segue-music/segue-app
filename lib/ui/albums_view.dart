@@ -260,11 +260,27 @@ class _Retry extends StatelessWidget {
   );
 }
 
+/// A section of an [AlbumGrid]: albums, under a title or none.
+typedef AlbumSection = ({String? title, List<Album> albums});
+
 /// Albums as a grid of covers, between an optional [header] and [footer]. Each opens its page.
 class AlbumGrid extends StatelessWidget {
-  const AlbumGrid(this.albums, {this.header, this.footer, this.subtitle, super.key});
+  /// [albums] in one grid, with no title.
+  const AlbumGrid(List<Album> albums, {this.header, this.footer, this.subtitle, super.key})
+    : _albums = albums,
+      _sections = null;
 
-  final List<Album> albums;
+  /// The albums of [sections], a grid for each, under its title.
+  const AlbumGrid.sections(List<AlbumSection> sections, {this.header, this.footer, this.subtitle, super.key})
+    : _albums = null,
+      _sections = sections;
+
+  final List<Album>? _albums;
+  final List<AlbumSection>? _sections;
+
+  /// Its albums, in sections: one with no title, from the default constructor.
+  List<AlbumSection> get sections => _sections ?? [(title: null, albums: _albums!)];
+
   final Widget? header;
   final Widget? footer;
 
@@ -275,21 +291,30 @@ class AlbumGrid extends StatelessWidget {
   Widget build(BuildContext context) => CustomScrollView(
     slivers: [
       if (header != null) SliverToBoxAdapter(child: header),
-      // Covers of up to 180 pixels, 16 from the edges and from one another, of which the tiles' room inside
-      // (AlbumTile.padding) is part.
-      SliverPadding(
-        padding: const EdgeInsets.all(16 - AlbumTile.padding),
-        sliver: SliverGrid.builder(
-          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 180 + 2 * AlbumTile.padding,
-            mainAxisSpacing: 16 - 2 * AlbumTile.padding,
-            crossAxisSpacing: 16 - 2 * AlbumTile.padding,
-            childAspectRatio: 0.75,
+      for (final (:title, :albums) in sections) ...[
+        if (title != null)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+              child: Text(title, style: Theme.of(context).textTheme.titleLarge),
+            ),
           ),
-          itemCount: albums.length,
-          itemBuilder: (context, i) => AlbumTile(albums[i], subtitle: subtitle?.call(albums[i])),
+        // Covers of up to 180 pixels, 16 from the edges and from one another, of which the tiles' room inside
+        // (AlbumTile.padding) is part.
+        SliverPadding(
+          padding: const EdgeInsets.all(16 - AlbumTile.padding),
+          sliver: SliverGrid.builder(
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 180 + 2 * AlbumTile.padding,
+              mainAxisSpacing: 16 - 2 * AlbumTile.padding,
+              crossAxisSpacing: 16 - 2 * AlbumTile.padding,
+              childAspectRatio: 0.75,
+            ),
+            itemCount: albums.length,
+            itemBuilder: (context, i) => AlbumTile(albums[i], subtitle: subtitle?.call(albums[i])),
+          ),
         ),
-      ),
+      ],
       if (footer != null) SliverToBoxAdapter(child: footer),
       // Clear of the bars a phone's home has over it.
       SliverToBoxAdapter(child: SizedBox(height: MediaQuery.paddingOf(context).bottom)),

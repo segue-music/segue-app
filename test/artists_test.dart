@@ -29,8 +29,8 @@ http.Response subsonic(Map<String, Object?> body) => http.Response(
   headers: {'content-type': 'application/json'},
 );
 
-/// A server with three artists: Aerosmith, with two albums, none of them played, Cheap Trick, with one, six of whose
-/// songs have played, and Ramones, with none. A search for "toys" finds an album; any other, the artist Aerosmith.
+/// A server with three artists: Aerosmith, with two albums, none of them played, and a single and an EP, Cheap Trick,
+/// with one album, six of whose songs have played, and Ramones, with none. A search for "toys" finds an album; any other, the artist Aerosmith.
 http.Response server(http.Request request) {
   final path = request.url.path;
   final id = request.url.queryParameters['id'];
@@ -93,7 +93,27 @@ http.Response server(http.Request request) {
         'albumCount': 2,
         'album': [
           {'id': 'a1', 'name': 'Aerosmith', 'artist': 'Aerosmith', 'year': 1973},
-          {'id': 'a2', 'name': 'Toys in the Attic', 'artist': 'Aerosmith', 'year': 1975},
+          {
+            'id': 'a4',
+            'name': 'Dream On',
+            'artist': 'Aerosmith',
+            'year': 1973,
+            'releaseTypes': ['single'],
+          },
+          {
+            'id': 'a2',
+            'name': 'Toys in the Attic',
+            'artist': 'Aerosmith',
+            'year': 1975,
+            'releaseTypes': ['album'],
+          },
+          {
+            'id': 'a5',
+            'name': 'Pink',
+            'artist': 'Aerosmith',
+            'year': 1997,
+            'releaseTypes': ['EP'],
+          },
         ],
       },
     });
@@ -280,6 +300,33 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('an artist\'s singles and EPs, newest first, come after their albums, under a title of their own', (
+    tester,
+  ) async {
+    // Tall enough for both sections.
+    await pumpHome(tester, const Size(1000, 1200));
+    await tester.tap(find.byTooltip('Artistas'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Aerosmith'));
+    await tester.pumpAndSettle();
+    final albums = tester.getRect(find.descendant(of: find.byType(ArtistPage), matching: find.text('Álbuns')));
+    final singles = tester.getRect(find.text('Singles e EPs'));
+    final (toys, pink, dreamOn) = (
+      tester.getRect(find.text('Toys in the Attic')),
+      tester.getRect(find.text('Pink')),
+      tester.getRect(find.text('Dream On')),
+    );
+    expect(albums.bottom, lessThan(toys.top));
+    expect(toys.bottom, lessThan(singles.top), reason: 'the albums first');
+    expect(singles.bottom, lessThan(pink.top));
+    expect((pink.top, singles.left), (dreamOn.top, albums.left));
+    expect(pink.left, lessThan(dreamOn.left), reason: 'the 1997 EP before the 1973 single');
+    expect(find.text('1997 · EP'), findsOneWidget, reason: 'its year and its type');
+    expect(find.text('1973 · Single'), findsOneWidget);
+    expect(find.text('1975'), findsOneWidget, reason: 'an album\'s year alone');
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('an artist with no albums has no title for them', (tester) async {
     await pumpHome(tester, const Size(1000, 700));
     await tester.tap(find.byTooltip('Artistas'));
@@ -288,6 +335,18 @@ void main() {
     await tester.pumpAndSettle();
     expect(artistName('Ramones'), findsOneWidget);
     expect(find.descendant(of: find.byType(ArtistPage), matching: find.text('Álbuns')), findsNothing);
+    expect(find.text('Singles e EPs'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('an artist with albums alone has no title for singles and EPs', (tester) async {
+    await pumpHome(tester, const Size(1000, 700));
+    await tester.tap(find.byTooltip('Artistas'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cheap Trick'));
+    await tester.pumpAndSettle();
+    expect(find.text('1977'), findsOneWidget, reason: 'the album, in the grid');
+    expect(find.text('Singles e EPs'), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
 
