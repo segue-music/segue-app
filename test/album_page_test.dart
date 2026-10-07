@@ -251,6 +251,31 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('on a phone, the back arrow is beside the cover, with no bar above them but the system\'s', (
+    tester,
+  ) async {
+    await pumpAlbum(tester, size: const Size(360, 640));
+    tester.view.padding = const FakeViewPadding(top: 24);
+    final opened = Navigator.of(tester.element(find.byType(AlbumPage))).push(
+      MaterialPageRoute<void>(
+        builder: (context) => const AlbumPage(Album(id: 'a1', name: 'Toys in the Attic')),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final (arrow, cover) = (tester.getRect(find.byType(BackButton)), tester.getRect(find.byTooltip('Ver a capa')));
+    expect(cover.top, 24 + 16);
+    expect(arrow.top, greaterThanOrEqualTo(24));
+    expect(arrow.bottom, greaterThan(cover.top), reason: 'beside it, not over it');
+    expect(arrow.right, lessThanOrEqualTo(cover.left));
+    expect(tester.getRect(find.byType(ListView)).top, 24, reason: 'the songs scroll clear of the system\'s bar');
+
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    await opened;
+    expect(find.byType(BackButton), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('a song\'s number and duration are as big as the artist\'s line beside them, in its title\'s color', (
     tester,
   ) async {

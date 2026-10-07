@@ -10,6 +10,7 @@ import 'current_song.dart';
 import 'errors.dart';
 import 'now_playing_bar.dart';
 import 'page_area.dart';
+import 'page_header.dart';
 import 'song_list_header.dart';
 import 'spinner.dart';
 
@@ -39,65 +40,63 @@ class _ArtistPageState extends State<ArtistPage> {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
-    return Scaffold(
-      // No title: the artist's name is by their picture. Under a wide screen's top bar, whose arrow goes back, that
-      // leaves nothing for a bar of its own; elsewhere (on a phone) it has the back arrow.
-      appBar: PageArea.holdsUnderTopBar(context) ? null : AppBar(),
-      body: FutureBuilder(
-        future: _artist,
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text('Não consegui abrir o artista: ${snapshot.error}'));
-          }
-
-          final data = snapshot.data;
-
-          if (data == null) {
-            return const Center(child: Spinner());
-          }
-
-          final (artist, albums) = data;
-          final newestFirst = [...albums]..sort((a, b) => (b.year ?? 0).compareTo(a.year ?? 0));
-          return AlbumGrid(
-            newestFirst,
-            subtitle: (album) => album.year?.toString() ?? '',
-            header: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                  child: Row(
-                    children: [
-                      SizedBox.square(
-                        dimension: 140,
-                        child: ClipOval(
-                          child: Cover(artist.coverArt ?? widget.artist.coverArt, icon: HugeIcons.strokeRoundedUser),
-                        ),
+    return FutureBuilder(
+      future: _artist,
+      builder: (context, snapshot) {
+        final data = snapshot.data;
+        return Scaffold(
+          // No title: the artist's name is by their picture, which is beside the back arrow.
+          appBar: PageHeader.bar(context, shown: data != null),
+          body: switch (data) {
+            _ when snapshot.hasError => Center(child: Text('Não consegui abrir o artista: ${snapshot.error}')),
+            null => const Center(child: Spinner()),
+            (final artist, final albums) => AlbumGrid(
+              // Newest first.
+              [...albums]..sort((a, b) => (b.year ?? 0).compareTo(a.year ?? 0)),
+              subtitle: (album) => album.year?.toString() ?? '',
+              header: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  PageHeader(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(0, 16, 16, 0),
+                      child: Row(
+                        children: [
+                          SizedBox.square(
+                            dimension: 140,
+                            child: ClipOval(
+                              child: Cover(
+                                artist.coverArt ?? widget.artist.coverArt,
+                                icon: HugeIcons.strokeRoundedUser,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(artist.name, style: text.titleLarge),
+                                Text(albumCount(artist.albumCount ?? albums.length), style: text.bodyMedium),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(artist.name, style: text.titleLarge),
-                            Text(albumCount(artist.albumCount ?? albums.length), style: text.bodyMedium),
-                          ],
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-                _MostPlayedSongs(_mostPlayed!),
-              ],
+                  _MostPlayedSongs(_mostPlayed!),
+                ],
+              ),
             ),
-          );
-        },
-      ),
-      // The albums go on behind the player bar, slightly see-through on a phone; the grid ends with the room
-      // MediaQuery says the bar takes. In the page area the home's bars stay under the page instead, with the room they
-      // take, which a bar of its own, even one showing nothing, would take away.
-      extendBody: true,
-      bottomNavigationBar: PageArea.holds(context) ? null : const NowPlayingBar(),
+          },
+          // The albums go on behind the player bar, slightly see-through on a phone; the grid ends with the room
+          // MediaQuery says the bar takes. In the page area the home's bars stay under the page instead, with the room
+          // they take, which a bar of its own, even one showing nothing, would take away.
+          extendBody: true,
+          bottomNavigationBar: PageArea.holds(context) ? null : const NowPlayingBar(),
+        );
+      },
     );
   }
 }

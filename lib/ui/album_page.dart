@@ -12,6 +12,7 @@ import 'current_song.dart';
 import 'errors.dart';
 import 'now_playing_bar.dart';
 import 'page_area.dart';
+import 'page_header.dart';
 import 'song_list_header.dart';
 import 'spinner.dart';
 import 'themed_icon.dart';
@@ -89,65 +90,70 @@ class _AlbumPageState extends State<AlbumPage> {
     final text = Theme.of(context).textTheme;
     // On a phone, or a window as narrow (as the home counts it), the songs have no header naming their columns.
     final headed = MediaQuery.sizeOf(context).width >= 600;
-    return Scaffold(
-      // No title: the album's name is by its cover. Under a wide screen's top bar, whose arrow goes back, that leaves
-      // nothing for a bar of its own; elsewhere (on a phone) it has the back arrow.
-      appBar: PageArea.holdsUnderTopBar(context) ? null : AppBar(),
-      body: FutureBuilder(
-        future: _album,
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text('Não consegui abrir o álbum: ${snapshot.error}'));
-          }
-
-          final data = snapshot.data;
-
-          if (data == null) {
-            return const Center(child: Spinner());
-          }
-
-          final (album, songs) = data;
-          return ListView(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    SizedBox.square(dimension: 140, child: CoverButton(album.coverArt)),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(album.name, style: text.titleLarge),
-                          _Byline(album, songs, artistPicture: _artistPicture!, style: text.bodyMedium),
-                          const SizedBox(height: 12),
-                          FilledButton.icon(
-                            onPressed: songs.isEmpty ? null : () => _play(songs, 0),
-                            icon: const ThemedIcon(HugeIcons.strokeRoundedPlay),
-                            label: const Text('Tocar'),
+    // How big the cover is, square.
+    const cover = 140.0;
+    return FutureBuilder(
+      future: _album,
+      builder: (context, snapshot) {
+        final data = snapshot.data;
+        return Scaffold(
+          // No title: the album's name is by its cover, which is beside the back arrow.
+          appBar: PageHeader.bar(context, shown: data != null),
+          body: switch (data) {
+            _ when snapshot.hasError => Center(child: Text('Não consegui abrir o álbum: ${snapshot.error}')),
+            null => const Center(child: Spinner()),
+            (final album, final songs) => ListView(
+              children: [
+                PageHeader(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(0, 16, 16, 16),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox.square(dimension: cover, child: CoverButton(album.coverArt)),
+                        const SizedBox(width: 16),
+                        // Centered on the cover, which stays at the top, by the arrow, where a long name and its
+                        // byline beside it are taller.
+                        Expanded(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(minHeight: cover),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(album.name, style: text.titleLarge),
+                                _Byline(album, songs, artistPicture: _artistPicture!, style: text.bodyMedium),
+                                const SizedBox(height: 12),
+                                FilledButton.icon(
+                                  onPressed: songs.isEmpty ? null : () => _play(songs, 0),
+                                  icon: const ThemedIcon(HugeIcons.strokeRoundedPlay),
+                                  label: const Text('Tocar'),
+                                ),
+                              ],
+                            ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
-              if (headed) const SongListHeader(numbered: true),
-              for (var i = 0; i < songs.length; i++)
-                if (i == songs.length - 1)
-                  _LastSong(_song(songs, i), album: album, release: _release!)
-                else
-                  _song(songs, i),
-            ],
-          );
-        },
-      ),
-      // The songs go on behind the player bar, slightly see-through on a phone; the list, with no padding of its own,
-      // takes the room MediaQuery says the bar takes at its end. In the page area the home's bars stay under the page
-      // instead, with the room they take, which a bar of its own, even one showing nothing, would take away.
-      extendBody: true,
-      bottomNavigationBar: PageArea.holds(context) ? null : const NowPlayingBar(),
+                if (headed) const SongListHeader(numbered: true),
+                for (var i = 0; i < songs.length; i++)
+                  if (i == songs.length - 1)
+                    _LastSong(_song(songs, i), album: album, release: _release!)
+                  else
+                    _song(songs, i),
+              ],
+            ),
+          },
+          // The songs go on behind the player bar, slightly see-through on a phone; the list, with no padding of its
+          // own, takes the room MediaQuery says the bar takes at its end. In the page area the home's bars stay under
+          // the page instead, with the room they take, which a bar of its own, even one showing nothing, would take
+          // away.
+          extendBody: true,
+          bottomNavigationBar: PageArea.holds(context) ? null : const NowPlayingBar(),
+        );
+      },
     );
   }
 

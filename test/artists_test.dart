@@ -271,6 +271,14 @@ void main() {
     expect(find.byType(NavigationBar).hitTestable(), findsOneWidget);
     expect(find.descendant(of: page, matching: find.byType(NowPlayingBar)), findsNothing);
     expect(find.byType(BackButton), findsOneWidget);
+    // Beside their picture, with no bar above them.
+    final (arrow, picture) = (
+      tester.getRect(find.byType(BackButton)),
+      tester.getRect(find.descendant(of: page, matching: find.byType(ClipOval)).first),
+    );
+    expect(picture.top, 16);
+    expect(arrow.bottom, greaterThan(picture.top));
+    expect(arrow.right, lessThanOrEqualTo(picture.left));
     expect(tester.getRect(grid).bottom, 640);
     expect(MediaQuery.paddingOf(tester.element(grid)).bottom, 640 - tester.getRect(find.byType(NowPlayingBar)).top);
     await tester.pumpWidget(const SizedBox()); // stops the player bar's timer
