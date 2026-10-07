@@ -155,7 +155,7 @@ void main() {
     await tester.pumpAndSettle();
     await expectHand('the top bar\'s back arrow', find.byTooltip('Voltar'));
     await expectHand('the cover', find.byTooltip('Ver a capa'));
-    await expectHand('the play button', find.text('Tocar'));
+    await expectHand('the play button', find.byTooltip('Tocar o álbum'));
     await expectHand('a song', find.text('Walk This Way').first);
     await expectHand(
       'its artist',

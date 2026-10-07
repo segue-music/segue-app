@@ -187,6 +187,21 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('the play button is just its icon, its name in the tooltip, and plays the album from its first song', (
+    tester,
+  ) async {
+    final engine = await pumpAlbum(tester);
+    final play = find.byTooltip('Tocar o álbum');
+    expect(find.descendant(of: play, matching: find.byType(Text)), findsNothing);
+    expect(find.text('Tocar'), findsNothing);
+    await tester.tap(play);
+    await tester.pumpAndSettle();
+    expect(engine.tracks, hasLength(2));
+    expect(engine.index, 0);
+    expect(engine.playing, isTrue);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('under each song, its artist, a link to their page that doesn\'t play the song', (tester) async {
     final engine = await pumpAlbum(tester);
     final artist = find.descendant(of: song('Walk This Way'), matching: find.text('Aerosmith'));

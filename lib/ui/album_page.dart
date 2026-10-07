@@ -124,10 +124,11 @@ class _AlbumPageState extends State<AlbumPage> {
                                 Text(album.name, style: text.titleLarge),
                                 _Byline(album, songs, artistPicture: _artistPicture!, style: text.bodyMedium),
                                 const SizedBox(height: 12),
-                                FilledButton.icon(
+                                // Just the icon, its name in the tooltip, as the play button on the albums' covers.
+                                IconButton.filled(
+                                  tooltip: 'Tocar o álbum',
                                   onPressed: songs.isEmpty ? null : () => _play(songs, 0),
                                   icon: const ThemedIcon(HugeIcons.strokeRoundedPlay),
-                                  label: const Text('Tocar'),
                                 ),
                               ],
                             ),
