@@ -28,6 +28,10 @@ class NowPlayingBar extends StatelessWidget {
   /// see-through, the home's section showing through them.
   static const phoneOpacity = 0.98;
 
+  /// How round the corners of the bars at the bottom of a phone's screen are: all four of this one's, the top two of
+  /// the home's sections'.
+  static const phoneCorner = Radius.circular(8);
+
   /// Under the full-screen player, whether it shows the lyrics: the bar's lyrics button turns them on and
   /// off there, and its song closes the player. Null under any other page, where the button opens the
   /// player with them, and the song opens it.
@@ -67,7 +71,7 @@ class NowPlayingBar extends StatelessWidget {
             // On a phone, slightly see-through, its corners slightly rounded: on the home, the section shows through it
             // and around them.
             color: wide ? colors.surfaceContainer : colors.surfaceContainer.withValues(alpha: phoneOpacity),
-            shape: wide ? null : RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            shape: wide ? null : const RoundedRectangleBorder(borderRadius: BorderRadius.all(phoneCorner)),
             child: SafeArea(
               top: false,
               child: FocusTraversalGroup(

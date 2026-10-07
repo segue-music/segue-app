@@ -315,17 +315,21 @@ class _HomePageState extends State<HomePage> {
                 listenable: services.connect,
                 builder: (context, _) => SizedBox(height: services.connect.nowPlaying == null ? 0 : 2),
               ),
-              NavigationBar(
-                // A bit lower than Material's 80, with less room above and below the icons and their names.
-                height: 68,
-                backgroundColor: Theme.of(context).colorScheme.surfaceContainer
-                    .withValues(alpha: NowPlayingBar.phoneOpacity),
-                selectedIndex: _section.index,
-                onDestinationSelected: (index) => _select(_Section.values[index]),
-                destinations: [
-                  for (final section in _Section.values)
-                    NavigationDestination(icon: ThemedIcon(section.icon), label: section.label),
-                ],
+              // Its top corners rounded as the player's, the section showing around them.
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: NowPlayingBar.phoneCorner),
+                child: NavigationBar(
+                  // A bit lower than Material's 80, with less room above and below the icons and their names.
+                  height: 68,
+                  backgroundColor: Theme.of(context).colorScheme.surfaceContainer
+                      .withValues(alpha: NowPlayingBar.phoneOpacity),
+                  selectedIndex: _section.index,
+                  onDestinationSelected: (index) => _select(_Section.values[index]),
+                  destinations: [
+                    for (final section in _Section.values)
+                      NavigationDestination(icon: ThemedIcon(section.icon), label: section.label),
+                  ],
+                ),
               ),
             ],
           ),

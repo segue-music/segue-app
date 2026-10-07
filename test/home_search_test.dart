@@ -155,6 +155,11 @@ void main() {
       NowPlayingBar.phoneOpacity,
       reason: 'as the player',
     );
+    expect(
+      tester.widget<ClipRRect>(find.ancestor(of: sections, matching: find.byType(ClipRRect)).first).borderRadius,
+      const BorderRadius.vertical(top: NowPlayingBar.phoneCorner),
+      reason: 'its top corners rounded as the player\'s',
+    );
     expect(tester.getRect(sections).bottom, bottom);
 
     tester.view.padding = const FakeViewPadding(bottom: 24);
