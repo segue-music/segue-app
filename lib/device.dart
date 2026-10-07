@@ -30,7 +30,8 @@ Future<bool> adaptToTelevision() async {
 }
 
 /// The device's name, as its owner knows it: on Android, the one in the system settings, or else its
-/// maker and model (MainActivity.kt); elsewhere, the computer's.
+/// maker and model (MainActivity.kt); on iOS, the one in Settings, which since iOS 16 takes an
+/// entitlement from Apple, or else "iPhone" or "iPad" (AppDelegate.swift); elsewhere, the computer's.
 Future<String> systemDeviceName() async {
   try {
     final name = await _channel.invokeMethod<String>('deviceName');

@@ -292,6 +292,10 @@ What iOS does differently:
   another device, it is suspended after a while, and the hub sees it leave until it is opened again.
 - In a car, the music shows in CarPlay's Now Playing screen, with its controls, but the app has no
   screen of its own there.
+- Other devices see this one as "iPhone" (or "iPad"), not by its name in Settings (General > About
+  > Name): since iOS 16 an app reads that name only with an entitlement Apple grants on request
+  (`com.apple.developer.device-information.user-assigned-device-name`), which the app doesn't have
+  yet.
 
 ## Building and testing without Flutter installed
 
