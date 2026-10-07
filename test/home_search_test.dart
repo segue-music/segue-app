@@ -204,7 +204,7 @@ void main() {
     final arrows = tester.getRect(find.byTooltip('Avançar'));
     final bar = tester.getRect(find.byType(SearchBar));
     expect(bar.left, greaterThan(arrows.right));
-    expect(bar.right, lessThan(tester.getRect(find.byTooltip('Aparelhos')).left));
+    expect(bar.right, lessThan(tester.getRect(find.byTooltip('Sem hub: só toca neste aparelho')).left));
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
   });
 

@@ -232,20 +232,19 @@ void main() {
   });
 
   testWidgets(
-    'the hub\'s status sits as far from the devices button as that is from signing out',
+    'the hub\'s status sits as far from signing out as two buttons are from each other',
     (tester) async {
       await pumpHome(tester, const Size(1000, 700));
 
       Rect icon(HugeIconData icon) =>
           tester.getRect(find.descendant(of: find.byType(AppBar), matching: themedIcon(icon)));
 
-      final (hub, devices, signOut) = (
-        icon(HugeIcons.strokeRoundedUnlink02),
-        icon(HugeIcons.strokeRoundedMonitorSpeaker),
-        icon(HugeIcons.strokeRoundedLogout01),
+      final (hub, signOut) = (icon(HugeIcons.strokeRoundedUnlink02), icon(HugeIcons.strokeRoundedLogout01));
+      final button = tester.getSize(
+        find.ancestor(of: themedIcon(HugeIcons.strokeRoundedLogout01), matching: find.byType(IconButton)),
       );
-      expect(devices.left - hub.right, signOut.left - devices.right);
-      expect(hub.center.dy, devices.center.dy);
+      expect(signOut.left - hub.right, button.width - signOut.width);
+      expect(hub.center.dy, signOut.center.dy);
       await tester.pumpWidget(const SizedBox());
     },
     // Buttons are smaller on a desktop.

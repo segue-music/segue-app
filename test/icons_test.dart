@@ -127,8 +127,7 @@ void main() {
     expect(otherIcons, findsNothing, reason: 'the queue');
 
     await tap(tester, find.byTooltip('Voltar'));
-    // The player bar's: on a wide screen, the top bar's shows too, over the player.
-    await tap(tester, find.byTooltip('Aparelhos').last);
+    await tap(tester, find.byTooltip('Aparelhos'));
     expect(find.textContaining('Este aparelho'), findsOneWidget);
     expect(otherIcons, findsNothing, reason: 'the devices');
     await tester.pumpWidget(const SizedBox()); // stops the player bar's timers

@@ -128,10 +128,7 @@ void main() {
     // The home, with the player bar.
     await expectHand('the app\'s icon', find.byTooltip('Início'));
     await expectHand('a section in the side rail', find.byTooltip('Álbuns'));
-    await expectHand(
-      'a button in the top bar',
-      find.descendant(of: find.byType(AppBar), matching: find.byTooltip('Aparelhos')),
-    );
+    await expectHand('a button in the top bar', find.byTooltip('Sair'));
     await expectHand('an album', find.text('Toys in the Attic').first);
     await expectHand('its play button', find.byTooltip('Tocar o álbum').first);
     await expectHand('its artist', find.text('Aerosmith').first);
@@ -175,7 +172,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // The devices, and a line that only tells.
-    await tester.tap(find.byTooltip('Aparelhos').first);
+    await tester.tap(find.byTooltip('Aparelhos'));
     await tester.pumpAndSettle();
     await expectHand('this device', find.textContaining('Este aparelho'));
     await expectArrow('a line that only tells', find.text('Nenhum hub encontrado'));

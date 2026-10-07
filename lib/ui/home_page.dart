@@ -12,7 +12,6 @@ import '../server/server.dart';
 import '../services.dart';
 import 'albums_view.dart';
 import 'artists_view.dart';
-import 'devices_sheet.dart';
 import 'genres_view.dart';
 import 'home_view.dart';
 import 'now_playing_bar.dart';
@@ -230,11 +229,6 @@ class _HomePageState extends State<HomePage> {
     );
     final actions = [
       _HubStatus(client: services.connect.client),
-      IconButton(
-        tooltip: 'Aparelhos',
-        icon: const ThemedIcon(HugeIcons.strokeRoundedMonitorSpeaker),
-        onPressed: () => showDevicesSheet(context),
-      ),
       IconButton(tooltip: 'Sair', icon: const ThemedIcon(HugeIcons.strokeRoundedLogout01), onPressed: widget.onSignOut),
     ];
     final sections = Stack(

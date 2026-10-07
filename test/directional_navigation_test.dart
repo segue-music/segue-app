@@ -371,7 +371,7 @@ void main() {
     await pumpTvHome(tester);
     await shiftTabTo(tester, inSearch);
     await press(tester, LogicalKeyboardKey.arrowRight);
-    expect(focusedTip(), 'Aparelhos');
+    expect(focusedTip(), 'Sair', reason: 'past the hub\'s status, which only tells');
     expect(inTopBar(), isTrue);
     await press(tester, LogicalKeyboardKey.arrowLeft);
     expect(inSearch(), isTrue);
