@@ -9,6 +9,7 @@ import 'artist_link.dart';
 import 'cover.dart';
 import 'cover_page.dart';
 import 'current_song.dart';
+import 'equalizer.dart';
 import 'errors.dart';
 import 'now_playing_bar.dart';
 import 'page_area.dart';
@@ -228,7 +229,7 @@ class _AlbumPageState extends State<AlbumPage> {
         selected: current,
         leading: SizedBox(
           width: SongListHeader.numberWidth,
-          child: playing ? const ThemedIcon(CurrentSong.icon) : SongNumber(index + 1),
+          child: playing ? const Equalizer() : SongNumber(index + 1),
         ),
         title: Text(song.title),
         // The artist takes no focus: for the keyboard and the remote the song stays one stop, as an album in the grid

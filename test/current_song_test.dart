@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
-import 'package:hugeicons/hugeicons.dart';
 import 'package:http/testing.dart';
 import 'package:segue/connect/connect.dart';
 import 'package:segue/player/player.dart';
@@ -15,10 +14,10 @@ import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/album_page.dart';
+import 'package:segue/ui/equalizer.dart';
 import 'package:segue/ui/search_results.dart';
 
 import 'fakes.dart';
-import 'themed_icons.dart';
 
 http.Response subsonic(Map<String, Object?> body) => http.Response(
   jsonEncode({
@@ -95,15 +94,14 @@ Color? colorOf(WidgetTester tester, String title) => tester
 
 Color primary(WidgetTester tester) => Theme.of(tester.element(find.byType(Scaffold).first)).colorScheme.primary;
 
-Finder playingIcon(String title) =>
-    find.descendant(of: tile(title), matching: themedIcon(HugeIcons.strokeRoundedAudioWave01));
+Finder playingIcon(String title) => find.descendant(of: tile(title), matching: find.byType(Equalizer));
 
 void main() {
   testWidgets('on the album page, the song that plays stands out, with the equalizer for its number', (tester) async {
     final services = fakeServices();
     await pump(tester, services, const AlbumPage(album));
     expect(colorOf(tester, 'Dream On'), isNot(primary(tester)));
-    expect(themedIcon(HugeIcons.strokeRoundedAudioWave01), findsNothing);
+    expect(find.byType(Equalizer), findsNothing);
 
     await services.connect.playSongs(songs, 1);
     await settle(tester);

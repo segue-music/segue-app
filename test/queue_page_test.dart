@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
-import 'package:hugeicons/hugeicons.dart';
 import 'package:http/testing.dart';
 import 'package:segue/connect/connect.dart';
 import 'package:segue/player/player.dart';
@@ -12,13 +11,13 @@ import 'package:segue/server/models.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
+import 'package:segue/ui/equalizer.dart';
 import 'package:segue/ui/now_playing_bar.dart';
 import 'package:segue/ui/player_page.dart';
 import 'package:segue/ui/queue_page.dart';
 import 'package:segue/ui/shortcuts.dart';
 
 import 'fakes.dart';
-import 'themed_icons.dart';
 
 const credentials = SubsonicCredentials(username: 'a', token: 't', salt: 's');
 
@@ -142,7 +141,7 @@ void main() {
 
     expect(tile(tester, 'Two').selected, isTrue, reason: 'the current track stands out');
     expect(tile(tester, 'Three').selected, isFalse);
-    expect(inQueue(themedIcon(HugeIcons.strokeRoundedAudioWave01)), findsOneWidget, reason: 'it plays');
+    expect(inQueue(find.byType(Equalizer)), findsOneWidget, reason: 'it plays');
     expect(inQueue(find.text('3:20')), findsOneWidget, reason: 'how long it lasts');
     final top = tester.getTopLeft(find.byType(CustomScrollView)).dy;
     expect(tester.getTopLeft(find.ancestor(of: inQueue(find.text('Two')), matching: find.byType(ListTile))).dy, top);

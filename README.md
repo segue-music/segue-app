@@ -95,7 +95,7 @@ the device it runs on.
   out and its kind, by its name, artist and year, when these match one album only;
 - on the album page and in search, the current song (on whichever device the app controls) stands
   out in the theme's color, with an equalizer in place of its number, or over its cover, while it
-  plays;
+  plays, its bars moving (still where the system asks for less motion);
 - Connect: the hub is found next to the server (or typed in), and the device picker lists the
   user's other devices that are online, with what they play. Picking one makes the app control it
   (play, pause, skip, seek, shuffle, repeat, play an album there). Picking this device again moves the music here, at the

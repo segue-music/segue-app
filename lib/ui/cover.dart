@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../services.dart';
-import 'current_song.dart';
+import 'equalizer.dart';
 import 'themed_icon.dart';
 
 /// A cover from the media server, or a placeholder.
@@ -90,7 +90,7 @@ class Thumbnail extends StatelessWidget {
                 if (playing)
                   ColoredBox(
                     color: Colors.black54,
-                    child: ThemedIcon(CurrentSong.icon, color: Theme.of(context).colorScheme.primaryFixedDim),
+                    child: Equalizer(color: Theme.of(context).colorScheme.primaryFixedDim),
                   ),
               ],
             ),

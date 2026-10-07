@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:hugeicons/hugeicons.dart';
 
 import '../server/models.dart';
 import '../services.dart';
+import 'equalizer.dart';
 
 /// Builds a song's tile knowing whether it is the current song (the one the device the app
 /// controls plays, or has paused) and whether it plays. Lists mark the current song in the theme's
-/// primary color (a selected ListTile), with [icon] while it plays.
+/// primary color (a selected ListTile), with an [Equalizer] while it plays.
 class CurrentSong extends StatelessWidget {
   const CurrentSong(this.song, {required this.builder, super.key});
-
-  static const icon = HugeIcons.strokeRoundedAudioWave01;
 
   final Song song;
   final Widget Function(BuildContext context, bool current, bool playing) builder;

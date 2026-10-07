@@ -4,6 +4,7 @@ import 'package:hugeicons/hugeicons.dart';
 import '../segue/protocol.dart';
 import '../services.dart';
 
+import 'equalizer.dart';
 import 'errors.dart';
 import 'themed_icon.dart';
 
@@ -100,10 +101,7 @@ class _DevicesSheet extends StatelessWidget {
 
     return Row(
       mainAxisSize: MainAxisSize.min,
-      children: [
-        if (playing) const ThemedIcon(HugeIcons.strokeRoundedAudioWave01),
-        if (active) const ThemedIcon(HugeIcons.strokeRoundedTick02),
-      ],
+      children: [if (playing) const Equalizer(), if (active) const ThemedIcon(HugeIcons.strokeRoundedTick02)],
     );
   }
 
