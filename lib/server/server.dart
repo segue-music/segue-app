@@ -94,6 +94,10 @@ abstract interface class MediaServer {
   /// Every artist, by name.
   Future<List<Artist>> artists();
 
+  /// The artists the user plays most, the most played first, as [artists] gives them; none before anything has
+  /// played.
+  Future<List<Artist>> mostPlayedArtists({int size = 100});
+
   /// An artist and their albums.
   Future<(Artist, List<Album>)> artist(String id);
 

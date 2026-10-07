@@ -6,6 +6,7 @@ import '../services.dart';
 import 'artist_page.dart';
 import 'cover.dart';
 import 'focus_ring.dart';
+import 'order_chips.dart';
 import 'spinner.dart';
 
 /// "1 álbum", "5 álbuns"; empty when the server didn't say.
@@ -15,7 +16,18 @@ String albumCount(int? count) => switch (count) {
   _ => '$count álbuns',
 };
 
-/// The library's artists, by name.
+/// Orders the library's artists come in: what a chip says of one, and what a list in it says when it has none.
+enum _ArtistOrder {
+  name('Nome', 'A biblioteca está vazia.'),
+  mostPlayed('Mais tocados', 'Os artistas que você mais ouvir aparecem aqui.');
+
+  const _ArtistOrder(this.label, this.emptyMessage);
+
+  final String label;
+  final String emptyMessage;
+}
+
+/// The library's artists, by name or the most played first, as picked in chips above them.
 class ArtistsView extends StatefulWidget {
   const ArtistsView({super.key});
 
@@ -24,52 +36,94 @@ class ArtistsView extends StatefulWidget {
 }
 
 class _ArtistsViewState extends State<ArtistsView> {
+  _ArtistOrder _order = _ArtistOrder.name;
   Future<List<Artist>>? _artists;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _artists ??= ServicesScope.of(context).api.artists();
+    _artists ??= _load();
   }
 
+  /// The artists, in the order picked.
+  Future<List<Artist>> _load() {
+    final api = ServicesScope.of(context).api;
+    return switch (_order) {
+      _ArtistOrder.name => api.artists(),
+      _ArtistOrder.mostPlayed => api.mostPlayedArtists(),
+    };
+  }
+
+  /// Another order lists them again, from the start.
+  void _reorder(_ArtistOrder order) => setState(() {
+    _order = order;
+    _artists = _load();
+  });
+
+  // The chips stay at the top, also while another order's artists come, as the albums' do.
   @override
-  Widget build(BuildContext context) => FutureBuilder(
-    future: _artists,
-    builder: (context, snapshot) {
-      if (snapshot.hasError) {
-        return Center(child: Text('Não consegui listar os artistas: ${snapshot.error}'));
-      }
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      OrderChips(_order, orders: _ArtistOrder.values, label: (order) => order.label, onOrder: _reorder),
+      Expanded(
+        child: FutureBuilder(
+          // Another order's starts over, with none of the last one's artists; a refresh keeps them until the new come.
+          key: ValueKey(_order),
+          future: _artists,
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return Center(child: Text('Não consegui listar os artistas: ${snapshot.error}'));
+            }
 
-      final artists = snapshot.data;
+            final artists = snapshot.data;
 
-      if (artists == null) {
-        return const Center(child: Spinner());
-      }
+            if (artists == null) {
+              return const Center(child: Spinner());
+            }
 
-      return RefreshIndicator(
-        onRefresh: () async {
-          final reload = ServicesScope.of(context).api.artists();
-          setState(() => _artists = reload);
-          await reload;
-        },
-        // Pictures of up to 180 pixels, 16 from the edges and from one another, of which the tiles' room inside
-        // (_ArtistTile.padding) is part, as the albums' are; the rows as far apart as with no room inside. At the end,
-        // clear of the bars a phone's home has over them.
-        child: GridView.builder(
-          padding:
-              const EdgeInsets.all(16 - _ArtistTile.padding) +
-              EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom),
-          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 180 + 2 * _ArtistTile.padding,
-            mainAxisSpacing: 16 - 2 * _ArtistTile.padding,
-            crossAxisSpacing: 16 - 2 * _ArtistTile.padding,
-            childAspectRatio: 0.74,
-          ),
-          itemCount: artists.length,
-          itemBuilder: (context, i) => _ArtistTile(artists[i]),
+            return RefreshIndicator(
+              onRefresh: () async {
+                final reload = _load();
+                setState(() => _artists = reload);
+                await reload;
+              },
+              child: artists.isEmpty
+                  // Scrolling all the same, for the refresh to pull.
+                  ? ListView(
+                      padding: const EdgeInsets.all(16),
+                      children: [Center(child: Text(_order.emptyMessage))],
+                    )
+                  : _ArtistGrid(artists),
+            );
+          },
         ),
-      );
-    },
+      ),
+    ],
+  );
+}
+
+/// Artists as a grid of pictures, each of which opens their page.
+class _ArtistGrid extends StatelessWidget {
+  const _ArtistGrid(this.artists);
+
+  final List<Artist> artists;
+
+  // Pictures of up to 180 pixels, 16 from the edges and from one another, of which the tiles' room inside
+  // (_ArtistTile.padding) is part, as the albums' are; the rows as far apart as with no room inside. At the end, clear
+  // of the bars a phone's home has over them.
+  @override
+  Widget build(BuildContext context) => GridView.builder(
+    padding:
+        const EdgeInsets.all(16 - _ArtistTile.padding) + EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom),
+    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+      maxCrossAxisExtent: 180 + 2 * _ArtistTile.padding,
+      mainAxisSpacing: 16 - 2 * _ArtistTile.padding,
+      crossAxisSpacing: 16 - 2 * _ArtistTile.padding,
+      childAspectRatio: 0.74,
+    ),
+    itemCount: artists.length,
+    itemBuilder: (context, i) => _ArtistTile(artists[i]),
   );
 }
 

@@ -31,9 +31,20 @@ http.Response subsonic(Map<String, Object?> body) => http.Response(
 
 /// A server with three artists: Aerosmith, with two albums, none of them played, and a single and an EP, Cheap Trick,
 /// with one album, six of whose songs have played, and Ramones, with none. A search for "toys" finds an album; any other, the artist Aerosmith.
-http.Response server(http.Request request) {
+/// Unless [played], nothing has played: not even Cheap Trick's songs, among the most played albums.
+http.Response server(http.Request request, {bool played = true}) {
   final path = request.url.path;
   final id = request.url.queryParameters['id'];
+
+  if (path.endsWith('getAlbumList2.view') && played && request.url.queryParameters['type'] == 'frequent') {
+    return subsonic({
+      'albumList2': {
+        'album': [
+          {'id': 'a3', 'name': 'In Color', 'artist': 'Cheap Trick', 'artistId': 'ar2', 'year': 1977, 'playCount': 7},
+        ],
+      },
+    });
+  }
 
   if (path.endsWith('getAlbumList2.view')) {
     return subsonic({'albumList2': <String, Object?>{}});
@@ -179,13 +190,13 @@ http.Response server(http.Request request) {
   return http.Response('', 404);
 }
 
-/// Opens the home; what the player plays goes to the engine it returns.
-Future<FakeEngine> pumpHome(WidgetTester tester, Size size) async {
+/// Opens the home, over a [server] where songs have [played]; what the player plays goes to the engine it returns.
+Future<FakeEngine> pumpHome(WidgetTester tester, Size size, {bool played = true}) async {
   const credentials = SubsonicCredentials(username: 'a', token: 't', salt: 's');
   final api = SubsonicApi(
     Uri.parse('https://music.test'),
     credentials,
-    client: MockClient((request) async => server(request)),
+    client: MockClient((request) async => server(request, played: played)),
   );
   final engine = FakeEngine();
   final player = PlayerController(engine, api);
@@ -230,6 +241,12 @@ Finder artistPictureAt(int size) => find.descendant(
 
 /// The tile of the artist named [name], in the artists' grid.
 Finder tile(String name) => find.ancestor(of: find.text(name), matching: find.byType(InkWell)).first;
+
+/// The chip of the artists tab that picks the order [label] names.
+Finder order(String label) => find.widgetWithText(ChoiceChip, label);
+
+/// Whether [label]'s order is the one picked.
+bool picked(WidgetTester tester, String label) => tester.widget<ChoiceChip>(order(label)).selected;
 
 /// What darkens the picture of the artist named [name]: black, a little.
 Finder shade(String name) => find.descendant(
@@ -277,6 +294,47 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Walk This Way'), findsOneWidget);
     await tester.pumpWidget(const SizedBox()); // stops the player bar's timers
+  });
+
+  testWidgets('the artists tab lists them by name, or the most played first, as picked in chips above them', (
+    tester,
+  ) async {
+    await pumpHome(tester, const Size(1000, 700));
+    await tester.tap(find.byTooltip('Artistas'));
+    await tester.pumpAndSettle();
+    expect(picked(tester, 'Nome'), isTrue);
+    expect(picked(tester, 'Mais tocados'), isFalse);
+    expect(find.text('Aerosmith'), findsOneWidget);
+    expect(find.text('Ramones'), findsOneWidget);
+    final picture = tester.getRect(find.descendant(of: tile('Aerosmith'), matching: find.byType(Cover)));
+    expect(picture.left, moreOrLessEquals(tester.getRect(order('Nome')).left), reason: 'lined up with the chips');
+    expect(picture.top, greaterThan(tester.getRect(order('Nome')).bottom), reason: 'under them');
+
+    await tester.tap(order('Mais tocados'));
+    await tester.pumpAndSettle();
+    expect(picked(tester, 'Mais tocados'), isTrue);
+    expect(picked(tester, 'Nome'), isFalse);
+    expect(find.text('Cheap Trick'), findsOneWidget, reason: 'their songs have played');
+    expect(find.text('1 álbum'), findsOneWidget, reason: 'as the tab lists them by name');
+    expect(find.text('Aerosmith'), findsNothing, reason: 'none of theirs has');
+    expect(find.text('Ramones'), findsNothing);
+
+    await tester.tap(order('Nome'));
+    await tester.pumpAndSettle();
+    expect(find.text('Aerosmith'), findsOneWidget);
+    expect(find.text('Ramones'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('before anything has played, the most played artists say where they will be', (tester) async {
+    await pumpHome(tester, const Size(1000, 700), played: false);
+    await tester.tap(find.byTooltip('Artistas'));
+    await tester.pumpAndSettle();
+    await tester.tap(order('Mais tocados'));
+    await tester.pumpAndSettle();
+    expect(find.text('Os artistas que você mais ouvir aparecem aqui.'), findsOneWidget);
+    expect(find.text('Cheap Trick'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
   });
 
   testWidgets('an artist\'s five songs the user plays most, numbered, come over their albums, and play from the one '

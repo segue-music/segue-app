@@ -238,6 +238,28 @@ class JellyfinApi implements MediaServer {
     for (final json in await _albumArtists({'SortBy': 'SortName'})) _artist(json),
   ];
 
+  /// An artist's plays are those of the songs they are an album artist of, added up, among the user's most played
+  /// songs, as an album's are. One [artists] doesn't list is left out, as it is of the artists tab.
+  @override
+  Future<List<Artist>> mostPlayedArtists({int size = 100}) async {
+    final plays = <String, int>{};
+
+    for (final song in await _mostPlayedSongs({})) {
+      for (final artist in song['AlbumArtists'] as List? ?? const []) {
+        if (artist case {'Id': final String id}) {
+          plays[id] = (plays[id] ?? 0) + _playCount(song);
+        }
+      }
+    }
+
+    if (plays.isEmpty) {
+      return const [];
+    }
+
+    final artists = {for (final artist in await this.artists()) artist.id: artist};
+    return [for (final id in rankedByCount(plays)) ?artists[id]].take(size).toList();
+  }
+
   /// An artist and the albums they are the album artist of.
   @override
   Future<(Artist, List<Album>)> artist(String id) async {

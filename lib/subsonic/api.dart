@@ -219,6 +219,26 @@ class SubsonicApi implements MediaServer {
     ];
   }
 
+  /// Subsonic counts no plays by artist: an artist's are those of the albums they are an artist of among the 500 most
+  /// played, added up, as a genre's are. One getArtists doesn't list is left out, as it is of the artists tab.
+  @override
+  Future<List<Artist>> mostPlayedArtists({int size = 100}) async {
+    final plays = <String, int>{};
+
+    for (final album in await _albumListItems({'type': 'frequent'}, size: 500)) {
+      for (final artist in _albumArtists(album)) {
+        plays[artist] = (plays[artist] ?? 0) + ((album['playCount'] as num?)?.toInt() ?? 1);
+      }
+    }
+
+    if (plays.isEmpty) {
+      return const [];
+    }
+
+    final artists = {for (final artist in await this.artists()) artist.id: artist};
+    return [for (final id in rankedByCount(plays)) ?artists[id]].take(size).toList();
+  }
+
   /// An artist and their albums (getArtist).
   @override
   Future<(Artist, List<Album>)> artist(String id) async {
@@ -341,6 +361,13 @@ Set<String> _albumGenres(Map<String, dynamic> json) => {
   if (json['genre'] case final String genre) genre,
   for (final genre in json['genres'] as List? ?? const [])
     if ((genre as Map<String, dynamic>)['name'] case final String name) name,
+};
+
+/// The ids of an album's artists: Subsonic's artistId, and OpenSubsonic's artists, all of them.
+Set<String> _albumArtists(Map<String, dynamic> json) => {
+  if (json['artistId'] case final String id) id,
+  for (final artist in json['artists'] as List? ?? const [])
+    if ((artist as Map<String, dynamic>)['id'] case final String id) id,
 };
 
 /// How many times the user played an album or a song; none when the server doesn't say.

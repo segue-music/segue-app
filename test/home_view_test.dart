@@ -222,12 +222,12 @@ void main() {
     await tester.tap(find.byTooltip('Artistas'));
     await tester.pumpAndSettle();
     expect(selectedInRail('Artistas'), findsOneWidget);
-    expect(shown('Mais tocados'), findsNothing);
+    expect(shown('Lançamentos'), findsNothing);
 
     await tester.tap(logo);
     await tester.pumpAndSettle();
     expectHomeInRail();
-    expect(shown('Mais tocados'), findsOneWidget);
+    expect(shown('Lançamentos'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 

@@ -663,6 +663,93 @@ void main() {
     expect(artists.first.albumCount, 5);
   });
 
+  test('the most played artists add up the plays of the 500 most played albums, by each of their artists, and come as '
+      'getArtists lists them', () async {
+    final asked = <Uri>[];
+    final api = SubsonicApi(
+      Uri.parse('https://music.test'),
+      credentials,
+      client: MockClient((request) async {
+        asked.add(request.url);
+
+        if (request.url.path.endsWith('getArtists.view')) {
+          return subsonic({
+            'status': 'ok',
+            'artists': {
+              'index': [
+                {
+                  'name': 'A',
+                  'artist': [
+                    {'id': 'ar1', 'name': 'Aerosmith', 'coverArt': 'ar-ar1', 'albumCount': 5},
+                  ],
+                },
+                {
+                  'name': 'C',
+                  'artist': [
+                    {'id': 'ar2', 'name': 'Cheap Trick', 'albumCount': 1},
+                  ],
+                },
+                {
+                  'name': 'M',
+                  'artist': [
+                    {'id': 'ar3', 'name': 'Miles Davis', 'albumCount': 3},
+                  ],
+                },
+              ],
+            },
+          });
+        }
+
+        return subsonic({
+          'status': 'ok',
+          'albumList2': {
+            'album': [
+              {'id': 'a1', 'name': 'Pump', 'playCount': 10, 'artistId': 'ar1'},
+              {'id': 'a2', 'name': 'Kind of Blue', 'playCount': 8, 'artistId': 'ar3'},
+              {
+                'id': 'a3',
+                'name': 'Together',
+                'playCount': 6,
+                'artistId': 'ar2',
+                'artists': [
+                  {'id': 'ar2', 'name': 'Cheap Trick'},
+                  {'id': 'ar1', 'name': 'Aerosmith'},
+                ],
+              },
+              // A server that doesn't say counts each album once.
+              {'id': 'a4', 'name': 'In Color', 'artistId': 'ar2'},
+              // getArtists doesn't list them.
+              {'id': 'a5', 'name': 'Anthology', 'playCount': 30, 'artistId': 'ar9'},
+            ],
+          },
+        });
+      }),
+    );
+    final artists = await api.mostPlayedArtists();
+    expect(asked.first.path, '/rest/getAlbumList2.view');
+    expect(asked.first.queryParameters, containsPair('type', 'frequent'));
+    expect(asked.first.queryParameters, containsPair('size', '500'));
+    expect(asked.last.path, '/rest/getArtists.view');
+    expect(artists.map((artist) => artist.name), ['Aerosmith', 'Miles Davis', 'Cheap Trick']);
+    expect(artists.first.coverArt, 'ar-ar1');
+    expect(artists.first.albumCount, 5);
+    expect((await api.mostPlayedArtists(size: 2)).map((artist) => artist.id), ['ar1', 'ar3']);
+  });
+
+  test('with nothing played yet there are no most played artists, and no artists to ask for', () async {
+    final asked = <Uri>[];
+    final api = SubsonicApi(
+      Uri.parse('https://music.test'),
+      credentials,
+      client: MockClient((request) async {
+        asked.add(request.url);
+        return subsonic({'status': 'ok', 'albumList2': <String, Object?>{}});
+      }),
+    );
+    expect(await api.mostPlayedArtists(), isEmpty);
+    expect(asked.single.path, '/rest/getAlbumList2.view');
+  });
+
   test('an artist comes with their albums', () async {
     late Uri asked;
     final api = SubsonicApi(

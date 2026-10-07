@@ -11,6 +11,7 @@ import 'album_play_button.dart';
 import 'artist_link.dart';
 import 'cover.dart';
 import 'focus_ring.dart';
+import 'order_chips.dart';
 import 'spinner.dart';
 
 /// How the app names an order of albums, and what a list in it says when it has none.
@@ -49,6 +50,9 @@ class AlbumsView extends StatefulWidget {
 
 class _AlbumsViewState extends State<AlbumsView> {
   static const _pageSize = 200;
+
+  /// The orders the chips pick from.
+  static const _orders = [AlbumOrder.name, AlbumOrder.released, AlbumOrder.mostPlayed, AlbumOrder.latest];
 
   /// How far from the end of the grid the next page is asked for.
   static const _ahead = 800.0;
@@ -166,7 +170,7 @@ class _AlbumsViewState extends State<AlbumsView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _OrderChips(widget.order, onOrder: onOrder),
+        OrderChips(widget.order, orders: _orders, label: (order) => order.label, onOrder: onOrder),
         Expanded(child: _albumsGrid()),
       ],
     );
@@ -206,38 +210,6 @@ class _AlbumsViewState extends State<AlbumsView> {
       ),
     );
   }
-}
-
-/// The orders the library's albums can come in, as chips in a line that scrolls sideways when it doesn't
-/// fit: the one picked, and the others to pick.
-class _OrderChips extends StatelessWidget {
-  const _OrderChips(this.order, {required this.onOrder});
-
-  final AlbumOrder order;
-  final ValueChanged<AlbumOrder> onOrder;
-
-  static const _orders = [AlbumOrder.name, AlbumOrder.released, AlbumOrder.mostPlayed, AlbumOrder.latest];
-
-  @override
-  Widget build(BuildContext context) => SingleChildScrollView(
-    scrollDirection: Axis.horizontal,
-    // Room under them that stays as the albums scroll, whose own room above goes away with them.
-    padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-    child: Row(
-      children: [
-        for (final option in _orders)
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: ChoiceChip(
-              label: Text(option.label),
-              selected: option == order,
-              onSelected: (_) => onOrder(option),
-              mouseCursor: WidgetStateMouseCursor.clickable,
-            ),
-          ),
-      ],
-    ),
-  );
 }
 
 /// What went wrong, and a button to try again.

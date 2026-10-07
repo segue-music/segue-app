@@ -454,6 +454,54 @@ void main() {
     expect(artists.single.id, 'ar1');
   });
 
+  test('the most played artists add up the plays of the most played songs, by each of their album artists, and come as '
+      'the album artists do', () async {
+    Map<String, Object?> played(String id, int plays, List<String> artists) => {
+      ...song,
+      'Id': id,
+      'AlbumArtists': [
+        for (final id in artists) {'Name': 'Artist $id', 'Id': id},
+      ],
+      'UserData': {'PlayCount': plays, 'Played': true},
+    };
+
+    final asked = <http.Request>[];
+    final artists = await jellyfin((request) {
+      if (request.url.path == '/jellyfin/Artists/AlbumArtists') {
+        return items([
+          {...artist, 'Id': 'ar1', 'Name': 'Aerosmith'},
+          {...artist, 'Id': 'ar2', 'Name': 'Cheap Trick'},
+          {...artist, 'Id': 'ar3', 'Name': 'Miles Davis'},
+        ]);
+      }
+
+      return items([
+        played('s1', 12, ['ar2']),
+        played('s2', 9, ['ar1']),
+        played('s3', 5, ['ar1', 'ar3']),
+        // Of an album artist the album artists don't list.
+        played('s4', 7, ['ar9']),
+        played('s5', 1, []),
+      ]);
+    }, asked).mostPlayedArtists(size: 3);
+    expect(
+      [for (final artist in artists) (artist.id, artist.name)],
+      [('ar1', 'Aerosmith'), ('ar2', 'Cheap Trick'), ('ar3', 'Miles Davis')],
+    );
+    expect(artists.first.coverArt, 'ar1');
+    final songs = asked.first.url.queryParameters;
+    expect(songs, containsPair('IncludeItemTypes', 'Audio'));
+    expect(songs, containsPair('Filters', 'IsPlayed'));
+    expect(songs, containsPair('SortBy', 'PlayCount'));
+    expect(asked.last.url.path, '/jellyfin/Artists/AlbumArtists');
+  });
+
+  test('with nothing played yet there are no most played artists, and no artists to ask for', () async {
+    final asked = <http.Request>[];
+    expect(await jellyfin((_) => items([]), asked).mostPlayedArtists(), isEmpty);
+    expect(asked, hasLength(1));
+  });
+
   test('an artist and their albums', () async {
     final (found, albums) = await jellyfin((request) {
       final query = request.url.queryParameters;
