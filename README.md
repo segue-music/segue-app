@@ -35,7 +35,8 @@ the device it runs on.
   plays by genre, both come from the 500 most played albums):
   albums, artists and genres in a side rail, as icons that name their sections on hover, beside them,
   and the home under the app's icon, in the top bar's left corner (on a phone, the icon goes there
-  too, and all four are in a bar at the bottom);
+  too, and all four are in a bar at the bottom, with the search after them: its bar shows in it alone,
+  blank under it until a search finds something);
   the album page, whose cover opens full screen; search (artists, albums and songs); and playback
   through media_kit (libmpv), with a seek bar, shuffle and repeat (the queue or the track), in the
   player bar and in a full-screen player that the song in the bar opens, which shows the song's lyrics

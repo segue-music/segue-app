@@ -82,14 +82,24 @@ Future<(PlayerController, List<String?>)> pumpHome(WidgetTester tester, Size siz
 }
 
 void main() {
-  testWidgets('on a phone-sized screen, the bar searches once typing stops, in place of the home', (tester) async {
+  testWidgets('on a phone-sized screen, the search is a section of the bar at the bottom, blank until typing stops', (
+    tester,
+  ) async {
     final (player, queries) = await pumpHome(tester, const Size(360, 640));
+    final sections = find.byType(NavigationBar);
     expect(find.text('Toys in the Attic'), findsOneWidget);
+    expect(find.byType(SearchBar), findsNothing, reason: 'only in the search');
+
+    await tester.tap(find.descendant(of: sections, matching: find.text('Buscar')));
+    await tester.pumpAndSettle();
+    expect(tester.widget<NavigationBar>(sections).selectedIndex, 4, reason: 'after the genres');
+    expect(find.text('Toys in the Attic'), findsNothing);
     expect(find.byTooltip('Limpar'), findsNothing);
+    expect(tester.testTextInput.isVisible, isTrue, reason: 'ready to type');
     // The bar has a line of its own, under the title.
     expect(
       tester.getCenter(find.byType(TextField)).dy,
-      greaterThan(tester.getBottomLeft(find.descendant(of: find.byType(AppBar), matching: find.text('Início'))).dy),
+      greaterThan(tester.getBottomLeft(find.descendant(of: find.byType(AppBar), matching: find.text('Buscar'))).dy),
     );
 
     await tester.enterText(find.byType(TextField), 'dre');
@@ -98,7 +108,6 @@ void main() {
     await tester.pump(HomePage.searchTypingPause);
     await tester.pump();
     expect(queries, ['dream']);
-    expect(find.text('Toys in the Attic'), findsNothing);
     expect(find.textContaining('1973'), findsOneWidget, reason: 'the album, after its artist');
     expect(find.text('Cheap Trick · Heaven Tonight'), findsOneWidget);
     expect(find.text('4:28'), findsOneWidget);
@@ -109,10 +118,20 @@ void main() {
     expect(player.current?.id, 's2');
     expect(player.playing, isTrue);
 
+    // Another section, and back: the search is where it was, without the keyboard over it.
+    await tester.tap(find.descendant(of: sections, matching: find.text('Início')));
+    await tester.pumpAndSettle();
+    expect(find.text('Toys in the Attic'), findsOneWidget);
+    expect(find.byType(SearchBar), findsNothing);
+    await tester.tap(find.descendant(of: sections, matching: find.text('Buscar')));
+    await tester.pumpAndSettle();
+    expect(find.text('Cheap Trick · Heaven Tonight'), findsOneWidget);
+    expect(tester.testTextInput.isVisible, isFalse);
+
     await tester.tap(find.byTooltip('Limpar'));
     await tester.pump();
-    expect(find.text('Toys in the Attic'), findsOneWidget);
     expect(find.textContaining('1973'), findsNothing);
+    expect(find.text('Toys in the Attic'), findsNothing, reason: 'blank again');
     expect(queries, ['dream']);
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
   });
@@ -134,6 +153,7 @@ void main() {
     await pumpHome(tester, const Size(1200, 640));
     final arrows = tester.getRect(find.byTooltip('Avançar'));
     final bar = tester.getRect(find.byType(SearchBar));
+    expect(find.byTooltip('Buscar'), findsNothing, reason: 'no section in the side rail: the bar is always there');
     expect(bar.center.dx, moreOrLessEquals(600, epsilon: 1));
     expect(bar.left, greaterThan(arrows.right));
     expect(bar.center.dy, moreOrLessEquals(arrows.center.dy, epsilon: 4));

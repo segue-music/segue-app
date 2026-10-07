@@ -36,12 +36,14 @@ class HomePage extends StatefulWidget {
 }
 
 /// The library's sections, in the side rail (or, on a phone, the bar at the bottom). The app's icon, in the top
-/// bar, opens the home too, and on a wide screen it alone does.
+/// bar, opens the home too, and on a wide screen it alone does. The search is a section on a phone only, where its
+/// bar shows with it; on a wide screen the bar is always in the top bar.
 enum _Section {
   home('Início', HugeIcons.strokeRoundedHome01),
   albums('Álbuns', HugeIcons.strokeRoundedCd),
   artists('Artistas', HugeIcons.strokeRoundedUser),
-  genres('Gêneros', HugeIcons.strokeRoundedTag01);
+  genres('Gêneros', HugeIcons.strokeRoundedTag01),
+  search('Buscar', HugeIcons.strokeRoundedSearch01);
 
   const _Section(this.label, this.icon);
 
@@ -84,6 +86,9 @@ class _HomePageState extends State<HomePage> {
     _searchFocus.addListener(_searchFocusChanged);
   }
 
+  /// A phone's screen, or a window as narrow: the sections in a bar at the bottom, and pages over all of it.
+  bool get _narrow => MediaQuery.sizeOf(context).width < 600;
+
   /// Shows [section], closing the pages over it.
   void _select(_Section section) {
     _history.closeAll();
@@ -92,7 +97,9 @@ class _HomePageState extends State<HomePage> {
       _opened.add(section);
     });
 
-    if (_results != null) {
+    // On a wide screen the results show over the section, which closes them. On a phone they are a section of their
+    // own, which keeps them as the others keep theirs.
+    if (_results != null && !_narrow) {
       _clearSearch();
     }
   }
@@ -166,7 +173,10 @@ class _HomePageState extends State<HomePage> {
     final services = ServicesScope.of(context);
     final results = _results;
     final width = MediaQuery.sizeOf(context).width;
-    final narrow = width < 600;
+    final narrow = _narrow;
+    // On a wide screen the search is the top bar's, not a section: a window narrowed to the search and widened again
+    // shows the home.
+    final shown = !narrow && _section == _Section.search ? _Section.home : _section;
     final television = MediaQuery.maybeNavigationModeOf(context) == NavigationMode.directional;
     // On a phone, on a line of its own, as wide as the screen; on a wide one, at most 600 and two fifths of the window,
     // which on a TV's (960 wide) leaves the top bar more than the search.
@@ -190,6 +200,9 @@ class _HomePageState extends State<HomePage> {
         // A tap, or the remote's center button.
         onTap: television ? _openKeyboard : null,
         hintText: 'Buscar álbum, artista ou música',
+        // On a phone, where the bar shows as the search opens: ready to type, but for a search already there, whose
+        // results the keyboard would cover.
+        autoFocus: narrow && _search.text.isEmpty,
         leading: const ThemedIcon(HugeIcons.strokeRoundedSearch01),
         trailing: [
           ListenableBuilder(
@@ -233,7 +246,7 @@ class _HomePageState extends State<HomePage> {
         for (final section in _opened)
           Visibility(
             key: ValueKey(section),
-            visible: results == null && section == _section,
+            visible: (narrow || results == null) && section == shown,
             maintainState: true,
             child: switch (section) {
               _Section.home => HomeView(onShowAll: _showAlbums),
@@ -243,24 +256,29 @@ class _HomePageState extends State<HomePage> {
               ),
               _Section.artists => const ArtistsView(),
               _Section.genres => const GenresView(),
+              // On a phone, blank until a search finds something.
+              _Section.search => results == null ? const SizedBox.shrink() : SearchResultsList(results),
             },
           ),
-        if (results != null) SearchResultsList(results),
+        // On a wide screen, over the section.
+        if (!narrow && results != null) SearchResultsList(results),
       ],
     );
 
-    // On a phone, the section's name on top, with the search bar on a line of its own under it, and the sections at
-    // the bottom. Pages open over all of it.
+    // On a phone, the section's name on top, in the search with its bar on a line of its own under it, and the
+    // sections at the bottom. Pages open over all of it.
     if (narrow) {
       return Scaffold(
         appBar: AppBar(
           // The app's icon, which opens the home.
           leading: logo,
           title: Text(_section.label),
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(56),
-            child: Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 12), child: searchBar),
-          ),
+          bottom: _section == _Section.search
+              ? PreferredSize(
+                  preferredSize: const Size.fromHeight(56),
+                  child: Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 12), child: searchBar),
+                )
+              : null,
           actions: actions,
         ),
         body: sections,
@@ -332,7 +350,7 @@ class _HomePageState extends State<HomePage> {
             ),
             body: Row(
               children: [
-                _SideRail(selected: _section, onSelected: _select),
+                _SideRail(selected: shown, onSelected: _select),
                 const VerticalDivider(width: 1),
                 Expanded(
                   // The system's back (Android's, a TV remote's) closes the page on top, rather than the app.
@@ -379,9 +397,9 @@ double _buttonSize(BuildContext context) =>
     Theme.of(context).materialTapTargetSize == MaterialTapTargetSize.padded ? kMinInteractiveDimension : 40.0;
 
 /// The side rail: the sections' icons, each named by its tooltip, but the home's, which the app's icon above it
-/// opens. NavigationRail's highlight is 56 px wide, from one edge of so narrow a rail to the other; here it is the
-/// icon's button's. The tooltip shows to the right of its icon, level with it: below, where tooltips go, it would
-/// cover the icon under it.
+/// opens, and the search's, which is the top bar's. NavigationRail's highlight is 56 px wide, from one edge of so
+/// narrow a rail to the other; here it is the icon's button's. The tooltip shows to the right of its icon, level with
+/// it: below, where tooltips go, it would cover the icon under it.
 class _SideRail extends StatelessWidget {
   const _SideRail({required this.selected, required this.onSelected});
 
@@ -411,7 +429,7 @@ class _SideRail extends StatelessWidget {
         children: [
           const SizedBox(height: 8),
           for (final section in _Section.values)
-            if (section != _Section.home)
+            if (section != _Section.home && section != _Section.search)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 child: Tooltip(
