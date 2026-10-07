@@ -87,6 +87,8 @@ class _AlbumPageState extends State<AlbumPage> {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
+    // On a phone, or a window as narrow (as the home counts it), the songs have no header naming their columns.
+    final headed = MediaQuery.sizeOf(context).width >= 600;
     return Scaffold(
       // No title: the album's name is by its cover. Under a wide screen's top bar, whose arrow goes back, that leaves
       // nothing for a bar of its own; elsewhere (on a phone) it has the back arrow.
@@ -131,7 +133,7 @@ class _AlbumPageState extends State<AlbumPage> {
                   ],
                 ),
               ),
-              const SongListHeader(numbered: true),
+              if (headed) const SongListHeader(numbered: true),
               for (var i = 0; i < songs.length; i++)
                 if (i == songs.length - 1)
                   _LastSong(_song(songs, i), album: album, release: _release!)

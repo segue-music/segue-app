@@ -242,6 +242,15 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('on a phone, no header over the songs, which keep their numbers', (tester) async {
+    await pumpAlbum(tester, size: const Size(360, 640));
+    expect(find.text('Título'), findsNothing);
+    expect(find.byTooltip('Duração'), findsNothing);
+    expect(find.descendant(of: song('Walk This Way'), matching: find.text('1')), findsOneWidget);
+    expect(find.descendant(of: song('Walk This Way'), matching: find.text('3:40')), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('a song\'s number and duration are as big as the artist\'s line beside them, in its title\'s color', (
     tester,
   ) async {
