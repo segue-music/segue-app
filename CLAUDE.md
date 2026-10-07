@@ -112,6 +112,14 @@ Running two app instances on one machine as different devices:
   hidden ones too, so `TopPageTraversal` leaves those under the top one out of the traversal (not
   out of the focus, which would forget where it was in them), and the sections not shown are out
   of the focus (`Visibility`).
+- On a phone the page area is there too, the same navigator (by its key, so pages stay open as the
+  window changes width), between the top of the screen and the bars at the bottom (the player's and
+  the sections'), which stay. It isn't under a top bar (`PageArea.underTopBar`), so its pages keep
+  their own, with the back arrow (`PageArea.holdsUnderTopBar`). The full-screen player and the
+  queue open in the app's navigator there, over everything (`PageArea.playerNavigatorOf`); the
+  player takes the area along (`PlayerRoute.area`), so its links close it and open their page in
+  the area. A page in the area has no player bar of its own (`PageArea.holds`): even an empty one
+  would take away the room the home's bars leave at the bottom (`extendBody`, `MediaQuery`).
 - `MediaServer` (`lib/server/server.dart`) is what pages, the player and the media controls ask of
   the media server, in either API: `SubsonicApi` (`lib/subsonic/`) or `JellyfinApi`
   (`lib/jellyfin/`). The user types only the address: `signIn` (`lib/server/sign_in.dart`) asks it

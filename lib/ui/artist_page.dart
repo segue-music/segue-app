@@ -40,9 +40,9 @@ class _ArtistPageState extends State<ArtistPage> {
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     return Scaffold(
-      // No title: the artist's name is by their picture. In the page area, where the top bar's arrow goes back, that
+      // No title: the artist's name is by their picture. Under a wide screen's top bar, whose arrow goes back, that
       // leaves nothing for a bar of its own; elsewhere (on a phone) it has the back arrow.
-      appBar: PageArea.holds(context) ? null : AppBar(),
+      appBar: PageArea.holdsUnderTopBar(context) ? null : AppBar(),
       body: FutureBuilder(
         future: _artist,
         builder: (context, snapshot) {
@@ -94,9 +94,10 @@ class _ArtistPageState extends State<ArtistPage> {
         },
       ),
       // The albums go on behind the player bar, slightly see-through on a phone; the grid ends with the room
-      // MediaQuery says the bar takes.
+      // MediaQuery says the bar takes. In the page area the home's bars stay under the page instead, with the room they
+      // take, which a bar of its own, even one showing nothing, would take away.
       extendBody: true,
-      bottomNavigationBar: const NowPlayingBar(),
+      bottomNavigationBar: PageArea.holds(context) ? null : const NowPlayingBar(),
     );
   }
 }

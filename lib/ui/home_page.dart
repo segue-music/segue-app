@@ -265,50 +265,76 @@ class _HomePageState extends State<HomePage> {
       ],
     );
 
-    // On a phone, the section's name on top, in the search with its bar on a line of its own under it, and the
-    // sections at the bottom. Pages open over all of it.
+    // The page area's navigator, over [first]: the sections, which the pages open over. The same navigator in both
+    // layouts, by its key, so that the pages stay open as the window is narrowed or widened.
+    Widget pageArea(Widget first) => NavigatorPopHandler(
+      // The system's back (Android's, a TV remote's) closes the page on top, rather than the app.
+      onPopWithResult: (_) => _pages.currentState?.maybePop(),
+      child: Navigator(
+        key: _pages,
+        observers: _observers,
+        // The arrows (a TV remote's) go on from a page's edges to the bars around it, where a navigator's pages would
+        // keep them.
+        routeDirectionalTraversalEdgeBehavior: TraversalEdgeBehavior.parentScope,
+        pages: [MaterialPage<void>(key: const ValueKey(_Section), child: first)],
+        onDidRemovePage: (_) {},
+      ),
+    );
+
+    // On a phone the bars at the bottom stay, the player's and the sections', and pages open over the rest, in the page
+    // area, each with its own top bar and back arrow: over the section, under its name, and in the search the search
+    // bar, on a line of its own. The full-screen player and the queue cover everything.
     if (narrow) {
-      return Scaffold(
-        appBar: AppBar(
-          // The app's icon, which opens the home.
-          leading: logo,
-          title: Text(_section.label),
-          bottom: _section == _Section.search
-              ? PreferredSize(
-                  preferredSize: const Size.fromHeight(56),
-                  child: Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 12), child: searchBar),
-                )
-              : null,
-          actions: actions,
-        ),
-        body: sections,
-        // The section goes on behind the bars at the bottom, showing through the gap between them; its lists end
-        // clear of them, by the room MediaQuery says they take.
-        extendBody: true,
-        bottomNavigationBar: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Above the sections' bar, which keeps clear of the system's at the bottom of the screen: the player's
-            // needn't, and a small gap sets the two apart, alike in color. Nothing playing, there is no player to set
-            // apart.
-            MediaQuery.removePadding(context: context, removeBottom: true, child: const NowPlayingBar()),
-            ListenableBuilder(
-              listenable: services.connect,
-              builder: (context, _) => SizedBox(height: services.connect.nowPlaying == null ? 0 : 2),
+      return PageArea(
+        navigator: _pages,
+        history: _history,
+        underTopBar: false,
+        child: Scaffold(
+          // The pages go on behind the bars, showing through the gap between them; their lists end clear of them, by
+          // the room MediaQuery says they take.
+          extendBody: true,
+          body: pageArea(
+            Scaffold(
+              appBar: AppBar(
+                // The app's icon, which opens the home.
+                leading: logo,
+                title: Text(_section.label),
+                bottom: _section == _Section.search
+                    ? PreferredSize(
+                        preferredSize: const Size.fromHeight(56),
+                        child: Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 12), child: searchBar),
+                      )
+                    : null,
+                actions: actions,
+              ),
+              body: sections,
             ),
-            NavigationBar(
-              // A bit lower than Material's 80, with less room above and below the icons and their names.
-              height: 68,
-              backgroundColor: Theme.of(context).colorScheme.surfaceContainer
-                  .withValues(alpha: NowPlayingBar.phoneOpacity),
-              selectedIndex: _section.index,
-              onDestinationSelected: (index) => _select(_Section.values[index]),
-              destinations: [
-                for (final section in _Section.values)
-                  NavigationDestination(icon: ThemedIcon(section.icon), label: section.label),
-              ],
-            ),
-          ],
+          ),
+          bottomNavigationBar: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Above the sections' bar, which keeps clear of the system's at the bottom of the screen: the player's
+              // needn't, and a small gap sets the two apart, alike in color. Nothing playing, there is no player to set
+              // apart.
+              MediaQuery.removePadding(context: context, removeBottom: true, child: const NowPlayingBar()),
+              ListenableBuilder(
+                listenable: services.connect,
+                builder: (context, _) => SizedBox(height: services.connect.nowPlaying == null ? 0 : 2),
+              ),
+              NavigationBar(
+                // A bit lower than Material's 80, with less room above and below the icons and their names.
+                height: 68,
+                backgroundColor: Theme.of(context).colorScheme.surfaceContainer
+                    .withValues(alpha: NowPlayingBar.phoneOpacity),
+                selectedIndex: _section.index,
+                onDestinationSelected: (index) => _select(_Section.values[index]),
+                destinations: [
+                  for (final section in _Section.values)
+                    NavigationDestination(icon: ThemedIcon(section.icon), label: section.label),
+                ],
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -332,6 +358,7 @@ class _HomePageState extends State<HomePage> {
         child: PageArea(
           navigator: _pages,
           history: _history,
+          underTopBar: true,
           child: Scaffold(
             appBar: AppBar(
               // The app's icon, over the side rail, which opens the home, and the arrows beside it.
@@ -367,25 +394,8 @@ class _HomePageState extends State<HomePage> {
                 _SideRail(selected: shown, onSelected: _select),
                 const VerticalDivider(width: 1),
                 Expanded(
-                  // The system's back (Android's, a TV remote's) closes the page on top, rather than the app.
-                  child: NavigatorPopHandler(
-                    onPopWithResult: (_) => _pages.currentState?.maybePop(),
-                    child: Navigator(
-                      key: _pages,
-                      observers: _observers,
-                      // The arrows (a TV remote's) go on from a page's edges to the bars around it, where a
-                      // navigator's pages would keep them.
-                      routeDirectionalTraversalEdgeBehavior: TraversalEdgeBehavior.parentScope,
-                      pages: [
-                        // A Material of its own for the lists' ink, which the page's transition would paint over.
-                        MaterialPage<void>(
-                          key: const ValueKey(_Section),
-                          child: Material(type: MaterialType.transparency, child: sections),
-                        ),
-                      ],
-                      onDidRemovePage: (_) {},
-                    ),
-                  ),
+                  // A Material of its own for the lists' ink, which the page's transition would paint over.
+                  child: pageArea(Material(type: MaterialType.transparency, child: sections)),
                 ),
               ],
             ),

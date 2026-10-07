@@ -14,9 +14,9 @@ import 'song_list_header.dart';
 class QueuePage extends StatefulWidget {
   const QueuePage({super.key});
 
-  /// Opens it over the current page: on a wide screen, in the page area.
+  /// Opens it over the current page: on a wide screen, in the page area; on a phone, over everything.
   static Future<void> open(BuildContext context) =>
-      PageArea.navigatorOf(context).push(MaterialPageRoute<void>(builder: (_) => const QueuePage()));
+      PageArea.playerNavigatorOf(context).push(MaterialPageRoute<void>(builder: (_) => const QueuePage()));
 
   @override
   State<QueuePage> createState() => _QueuePageState();
@@ -72,8 +72,8 @@ class _QueuePageState extends State<QueuePage> {
 
             return Scaffold(
               appBar: AppBar(
-                // In the page area, the top bar's arrow goes back: no arrow of its own.
-                automaticallyImplyLeading: !PageArea.holds(context),
+                // Under a wide screen's top bar, whose arrow goes back: no arrow of its own.
+                automaticallyImplyLeading: !PageArea.holdsUnderTopBar(context),
                 title: Text(now?.device == null ? 'Fila' : 'Fila em ${now!.device}'),
               ),
               bottomNavigationBar: const NowPlayingBar(),

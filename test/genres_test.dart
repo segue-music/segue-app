@@ -247,23 +247,25 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets(
-    'on a phone, the genres are in the bar at the bottom, and a genre\'s albums go on behind the player bar',
-    (tester) async {
-      await pumpHome(tester, const Size(360, 640));
-      await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Gêneros')));
-      await tester.pumpAndSettle();
-      expect(title('Gêneros'), findsOneWidget);
-      expect(tile('hard rock'), findsOneWidget);
+  testWidgets('on a phone, the genres are in the bar at the bottom, which stays under a genre\'s page', (tester) async {
+    await pumpHome(tester, const Size(360, 640));
+    await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Gêneros')));
+    await tester.pumpAndSettle();
+    expect(title('Gêneros'), findsOneWidget);
+    expect(tile('hard rock'), findsOneWidget);
 
-      await tester.tap(tile('hard rock'));
-      await tester.pumpAndSettle();
-      final page = find.byType(GenrePage);
-      await ServicesScope.of(tester.element(page)).player.playQueue(const [Song(id: 's1', title: 'Dream Police')]);
-      await tester.pumpAndSettle();
-      expect(tester.getRect(find.descendant(of: page, matching: find.byType(NowPlayingBar))).bottom, 640);
-      expect(tester.getRect(find.descendant(of: page, matching: find.byType(AlbumGrid))).bottom, 640);
-      await tester.pumpWidget(const SizedBox()); // stops the player bar's timer
-    },
-  );
+    await tester.tap(tile('hard rock'));
+    await tester.pumpAndSettle();
+    final page = find.byType(GenrePage);
+    await ServicesScope.of(tester.element(page)).player.playQueue(const [Song(id: 's1', title: 'Dream Police')]);
+    await tester.pumpAndSettle();
+    // Under the home's bars, which stay; the albums go on behind them, and end clear of them.
+    final grid = find.descendant(of: page, matching: find.byType(AlbumGrid));
+    expect(find.byType(NavigationBar).hitTestable(), findsOneWidget);
+    expect(find.descendant(of: page, matching: find.byType(NowPlayingBar)), findsNothing);
+    expect(find.byType(BackButton), findsOneWidget);
+    expect(tester.getRect(grid).bottom, 640);
+    expect(MediaQuery.paddingOf(tester.element(grid)).bottom, 640 - tester.getRect(find.byType(NowPlayingBar)).top);
+    await tester.pumpWidget(const SizedBox()); // stops the player bar's timer
+  });
 }

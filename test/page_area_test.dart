@@ -109,18 +109,53 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('on a phone, where pages open over the whole home, a page has its back arrow', (tester) async {
+  testWidgets(
+    'on a phone, a page opens over the section and its name, under the bars at the bottom, which stay; it has '
+    'its back arrow',
+    (tester) async {
+      final (player, _) = await pumpHome(tester, const Size(360, 800));
+      await player.playQueue(const [Song(id: 's1', title: 'Dream On', artist: 'Aerosmith')]);
+      await tester.pumpAndSettle();
+      await tapAndSettle(tester, album);
+      expect(find.byType(AlbumPage), findsOneWidget);
+      expect(find.text('Início').hitTestable(), findsOneWidget, reason: 'the sections\' bar\'s');
+      expect(find.byTooltip('Abrir o player').hitTestable(), findsOneWidget);
+      expect(find.byTooltip('Sair').hitTestable(), findsNothing, reason: 'the home\'s top bar is under the page');
+      expect(find.byType(BackButton), findsOneWidget);
+      expect(
+        find.descendant(of: find.byType(AppBar), matching: album),
+        findsNothing,
+        reason: 'no title: the name is by the cover',
+      );
+      await tapAndSettle(tester, find.byType(BackButton));
+      expect(find.byType(AlbumPage), findsNothing);
+
+      // A section, the one shown too, closes it.
+      await tapAndSettle(tester, album);
+      await tapAndSettle(tester, find.text('Início'));
+      expect(find.byType(AlbumPage), findsNothing);
+      expect(album, findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets('a page stays open as the window is widened or narrowed: the same page area, by its navigator', (
+    tester,
+  ) async {
     await pumpHome(tester, const Size(360, 800));
     await tapAndSettle(tester, album);
+    expect(find.byType(BackButton), findsOneWidget);
+
+    tester.view.physicalSize = const Size(1200, 700);
+    await tester.pumpAndSettle();
+    expect(find.byType(AlbumPage), findsOneWidget);
+    expect(find.byType(BackButton), findsNothing, reason: 'the top bar\'s arrow goes back');
+    expect(enabled(tester, back), isTrue);
+
+    tester.view.physicalSize = const Size(360, 800);
+    await tester.pumpAndSettle();
     expect(find.byType(AlbumPage), findsOneWidget);
     expect(find.byType(BackButton), findsOneWidget);
-    expect(
-      find.descendant(of: find.byType(AppBar), matching: album),
-      findsNothing,
-      reason: 'no title: the name is by the cover',
-    );
-    await tapAndSettle(tester, find.byType(BackButton));
-    expect(find.byType(AlbumPage), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
 

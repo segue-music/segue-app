@@ -27,9 +27,10 @@ class PlayerPage extends StatelessWidget {
   /// How long the lyrics take to come in, beside the player or under it, and to go.
   static const lyricsTransition = Duration(milliseconds: 350);
 
-  /// Slides it up over the current page, with the lyrics if [lyrics]: on a wide screen, in the page area.
+  /// Slides it up over the current page, with the lyrics if [lyrics]: on a wide screen, in the page area; on a phone,
+  /// over everything, the page area's bars too.
   static Future<void> open(BuildContext context, {bool lyrics = false}) =>
-      PageArea.navigatorOf(context).push(PlayerRoute(lyrics: lyrics));
+      PageArea.playerNavigatorOf(context).push(PlayerRoute(lyrics: lyrics, area: PageArea.maybeOf(context)));
 
   @override
   Widget build(BuildContext context) {
@@ -105,11 +106,18 @@ class PlayerPage extends StatelessWidget {
 /// The full-screen player's route, which slides it up, and holds whether it shows the lyrics: on a wide screen, the
 /// home's player bar under it turns them on and off.
 class PlayerRoute extends PageRouteBuilder<void> {
-  PlayerRoute({bool lyrics = false}) : this._(ValueNotifier(lyrics));
+  PlayerRoute({bool lyrics = false, PageArea? area}) : this._(ValueNotifier(lyrics), area);
 
-  PlayerRoute._(this.lyrics)
+  PlayerRoute._(this.lyrics, this.area)
     : super(
-        pageBuilder: (_, _, _) => PlayerPage(lyrics),
+        pageBuilder: (_, _, _) => area == null
+            ? PlayerPage(lyrics)
+            : PageArea(
+                navigator: area.navigator,
+                history: area.history,
+                underTopBar: area.underTopBar,
+                child: PlayerPage(lyrics),
+              ),
         transitionsBuilder: (_, animation, _, child) => SlideTransition(
           position: Tween(
             begin: const Offset(0, 1),
@@ -120,6 +128,10 @@ class PlayerRoute extends PageRouteBuilder<void> {
       );
 
   final ValueNotifier<bool> lyrics;
+
+  /// The page area the player opened from, which it takes along: on a phone, where it opens over the area, out of it,
+  /// its links open their pages there all the same.
+  final PageArea? area;
 
   @override
   void dispose() {

@@ -78,7 +78,18 @@ class _SongLinkState extends State<SongLink> {
 
     if (page case final opened?) {
       final route = MaterialPageRoute<void>(builder: (_) => opened);
-      unawaited(widget.replace ? navigator.pushReplacement(route) : navigator.push(route));
+      final player = Navigator.of(context);
+
+      if (!widget.replace) {
+        unawaited(navigator.push(route));
+      } else if (navigator == player) {
+        unawaited(navigator.pushReplacement(route));
+      } else {
+        // On a phone the full-screen player is over the page area, out of it: it closes, and the page opens there.
+        player.pop();
+        unawaited(navigator.push(route));
+      }
+
       return;
     }
 

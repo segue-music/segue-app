@@ -31,8 +31,8 @@ class _GenrePageState extends State<GenrePage> {
     final mostPlayed = _mostPlayed!;
     return Scaffold(
       appBar: AppBar(
-        // In the page area, the top bar's arrow goes back: no arrow of its own.
-        automaticallyImplyLeading: !PageArea.holds(context),
+        // Under a wide screen's top bar, whose arrow goes back: no arrow of its own.
+        automaticallyImplyLeading: !PageArea.holdsUnderTopBar(context),
         title: Text(widget.genre.name),
       ),
       body: AlbumsView(
@@ -59,9 +59,10 @@ class _GenrePageState extends State<GenrePage> {
         ),
       ),
       // The albums go on behind the player bar, slightly see-through on a phone; the grid ends with the room
-      // MediaQuery says the bar takes.
+      // MediaQuery says the bar takes. In the page area the home's bars stay under the page instead, with the room they
+      // take, which a bar of its own, even one showing nothing, would take away.
       extendBody: true,
-      bottomNavigationBar: const NowPlayingBar(),
+      bottomNavigationBar: PageArea.holds(context) ? null : const NowPlayingBar(),
     );
   }
 }

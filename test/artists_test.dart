@@ -250,8 +250,9 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('on a phone, the sections are in a bar at the bottom, and an artist\'s albums go on behind the player '
-      'bar', (tester) async {
+  testWidgets('on a phone, the sections are in a bar at the bottom, which stays under an artist\'s page', (
+    tester,
+  ) async {
     await pumpHome(tester, const Size(360, 640));
     expect(find.byType(NavigationBar), findsOneWidget);
     expect(find.byTooltip('Artistas'), findsOneWidget, reason: 'in the bar alone, with no side rail');
@@ -265,8 +266,13 @@ void main() {
     final page = find.byType(ArtistPage);
     await ServicesScope.of(tester.element(page)).player.playQueue(const [Song(id: 's1', title: 'Dream Police')]);
     await tester.pumpAndSettle();
-    expect(tester.getRect(find.descendant(of: page, matching: find.byType(NowPlayingBar))).bottom, 640);
-    expect(tester.getRect(find.descendant(of: page, matching: find.byType(AlbumGrid))).bottom, 640);
+    // Under the home's bars, which stay; the albums go on behind them, and end clear of them.
+    final grid = find.descendant(of: page, matching: find.byType(AlbumGrid));
+    expect(find.byType(NavigationBar).hitTestable(), findsOneWidget);
+    expect(find.descendant(of: page, matching: find.byType(NowPlayingBar)), findsNothing);
+    expect(find.byType(BackButton), findsOneWidget);
+    expect(tester.getRect(grid).bottom, 640);
+    expect(MediaQuery.paddingOf(tester.element(grid)).bottom, 640 - tester.getRect(find.byType(NowPlayingBar)).top);
     await tester.pumpWidget(const SizedBox()); // stops the player bar's timer
   });
 

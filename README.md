@@ -68,6 +68,10 @@ the device it runs on.
   those pages, as a browser's do, and so do the keyboard's left and right (on a phone, left goes back
   from a page with a back arrow). A section, or a search, closes them. Esc takes the focus off what
   has it; in the search bar, it first clears what was typed;
+- on a phone, the player bar and the sections' bar stay at the bottom, and pages (an album, an
+  artist, a genre) open over the rest, each with its own back arrow; a section closes them. The
+  full-screen player and the queue cover everything, and the player's links close it to open their
+  page under the bars;
 - the queue of whichever device the app controls, from the full-screen player or, on a wide
   screen, the player bar: the current track on top, the next ones under it and what played before
   above it. A tap on a track plays it there;

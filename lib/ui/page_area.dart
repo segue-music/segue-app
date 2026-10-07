@@ -2,30 +2,57 @@ import 'package:flutter/material.dart';
 
 import 'player_page.dart';
 
-/// On a wide screen, the middle of the home, between its bars (the top one, the side rail and the player's), where
-/// pages open: an album, an artist, a genre, the queue, the full-screen player. The bars stay as they come and go,
-/// and the top one's arrows go back and forward, so the pages have no back arrow of their own ([holds]).
+/// The middle of the home, where pages open (an album, an artist, a genre), between bars that stay as they come and go.
+/// On a wide screen the bars are the top one, the side rail and the player's, and the full-screen player and the queue
+/// open in it too; the top bar's arrows go back and forward, so the pages have no back arrow of their own
+/// ([underTopBar]). On a phone the bars are the player's and the sections', at the bottom; the pages keep their own top
+/// bar, with the back arrow, and the full-screen player and the queue cover everything, the bars too.
 ///
 /// Pages opened from in it find its navigator as [Navigator.of] does; [PageArea.navigatorOf] finds it from outside it
 /// too, as from the player bar. Pages that cover the whole window (the cover) and sheets open in the app's.
 class PageArea extends InheritedWidget {
-  const PageArea({required this.navigator, required this.history, required super.child, super.key});
+  const PageArea({
+    required this.navigator,
+    required this.history,
+    required this.underTopBar,
+    required super.child,
+    super.key,
+  });
 
   final GlobalKey<NavigatorState> navigator;
   final PageHistory history;
 
-  /// The navigator that pages open in: the page area's, where there is one; elsewhere (on a phone), the app's.
+  /// Whether the area is under the home's top bar, whose arrows go back and forward through its pages: a wide
+  /// screen's.
+  final bool underTopBar;
+
+  /// The page area around [context], if any.
+  static PageArea? maybeOf(BuildContext context) => context.getInheritedWidgetOfExactType<PageArea>();
+
+  /// The navigator that pages open in: the page area's, where there is one; elsewhere, the app's.
   static NavigatorState navigatorOf(BuildContext context) =>
-      context.getInheritedWidgetOfExactType<PageArea>()?.navigator.currentState ?? Navigator.of(context);
+      maybeOf(context)?.navigator.currentState ?? Navigator.of(context);
+
+  /// The navigator that the full-screen player and the queue open in: the page area's under a top bar (a wide
+  /// screen's); elsewhere, the app's, over everything.
+  static NavigatorState playerNavigatorOf(BuildContext context) {
+    final area = maybeOf(context);
+    return area != null && area.underTopBar ? area.navigator.currentState! : Navigator.of(context);
+  }
 
   /// Whether [context] is in a page of the page area, rather than around it.
   static bool holds(BuildContext context) {
-    final area = context.getInheritedWidgetOfExactType<PageArea>();
+    final area = maybeOf(context);
     return area != null && Navigator.maybeOf(context) == area.navigator.currentState;
   }
 
+  /// Whether [context] is in a page of a page area under a top bar ([underTopBar]), which goes back from it: the page
+  /// needs no back arrow, nor a bar of its own for one.
+  static bool holdsUnderTopBar(BuildContext context) => holds(context) && maybeOf(context)!.underTopBar;
+
   @override
-  bool updateShouldNotify(PageArea oldWidget) => navigator != oldWidget.navigator || history != oldWidget.history;
+  bool updateShouldNotify(PageArea oldWidget) =>
+      navigator != oldWidget.navigator || history != oldWidget.history || underTopBar != oldWidget.underTopBar;
 }
 
 /// Keeps the arrows (a TV remote's) and Tab on the page on top of the page area, and on the bars around it: the pages
@@ -104,8 +131,8 @@ class PageHistory extends NavigatorObserver with ChangeNotifier {
   /// How [route] opens again, going forward to it: as it opened, with the same page, built anew.
   static Route<void> Function()? _reopener(Route<dynamic> route) {
     if (route is PlayerRoute) {
-      final lyrics = route.lyrics.value;
-      return () => PlayerRoute(lyrics: lyrics);
+      final (lyrics, area) = (route.lyrics.value, route.area);
+      return () => PlayerRoute(lyrics: lyrics, area: area);
     }
 
     if (route is MaterialPageRoute) {

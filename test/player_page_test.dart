@@ -18,6 +18,7 @@ import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/album_page.dart';
 import 'package:segue/ui/artist_page.dart';
 import 'package:segue/ui/cover.dart';
+import 'package:segue/ui/home_page.dart';
 import 'package:segue/ui/lyrics_view.dart';
 import 'package:segue/ui/now_playing_bar.dart';
 import 'package:segue/ui/player_page.dart';
@@ -129,14 +130,16 @@ SegueClient tvPlaying(QueueItem song) {
 }
 
 /// The player bar, under the navigator as in the app, on a screen of [size] (a phone's by default),
-/// playing Sweet Emotion here. [client] adds a hub, and the bar then shows what it says; [server]
-/// answers for the media server, which by default knows nothing.
+/// playing Sweet Emotion here: under an empty page, or with [inHome], the home's. [client] adds a hub,
+/// and the bar then shows what it says; [server] answers for the media server, which by default knows
+/// nothing.
 Future<PlayerController> pumpBar(
   WidgetTester tester, {
   SegueClient? client,
   http.Response Function(http.Request request)? server,
   Lrclib? lrclib,
   Size size = const Size(360, 640),
+  bool inHome = false,
 }) async {
   final api = SubsonicApi(
     Uri.parse('https://music.test'),
@@ -173,7 +176,9 @@ Future<PlayerController> pumpBar(
   await tester.pumpWidget(
     MaterialApp(
       builder: (context, child) => ServicesScope(services: services, child: child!),
-      home: const Scaffold(body: SizedBox.expand(), bottomNavigationBar: NowPlayingBar()),
+      home: inHome
+          ? HomePage(onSignOut: () {})
+          : const Scaffold(body: SizedBox.expand(), bottomNavigationBar: NowPlayingBar()),
     ),
   );
   return player;
@@ -840,6 +845,34 @@ void main() {
     expect(find.text('Get Your Wings'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
+
+  testWidgets(
+    'on a phone\'s home, the player covers the bars at the bottom too; its links close it and open their page '
+    'under them, in the home\'s page area',
+    (tester) async {
+      await pumpBar(tester, server: library, inHome: true);
+      final sections = find.byType(NavigationBar);
+      await openPlayer(tester);
+      expect(sections.hitTestable(), findsNothing);
+
+      await tester.tap(onPage(find.text('Sweet Emotion')));
+      await tester.pumpAndSettle();
+      expect(find.byType(PlayerPage), findsNothing);
+      expect(find.byType(AlbumPage), findsOneWidget);
+      expect(sections.hitTestable(), findsOneWidget);
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      expect(find.byType(AlbumPage), findsNothing);
+
+      // The queue opens over the player, out of the page area too.
+      await openPlayer(tester);
+      await tester.tap(onPage(find.byTooltip('Fila')));
+      await tester.pumpAndSettle();
+      expect(find.byType(QueuePage), findsOneWidget);
+      expect(sections.hitTestable(), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
 
   testWidgets('the album\'s name opens it too', (tester) async {
     await pumpBar(tester, server: library);
