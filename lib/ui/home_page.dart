@@ -282,11 +282,25 @@ class _HomePageState extends State<HomePage> {
           actions: actions,
         ),
         body: sections,
+        // The section goes on behind the bars at the bottom, showing through the gap between them; its lists end
+        // clear of them, by the room MediaQuery says they take.
+        extendBody: true,
         bottomNavigationBar: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const NowPlayingBar(),
+            // Above the sections' bar, which keeps clear of the system's at the bottom of the screen: the player's
+            // needn't, and a small gap sets the two apart, alike in color. Nothing playing, there is no player to set
+            // apart.
+            MediaQuery.removePadding(context: context, removeBottom: true, child: const NowPlayingBar()),
+            ListenableBuilder(
+              listenable: services.connect,
+              builder: (context, _) => SizedBox(height: services.connect.nowPlaying == null ? 0 : 2),
+            ),
             NavigationBar(
+              // A bit lower than Material's 80, with less room above and below the icons and their names.
+              height: 68,
+              backgroundColor: Theme.of(context).colorScheme.surfaceContainer
+                  .withValues(alpha: NowPlayingBar.phoneOpacity),
               selectedIndex: _section.index,
               onDestinationSelected: (index) => _select(_Section.values[index]),
               destinations: [

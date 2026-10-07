@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:segue/connect/connect.dart';
 import 'package:segue/player/player.dart';
+import 'package:segue/server/models.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
@@ -14,6 +15,7 @@ import 'package:segue/ui/albums_view.dart';
 import 'package:segue/ui/artist_page.dart';
 import 'package:segue/ui/cover.dart';
 import 'package:segue/ui/home_page.dart';
+import 'package:segue/ui/now_playing_bar.dart';
 
 import 'fakes.dart';
 
@@ -28,9 +30,14 @@ http.Response subsonic(Map<String, Object?> body) => http.Response(
 /// The home page over a library of [count] albums, "Album 000" on, each by an artist of its own,
 /// "Artist 000" (id "ar000") on, opened on the albums tab. By name they come in that order; latest
 /// added or released, the other way around; and none has played. An artist's page has one album,
-/// "Only by" their id. The server fails the page at [failing] once. Returns the album lists the tab
-/// asks for: their type, offset and size.
-Future<List<String>> pumpAlbums(WidgetTester tester, {required int count, int? failing}) async {
+/// "Only by" their id. The server fails the page at [failing] once. The screen is [size]. Returns the album lists
+/// the tab asks for: their type, offset and size.
+Future<List<String>> pumpAlbums(
+  WidgetTester tester, {
+  required int count,
+  int? failing,
+  Size size = const Size(1000, 700),
+}) async {
   const credentials = SubsonicCredentials(username: 'a', token: 't', salt: 's');
   final names = [for (var i = 0; i < count; i++) 'Album ${'$i'.padLeft(3, '0')}'];
   final asked = <String>[];
@@ -93,7 +100,7 @@ Future<List<String>> pumpAlbums(WidgetTester tester, {required int count, int? f
     player,
     ConnectController(player: player),
   );
-  tester.view.physicalSize = const Size(1000, 700);
+  tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
   await tester.pumpWidget(
@@ -104,6 +111,7 @@ Future<List<String>> pumpAlbums(WidgetTester tester, {required int count, int? f
   );
   await tester.pumpAndSettle();
   asked.clear(); // the home's rows
+  // The side rail's, or on a phone the bottom bar's.
   await tester.tap(find.byTooltip('Álbuns'));
   await tester.pumpAndSettle();
   return asked;
@@ -232,6 +240,20 @@ void main() {
     expect(find.text('Album 449'), findsOneWidget);
     expect(asked, ['alphabeticalByName 0 200', 'alphabeticalByName 200 200', 'alphabeticalByName 400 200']);
     await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a phone, the albums go on behind the bars at the bottom, showing through the gap between them, and '
+      'end clear of them', (tester) async {
+    await pumpAlbums(tester, count: 30, size: const Size(360, 640));
+    final player = ServicesScope.of(tester.element(find.byType(HomePage))).player;
+    await player.playQueue(const [Song(id: 's1', title: 'Dream On')]);
+    await tester.pumpAndSettle();
+    expect(tester.getRect(find.byType(AlbumGrid)).bottom, 640);
+
+    await scrollToEnd(tester);
+    final last = find.ancestor(of: find.text('Album 029'), matching: find.byType(AlbumTile));
+    expect(tester.getRect(last).bottom, lessThanOrEqualTo(tester.getRect(find.byType(NowPlayingBar)).top));
+    await tester.pumpWidget(const SizedBox()); // stops the player bar's timers
   });
 
   testWidgets('a page the server fails says so at the end, and is asked for again from there', (tester) async {

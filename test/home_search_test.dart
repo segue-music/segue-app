@@ -7,10 +7,12 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:segue/connect/connect.dart';
 import 'package:segue/player/player.dart';
+import 'package:segue/server/models.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/home_page.dart';
+import 'package:segue/ui/now_playing_bar.dart';
 
 import 'fakes.dart';
 
@@ -134,6 +136,35 @@ void main() {
     expect(find.text('Toys in the Attic'), findsNothing, reason: 'blank again');
     expect(queries, ['dream']);
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
+  });
+
+  testWidgets('on a phone, a small gap sets the player bar apart from the sections\' bar, which alone keeps clear of '
+      'the system\'s', (tester) async {
+    final (player, _) = await pumpHome(tester, const Size(360, 640));
+    final sections = find.byType(NavigationBar);
+    final bottom = tester.getRect(sections).bottom;
+    expect(find.byType(NowPlayingBar), findsOneWidget);
+    expect(tester.getRect(find.byType(NowPlayingBar)).bottom, tester.getRect(sections).top, reason: 'nothing plays');
+
+    await player.playQueue(const [Song(id: 's1', title: 'Dream On')]);
+    await tester.pump();
+    final bar = tester.getRect(find.byType(NowPlayingBar));
+    expect(tester.getRect(sections).top - bar.bottom, 2);
+    expect(
+      tester.widget<NavigationBar>(sections).backgroundColor?.a,
+      NowPlayingBar.phoneOpacity,
+      reason: 'as the player',
+    );
+    expect(tester.getRect(sections).bottom, bottom);
+
+    tester.view.padding = const FakeViewPadding(bottom: 24);
+    final height = tester.getSize(sections).height;
+    expect(height, 68, reason: 'lower than Material\'s 80');
+    await tester.pump();
+    expect(tester.getSize(find.byType(NowPlayingBar)).height, bar.height);
+    expect(tester.getSize(sections).height, height + 24);
+    expect(tester.getRect(sections).top - tester.getRect(find.byType(NowPlayingBar)).bottom, 2);
+    await tester.pumpWidget(const SizedBox()); // stops the player bar's timer
   });
 
   testWidgets('the songs found have no header over them, just their heading', (tester) async {

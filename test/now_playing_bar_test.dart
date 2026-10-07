@@ -41,6 +41,20 @@ void main() {
     });
   }
 
+  testWidgets('on a phone, the bar is slightly see-through, its corners slightly rounded; on a wide screen, opaque and '
+      'square', (tester) async {
+    Material material() =>
+        tester.widget<Material>(find.descendant(of: find.byType(NowPlayingBar), matching: find.byType(Material)).first);
+
+    await pumpBar(tester, size: const Size(360, 640));
+    expect(material().color?.a, NowPlayingBar.phoneOpacity);
+    expect(material().shape, RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)));
+    await pumpBar(tester, size: const Size(960, 540));
+    expect(material().color?.a, 1);
+    expect(material().shape, isNull);
+    await tester.pumpWidget(const SizedBox()); // stops the bar's timer
+  });
+
   testWidgets('the song in the bar has room around its cover and lines, where its tint and ring show', (tester) async {
     await pumpBar(tester, size: const Size(960, 540));
     final bar = find.byType(NowPlayingBar);

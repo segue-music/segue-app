@@ -24,6 +24,10 @@ class NowPlayingBar extends StatelessWidget {
   /// From how wide the bar has room for shuffle, repeat, the lyrics and the queue.
   static const wideFrom = 600.0;
 
+  /// How opaque the bars at the bottom of a phone's screen are, this one and the home's sections': slightly
+  /// see-through, the home's section showing through them.
+  static const phoneOpacity = 0.98;
+
   /// Under the full-screen player, whether it shows the lyrics: the bar's lyrics button turns them on and
   /// off there, and its song closes the player. Null under any other page, where the button opens the
   /// player with them, and the song opens it.
@@ -60,7 +64,10 @@ class NowPlayingBar extends StatelessWidget {
         return Hero(
           tag: NowPlayingBar,
           child: Material(
-            color: colors.surfaceContainer,
+            // On a phone, slightly see-through, its corners slightly rounded: on the home, the section shows through it
+            // and around them.
+            color: wide ? colors.surfaceContainer : colors.surfaceContainer.withValues(alpha: phoneOpacity),
+            shape: wide ? null : RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             child: SafeArea(
               top: false,
               child: FocusTraversalGroup(

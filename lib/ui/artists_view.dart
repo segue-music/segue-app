@@ -53,9 +53,12 @@ class _ArtistsViewState extends State<ArtistsView> {
           await reload;
         },
         // Pictures of up to 180 pixels, 16 from the edges and from one another, of which the tiles' room inside
-        // (_ArtistTile.padding) is part, as the albums' are; the rows as far apart as with no room inside.
+        // (_ArtistTile.padding) is part, as the albums' are; the rows as far apart as with no room inside. At the end,
+        // clear of the bars a phone's home has over them.
         child: GridView.builder(
-          padding: const EdgeInsets.all(16 - _ArtistTile.padding),
+          padding:
+              const EdgeInsets.all(16 - _ArtistTile.padding) +
+              EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom),
           gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
             maxCrossAxisExtent: 180 + 2 * _ArtistTile.padding,
             mainAxisSpacing: 16 - 2 * _ArtistTile.padding,

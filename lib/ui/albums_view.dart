@@ -291,6 +291,8 @@ class AlbumGrid extends StatelessWidget {
         ),
       ),
       if (footer != null) SliverToBoxAdapter(child: footer),
+      // Clear of the bars a phone's home has over it.
+      SliverToBoxAdapter(child: SizedBox(height: MediaQuery.paddingOf(context).bottom)),
     ],
   );
 }

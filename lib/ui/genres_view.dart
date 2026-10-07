@@ -66,7 +66,8 @@ class _GenresViewState extends State<GenresView> {
           await reload;
         },
         child: ListView.builder(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          // At the end, clear of the bars a phone's home has over it.
+          padding: EdgeInsets.only(top: 8, bottom: 8 + MediaQuery.paddingOf(context).bottom),
           itemCount: header + all.length,
           itemBuilder: (context, i) {
             if (i < header) {

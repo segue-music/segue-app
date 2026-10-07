@@ -50,7 +50,8 @@ class _HomeViewState extends State<HomeView> {
         await Future.wait(_albums.values).catchError((_) => const <List<Album>>[]);
       },
       child: ListView(
-        padding: const EdgeInsets.only(bottom: 16),
+        // At the end, clear of the bars a phone's home has over it.
+        padding: EdgeInsets.only(bottom: 16 + MediaQuery.paddingOf(context).bottom),
         children: [
           for (final order in _rows)
             AlbumRow(
