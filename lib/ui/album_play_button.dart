@@ -9,9 +9,10 @@ import 'themed_icon.dart';
 
 /// A button that plays an album from its first song without opening it, in the middle of its cover,
 /// which it fills. On a computer it shows while the pointer is over the album ([hovered]), the cover
-/// darkening a little under it as it comes; on a phone or a tablet, with nothing to hover with,
-/// always, on the cover as it is. On a TV it doesn't: the remote goes from album to album, and would
-/// have to stop at each one's button too. There an album plays from its page.
+/// darkening a little under it as it comes; on a tablet, with nothing to hover with, always, on the
+/// cover as it is. On a TV it doesn't: the remote goes from album to album, and would have to stop at
+/// each one's button too. Nor on a phone, where it covered much of so small a cover. There an album
+/// plays from its page.
 class AlbumPlayButton extends StatefulWidget {
   const AlbumPlayButton(this.album, {required this.hovered, this.small = false, super.key});
 
@@ -58,16 +59,20 @@ class _AlbumPlayButtonState extends State<AlbumPlayButton> {
 
   @override
   Widget build(BuildContext context) {
-    if (MediaQuery.navigationModeOf(context) == NavigationMode.directional) {
-      return const SizedBox.shrink();
-    }
-
     // By the platform, not by whether a mouse is connected: on a computer the system says the mouse is
     // gone whenever the pointer leaves the window.
     final touch = switch (Theme.of(context).platform) {
       TargetPlatform.android || TargetPlatform.iOS || TargetPlatform.fuchsia => true,
       TargetPlatform.linux || TargetPlatform.macOS || TargetPlatform.windows => false,
     };
+    // A TV, or a phone: a touch screen less than 600 across, as Material counts (the devices sheet's too).
+    final television = MediaQuery.navigationModeOf(context) == NavigationMode.directional;
+    final phone = touch && MediaQuery.sizeOf(context).shortestSide < 600;
+
+    if (television || phone) {
+      return const SizedBox.shrink();
+    }
+
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 150),
       child: touch

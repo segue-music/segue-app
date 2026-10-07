@@ -69,8 +69,12 @@ http.Response server(http.Request request) {
   return http.Response('', 500);
 }
 
-/// The app on the albums tab, on a TV with [television]. Returns its player.
-Future<PlayerController> pumpAlbums(WidgetTester tester, {bool television = false}) async {
+/// The app on the albums tab, on a screen of [size], a TV's with [television]. Returns its player.
+Future<PlayerController> pumpAlbums(
+  WidgetTester tester, {
+  bool television = false,
+  Size size = const Size(1000, 700),
+}) async {
   final api = SubsonicApi(
     Uri.parse('https://music.test'),
     credentials,
@@ -83,7 +87,7 @@ Future<PlayerController> pumpAlbums(WidgetTester tester, {bool television = fals
     player,
     ConnectController(player: player),
   );
-  tester.view.physicalSize = const Size(1000, 700);
+  tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
   await tester.pumpWidget(
@@ -96,6 +100,7 @@ Future<PlayerController> pumpAlbums(WidgetTester tester, {bool television = fals
     ),
   );
   await tester.pumpAndSettle();
+  // The side rail's, or on a phone the bottom bar's.
   await tester.tap(find.byTooltip('Álbuns'));
   await tester.pumpAndSettle();
   return player;
@@ -217,7 +222,7 @@ void main() {
   );
 
   testWidgets(
-    'on a phone or a tablet, with no pointer to hover with, every album shows it',
+    'on a tablet, with no pointer to hover with, every album shows it',
     variant: TargetPlatformVariant.mobile(),
     (tester) async {
       final player = await pumpAlbums(tester);
@@ -226,6 +231,25 @@ void main() {
       await tester.tap(find.descendant(of: tile('Toys in the Attic'), matching: playButton));
       await tester.pumpAndSettle();
       expect(player.current?.title, 'Walk This Way');
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets(
+    'on a phone there is none, among the albums or those a search finds: an album plays from its page',
+    variant: TargetPlatformVariant.mobile(),
+    (tester) async {
+      await pumpAlbums(tester, size: const Size(360, 640));
+      expect(find.text('Toys in the Attic'), findsOneWidget);
+      expect(playButton, findsNothing);
+
+      await tester.tap(find.byTooltip('Buscar'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'toys');
+      await tester.pump(HomePage.searchTypingPause);
+      await tester.pumpAndSettle();
+      expect(find.text('Toys in the Attic'), findsOneWidget);
+      expect(playButton, findsNothing);
       await tester.pumpWidget(const SizedBox());
     },
   );
