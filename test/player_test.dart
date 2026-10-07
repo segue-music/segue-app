@@ -127,9 +127,44 @@ void main() {
     await player.setRepeat(Repeat.all);
     await player.next();
     expect(player.index, 0);
+  });
+
+  test('another track ends repeating one track, and the queue goes on repeating', () async {
+    const three = [...songs, Song(id: 's3', title: 'Three')];
+    await player.playQueue(three);
     await player.setRepeat(Repeat.one);
     await player.next();
     expect(player.index, 1);
+    expect(player.repeat, Repeat.all);
+    expect(reports.last.repeat, Repeat.all);
+
+    await player.setRepeat(Repeat.one);
+    await player.previous();
+    expect(player.index, 0);
+    expect(player.repeat, Repeat.all);
+
+    await player.setRepeat(Repeat.one);
+    await player.obey(const Command.jump(2));
+    expect(player.index, 2);
+    expect(player.repeat, Repeat.all);
+
+    await player.setRepeat(Repeat.one);
+    await player.next(); // after the last track, the first
+    expect(player.index, 0);
+    expect(player.repeat, Repeat.all);
+  });
+
+  test('starting the track over keeps repeating it', () async {
+    await player.playQueue(songs, index: 1, position: const Duration(seconds: 40));
+    await player.setRepeat(Repeat.one);
+    await player.previous();
+    expect(player.position.inSeconds, 0);
+    await player.jump(1);
+    expect(player.index, 1);
+    expect(player.repeat, Repeat.one);
+    await player.playQueue(songs.take(1).toList());
+    await player.next(); // the only track: the next one is itself
+    expect(player.repeat, Repeat.one);
   });
 
   test('shuffle reorders the queue, keeping the current song, and off puts it back', () async {

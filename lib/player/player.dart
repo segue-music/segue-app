@@ -76,6 +76,9 @@ class PlayerController extends ChangeNotifier {
   }
 
   /// The track at [index] of [queue] from its start, playing; the current one starts over.
+  ///
+  /// Like [next] and [previous], going to another track turns repeating one track into repeating the
+  /// queue.
   Future<void> jump(int index) async {
     await _jump(index);
     _changed(); // starting the current track over doesn't show in the engine's changes
@@ -171,6 +174,11 @@ class PlayerController extends ChangeNotifier {
   Future<void> _jump(int to) async {
     if (to < 0 || to >= _queue.length) {
       throw const CommandFailed('no such track');
+    }
+
+    // Another track ends the repeat of the one it leaves, and the queue goes on repeating.
+    if (to != index && repeat == Repeat.one) {
+      await _engine.setRepeat(Repeat.all);
     }
 
     await _engine.jump(to);

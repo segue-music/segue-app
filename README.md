@@ -41,9 +41,10 @@ the device it runs on.
   too, and all four are in a bar at the bottom, with the search after them: its bar shows in it alone,
   blank under it until a search finds something);
   the album page, whose cover opens full screen; search (artists, albums and songs); and playback
-  through media_kit (libmpv), with a seek bar, shuffle and repeat (the queue or the track), in the
-  player bar and in a full-screen player that the song in the bar opens, which shows the song's lyrics
-  beside it, or under it on a phone (OpenSubsonic's songLyrics, as Navidrome's from the file's tags or
+  through media_kit (libmpv), with a seek bar, shuffle and repeat (the queue, or the track until
+  another one is picked), in the player bar and in a full-screen player that the song in the bar
+  opens, which shows the song's lyrics beside it, or under it on a phone (OpenSubsonic's songLyrics,
+  as Navidrome's from the file's tags or
   a .lrc next to it, or Jellyfin's; when the server has none, LRCLIB's, from lrclib.net, by the
   song's title, artist, album and length, synced ones wherever it has them, also in another entry
   of the song, as a single's): synced ones mark the line that plays and keep it in view,
