@@ -34,7 +34,7 @@ class _ArtistPageState extends State<ArtistPage> {
     super.didChangeDependencies();
     final api = ServicesScope.of(context).api;
     _artist ??= api.artist(widget.artist.id);
-    _mostPlayed ??= api.mostPlayedSongs(widget.artist.id);
+    _mostPlayed ??= api.mostPlayedSongs(widget.artist.id, size: _MostPlayedSongs.count);
   }
 
   @override
@@ -101,13 +101,16 @@ class _ArtistPageState extends State<ArtistPage> {
   }
 }
 
-/// The artist's songs the user plays most, over a title for the albums under them. Each plays the list
-/// from it, as an album's songs do. Nothing while they come, nor before any has played: the albums
+/// The artist's songs the user plays most, the first few ([count]), numbered, over a title for the albums under them.
+/// Each plays the list from it, as an album's songs do. Nothing while they come, nor before any has played: the albums
 /// alone.
 class _MostPlayedSongs extends StatelessWidget {
   const _MostPlayedSongs(this.songs);
 
   final Future<List<Song>> songs;
+
+  /// How many there are at most.
+  static const count = 5;
 
   static Future<void> _play(BuildContext context, List<Song> songs, int index) async {
     final messenger = ScaffoldMessenger.of(context);
@@ -146,7 +149,15 @@ class _MostPlayedSongs extends StatelessWidget {
               song,
               builder: (context, current, playing) => ListTile(
                 selected: current,
-                leading: Thumbnail(song.coverArt, playing: playing),
+                // Its place among them, then its cover.
+                leading: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(width: SongListHeader.numberWidth, child: SongNumber(i + 1)),
+                    const SizedBox(width: 16),
+                    Thumbnail(song.coverArt, playing: playing),
+                  ],
+                ),
                 title: Text(song.title, maxLines: 1, overflow: TextOverflow.ellipsis),
                 subtitle: song.album == null ? null : Text(song.album!, maxLines: 1, overflow: TextOverflow.ellipsis),
                 trailing: SongDuration(song.duration),

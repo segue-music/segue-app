@@ -11,7 +11,8 @@ import 'themed_icon.dart';
 TextStyle? _columnStyle(BuildContext context) =>
     Theme.of(context).textTheme.bodyMedium?.copyWith(color: DefaultTextStyle.of(context).style.color);
 
-/// A song's number on its album, in the first column of its list, under the header's "#".
+/// A song's number in its list, in the first column: on its album, under the header's "#", or its place among an
+/// artist's most played.
 class SongNumber extends StatelessWidget {
   const SongNumber(this.number, {super.key});
 

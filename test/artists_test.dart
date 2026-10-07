@@ -30,7 +30,7 @@ http.Response subsonic(Map<String, Object?> body) => http.Response(
 );
 
 /// A server with two artists: Aerosmith, with two albums, none of them played, and Cheap Trick, with
-/// one, two of whose songs have played. A search for "toys" finds an album; any other, the artist
+/// one, six of whose songs have played. A search for "toys" finds an album; any other, the artist
 /// Aerosmith.
 http.Response server(http.Request request) {
   final path = request.url.path;
@@ -97,9 +97,13 @@ http.Response server(http.Request request) {
         'artistId': 'ar2',
         'year': 1977,
         'song': [
-          {'id': 's2', 'title': 'Hello There', 'album': 'In Color', 'duration': 101, 'playCount': 2},
+          {'id': 's2', 'title': 'Hello There', 'album': 'In Color', 'duration': 101, 'playCount': 5},
           {'id': 's3', 'title': 'Big Eyes', 'album': 'In Color', 'duration': 187},
-          {'id': 's4', 'title': 'I Want You to Want Me', 'album': 'In Color', 'duration': 191, 'playCount': 5},
+          {'id': 's4', 'title': 'I Want You to Want Me', 'album': 'In Color', 'duration': 191, 'playCount': 6},
+          {'id': 's5', 'title': 'Southern Girls', 'album': 'In Color', 'duration': 223, 'playCount': 4},
+          {'id': 's6', 'title': 'Clock Strikes Ten', 'album': 'In Color', 'duration': 180, 'playCount': 3},
+          {'id': 's7', 'title': 'Downed', 'album': 'In Color', 'duration': 248, 'playCount': 2},
+          {'id': 's8', 'title': 'So Good to See You', 'album': 'In Color', 'duration': 214, 'playCount': 1},
         ],
       },
     });
@@ -223,9 +227,8 @@ void main() {
     await tester.pumpWidget(const SizedBox()); // stops the player bar's timers
   });
 
-  testWidgets('an artist\'s songs the user plays most come over their albums, and play from the one picked', (
-    tester,
-  ) async {
+  testWidgets('an artist\'s five songs the user plays most, numbered, come over their albums, and play from the one '
+      'picked', (tester) async {
     final engine = await pumpHome(tester, const Size(1000, 700));
     await tester.tap(find.byTooltip('Artistas'));
     await tester.pumpAndSettle();
@@ -241,11 +244,24 @@ void main() {
     expect(tester.getTopLeft(heading).dy, lessThan(tester.getTopLeft(top).dy));
     expect(tester.getTopLeft(top).dy, lessThan(tester.getTopLeft(second).dy), reason: 'the most played first');
     expect(tester.getTopLeft(second).dy, lessThan(tester.getTopLeft(albums).dy), reason: 'the albums under them');
+    expect(find.text('So Good to See You'), findsNothing, reason: 'the sixth');
+    final tile = find.widgetWithText(ListTile, 'Hello There');
+    final number = find.descendant(of: tile, matching: find.text('2'));
+    expect(number, findsOneWidget);
+    expect(
+      tester.getTopRight(number).dx,
+      lessThanOrEqualTo(tester.getTopLeft(find.descendant(of: tile, matching: find.byType(Thumbnail))).dx),
+      reason: 'before its cover',
+    );
     expect(find.text('1977'), findsOneWidget, reason: 'the album, in the grid');
 
     await tester.tap(second);
     await tester.pumpAndSettle();
-    expect([for (final track in engine.tracks) track.queryParameters['id']], ['s4', 's2'], reason: 'the songs listed');
+    expect(
+      [for (final track in engine.tracks) track.queryParameters['id']],
+      ['s4', 's2', 's5', 's6', 's7'],
+      reason: 'the songs listed',
+    );
     expect(engine.index, 1, reason: 'from the one picked');
     await tester.pumpWidget(const SizedBox());
   });
