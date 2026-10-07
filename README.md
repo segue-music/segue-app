@@ -283,9 +283,15 @@ docker build -t segue-flutter-dev -f tool/dev.Dockerfile tool
 tool/flutter.sh pub get
 tool/flutter.sh analyze
 tool/flutter.sh test
+tool/flutter.sh run -d linux
 tool/flutter.sh build linux
 tool/package-linux.sh
 ```
+
+`tool/flutter.sh run` opens the app in your desktop (Wayland or X11): the container gets the
+display, the GPU, the sound and the session bus. Its settings are its own, in
+`~/.cache/segue-flutter`, but its token goes to the same keyring as an installed copy's (the app id
+is the same), so signing out in one signs the other out too.
 
 After changing the artwork (`tool/icon.png`), `DART=1 tool/flutter.sh run tool/icons.dart` makes
 the icons again. The rounded square's position in the artwork is measured at the top of
@@ -296,7 +302,13 @@ For Android, a second image adds the JDK and the Android SDK and NDK to the firs
 ```sh
 docker build -t segue-flutter-android -f tool/android.Dockerfile tool
 tool/package-android.sh
+tool/flutter.sh run -d android
 ```
+
+Once this image is built, `tool/flutter.sh run` takes it, and reaches the Android devices of your
+computer's adb server (`adb devices`) as well as your desktop: a phone on USB, an emulator, or a TV
+after `adb connect`. `-d android` stands for the first of them; with several, `-d` takes the one
+`adb devices` names.
 
 ## License
 

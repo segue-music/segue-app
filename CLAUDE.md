@@ -28,6 +28,7 @@ DART=1 tool/flutter.sh format lib test        # page width 120 (analysis_options
 tool/flutter.sh test
 tool/flutter.sh test test/player_test.dart    # one file
 tool/flutter.sh test --plain-name 'a refused hello is a final HubClosed'
+tool/flutter.sh run -d linux                  # the app in this desktop (display, GPU, sound, session bus)
 tool/package-linux.sh                         # release build → build/segue-linux-x64.tar.gz
 DART=1 tool/flutter.sh run tool/icons.dart    # every icon (Android, TV banner, Linux, iOS, macOS, Windows) from tool/icon.png
 ```
@@ -37,7 +38,11 @@ The Android build (phones and Android TV) uses a second image, with the JDK and 
 ```sh
 docker build -t segue-flutter-android -f tool/android.Dockerfile tool
 tool/package-android.sh                       # → build/segue-android.apk (debug-signed, every ABI)
+tool/flutter.sh run -d android                # the first device of the host's adb server (phone, TV, emulator)
 ```
+
+Once this image is built, `tool/flutter.sh run` takes it, to reach the host's Android devices as well
+as its desktop.
 
 The iOS build needs a Mac, so it runs on Codemagic (`codemagic.yaml`), which signs it and uploads
 it to TestFlight. It starts from Codemagic's page or with a tag: `git tag ios-<n> && git push origin
