@@ -72,8 +72,11 @@ if [ "$tool $command" = "flutter run" ]; then
     [ -n "$XAUTHORITY" ] && set -- -v "$XAUTHORITY:$XAUTHORITY:ro" -e XAUTHORITY="$XAUTHORITY" "$@"
   fi
 
+  # SYS_PTRACE lets Mesa call kcmp, which Docker's seccomp allows only with it, to tell whether two
+  # of its GPU file descriptors share one open file ("amdgpu: os_same_file_description couldn't
+  # determine..."). The app runs as the user, not root, so the capability itself doesn't reach it.
   for render in /dev/dri/renderD*; do
-    [ -e "$render" ] && set -- --device /dev/dri --group-add "$(stat -c %g "$render")" "$@"
+    [ -e "$render" ] && set -- --device /dev/dri --group-add "$(stat -c %g "$render")" --cap-add SYS_PTRACE "$@"
     break
   done
 
