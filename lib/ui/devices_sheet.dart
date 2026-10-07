@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
+import '../l10n/app_localizations.dart';
 import '../segue/protocol.dart';
 import '../services.dart';
 
@@ -26,6 +27,7 @@ class _DevicesSheet extends StatelessWidget {
     final services = ServicesScope.of(context);
     final connect = services.connect;
     final client = connect.client;
+    final strings = AppLocalizations.of(context);
 
     Future<void> act(Future<Result> Function() action) async {
       final messenger = ScaffoldMessenger.of(context);
@@ -35,7 +37,7 @@ class _DevicesSheet extends StatelessWidget {
       if (result.ok) {
         navigator.pop();
       } else {
-        messenger.showSnackBar(SnackBar(content: Text(describeError(result.error))));
+        messenger.showSnackBar(SnackBar(content: Text(describeError(strings, result.error))));
       }
     }
 
@@ -47,11 +49,11 @@ class _DevicesSheet extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Text('Conectar a um aparelho', style: Theme.of(context).textTheme.titleLarge),
+            child: Text(strings.connectToDevice, style: Theme.of(context).textTheme.titleLarge),
           ),
           ListTile(
             leading: ThemedIcon(_thisDeviceIcon(context)),
-            title: Text('Este aparelho (${services.session.deviceName})'),
+            title: Text(strings.thisDevice(services.session.deviceName)),
             selected: connect.activeId == null,
             trailing: _marks(playing: connect.player.playing, active: connect.activeId == null),
             onTap: () => act(() => connect.switchTo(null)),
@@ -59,8 +61,8 @@ class _DevicesSheet extends StatelessWidget {
           if (client == null)
             ListTile(
               leading: const ThemedIcon(HugeIcons.strokeRoundedInformationCircle),
-              title: const Text('Nenhum hub encontrado'),
-              subtitle: Text('Sem o hub em ${services.session.server.host}, só dá para tocar aqui.'),
+              title: Text(strings.noHubFound),
+              subtitle: Text(strings.noHubAt(services.session.server.host)),
             ),
           for (final device in connect.devices)
             ListTile(

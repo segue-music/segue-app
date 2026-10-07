@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
 import '../server/models.dart';
 import 'artist_page.dart';
 import 'text_link.dart';
@@ -29,7 +30,7 @@ class ArtistLink extends StatelessWidget {
     final artistId = this.artistId;
     return TextLink(
       name,
-      tooltip: 'Abrir o artista',
+      tooltip: AppLocalizations.of(context).openArtist,
       onTap: artistId == null
           ? null
           : () => Navigator.of(context).push(

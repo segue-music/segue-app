@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:segue/connect/connect.dart';
+import 'package:segue/l10n/app_localizations.dart';
 import 'package:segue/lyrics/lrclib.dart';
 import 'package:segue/player/player.dart';
 import 'package:segue/segue/client.dart';
@@ -177,6 +178,8 @@ Future<PlayerController> pumpBar(
   addTearDown(tester.view.reset);
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: const [Locale('pt')],
       builder: (context, child) => ServicesScope(services: services, child: child!),
       home: inHome
           ? HomePage(onSignOut: () {})
@@ -1013,7 +1016,7 @@ void main() {
     expect(find.byType(AlbumPage), findsOneWidget);
     expect(find.descendant(of: find.byType(AlbumPage), matching: find.text('Toys in the Attic')), findsOneWidget);
 
-    await tester.pageBack();
+    await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
     expect(find.byType(AlbumPage), findsNothing, reason: 'back goes where the player was opened from');
     expect(find.byType(PlayerPage), findsNothing);
@@ -1041,7 +1044,7 @@ void main() {
       expect(find.byType(PlayerPage), findsNothing);
       expect(find.byType(AlbumPage), findsOneWidget);
       expect(sections.hitTestable(), findsOneWidget);
-      await tester.pageBack();
+      await tester.tap(find.byType(BackButton));
       await tester.pumpAndSettle();
       expect(find.byType(AlbumPage), findsNothing);
 
@@ -1121,14 +1124,14 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(AlbumPage), findsOneWidget);
     expect(find.descendant(of: find.byType(AlbumPage), matching: find.text('Toys in the Attic')), findsOneWidget);
-    await tester.pageBack();
+    await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byTooltip('Abrir o artista'));
     await tester.pumpAndSettle();
     expect(find.byType(ArtistPage), findsOneWidget);
     expect(find.text('Get Your Wings'), findsOneWidget);
-    await tester.pageBack();
+    await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
     expect(find.byType(ArtistPage), findsNothing);
 

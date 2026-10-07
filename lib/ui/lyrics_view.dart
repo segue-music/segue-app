@@ -6,6 +6,7 @@ import 'package:flutter/rendering.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../connect/connect.dart';
+import '../l10n/app_localizations.dart';
 import '../server/models.dart';
 import '../services.dart';
 import 'player_controls.dart';
@@ -172,12 +173,13 @@ class _LyricsViewState extends State<LyricsView> {
   @override
   Widget build(BuildContext context) {
     final style = Theme.of(context).textTheme.bodyLarge;
+    final strings = AppLocalizations.of(context);
     final lyrics = FutureBuilder(
       future: _lyrics,
       builder: (context, snapshot) {
         if (snapshot.error case final error?) {
           return _Message(
-            error is _LrclibFailed ? 'Não consegui buscar a letra.' : 'Não consegui buscar a letra: $error',
+            error is _LrclibFailed ? strings.couldNotFetchLyrics : strings.couldNotFetchLyricsError('$error'),
             style: style,
           );
         }
@@ -187,7 +189,7 @@ class _LyricsViewState extends State<LyricsView> {
         }
 
         final lyrics = snapshot.data;
-        return lyrics == null ? _Message('Esta música não tem letra.', style: style) : _lines(lyrics);
+        return lyrics == null ? _Message(strings.noLyrics, style: style) : _lines(lyrics);
       },
     );
     final onTap = widget.onTap;
@@ -295,7 +297,7 @@ class _LyricsViewState extends State<LyricsView> {
                     Padding(
                       padding: const EdgeInsets.fromLTRB(8, 24, 8, 8),
                       child: Text(
-                        'Letras providas por $provider',
+                        AppLocalizations.of(context).lyricsProvidedBy(provider),
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: faded),
                       ),

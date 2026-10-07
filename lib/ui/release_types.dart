@@ -1,18 +1,15 @@
+import '../l10n/app_localizations.dart';
 import '../server/models.dart';
 
 /// [type]'s name, as a label by an album's name: "Álbum", "EP", "Single", "Coletânea".
-String releaseTypeName(ReleaseType type) => switch (type) {
-  ReleaseType.album => 'Álbum',
-  ReleaseType.ep => 'EP',
-  ReleaseType.single => 'Single',
-  ReleaseType.compilation => 'Coletânea',
+String releaseTypeName(AppLocalizations strings, ReleaseType type) => switch (type) {
+  ReleaseType.album => strings.releaseTypeAlbum,
+  ReleaseType.ep => strings.releaseTypeEp,
+  ReleaseType.single => strings.releaseTypeSingle,
+  ReleaseType.compilation => strings.releaseTypeCompilation,
 };
 
-/// An album of [type] as a sentence names it, with its article: "o álbum", "o EP", "o single", "a coletânea". One the
-/// server says nothing of (null) is an album.
-String albumWithArticle(ReleaseType? type) => switch (type) {
-  null || ReleaseType.album => 'o álbum',
-  ReleaseType.ep => 'o EP',
-  ReleaseType.single => 'o single',
-  ReleaseType.compilation => 'a coletânea',
-};
+/// [type] as the messages that name an album by its type take it (`playRelease`, `couldNotOpenRelease`, ...), whose
+/// words for it differ, as its article does in Portuguese ("o álbum", "a coletânea"). One the server says nothing of
+/// (null) is an album.
+String releaseSelector(ReleaseType? type) => (type ?? ReleaseType.album).name;

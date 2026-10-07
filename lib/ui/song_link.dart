@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../connect/connect.dart';
+import '../l10n/app_localizations.dart';
 import '../server/models.dart';
 import '../services.dart';
 import 'album_page.dart';
@@ -42,14 +43,7 @@ class SongLink extends StatefulWidget {
 }
 
 /// What a [SongLink] shows of the song.
-enum _Part {
-  title,
-  album,
-  artist;
-
-  /// The word the app's messages use for what it opens: the album, but for the artist.
-  String get word => this == artist ? 'artista' : 'álbum';
-}
+enum _Part { title, album, artist }
 
 class _SongLinkState extends State<SongLink> {
   /// Opens the album or the artist, or says why it can't. The song comes from the media server: the
@@ -57,6 +51,7 @@ class _SongLinkState extends State<SongLink> {
   Future<void> _open(String songId) async {
     final navigator = PageArea.navigatorOf(context);
     final messenger = ScaffoldMessenger.of(context);
+    final strings = AppLocalizations.of(context);
     Widget? page;
     Object? error;
 
@@ -93,21 +88,27 @@ class _SongLinkState extends State<SongLink> {
       return;
     }
 
-    final word = widget._part.word;
-    messenger.showSnackBar(SnackBar(content: Text('Não consegui abrir o $word${error == null ? '.' : ': $error'}')));
+    final message = switch ((widget._part, error)) {
+      (_Part.artist, null) => strings.couldNotOpenArtist,
+      (_Part.artist, final error?) => strings.couldNotOpenArtistError('$error'),
+      (_, null) => strings.couldNotOpenAlbum,
+      (_, final error?) => strings.couldNotOpenAlbumError('$error'),
+    };
+    messenger.showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
     final now = widget.now;
     final songId = now.songId;
+    final strings = AppLocalizations.of(context);
     return TextLink(
       switch (widget._part) {
-        _Part.title => now.title ?? 'Nada tocando',
+        _Part.title => now.title ?? strings.nothingPlaying,
         _Part.album => now.album ?? '',
         _Part.artist => now.artist ?? '',
       },
-      tooltip: 'Abrir o ${widget._part.word}',
+      tooltip: widget._part == _Part.artist ? strings.openArtist : strings.openAlbum,
       onTap: songId == null ? null : () => _open(songId),
       style: widget.style,
       maxLines: widget.maxLines,

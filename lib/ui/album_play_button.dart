@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
+import '../l10n/app_localizations.dart';
 import '../server/models.dart';
 import '../services.dart';
 import 'errors.dart';
@@ -40,6 +41,8 @@ class _AlbumPlayButtonState extends State<AlbumPlayButton> {
 
     final services = ServicesScope.of(context);
     final messenger = ScaffoldMessenger.of(context);
+    final strings = AppLocalizations.of(context);
+    final type = releaseSelector(widget.album.releaseType);
     setState(() => _loading = true);
 
     try {
@@ -47,12 +50,10 @@ class _AlbumPlayButtonState extends State<AlbumPlayButton> {
       final result = await services.connect.playSongs(songs, 0);
 
       if (!result.ok) {
-        messenger.showSnackBar(SnackBar(content: Text(describeError(result.error))));
+        messenger.showSnackBar(SnackBar(content: Text(describeError(strings, result.error))));
       }
     } on Object catch (error) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('Não consegui tocar ${albumWithArticle(widget.album.releaseType)}: $error')),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(strings.couldNotPlayRelease(type, '$error'))));
     } finally {
       if (mounted) {
         setState(() => _loading = false);
@@ -103,7 +104,7 @@ class _AlbumPlayButtonState extends State<AlbumPlayButton> {
     // Out of the focus's way, as the album's artist is: for the keyboard the album stays one stop.
     return ExcludeFocus(
       child: IconButton.filled(
-        tooltip: 'Tocar ${albumWithArticle(widget.album.releaseType)}',
+        tooltip: AppLocalizations.of(context).playRelease(releaseSelector(widget.album.releaseType)),
         iconSize: iconSize,
         // The filled button's colors, said again: in a list tile's leading, the tile's icon button theme
         // would give the icon the tile's icons' color.

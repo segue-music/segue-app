@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'l10n/app_localizations.dart';
+import 'language_choice.dart';
 import 'player/audio_interruptions.dart';
 import 'player/media_controls.dart';
 import 'services.dart';
@@ -18,6 +20,7 @@ class SegueApp extends StatefulWidget {
   const SegueApp({
     required this.session,
     this.themeChoice,
+    this.languageChoice,
     this.mediaControls,
     this.interruptions,
     this.television = false,
@@ -29,6 +32,9 @@ class SegueApp extends StatefulWidget {
 
   /// The theme picked, light or dark; with none, the app follows the system's.
   final ThemeChoice? themeChoice;
+
+  /// The language picked; with none, the app follows the system's.
+  final LanguageChoice? languageChoice;
 
   /// The system's media controls, where the platform has them.
   final MediaControls? mediaControls;
@@ -50,6 +56,9 @@ class _SegueAppState extends State<SegueApp> {
 
   /// [SegueApp.themeChoice], or one of its own, which follows the system's until a pick.
   late final _themeChoice = widget.themeChoice ?? ThemeChoice();
+
+  /// [SegueApp.languageChoice], or one of its own, which follows the system's until a pick.
+  late final _languageChoice = widget.languageChoice ?? LanguageChoice();
 
   @override
   void initState() {
@@ -108,18 +117,29 @@ class _SegueAppState extends State<SegueApp> {
       _themeChoice.dispose();
     }
 
+    if (widget.languageChoice == null) {
+      _languageChoice.dispose();
+    }
+
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) => ListenableBuilder(listenable: _themeChoice, builder: _app);
+  Widget build(BuildContext context) =>
+      ListenableBuilder(listenable: Listenable.merge([_themeChoice, _languageChoice]), builder: _app);
 
-  /// The app, in the theme picked.
+  /// The app, in the theme and the language picked.
   Widget _app(BuildContext context, Widget? _) {
     final services = _services;
+    final mediaControls = widget.mediaControls;
     return MaterialApp(
       title: 'Segue',
       debugShowCheckedModeBanner: false,
+      // The app's words, and Material's own, in the language picked, or the system's.
+      locale: _languageChoice.value,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localeListResolutionCallback: LanguageChoice.resolve,
       theme: segueTheme(Brightness.light),
       darkTheme: segueTheme(Brightness.dark),
       themeMode: _themeChoice.value,
@@ -135,7 +155,7 @@ class _SegueAppState extends State<SegueApp> {
           ),
         );
 
-        return ThemeFade(
+        final app = ThemeFade(
           child: ThemedTitleBar(
             child: services == null
                 ? page
@@ -149,24 +169,52 @@ class _SegueAppState extends State<SegueApp> {
                   ),
           ),
         );
+        return mediaControls == null ? app : _MediaControlsStrings(controls: mediaControls, child: app);
       },
       home: services != null
-          ? HomePage(onSignOut: _signOut, themeChoice: _themeChoice)
+          ? HomePage(onSignOut: _signOut, themeChoice: _themeChoice, languageChoice: _languageChoice)
           : _starting
           ? const Scaffold(body: Center(child: Spinner()))
           : _error != null
-          ? Scaffold(
-              body: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('Erro ao abrir: $_error'),
-                    TextButton(onPressed: _signOut, child: const Text('Sair')),
-                  ],
-                ),
-              ),
+          ? Builder(
+              builder: (context) {
+                final strings = AppLocalizations.of(context);
+                return Scaffold(
+                  body: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(strings.couldNotStart('$_error')),
+                        TextButton(onPressed: _signOut, child: Text(strings.signOut)),
+                      ],
+                    ),
+                  ),
+                );
+              },
             )
-          : LoginPage(onSignedIn: _start),
+          : LoginPage(onSignedIn: _start, languageChoice: _languageChoice),
     );
   }
+}
+
+/// Gives the system's media controls the app's words, in the language it shows, and again as it shows another.
+class _MediaControlsStrings extends StatefulWidget {
+  const _MediaControlsStrings({required this.controls, required this.child});
+
+  final MediaControls controls;
+  final Widget child;
+
+  @override
+  State<_MediaControlsStrings> createState() => _MediaControlsStringsState();
+}
+
+class _MediaControlsStringsState extends State<_MediaControlsStrings> {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    widget.controls.strings = AppLocalizations.of(context);
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }

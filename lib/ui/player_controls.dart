@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../connect/connect.dart';
+import '../l10n/app_localizations.dart';
 import '../segue/protocol.dart';
 import '../services.dart';
 import 'errors.dart';
@@ -23,10 +24,11 @@ String formatDuration(Duration? duration) {
 /// Runs a playback command and, if it fails, says why.
 Future<void> runCommand(BuildContext context, Future<Result> Function() command) async {
   final messenger = ScaffoldMessenger.maybeOf(context);
+  final strings = AppLocalizations.of(context);
   final result = await command();
 
   if (!result.ok) {
-    messenger?.showSnackBar(SnackBar(content: Text(describeError(result.error))));
+    messenger?.showSnackBar(SnackBar(content: Text(describeError(strings, result.error))));
   }
 }
 
@@ -178,8 +180,9 @@ class ShuffleButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final connect = ServicesScope.of(context).connect;
+    final strings = AppLocalizations.of(context);
     return IconButton(
-      tooltip: now.shuffle ? 'Desativar aleatório' : 'Ativar aleatório',
+      tooltip: now.shuffle ? strings.turnShuffleOff : strings.turnShuffleOn,
       icon: ThemedIcon(
         HugeIcons.strokeRoundedShuffle,
         color: now.shuffle ? Theme.of(context).colorScheme.primary : null,
@@ -198,11 +201,12 @@ class RepeatButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final connect = ServicesScope.of(context).connect;
+    final strings = AppLocalizations.of(context);
     return IconButton(
       tooltip: switch (now.repeat) {
-        Repeat.off => 'Repetir a lista',
-        Repeat.all => 'Repetir a faixa',
-        Repeat.one => 'Não repetir',
+        Repeat.off => strings.repeatAll,
+        Repeat.all => strings.repeatTrack,
+        Repeat.one => strings.repeatOff,
       },
       icon: ThemedIcon(
         now.repeat == Repeat.one ? HugeIcons.strokeRoundedRepeatOne01 : HugeIcons.strokeRoundedRepeat,
@@ -232,25 +236,26 @@ class PlaybackButtons extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final connect = ServicesScope.of(context).connect;
+    final strings = AppLocalizations.of(context);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
         ShuffleButton(now),
         IconButton(
-          tooltip: 'Anterior',
+          tooltip: strings.previous,
           iconSize: 36,
           icon: const ThemedIcon(HugeIcons.strokeRoundedPrevious),
           onPressed: () => runCommand(context, connect.previous),
         ),
         IconButton.filled(
-          tooltip: now.playing ? 'Pausar' : 'Tocar',
+          tooltip: now.playing ? strings.pause : strings.play,
           iconSize: 40,
           padding: const EdgeInsets.all(14),
           icon: ThemedIcon(now.playing ? HugeIcons.strokeRoundedPause : HugeIcons.strokeRoundedPlay),
           onPressed: () => runCommand(context, connect.toggle),
         ),
         IconButton(
-          tooltip: 'Próxima',
+          tooltip: strings.next,
           iconSize: 36,
           icon: const ThemedIcon(HugeIcons.strokeRoundedNext),
           onPressed: () => runCommand(context, connect.next),

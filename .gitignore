@@ -33,6 +33,9 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# The app's words, generated from lib/l10n's ARB files (l10n.yaml) on pub get and on every build
+/lib/l10n/app_localizations*.dart
+
 # Symbolication related
 app.*.symbols
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
+import '../l10n/app_localizations.dart';
 import '../server/models.dart';
 import '../services.dart';
 import 'artist_page.dart';
@@ -10,21 +11,22 @@ import 'order_chips.dart';
 import 'spinner.dart';
 
 /// "1 álbum", "5 álbuns"; empty when the server didn't say.
-String albumCount(int? count) => switch (count) {
-  null => '',
-  1 => '1 álbum',
-  _ => '$count álbuns',
-};
+String albumCount(AppLocalizations strings, int? count) => count == null ? '' : strings.albumCount(count);
 
 /// Orders the library's artists come in: what a chip says of one, and what a list in it says when it has none.
 enum _ArtistOrder {
-  name('Nome', 'A biblioteca está vazia.'),
-  mostPlayed('Mais tocados', 'Os artistas que você mais ouvir aparecem aqui.');
+  name,
+  mostPlayed;
 
-  const _ArtistOrder(this.label, this.emptyMessage);
+  String label(AppLocalizations strings) => switch (this) {
+    name => strings.orderName,
+    mostPlayed => strings.mostPlayed,
+  };
 
-  final String label;
-  final String emptyMessage;
+  String emptyMessage(AppLocalizations strings) => switch (this) {
+    name => strings.libraryEmpty,
+    mostPlayed => strings.mostPlayedArtistsEmpty,
+  };
 }
 
 /// The library's artists, by name or the most played first, as picked in chips above them.
@@ -62,45 +64,49 @@ class _ArtistsViewState extends State<ArtistsView> {
 
   // The chips stay at the top, also while another order's artists come, as the albums' do.
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      OrderChips(_order, orders: _ArtistOrder.values, label: (order) => order.label, onOrder: _reorder),
-      Expanded(
-        child: FutureBuilder(
-          // Another order's starts over, with none of the last one's artists; a refresh keeps them until the new come.
-          key: ValueKey(_order),
-          future: _artists,
-          builder: (context, snapshot) {
-            if (snapshot.hasError) {
-              return Center(child: Text('Não consegui listar os artistas: ${snapshot.error}'));
-            }
+  Widget build(BuildContext context) {
+    final strings = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        OrderChips(_order, orders: _ArtistOrder.values, label: (order) => order.label(strings), onOrder: _reorder),
+        Expanded(
+          child: FutureBuilder(
+            // Another order's starts over, with none of the last one's artists; a refresh keeps them until the new
+            // come.
+            key: ValueKey(_order),
+            future: _artists,
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return Center(child: Text(strings.couldNotListArtists('${snapshot.error}')));
+              }
 
-            final artists = snapshot.data;
+              final artists = snapshot.data;
 
-            if (artists == null) {
-              return const Center(child: Spinner());
-            }
+              if (artists == null) {
+                return const Center(child: Spinner());
+              }
 
-            return RefreshIndicator(
-              onRefresh: () async {
-                final reload = _load();
-                setState(() => _artists = reload);
-                await reload;
-              },
-              child: artists.isEmpty
-                  // Scrolling all the same, for the refresh to pull.
-                  ? ListView(
-                      padding: const EdgeInsets.all(16),
-                      children: [Center(child: Text(_order.emptyMessage))],
-                    )
-                  : _ArtistGrid(artists),
-            );
-          },
+              return RefreshIndicator(
+                onRefresh: () async {
+                  final reload = _load();
+                  setState(() => _artists = reload);
+                  await reload;
+                },
+                child: artists.isEmpty
+                    // Scrolling all the same, for the refresh to pull.
+                    ? ListView(
+                        padding: const EdgeInsets.all(16),
+                        children: [Center(child: Text(_order.emptyMessage(strings)))],
+                      )
+                    : _ArtistGrid(artists),
+              );
+            },
+          ),
         ),
-      ),
-    ],
-  );
+      ],
+    );
+  }
 }
 
 /// Artists as a grid of pictures, each of which opens their page.
@@ -182,7 +188,7 @@ class _ArtistTileState extends State<_ArtistTile> {
                 ),
                 const SizedBox(height: 6),
                 Text(artist.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: text.titleSmall),
-                Text(albumCount(artist.albumCount), maxLines: 1, style: text.bodySmall),
+                Text(albumCount(AppLocalizations.of(context), artist.albumCount), maxLines: 1, style: text.bodySmall),
               ],
             ),
           ),

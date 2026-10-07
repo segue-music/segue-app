@@ -24,6 +24,7 @@ mounted), so nothing needs installing. Build the image once:
 docker build -t segue-flutter-dev -f tool/dev.Dockerfile tool
 tool/flutter.sh pub get
 tool/flutter.sh analyze
+tool/flutter.sh gen-l10n                      # the app's words, after editing lib/l10n's ARB files
 DART=1 tool/flutter.sh format lib test        # page width 120 (analysis_options.yaml)
 tool/flutter.sh test
 tool/flutter.sh test test/player_test.dart    # one file
@@ -67,6 +68,12 @@ Test prerequisites:
   them.
 - `test/media_kit_engine_test.dart` uses the real libmpv with audio output disabled. The dev image
   has libmpv; elsewhere these tests are skipped.
+
+The tests read the app in Portuguese: a test's own `MaterialApp` takes
+`localizationsDelegates: AppLocalizations.localizationsDelegates` and
+`supportedLocales: const [Locale('pt')]`, and one of the whole `SegueApp` sets the system's language
+(`tester.platformDispatcher.localesTestValue`). `languages_test.dart` goes through the pages in the
+other languages, where a text too long for its room fails.
 
 Running two app instances on one machine as different devices:
 `env SEGUE_DEVICE_ID=second SEGUE_DEVICE_NAME="Second copy" segue/segue`.
@@ -147,6 +154,13 @@ Running two app instances on one machine as different devices:
 - `AudioInterruptions` (`lib/player/audio_interruptions.dart`), on iOS only, sets the audio session
   up for music and pauses the local player for calls (resuming after, when iOS says to) and when the
   car or headphones go away. libmpv knows of neither.
+- The app's words are in `lib/l10n/`'s ARB files, one per language (Portuguese, English, Spanish),
+  from which gen-l10n makes `AppLocalizations` (`l10n.yaml`). `LanguageChoice`
+  (`lib/language_choice.dart`) is the language shown: the system's, of those the app has the first
+  it prefers and English when it has none, until a menu (`LanguageButton`, in the top bar and in the
+  sign-in's corner) picks one, which the preferences keep, as `ThemeChoice` does the theme. Where no
+  `BuildContext` reaches, the words come in: `describeError` takes them, and `MediaControls` gets
+  them from a widget under `MaterialApp` (`app.dart`), again as the language changes.
 - `Session` keeps the token (Subsonic's, with its salt, or Jellyfin's access token) in secure
   storage and everything else in `shared_preferences`, with the API under `api` (none: a session
   saved before Jellyfin, so Subsonic). The password itself is never stored.
@@ -167,9 +181,16 @@ Running two app instances on one machine as different devices:
 
 ## Conventions
 
-- The app's UI text is in Portuguese. Code, comments and `README.md` are in English. Error codes
-  from the hub and players become Portuguese messages in `describeError` (`lib/ui/errors.dart`), so
-  a new error string needs an entry there.
+- The app's UI text is in `lib/l10n/`'s ARB files, never a literal in the code: a widget takes it
+  from `AppLocalizations.of(context)` (a local `strings`). A new text is a message in all three,
+  `app_pt.arb` (the template, with its description and its placeholders), `app_en.arb` and
+  `app_es.arb`; `l10n_test.dart` fails on one missing. A sentence whose words change with a number
+  or a kind is one message, with a `plural` or a `select` (`albumCount`, `playRelease`), not pieces
+  put together. The Dart code (`lib/l10n/app_localizations*.dart`, not in git) comes from the ARB
+  files on `pub get` and on every build, but not on `test` or `analyze`: after editing one,
+  `tool/flutter.sh gen-l10n`. Code, comments and `README.md` are in English. Error codes from the
+  hub and players become messages in `describeError` (`lib/ui/errors.dart`), so a new error string
+  needs an entry there.
 - Commit messages are in Portuguese: a short title and a body explaining the behaviour and why.
 - `README.md` lists what the app does and what it doesn't do yet. Update it when a feature lands,
   and segue's `README.md` ("Next steps") when the feature was listed there.
@@ -195,8 +216,9 @@ Running two app instances on one machine as different devices:
   (`tool/dev.Dockerfile`, `codemagic.yaml`), check that Linux still has Skia, and try Impeller
   again: without that line, look at a cover's edges and at the icons in a Linux desktop session.
 - On a computer the pointer is a hand over what can be clicked, which Flutter leaves to the web: the
-  theme (`segueTheme`) gives it to buttons and list tiles, and an `InkWell`, which no theme reaches,
-  takes `mouseCursor: WidgetStateMouseCursor.clickable`. `test/cursor_test.dart` goes over them.
+  theme (`segueTheme`) gives it to buttons, list tiles and menus' items, and an `InkWell`, which no
+  theme reaches, takes `mouseCursor: WidgetStateMouseCursor.clickable`. `test/cursor_test.dart` goes
+  over them.
 - No name ends in `_`: when the obvious one is taken, as by an import prefix (`http`), pick a fuller
   one (`httpClient`). A leading `_` is Dart's privacy, not style, and stays.
 - Docs, comments and tests stay generic: no names from a particular setup (machine or device names,

@@ -4,6 +4,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
+import '../l10n/app_localizations.dart';
 import '../server/models.dart';
 import 'albums_view.dart';
 import 'spinner.dart';
@@ -71,6 +72,7 @@ class _AlbumRowState extends State<AlbumRow> {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
+    final strings = AppLocalizations.of(context);
 
     Widget note(String message) => Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -91,7 +93,7 @@ class _AlbumRowState extends State<AlbumRow> {
                     alignment: Alignment.centerLeft,
                     child: TextLink(
                       widget.title,
-                      tooltip: 'Ver todos',
+                      tooltip: strings.showAll,
                       onTap: widget.onShowAll,
                       style: text.titleLarge,
                     ),
@@ -106,7 +108,7 @@ class _AlbumRowState extends State<AlbumRow> {
           future: widget.albums,
           builder: (context, snapshot) {
             if (snapshot.hasError) {
-              return note('Não consegui listar os álbuns: ${snapshot.error}');
+              return note(strings.couldNotListAlbums('${snapshot.error}'));
             }
 
             final albums = snapshot.data;
@@ -150,6 +152,7 @@ class _AlbumRowState extends State<AlbumRow> {
         return const SizedBox.shrink();
       }
 
+      final strings = AppLocalizations.of(context);
       final arrows = IconButton.styleFrom(
         padding: const EdgeInsets.all(4),
         minimumSize: const Size.square(32),
@@ -160,13 +163,13 @@ class _AlbumRowState extends State<AlbumRow> {
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
-              tooltip: 'Anteriores',
+              tooltip: strings.previousAlbums,
               style: arrows,
               icon: const ThemedIcon(HugeIcons.strokeRoundedArrowLeft01),
               onPressed: position.extentBefore > 0 ? () => _page(-1) : null,
             ),
             IconButton(
-              tooltip: 'Próximos',
+              tooltip: strings.nextAlbums,
               style: arrows,
               icon: const ThemedIcon(HugeIcons.strokeRoundedArrowRight01),
               onPressed: position.extentAfter > 0 ? () => _page(1) : null,

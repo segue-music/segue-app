@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:segue/l10n/app_localizations.dart';
 import 'package:segue/ui/equalizer.dart';
 
 void main() {
@@ -7,7 +8,13 @@ void main() {
   tearDown(() => Equalizer.moves = false);
 
   testWidgets('the equalizer moves, and stands still where the system asks for less motion', (tester) async {
-    await tester.pumpWidget(const MaterialApp(home: Center(child: Equalizer())));
+    await tester.pumpWidget(
+      const MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: [Locale('pt')],
+        home: Center(child: Equalizer()),
+      ),
+    );
     expect(tester.hasRunningAnimations, isTrue);
     expect(tester.getSize(find.byType(Equalizer)), const Size.square(24), reason: 'an icon');
 

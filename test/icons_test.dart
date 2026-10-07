@@ -6,6 +6,8 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:segue/connect/connect.dart';
+import 'package:segue/l10n/app_localizations.dart';
+import 'package:segue/language_choice.dart';
 import 'package:segue/player/player.dart';
 import 'package:segue/server/models.dart';
 import 'package:segue/services.dart';
@@ -86,14 +88,18 @@ Future<void> pumpApp(WidgetTester tester, Size size) async {
     player,
     ConnectController(player: player),
   );
+  final languageChoice = LanguageChoice();
+  addTearDown(languageChoice.dispose);
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: const [Locale('pt')],
       theme: segueTheme(Brightness.light),
       builder: (context, child) => ServicesScope(services: services, child: child!),
-      home: HomePage(onSignOut: () {}),
+      home: HomePage(onSignOut: () {}, languageChoice: languageChoice),
     ),
   );
   await tester.pumpAndSettle();
@@ -116,6 +122,11 @@ void main() {
     await pumpApp(tester, const Size(1000, 700));
     expect(hugeIcons, findsWidgets);
     expect(otherIcons, findsNothing, reason: 'the home, with the player bar');
+
+    await tap(tester, find.byTooltip('Idioma'));
+    expect(otherIcons, findsNothing, reason: 'the language menu');
+    await tester.tapAt(const Offset(500, 650)); // out of the menu, which closes
+    await tester.pumpAndSettle();
 
     await tap(tester, find.text('Toys in the Attic').first);
     expect(otherIcons, findsNothing, reason: 'an album');

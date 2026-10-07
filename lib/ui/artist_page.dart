@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
+import '../l10n/app_localizations.dart';
 import '../server/models.dart';
 import '../services.dart';
 import 'albums_view.dart';
@@ -41,6 +42,7 @@ class _ArtistPageState extends State<ArtistPage> {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
+    final strings = AppLocalizations.of(context);
     // On a phone, or a window as narrow (as the home counts it), the picture is beside the back arrow, where a bigger
     // one would leave the name no room.
     final narrow = MediaQuery.sizeOf(context).width < 600;
@@ -52,14 +54,14 @@ class _ArtistPageState extends State<ArtistPage> {
           // No title: the artist's name is by their picture, which is beside the back arrow.
           appBar: PageHeader.bar(context, shown: data != null),
           body: switch (data) {
-            _ when snapshot.hasError => Center(child: Text('Não consegui abrir o artista: ${snapshot.error}')),
+            _ when snapshot.hasError => Center(child: Text(strings.couldNotOpenArtistError('${snapshot.error}'))),
             null => const Center(child: Spinner()),
             (final artist, final albums) => AlbumGrid.sections(
-              _sections(albums),
+              _sections(strings, albums),
               // Its year, and its type where it isn't an album: "2020 · EP".
               subtitle: (album) => [
                 if (album.year case final year?) '$year',
-                if (album.releaseType case final type? when type != ReleaseType.album) releaseTypeName(type),
+                if (album.releaseType case final type? when type != ReleaseType.album) releaseTypeName(strings, type),
               ].join(' · '),
               header: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -89,7 +91,7 @@ class _ArtistPageState extends State<ArtistPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(artist.name, style: text.titleLarge),
-                                Text(_count(albums), style: text.bodyMedium),
+                                Text(_count(strings, albums), style: text.bodyMedium),
                               ],
                             ),
                           ),
@@ -114,24 +116,22 @@ class _ArtistPageState extends State<ArtistPage> {
 
   /// How many of [albums] are albums, and singles and EPs, as the sections under part them: "8 álbuns · 4 singles e
   /// EPs", "8 álbuns · 1 EP", "2 singles"; "0 álbuns" with none.
-  static String _count(List<Album> albums) {
+  static String _count(AppLocalizations strings, List<Album> albums) {
     final singles = albums.where((album) => album.releaseType == ReleaseType.single).length;
     final eps = albums.where((album) => album.releaseType == ReleaseType.ep).length;
     final full = albums.length - singles - eps;
     final short = switch ((singles, eps)) {
       (0, 0) => null,
-      (1, 0) => '1 single',
-      (_, 0) => '$singles singles',
-      (0, 1) => '1 EP',
-      (0, _) => '$eps EPs',
-      _ => '${singles + eps} singles e EPs',
+      (_, 0) => strings.singleCount(singles),
+      (0, _) => strings.epCount(eps),
+      _ => strings.singleAndEpCount(singles + eps),
     };
-    return [if (full > 0 || short == null) albumCount(full), ?short].join(' · ');
+    return [if (full > 0 || short == null) albumCount(strings, full), ?short].join(' · ');
   }
 
   /// [albums], newest first, in sections: the artist's albums (with those the server says no type of), then their
   /// singles and EPs. A section of none isn't there, nor its title, even with the songs above.
-  static List<AlbumSection> _sections(List<Album> albums) {
+  static List<AlbumSection> _sections(AppLocalizations strings, List<Album> albums) {
     const short = {ReleaseType.single, ReleaseType.ep};
     final newest = [...albums]..sort((a, b) => (b.year ?? 0).compareTo(a.year ?? 0));
     final full = [
@@ -143,8 +143,8 @@ class _ArtistPageState extends State<ArtistPage> {
         if (short.contains(album.releaseType)) album,
     ];
     return [
-      if (full.isNotEmpty) (title: 'Álbuns', albums: full),
-      if (singles.isNotEmpty) (title: 'Singles e EPs', albums: singles),
+      if (full.isNotEmpty) (title: strings.albums, albums: full),
+      if (singles.isNotEmpty) (title: strings.singlesAndEps, albums: singles),
     ];
   }
 }
@@ -161,10 +161,11 @@ class _MostPlayedSongs extends StatelessWidget {
 
   static Future<void> _play(BuildContext context, List<Song> songs, int index) async {
     final messenger = ScaffoldMessenger.of(context);
+    final strings = AppLocalizations.of(context);
     final result = await ServicesScope.of(context).connect.playSongs(songs, index);
 
     if (!result.ok) {
-      messenger.showSnackBar(SnackBar(content: Text(describeError(result.error))));
+      messenger.showSnackBar(SnackBar(content: Text(describeError(strings, result.error))));
     }
   }
 
@@ -173,6 +174,7 @@ class _MostPlayedSongs extends StatelessWidget {
     future: songs,
     builder: (context, snapshot) {
       final text = Theme.of(context).textTheme;
+      final strings = AppLocalizations.of(context);
       final songs = snapshot.data ?? const <Song>[];
 
       if (songs.isEmpty && !snapshot.hasError) {
@@ -184,12 +186,12 @@ class _MostPlayedSongs extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-            child: Text('Mais tocadas', style: text.titleLarge),
+            child: Text(strings.mostPlayedSongs, style: text.titleLarge),
           ),
           if (snapshot.hasError)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text('Não consegui listar as músicas: ${snapshot.error}', style: text.bodyMedium),
+              child: Text(strings.couldNotListSongs('${snapshot.error}'), style: text.bodyMedium),
             ),
           for (final (i, song) in songs.indexed)
             CurrentSong(

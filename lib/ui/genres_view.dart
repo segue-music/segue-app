@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
 import '../server/models.dart';
 import '../services.dart';
 import 'artists_view.dart';
@@ -46,8 +47,10 @@ class _GenresViewState extends State<GenresView> {
   Widget build(BuildContext context) => FutureBuilder(
     future: _genres,
     builder: (context, snapshot) {
+      final strings = AppLocalizations.of(context);
+
       if (snapshot.hasError) {
-        return Center(child: Text('Não consegui listar os gêneros: ${snapshot.error}'));
+        return Center(child: Text(strings.couldNotListGenres('${snapshot.error}')));
       }
 
       final genres = snapshot.data;
@@ -77,7 +80,7 @@ class _GenresViewState extends State<GenresView> {
             final genre = all[i - header];
             return ListTile(
               title: Text(genre.name),
-              subtitle: genre.albumCount == null ? null : Text(albumCount(genre.albumCount)),
+              subtitle: genre.albumCount == null ? null : Text(albumCount(strings, genre.albumCount)),
               onTap: () => _open(context, genre),
             );
           },
@@ -97,12 +100,13 @@ class _MostPlayed extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
+    final strings = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Mais tocados', style: text.titleLarge),
+          Text(strings.mostPlayed, style: text.titleLarge),
           const SizedBox(height: 12),
           Wrap(
             spacing: 8,
@@ -113,7 +117,7 @@ class _MostPlayed extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 24),
-          Text('Todos os gêneros', style: text.titleLarge),
+          Text(strings.allGenres, style: text.titleLarge),
         ],
       ),
     );

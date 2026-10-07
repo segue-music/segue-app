@@ -7,6 +7,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:segue/connect/connect.dart';
+import 'package:segue/l10n/app_localizations.dart';
+import 'package:segue/language_choice.dart';
 import 'package:segue/player/player.dart';
 import 'package:segue/server/models.dart';
 import 'package:segue/services.dart';
@@ -88,14 +90,18 @@ Future<TestGesture> pumpApp(WidgetTester tester) async {
     player,
     ConnectController(player: player),
   );
+  final languageChoice = LanguageChoice();
+  addTearDown(languageChoice.dispose);
   tester.view.physicalSize = const Size(1000, 700);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: const [Locale('pt')],
       theme: segueTheme(Brightness.light),
       builder: (context, child) => ServicesScope(services: services, child: child!),
-      home: HomePage(onSignOut: () {}),
+      home: HomePage(onSignOut: () {}, languageChoice: languageChoice),
     ),
   );
   await tester.pumpAndSettle();
@@ -135,6 +141,12 @@ void main() {
     await expectHand('the song in the player bar', find.byTooltip('Abrir o player'));
     await expectHand('a button in the player bar', find.byTooltip('Próxima'));
     await expectArrow('the hub\'s status, which only tells', find.byTooltip('Sem hub: só toca neste aparelho'));
+    await expectHand('the language menu', find.byTooltip('Idioma'));
+    await tester.tap(find.byTooltip('Idioma'));
+    await tester.pumpAndSettle();
+    await expectHand('a language in it', find.text('English'));
+    await tester.tapAt(const Offset(500, 650)); // out of the menu, which closes
+    await tester.pumpAndSettle();
     await expectArrow('the side rail\'s empty part', find.byType(VerticalDivider));
     expect(
       await cursorOver(tester, gesture, find.byType(TextField)),

@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 
+import '../l10n/app_localizations.dart';
+import '../language_choice.dart';
 import '../segue/client.dart';
 import '../segue/protocol.dart';
 import '../server/models.dart';
@@ -15,6 +17,7 @@ import 'albums_view.dart';
 import 'artists_view.dart';
 import 'genres_view.dart';
 import 'home_view.dart';
+import 'language_button.dart';
 import 'now_playing_bar.dart';
 import 'page_area.dart';
 import 'player_page.dart';
@@ -24,13 +27,16 @@ import 'theme_fade.dart';
 import 'themed_icon.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({required this.onSignOut, this.themeChoice, super.key});
+  const HomePage({required this.onSignOut, this.themeChoice, this.languageChoice, super.key});
 
   final VoidCallback onSignOut;
 
   /// The theme picked, which a button in the top bar switches between light and dark, on a wide screen; none, no
   /// button.
   final ThemeChoice? themeChoice;
+
+  /// The language picked, which a menu in the top bar picks; none, no menu.
+  final LanguageChoice? languageChoice;
 
   /// How long typing in the search bar has to stop before the search goes out, so that it isn't one
   /// per key.
@@ -44,19 +50,25 @@ class HomePage extends StatefulWidget {
 /// bar, opens the home too, and on a wide screen it alone does. The search is a section on a phone only, where its
 /// bar shows with it; on a wide screen the bar is always in the top bar.
 enum _Section {
-  home('Início', HugeIcons.strokeRoundedHome01),
-  albums('Álbuns', HugeIcons.strokeRoundedCd),
-  artists('Artistas', HugeIcons.strokeRoundedUser),
-  genres('Gêneros', HugeIcons.strokeRoundedTag01),
-  search('Buscar', HugeIcons.strokeRoundedSearch01);
+  home(HugeIcons.strokeRoundedHome01),
+  albums(HugeIcons.strokeRoundedCd),
+  artists(HugeIcons.strokeRoundedUser),
+  genres(HugeIcons.strokeRoundedTag01),
+  search(HugeIcons.strokeRoundedSearch01);
 
-  const _Section(this.label, this.icon);
-
-  final String label;
+  const _Section(this.icon);
 
   /// The same selected or not: Hugeicons' free set has no filled icons. The selected section is on a
   /// tint.
   final HugeIconData icon;
+
+  String label(AppLocalizations strings) => switch (this) {
+    home => strings.home,
+    albums => strings.albums,
+    artists => strings.artists,
+    genres => strings.genres,
+    search => strings.search,
+  };
 }
 
 class _HomePageState extends State<HomePage> {
@@ -176,6 +188,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final services = ServicesScope.of(context);
+    final strings = AppLocalizations.of(context);
     final results = _results;
     final width = MediaQuery.sizeOf(context).width;
     final narrow = _narrow;
@@ -204,7 +217,7 @@ class _HomePageState extends State<HomePage> {
         readOnly: television && !_searchEditable,
         // A tap, or the remote's center button.
         onTap: television ? _openKeyboard : null,
-        hintText: 'Buscar álbum, artista ou música',
+        hintText: strings.searchHint,
         // On a phone, where the bar shows as the search opens: ready to type, but for a search already there, whose
         // results the keyboard would cover.
         autoFocus: narrow && _search.text.isEmpty,
@@ -215,7 +228,7 @@ class _HomePageState extends State<HomePage> {
             builder: (context, _) => _search.text.isEmpty
                 ? const SizedBox.shrink()
                 : IconButton(
-                    tooltip: 'Limpar',
+                    tooltip: strings.clear,
                     icon: const ThemedIcon(HugeIcons.strokeRoundedCancel01),
                     onPressed: _clearSearch,
                   ),
@@ -229,15 +242,20 @@ class _HomePageState extends State<HomePage> {
       ),
     );
     final logo = IconButton(
-      tooltip: _Section.home.label,
+      tooltip: _Section.home.label(strings),
       icon: Image.asset('assets/logo.png', width: 32, height: 32),
       onPressed: () => _select(_Section.home),
     );
-    final themeChoice = widget.themeChoice;
+    final (themeChoice, languageChoice) = (widget.themeChoice, widget.languageChoice);
     final actions = [
       if (!narrow && themeChoice != null) _ThemeButton(themeChoice),
+      if (languageChoice != null) LanguageButton(languageChoice),
       _HubStatus(client: services.connect.client),
-      IconButton(tooltip: 'Sair', icon: const ThemedIcon(HugeIcons.strokeRoundedLogout01), onPressed: widget.onSignOut),
+      IconButton(
+        tooltip: strings.signOut,
+        icon: const ThemedIcon(HugeIcons.strokeRoundedLogout01),
+        onPressed: widget.onSignOut,
+      ),
     ];
     final sections = Stack(
       fit: StackFit.expand,
@@ -300,7 +318,7 @@ class _HomePageState extends State<HomePage> {
               appBar: AppBar(
                 // The app's icon, which opens the home.
                 leading: logo,
-                title: Text(_section.label),
+                title: Text(_section.label(strings)),
                 bottom: _section == _Section.search
                     ? PreferredSize(
                         preferredSize: const Size.fromHeight(56),
@@ -335,7 +353,7 @@ class _HomePageState extends State<HomePage> {
                   onDestinationSelected: (index) => _select(_Section.values[index]),
                   destinations: [
                     for (final section in _Section.values)
-                      NavigationDestination(icon: ThemedIcon(section.icon), label: section.label),
+                      NavigationDestination(icon: ThemedIcon(section.icon), label: section.label(strings)),
                   ],
                 ),
               ),
@@ -374,13 +392,13 @@ class _HomePageState extends State<HomePage> {
                   children: [
                     SizedBox.square(dimension: kToolbarHeight, child: logo),
                     IconButton(
-                      tooltip: 'Voltar',
+                      tooltip: strings.back,
                       style: arrows,
                       icon: const ThemedIcon(HugeIcons.strokeRoundedArrowLeft02),
                       onPressed: _history.canGoBack ? _history.back : null,
                     ),
                     IconButton(
-                      tooltip: 'Avançar',
+                      tooltip: strings.forward,
                       style: arrows,
                       icon: const ThemedIcon(HugeIcons.strokeRoundedArrowRight02),
                       onPressed: _history.canGoForward ? _history.forward : null,
@@ -444,6 +462,7 @@ class _SideRail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final strings = AppLocalizations.of(context);
     // NavigationRail's colors: the selected section on a tint.
     final style = ButtonStyle(
       backgroundColor: WidgetStateProperty.resolveWith(
@@ -463,7 +482,7 @@ class _SideRail extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 child: Tooltip(
-                  message: section.label,
+                  message: section.label(strings),
                   positionDelegate: _besideIcon,
                   child: IconButton(
                     isSelected: section == selected,
@@ -493,14 +512,15 @@ class _ThemeButton extends StatelessWidget {
       choice.pick(mode);
     }
 
+    final strings = AppLocalizations.of(context);
     return Theme.of(context).brightness == Brightness.dark
         ? IconButton(
-            tooltip: 'Tema claro',
+            tooltip: strings.lightTheme,
             icon: const ThemedIcon(HugeIcons.strokeRoundedSun03),
             onPressed: () => pick(ThemeMode.light),
           )
         : IconButton(
-            tooltip: 'Tema escuro',
+            tooltip: strings.darkTheme,
             icon: const ThemedIcon(HugeIcons.strokeRoundedMoon02),
             onPressed: () => pick(ThemeMode.dark),
           );
@@ -516,6 +536,7 @@ class _HubStatus extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final client = this.client;
+    final strings = AppLocalizations.of(context);
     // As big as the icon buttons beside it, so that the icons in the bar are evenly spaced.
     final size = _buttonSize(context);
 
@@ -528,19 +549,17 @@ class _HubStatus extends StatelessWidget {
     );
 
     if (client == null) {
-      return status('Sem hub: só toca neste aparelho', HugeIcons.strokeRoundedUnlink02);
+      return status(strings.noHub, HugeIcons.strokeRoundedUnlink02);
     }
 
     return ListenableBuilder(
       listenable: client,
       builder: (context, _) => switch (client.status) {
-        HubStatus.connected => status('Conectado ao hub', HugeIcons.strokeRoundedCloudCheck),
-        HubStatus.connecting => status('Conectando ao hub…', HugeIcons.strokeRoundedCloudLoading),
-        HubStatus.offline => status('Hub fora do ar; tentando de novo', HugeIcons.strokeRoundedCloudOff),
+        HubStatus.connected => status(strings.hubConnected, HugeIcons.strokeRoundedCloudCheck),
+        HubStatus.connecting => status(strings.hubConnecting, HugeIcons.strokeRoundedCloudLoading),
+        HubStatus.offline => status(strings.hubOffline, HugeIcons.strokeRoundedCloudOff),
         HubStatus.rejected => status(
-          client.lastClose?.code == CloseCode.replaced
-              ? 'Este aparelho se conectou de novo em outro lugar (outra cópia do app aberta?)'
-              : 'O hub recusou este aparelho',
+          client.lastClose?.code == CloseCode.replaced ? strings.hubReplaced : strings.hubRejected,
           HugeIcons.strokeRoundedCloudAlert,
         ),
       },

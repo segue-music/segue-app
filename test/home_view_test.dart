@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:hugeicons/hugeicons.dart';
 import 'package:http/testing.dart';
 import 'package:segue/connect/connect.dart';
+import 'package:segue/l10n/app_localizations.dart';
 import 'package:segue/player/player.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
@@ -100,6 +101,8 @@ Future<List<Map<String, String>>> pumpHome(
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
   Widget app() => MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: const [Locale('pt')],
     theme: themeChoice == null ? null : segueTheme(Brightness.light),
     darkTheme: themeChoice == null ? null : segueTheme(Brightness.dark),
     themeMode: themeChoice?.value ?? ThemeMode.system,

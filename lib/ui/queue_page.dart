@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../l10n/app_localizations.dart';
 import '../services.dart';
 import 'cover.dart';
 import 'now_playing_bar.dart';
@@ -37,6 +38,7 @@ class _QueuePageState extends State<QueuePage> {
   @override
   Widget build(BuildContext context) {
     final connect = ServicesScope.of(context).connect;
+    final strings = AppLocalizations.of(context);
     // On a TV the remote starts on the current track. Elsewhere the page itself takes the focus, so
     // that Esc closes it, and no track looks focused.
     final television = MediaQuery.navigationModeOf(context) == NavigationMode.directional;
@@ -74,11 +76,14 @@ class _QueuePageState extends State<QueuePage> {
               appBar: AppBar(
                 // Under a wide screen's top bar, whose arrow goes back: no arrow of its own.
                 automaticallyImplyLeading: !PageArea.holdsUnderTopBar(context),
-                title: Text(now?.device == null ? 'Fila' : 'Fila em ${now!.device}'),
+                title: Text(switch (now?.device) {
+                  null => strings.queue,
+                  final device => strings.queueOn(device),
+                }),
               ),
               bottomNavigationBar: const NowPlayingBar(),
               body: tracks.isEmpty
-                  ? const Center(child: Text('A fila está vazia.'))
+                  ? Center(child: Text(strings.queueEmpty))
                   // The header stays over the tracks, which go up from the one on top as much as down from it.
                   : Column(
                       children: [

@@ -44,6 +44,9 @@ void main() {
   });
 
   testWidgets('the window is told the colors when they change, not on every frame', (tester) async {
+    // The system in Portuguese, which the app follows.
+    tester.platformDispatcher.localesTestValue = const [Locale('pt', 'BR')];
+    addTearDown(tester.platformDispatcher.clearLocalesTestValue);
     await tester.pumpWidget(const SegueApp(session: null));
     await tester.enterText(find.widgetWithText(TextFormField, 'Servidor'), 'music.example');
     await tester.pumpAndSettle();
@@ -54,6 +57,9 @@ void main() {
     tester,
   ) async {
     messenger.setMockMethodCallHandler(channel, null);
+    // The system in Portuguese, which the app follows.
+    tester.platformDispatcher.localesTestValue = const [Locale('pt', 'BR')];
+    addTearDown(tester.platformDispatcher.clearLocalesTestValue);
     await tester.pumpWidget(const SegueApp(session: null));
     await tester.pumpAndSettle();
     expect(find.widgetWithText(TextFormField, 'Servidor'), findsOneWidget);

@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:flutter/services.dart';
 
+import '../l10n/app_localizations.dart';
 import 'cover.dart';
 import 'focus_ring.dart';
 import 'themed_icon.dart';
 
 /// A cover full screen, on black: as big as the screen's shorter side, and asked of the server at
-/// that size. A tap anywhere, Esc or "Fechar" closes it.
+/// that size. A tap anywhere, Esc or its close button closes it.
 class CoverPage extends StatelessWidget {
   const CoverPage(this.id, {super.key});
 
@@ -53,7 +54,7 @@ class CoverPage extends StatelessWidget {
                   child: Padding(
                     padding: const EdgeInsets.all(8),
                     child: IconButton(
-                      tooltip: 'Fechar',
+                      tooltip: AppLocalizations.of(context).close,
                       icon: const ThemedIcon(HugeIcons.strokeRoundedCancel01),
                       color: Colors.white,
                       onPressed: close,
@@ -94,7 +95,7 @@ class CoverButton extends StatelessWidget {
     }
 
     return Tooltip(
-      message: 'Ver a capa',
+      message: AppLocalizations.of(context).showCover,
       child: FocusRing(
         child: InkWell(
           mouseCursor: WidgetStateMouseCursor.clickable,

@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:segue/connect/connect.dart';
+import 'package:segue/l10n/app_localizations.dart';
 import 'package:segue/player/player.dart';
 import 'package:segue/server/models.dart';
 import 'package:segue/services.dart';
@@ -74,6 +75,8 @@ Future<(PlayerController, List<String?>)> pumpHome(WidgetTester tester, Size siz
   addTearDown(tester.view.reset);
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: const [Locale('pt')],
       // Above the navigator, as in the app: on a phone, pages open in it, over the home.
       builder: (context, child) => ServicesScope(services: services, child: child!),
       home: HomePage(onSignOut: () {}),

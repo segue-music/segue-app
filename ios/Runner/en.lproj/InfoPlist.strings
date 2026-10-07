@@ -1,0 +1,2 @@
+/* The local network permission's prompt. */
+"NSLocalNetworkUsageDescription" = "Segue uses the local network to play from your music server and to talk to your other devices.";

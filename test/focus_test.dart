@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:segue/l10n/app_localizations.dart';
 import 'package:segue/server/models.dart';
 import 'package:segue/ui/albums_view.dart';
 import 'package:segue/ui/theme.dart';
@@ -54,6 +55,8 @@ void main() {
     FocusManager.instance.highlightStrategy = FocusHighlightStrategy.alwaysTraditional;
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: const [Locale('pt')],
         theme: segueTheme(Brightness.light),
         home: const Scaffold(
           body: AlbumGrid([Album(id: 'a1', name: 'Toys in the Attic', artist: 'Aerosmith')]),
@@ -75,6 +78,8 @@ void main() {
     FocusManager.instance.highlightStrategy = FocusHighlightStrategy.alwaysTraditional;
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: const [Locale('pt')],
         theme: segueTheme(Brightness.light),
         home: const Scaffold(
           body: AlbumGrid([Album(id: 'a1', name: 'One'), Album(id: 'a2', name: 'Two')]),
@@ -99,6 +104,8 @@ void main() {
     FocusManager.instance.highlightStrategy = FocusHighlightStrategy.alwaysTraditional;
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: const [Locale('pt')],
         theme: segueTheme(Brightness.light),
         home: const Scaffold(
           body: AlbumGrid([

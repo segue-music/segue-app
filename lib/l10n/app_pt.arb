@@ -1,0 +1,735 @@
+{
+  "@@locale": "pt",
+  "releaseTypeAlbum": "Álbum",
+  "@releaseTypeAlbum": {
+    "description": "An album's type, as a label by its name."
+  },
+  "releaseTypeEp": "EP",
+  "@releaseTypeEp": {
+    "description": "An EP's type, as a label by its name."
+  },
+  "releaseTypeSingle": "Single",
+  "@releaseTypeSingle": {
+    "description": "A single's type, as a label by its name."
+  },
+  "releaseTypeCompilation": "Coletânea",
+  "@releaseTypeCompilation": {
+    "description": "A compilation's type, as a label by its name."
+  },
+  "playRelease": "{type, select, ep{Tocar o EP} single{Tocar o single} compilation{Tocar a coletânea} other{Tocar o álbum}}",
+  "@playRelease": {
+    "description": "The button that plays an album, by its type: album, ep, single or compilation.",
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "couldNotOpenRelease": "{type, select, ep{Não consegui abrir o EP: {error}} single{Não consegui abrir o single: {error}} compilation{Não consegui abrir a coletânea: {error}} other{Não consegui abrir o álbum: {error}}}",
+  "@couldNotOpenRelease": {
+    "description": "An album's page that couldn't load, by the album's type (album, ep, single or compilation), with the error.",
+    "placeholders": {
+      "type": {
+        "type": "String"
+      },
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "couldNotPlayRelease": "{type, select, ep{Não consegui tocar o EP: {error}} single{Não consegui tocar o single: {error}} compilation{Não consegui tocar a coletânea: {error}} other{Não consegui tocar o álbum: {error}}}",
+  "@couldNotPlayRelease": {
+    "description": "An album that couldn't start playing, by its type (album, ep, single or compilation), with the error.",
+    "placeholders": {
+      "type": {
+        "type": "String"
+      },
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorNoSuchTrack": "Não há próxima faixa.",
+  "@errorNoSuchTrack": {
+    "description": "A command for a track the queue lacks, as the next one at its end."
+  },
+  "errorNothingPlayable": "Nada nessa fila pode tocar aqui.",
+  "@errorNothingPlayable": {
+    "description": "A queue none of whose songs the device can play."
+  },
+  "errorOffline": "O aparelho está desligado.",
+  "@errorOffline": {
+    "description": "A command for a device that is offline."
+  },
+  "errorTimeout": "O aparelho não respondeu.",
+  "@errorTimeout": {
+    "description": "A command the device didn't answer in time."
+  },
+  "errorUnsupported": "O aparelho não aceita esse comando.",
+  "@errorUnsupported": {
+    "description": "A command the device doesn't support."
+  },
+  "errorNotPlayer": "Esse aparelho não toca música.",
+  "@errorNotPlayer": {
+    "description": "A command for a device that only controls others."
+  },
+  "errorUnknownDevice": "O aparelho não está mais na lista.",
+  "@errorUnknownDevice": {
+    "description": "A command for a device the hub no longer knows."
+  },
+  "errorNothingToTransfer": "Não há nada tocando lá.",
+  "@errorNothingToTransfer": {
+    "description": "A transfer from a device that plays nothing."
+  },
+  "errorFailed": "O aparelho não conseguiu.",
+  "@errorFailed": {
+    "description": "A command the device tried and failed."
+  },
+  "errorClosed": "Sem conexão com o hub.",
+  "@errorClosed": {
+    "description": "A command sent while the connection to the hub was down."
+  },
+  "errorUnknown": "Algo deu errado.",
+  "@errorUnknown": {
+    "description": "A command that failed without saying why."
+  },
+  "openArtist": "Abrir o artista",
+  "@openArtist": {
+    "description": "The tooltip of an artist's name, which opens their page."
+  },
+  "openAlbum": "Abrir o álbum",
+  "@openAlbum": {
+    "description": "The tooltip of a song's title or album, which opens the album's page."
+  },
+  "couldNotOpenAlbum": "Não consegui abrir o álbum.",
+  "@couldNotOpenAlbum": {
+    "description": "A song's album that couldn't open, the media server not knowing it."
+  },
+  "couldNotOpenAlbumError": "Não consegui abrir o álbum: {error}",
+  "@couldNotOpenAlbumError": {
+    "description": "A song's album that couldn't open, with the error.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "couldNotOpenArtist": "Não consegui abrir o artista.",
+  "@couldNotOpenArtist": {
+    "description": "A song's artist whose page couldn't open, the media server not knowing them."
+  },
+  "couldNotOpenArtistError": "Não consegui abrir o artista: {error}",
+  "@couldNotOpenArtistError": {
+    "description": "An artist's page that couldn't open or load, with the error.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "nothingPlaying": "Nada tocando",
+  "@nothingPlaying": {
+    "description": "The player's title when no song plays."
+  },
+  "couldNotPlaySong": "Não consegui tocar “{title}”.",
+  "@couldNotPlaySong": {
+    "description": "A song this device's player couldn't load, by its title.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "songTitle": "Título",
+  "@songTitle": {
+    "description": "The header of a list of songs' column of titles."
+  },
+  "songDuration": "Duração",
+  "@songDuration": {
+    "description": "The tooltip of the clock heading a list of songs' column of durations."
+  },
+  "close": "Fechar",
+  "@close": {
+    "description": "The tooltip of the button that closes a full-screen page."
+  },
+  "showCover": "Ver a capa",
+  "@showCover": {
+    "description": "The tooltip of a cover, which opens it full screen."
+  },
+  "turnShuffleOff": "Desativar aleatório",
+  "@turnShuffleOff": {
+    "description": "The tooltip of the shuffle button while it shuffles."
+  },
+  "turnShuffleOn": "Ativar aleatório",
+  "@turnShuffleOn": {
+    "description": "The tooltip of the shuffle button while it doesn't shuffle."
+  },
+  "repeatAll": "Repetir a lista",
+  "@repeatAll": {
+    "description": "The tooltip of the repeat button while it is off: pressing it repeats the whole queue."
+  },
+  "repeatTrack": "Repetir a faixa",
+  "@repeatTrack": {
+    "description": "The tooltip of the repeat button while it repeats the queue: pressing it repeats the track."
+  },
+  "repeatOff": "Não repetir",
+  "@repeatOff": {
+    "description": "The tooltip of the repeat button while it repeats the track: pressing it turns repeat off."
+  },
+  "previous": "Anterior",
+  "@previous": {
+    "description": "The tooltip of the button that goes to the previous track."
+  },
+  "play": "Tocar",
+  "@play": {
+    "description": "The tooltip of the play button."
+  },
+  "pause": "Pausar",
+  "@pause": {
+    "description": "The tooltip of the pause button."
+  },
+  "next": "Próxima",
+  "@next": {
+    "description": "The tooltip of the button that goes to the next track."
+  },
+  "connectToDevice": "Conectar a um aparelho",
+  "@connectToDevice": {
+    "description": "The device picker's title."
+  },
+  "thisDevice": "Este aparelho ({name})",
+  "@thisDevice": {
+    "description": "This device, in the device picker, with its name.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "noHubFound": "Nenhum hub encontrado",
+  "@noHubFound": {
+    "description": "The device picker's note when there is no Segue hub, which other devices play through."
+  },
+  "noHubAt": "Sem o hub em {host}, só dá para tocar aqui.",
+  "@noHubAt": {
+    "description": "The device picker's note when there is no hub, under \"No hub found\", with the media server's host.",
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "queue": "Fila",
+  "@queue": {
+    "description": "The queue's page title, and the tooltip of the button that opens it."
+  },
+  "queueOn": "Fila em {device}",
+  "@queueOn": {
+    "description": "The queue's page title when it is another device's, with its name.",
+    "placeholders": {
+      "device": {
+        "type": "String"
+      }
+    }
+  },
+  "queueEmpty": "A fila está vazia.",
+  "@queueEmpty": {
+    "description": "The queue page with no tracks."
+  },
+  "albumCount": "{count, plural, =0{0 álbuns} =1{1 álbum} other{{count} álbuns}}",
+  "@albumCount": {
+    "description": "How many albums an artist or a genre has.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "orderName": "Nome",
+  "@orderName": {
+    "description": "A chip that orders albums or artists by name."
+  },
+  "orderReleased": "Lançamentos",
+  "@orderReleased": {
+    "description": "A chip, and a row of the home, of albums the latest released first."
+  },
+  "mostPlayed": "Mais tocados",
+  "@mostPlayed": {
+    "description": "A chip, a row or a heading of the albums, artists or genres the user plays most (masculine in Portuguese and Spanish, as all three are)."
+  },
+  "orderLatest": "Adicionados recentemente",
+  "@orderLatest": {
+    "description": "A chip, and a row of the home, of albums the latest added to the library first."
+  },
+  "libraryEmpty": "A biblioteca está vazia.",
+  "@libraryEmpty": {
+    "description": "A list of albums or artists when the library has none."
+  },
+  "mostPlayedAlbumsEmpty": "Os álbuns que você mais ouvir aparecem aqui.",
+  "@mostPlayedAlbumsEmpty": {
+    "description": "The most played albums before any has played."
+  },
+  "mostPlayedArtistsEmpty": "Os artistas que você mais ouvir aparecem aqui.",
+  "@mostPlayedArtistsEmpty": {
+    "description": "The most played artists before any has played."
+  },
+  "couldNotListAlbums": "Não consegui listar os álbuns: {error}",
+  "@couldNotListAlbums": {
+    "description": "Albums that couldn't load, with the error.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "couldNotListMoreAlbums": "Não consegui listar mais álbuns: {error}",
+  "@couldNotListMoreAlbums": {
+    "description": "The next page of albums, at the end of the grid, that couldn't load, with the error.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "tryAgain": "Tentar de novo",
+  "@tryAgain": {
+    "description": "The button that loads again what failed to load."
+  },
+  "couldNotListArtists": "Não consegui listar os artistas: {error}",
+  "@couldNotListArtists": {
+    "description": "Artists that couldn't load, with the error.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "couldNotListGenres": "Não consegui listar os gêneros: {error}",
+  "@couldNotListGenres": {
+    "description": "Genres that couldn't load, with the error.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "allGenres": "Todos os gêneros",
+  "@allGenres": {
+    "description": "The heading of the list of every genre, under the most played ones."
+  },
+  "showAll": "Ver todos",
+  "@showAll": {
+    "description": "The tooltip of a row of albums' title, which shows all of them."
+  },
+  "previousAlbums": "Anteriores",
+  "@previousAlbums": {
+    "description": "The tooltip of a row of albums' arrow that scrolls back."
+  },
+  "nextAlbums": "Próximos",
+  "@nextAlbums": {
+    "description": "The tooltip of a row of albums' arrow that scrolls forward."
+  },
+  "albums": "Álbuns",
+  "@albums": {
+    "description": "The albums section, and the heading of a list of albums."
+  },
+  "artists": "Artistas",
+  "@artists": {
+    "description": "The artists section, and the heading of the artists a search found."
+  },
+  "songs": "Músicas",
+  "@songs": {
+    "description": "The heading of the songs a search found."
+  },
+  "couldNotSearch": "Não consegui buscar: {error}",
+  "@couldNotSearch": {
+    "description": "A search that failed, with the error.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "nothingFound": "Nada encontrado.",
+  "@nothingFound": {
+    "description": "A search that found nothing."
+  },
+  "minimizeLyrics": "Minimizar a letra",
+  "@minimizeLyrics": {
+    "description": "The tooltip of the button that takes the full-screen lyrics back to the player."
+  },
+  "couldNotFetchLyrics": "Não consegui buscar a letra.",
+  "@couldNotFetchLyrics": {
+    "description": "Lyrics that couldn't be fetched, from the media server or LRCLIB."
+  },
+  "couldNotFetchLyricsError": "Não consegui buscar a letra: {error}",
+  "@couldNotFetchLyricsError": {
+    "description": "Lyrics the media server failed to give, with the error.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "noLyrics": "Esta música não tem letra.",
+  "@noLyrics": {
+    "description": "A song with no lyrics anywhere."
+  },
+  "lyricsProvidedBy": "Letras providas por {provider}",
+  "@lyricsProvidedBy": {
+    "description": "Under the lyrics, where they came from (LRCLIB, or what the media server says).",
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "trackCount": "{count, plural, =0{0 faixas} =1{1 faixa} other{{count} faixas}}",
+  "@trackCount": {
+    "description": "How many songs an album has.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "lengthSeconds": "{seconds} s",
+  "@lengthSeconds": {
+    "description": "How long an album lasts, under a minute.",
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "lengthMinutes": "{minutes} min",
+  "@lengthMinutes": {
+    "description": "How long an album lasts, under an hour.",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "lengthHours": "{hours} h",
+  "@lengthHours": {
+    "description": "How long an album lasts, in whole hours.",
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "lengthHoursMinutes": "{hours} h {minutes} min",
+  "@lengthHoursMinutes": {
+    "description": "How long an album lasts, in hours and minutes.",
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "tracksAndLength": "{tracks}, {length}",
+  "@tracksAndLength": {
+    "description": "How many songs an album has and how long they last: \"9 tracks, 37 min\".",
+    "placeholders": {
+      "tracks": {
+        "type": "String"
+      },
+      "length": {
+        "type": "String"
+      }
+    }
+  },
+  "releaseMonth": "{month} de {year}",
+  "@releaseMonth": {
+    "description": "An album's release date, known to the month: the month's name and the year.",
+    "placeholders": {
+      "month": {
+        "type": "String"
+      },
+      "year": {
+        "type": "String"
+      }
+    }
+  },
+  "releaseDay": "{day, plural, =1{1º de {month} de {year}} other{{day} de {month} de {year}}}",
+  "@releaseDay": {
+    "description": "An album's release date: the day of the month, the month's name and the year. In Portuguese the first day is \"1º\".",
+    "placeholders": {
+      "day": {
+        "type": "int"
+      },
+      "month": {
+        "type": "String"
+      },
+      "year": {
+        "type": "String"
+      }
+    }
+  },
+  "singleCount": "{count, plural, =1{1 single} other{{count} singles}}",
+  "@singleCount": {
+    "description": "How many singles an artist has, when they have no EPs.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "epCount": "{count, plural, =1{1 EP} other{{count} EPs}}",
+  "@epCount": {
+    "description": "How many EPs an artist has, when they have no singles.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "singleAndEpCount": "{count} singles e EPs",
+  "@singleAndEpCount": {
+    "description": "How many singles and EPs an artist has together, when they have some of each (two or more).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "singlesAndEps": "Singles e EPs",
+  "@singlesAndEps": {
+    "description": "The heading of an artist's singles and EPs, under their albums."
+  },
+  "mostPlayedSongs": "Mais tocadas",
+  "@mostPlayedSongs": {
+    "description": "The heading of an artist's songs the user plays most (feminine in Portuguese and Spanish, as songs are)."
+  },
+  "couldNotListSongs": "Não consegui listar as músicas: {error}",
+  "@couldNotListSongs": {
+    "description": "An artist's most played songs that couldn't load, with the error.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "openPlayer": "Abrir o player",
+  "@openPlayer": {
+    "description": "The tooltip of the player bar's song, which opens the full-screen player."
+  },
+  "closePlayer": "Fechar o player",
+  "@closePlayer": {
+    "description": "The tooltip of the player bar's song under the full-screen player, which closes it."
+  },
+  "showLyrics": "Mostrar a letra",
+  "@showLyrics": {
+    "description": "The tooltip of the button that shows the lyrics."
+  },
+  "hideLyrics": "Esconder a letra",
+  "@hideLyrics": {
+    "description": "The tooltip of the button that hides the lyrics."
+  },
+  "devices": "Aparelhos",
+  "@devices": {
+    "description": "The tooltip of the button that opens the device picker."
+  },
+  "playingOn": "Tocando em {device}",
+  "@playingOn": {
+    "description": "What plays on another device, which the app controls, with its name.",
+    "placeholders": {
+      "device": {
+        "type": "String"
+      }
+    }
+  },
+  "pausedOn": "Pausado em {device}",
+  "@pausedOn": {
+    "description": "What is paused on another device, which the app controls, with its name.",
+    "placeholders": {
+      "device": {
+        "type": "String"
+      }
+    }
+  },
+  "maximizeLyrics": "Maximizar a letra",
+  "@maximizeLyrics": {
+    "description": "The tooltip of the button at the lyrics' corner, under the full-screen player, which opens them full screen."
+  },
+  "server": "Servidor",
+  "@server": {
+    "description": "The sign-in's field for the media server's address."
+  },
+  "serverHint": "musica.exemplo.com:4533",
+  "@serverHint": {
+    "description": "An example of a media server's address, in the sign-in's server field."
+  },
+  "username": "Usuário",
+  "@username": {
+    "description": "The sign-in's username field."
+  },
+  "password": "Senha",
+  "@password": {
+    "description": "The sign-in's password field."
+  },
+  "required": "Obrigatório",
+  "@required": {
+    "description": "Under a sign-in field left blank."
+  },
+  "advanced": "Avançado",
+  "@advanced": {
+    "description": "The sign-in's section of settings few need: the hub's address."
+  },
+  "hubAddress": "Endereço do hub (opcional)",
+  "@hubAddress": {
+    "description": "The sign-in's field for the Segue hub's address, which other devices play through."
+  },
+  "hubAddressHelp": "Em branco, ele é procurado no endereço do servidor.",
+  "@hubAddressHelp": {
+    "description": "Under the hub's address field."
+  },
+  "signIn": "Entrar",
+  "@signIn": {
+    "description": "The sign-in's button."
+  },
+  "couldNotSaveSignIn": "Entrou, mas não consegui guardar o login no chaveiro do sistema: {error}",
+  "@couldNotSaveSignIn": {
+    "description": "A sign-in that worked but couldn't be saved in the system's secure storage, with the error.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "notAMediaServer": "Não achei um servidor Subsonic nem Jellyfin em {host}.",
+  "@notAMediaServer": {
+    "description": "A sign-in to an address where neither kind of media server answered, with its host.",
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "wrongCredentials": "Usuário ou senha errados.",
+  "@wrongCredentials": {
+    "description": "A sign-in the media server refused for its username or password."
+  },
+  "serverRefused": "O servidor recusou: {error}",
+  "@serverRefused": {
+    "description": "A sign-in the media server refused for another reason, with the error.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "couldNotReachServer": "Não consegui falar com {host}: {error}",
+  "@couldNotReachServer": {
+    "description": "A sign-in to a media server that couldn't be reached, with its host and the error.",
+    "placeholders": {
+      "host": {
+        "type": "String"
+      },
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "couldNotStart": "Erro ao abrir: {error}",
+  "@couldNotStart": {
+    "description": "A saved sign-in the app couldn't open as it started, with the error.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "signOut": "Sair",
+  "@signOut": {
+    "description": "The button that signs out."
+  },
+  "home": "Início",
+  "@home": {
+    "description": "The first section, of rows of albums."
+  },
+  "genres": "Gêneros",
+  "@genres": {
+    "description": "The genres section."
+  },
+  "search": "Buscar",
+  "@search": {
+    "description": "The search section, on a phone."
+  },
+  "searchHint": "Buscar álbum, artista ou música",
+  "@searchHint": {
+    "description": "The search bar's hint."
+  },
+  "clear": "Limpar",
+  "@clear": {
+    "description": "The tooltip of the search bar's button that clears it."
+  },
+  "back": "Voltar",
+  "@back": {
+    "description": "The tooltip of the top bar's arrow that goes back through the pages opened."
+  },
+  "forward": "Avançar",
+  "@forward": {
+    "description": "The tooltip of the top bar's arrow that goes forward through the pages opened."
+  },
+  "lightTheme": "Tema claro",
+  "@lightTheme": {
+    "description": "The tooltip of the button that switches to the light theme."
+  },
+  "darkTheme": "Tema escuro",
+  "@darkTheme": {
+    "description": "The tooltip of the button that switches to the dark theme."
+  },
+  "noHub": "Sem hub: só toca neste aparelho",
+  "@noHub": {
+    "description": "The hub's status when there is none: music plays on this device alone."
+  },
+  "hubConnected": "Conectado ao hub",
+  "@hubConnected": {
+    "description": "The hub's status when connected."
+  },
+  "hubConnecting": "Conectando ao hub…",
+  "@hubConnecting": {
+    "description": "The hub's status while connecting."
+  },
+  "hubOffline": "Hub fora do ar; tentando de novo",
+  "@hubOffline": {
+    "description": "The hub's status when it can't be reached, while the app tries again."
+  },
+  "hubReplaced": "Este aparelho se conectou de novo em outro lugar (outra cópia do app aberta?)",
+  "@hubReplaced": {
+    "description": "The hub's status when another connection as this device took this one's place."
+  },
+  "hubRejected": "O hub recusou este aparelho",
+  "@hubRejected": {
+    "description": "The hub's status when it refused this device's connection."
+  },
+  "language": "Idioma",
+  "@language": {
+    "description": "The tooltip of the button that opens the language menu."
+  },
+  "systemLanguage": "Idioma do sistema",
+  "@systemLanguage": {
+    "description": "The language menu's first choice: the system's language, as far as the app has it."
+  },
+  "languageName": "Português",
+  "@languageName": {
+    "description": "This language's own name, as the language menu lists it, in every language."
+  },
+  "artistOnDevice": "{artist} (em {device})",
+  "@artistOnDevice": {
+    "description": "The artist line of the system's media controls for a song playing on another device, with the artist and the device's name.",
+    "placeholders": {
+      "artist": {
+        "type": "String"
+      },
+      "device": {
+        "type": "String"
+      }
+    }
+  }
+}

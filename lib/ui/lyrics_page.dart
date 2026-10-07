@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 
+import '../l10n/app_localizations.dart';
 import 'lyrics_view.dart';
 import 'now_playing_bar.dart';
 import 'player_controls.dart';
@@ -34,6 +35,7 @@ class LyricsPage extends StatelessWidget {
           builder: (context, _, now) {
             final text = Theme.of(context).textTheme;
             final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+            final strings = AppLocalizations.of(context);
             return Scaffold(
               appBar: AppBar(
                 // The background's color, always: the lyrics don't tint it as they scroll under it.
@@ -62,14 +64,14 @@ class LyricsPage extends StatelessWidget {
                 // Where the button that opened it was, at the lyrics' corner.
                 actions: [
                   IconButton(
-                    tooltip: 'Minimizar a letra',
+                    tooltip: strings.minimizeLyrics,
                     icon: const ThemedIcon(HugeIcons.strokeRoundedArrowShrink02),
                     onPressed: close,
                   ),
                 ],
               ),
               body: now == null
-                  ? const Center(child: Text('Nada tocando'))
+                  ? Center(child: Text(strings.nothingPlaying))
                   : Padding(padding: const EdgeInsets.symmetric(horizontal: 24), child: LyricsView(now)),
               bottomNavigationBar: now == null || wide
                   ? null

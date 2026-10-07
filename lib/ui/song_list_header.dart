@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
+import '../l10n/app_localizations.dart';
 import 'cover.dart';
 import 'player_controls.dart';
 import 'themed_icon.dart';
@@ -48,6 +49,7 @@ class SongListHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final muted = Theme.of(context).colorScheme.onSurfaceVariant;
     final style = Theme.of(context).textTheme.labelLarge?.copyWith(color: muted);
+    final strings = AppLocalizations.of(context);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -58,9 +60,9 @@ class SongListHeader extends StatelessWidget {
             width: numbered ? numberWidth : Thumbnail.size,
             child: numbered ? Text('#', style: style, textAlign: TextAlign.end) : null,
           ),
-          title: Text('Título', style: style),
+          title: Text(strings.songTitle, style: style),
           trailing: Tooltip(
-            message: 'Duração',
+            message: strings.songDuration,
             child: ThemedIcon(HugeIcons.strokeRoundedClock01, size: 18, color: muted),
           ),
         ),

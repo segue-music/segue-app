@@ -45,6 +45,7 @@ ThemeData segueTheme(Brightness brightness) {
     filledButtonTheme: FilledButtonThemeData(style: buttons),
     textButtonTheme: TextButtonThemeData(style: buttons),
     listTileTheme: const ListTileThemeData(mouseCursor: WidgetStateMouseCursor.clickable),
+    popupMenuTheme: const PopupMenuThemeData(mouseCursor: WidgetStateMouseCursor.clickable),
     searchBarTheme: SearchBarThemeData(side: ring),
   );
 }

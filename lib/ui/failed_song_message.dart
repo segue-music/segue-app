@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
 import '../player/player.dart';
 import '../services.dart';
 
@@ -43,7 +44,8 @@ class _FailedSongMessageState extends State<FailedSongMessage> {
     final song = player.current;
 
     if (player.failed && !_failed && song != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Não consegui tocar “${song.title}”.')));
+      final message = AppLocalizations.of(context).couldNotPlaySong(song.title);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     }
 
     _failed = player.failed;

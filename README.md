@@ -4,7 +4,7 @@
 
 A music player for Navidrome, any other OpenSubsonic server, or Jellyfin, built
 around Segue Connect: you pick a device, and whatever you play goes there. One Flutter codebase for Linux,
-Windows, macOS, Android and iOS. The interface is in Portuguese for now.
+Windows, macOS, Android and iOS. The interface is in Portuguese, English and Spanish.
 
 Segue's protocol and its hub, which runs next to the media server, are in
 [segue-music/segue](https://github.com/segue-music/segue). Without a hub, the app plays on
@@ -116,6 +116,10 @@ the device it runs on.
   and CarPlay's Now Playing screen;
 - on iOS, playing in the background and with the silent switch on; a call pauses the music, which
   plays again after it, and leaving the car or unplugging the headphones pauses it;
+- the interface in Portuguese, English or Spanish: the system's language, where the app has it
+  (English where it has none of the system's), until the language menu (in the top bar, and in the
+  sign-in's corner) picks one, which the app keeps. Dates, numbers of albums and songs, and Material's own words (tooltips, the text
+  fields' menu) follow it, and on iOS the local network permission's prompt follows the system's;
 - its icon (made by `tool/icons.dart` from `tool/icon.png`): Android's launcher icon, adaptive from
   Android 8 on, the Android TV banner, on Linux the window's icon and an entry in the application
   menu, the iOS and macOS icons, the Windows icon, and the app's own, in its top bar. The theme,
@@ -145,6 +149,7 @@ has been tried on a tablet and on an Android TV; the iOS build has not been trie
 | `lib/lyrics/` | LRCLIB (lrclib.net), where lyrics come from when the media server has none, and LRC |
 | `lib/releases/` | MusicBrainz (musicbrainz.org), where an album's release date and record labels come from when the media server doesn't say them |
 | `lib/ui/` | The pages: sign-in, home, albums, artists, album, artist, search, player bar and full-screen player, queue, device picker |
+| `lib/l10n/` | The app's words in each language, as ARB files (Portuguese's, the template, says what each is); the Dart code comes from them on `pub get` and on every build |
 | `test/` | Unit and widget tests, and tests against the real Go hub (`hub_test.dart`) |
 | `tool/` | A Docker image and script to build and test without installing Flutter; `icons.dart` makes every icon from the artwork, `icon.png` |
 
@@ -196,7 +201,7 @@ go build -o segue-hub ./cmd/segue-hub
 env SEGUE_UPSTREAM=https://navidrome.example ./segue-hub
 ```
 
-and at sign-in, under "Avançado", put `http://127.0.0.1:8480` as the hub's address. The hub's
+and at sign-in, under "Advanced" ("Avançado"), put `http://127.0.0.1:8480` as the hub's address. The hub's
 binary is static, so one built on another computer runs as it is.
 
 To see two devices on one computer, start a second copy of the app as another device:

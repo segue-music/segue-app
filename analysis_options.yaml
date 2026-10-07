@@ -23,6 +23,8 @@ analyzer:
     strict-raw-types: true
   exclude:
     - build/**
+    # Generated from the ARB files beside them (l10n.yaml).
+    - lib/l10n/app_localizations*.dart
     - android/**
     - ios/**
     - windows/**

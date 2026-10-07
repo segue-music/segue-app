@@ -1,0 +1,2 @@
+/* The local network permission's prompt. */
+"NSLocalNetworkUsageDescription" = "O Segue usa a rede local para tocar do seu servidor de música e para falar com os seus outros aparelhos.";

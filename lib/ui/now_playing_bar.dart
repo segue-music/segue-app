@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
+import '../l10n/app_localizations.dart';
 import 'cover.dart';
 import 'devices_sheet.dart';
 import 'focus_ring.dart';
@@ -43,6 +44,7 @@ class NowPlayingBar extends StatelessWidget {
     final colors = theme.colorScheme;
     // The song's title and artist, a line each, and its cover as tall as the two, which sets the bar's height.
     final line = theme.textTheme.bodyMedium;
+    final strings = AppLocalizations.of(context);
     final cover = 2 * _lineHeight(line, MediaQuery.textScalerOf(context));
     // The buttons as tall as the cover too, without the room Material leaves around them on a touch screen.
     final buttons = (theme.iconButtonTheme.style ?? const ButtonStyle()).copyWith(
@@ -90,7 +92,7 @@ class NowPlayingBar extends StatelessWidget {
                           children: [
                             Expanded(
                               child: Tooltip(
-                                message: lyrics == null ? 'Abrir o player' : 'Fechar o player',
+                                message: lyrics == null ? strings.openPlayer : strings.closePlayer,
                                 child: FocusRing(
                                   borderRadius: BorderRadius.circular(8),
                                   child: InkWell(
@@ -127,7 +129,7 @@ class NowPlayingBar extends StatelessWidget {
                                                     ]
                                                   : [
                                                       Text(
-                                                        now.title ?? 'Nada tocando',
+                                                        now.title ?? strings.nothingPlaying,
                                                         style: line,
                                                         maxLines: 1,
                                                         overflow: TextOverflow.ellipsis,
@@ -150,19 +152,19 @@ class NowPlayingBar extends StatelessWidget {
                             ),
                             if (wide) ShuffleButton(now),
                             IconButton(
-                              tooltip: 'Anterior',
+                              tooltip: strings.previous,
                               icon: const ThemedIcon(HugeIcons.strokeRoundedPrevious),
                               onPressed: () => runCommand(context, connect.previous),
                             ),
                             IconButton(
-                              tooltip: now.playing ? 'Pausar' : 'Tocar',
+                              tooltip: now.playing ? strings.pause : strings.play,
                               icon: ThemedIcon(
                                 now.playing ? HugeIcons.strokeRoundedPause : HugeIcons.strokeRoundedPlay,
                               ),
                               onPressed: () => runCommand(context, connect.toggle),
                             ),
                             IconButton(
-                              tooltip: 'Próxima',
+                              tooltip: strings.next,
                               icon: const ThemedIcon(HugeIcons.strokeRoundedNext),
                               onPressed: () => runCommand(context, connect.next),
                             ),
@@ -170,14 +172,14 @@ class NowPlayingBar extends StatelessWidget {
                             if (wide)
                               switch (lyrics) {
                                 null => IconButton(
-                                  tooltip: 'Mostrar a letra',
+                                  tooltip: strings.showLyrics,
                                   icon: const ThemedIcon(HugeIcons.strokeRoundedMicVocal),
                                   onPressed: () => PlayerPage.open(context, lyrics: true),
                                 ),
                                 final shown => ValueListenableBuilder(
                                   valueListenable: shown,
                                   builder: (context, on, _) => IconButton(
-                                    tooltip: on ? 'Esconder a letra' : 'Mostrar a letra',
+                                    tooltip: on ? strings.hideLyrics : strings.showLyrics,
                                     icon: ThemedIcon(
                                       HugeIcons.strokeRoundedMicVocal,
                                       color: on ? colors.primary : null,
@@ -188,12 +190,12 @@ class NowPlayingBar extends StatelessWidget {
                               },
                             if (wide)
                               IconButton(
-                                tooltip: 'Fila',
+                                tooltip: strings.queue,
                                 icon: const ThemedIcon(HugeIcons.strokeRoundedPlaylist03),
                                 onPressed: () => QueuePage.open(context),
                               ),
                             IconButton(
-                              tooltip: 'Aparelhos',
+                              tooltip: strings.devices,
                               icon: ThemedIcon(
                                 HugeIcons.strokeRoundedMonitorSpeaker,
                                 color: now.device == null ? null : colors.primary,
@@ -216,7 +218,7 @@ class NowPlayingBar extends StatelessWidget {
                             ThemedIcon(HugeIcons.strokeRoundedSpeaker, size: 16, color: colors.onPrimaryContainer),
                             const SizedBox(width: 6),
                             Text(
-                              '${now.playing ? 'Tocando' : 'Pausado'} em ${now.device}',
+                              now.playing ? strings.playingOn(now.device!) : strings.pausedOn(now.device!),
                               style: TextStyle(color: colors.onPrimaryContainer, fontSize: 12),
                             ),
                           ],

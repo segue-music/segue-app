@@ -9,6 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:segue/app.dart';
 import 'package:segue/jellyfin/api.dart';
+import 'package:segue/l10n/app_localizations.dart';
 import 'package:segue/session.dart';
 import 'package:segue/ui/login_page.dart';
 import 'package:segue/ui/spinner.dart';
@@ -40,7 +41,13 @@ void main() {
 
   testWidgets('asks for server, user and password before trying', (tester) async {
     var signedIn = false;
-    await tester.pumpWidget(MaterialApp(home: LoginPage(onSignedIn: (_) => signedIn = true)));
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: const [Locale('pt')],
+        home: LoginPage(onSignedIn: (_) => signedIn = true),
+      ),
+    );
     await tester.tap(find.text('Entrar'));
     await tester.pump();
     expect(find.text('Obrigatório'), findsNWidgets(3));
@@ -48,7 +55,13 @@ void main() {
   });
 
   testWidgets('the app\'s logo, not its name, is over the form', (tester) async {
-    await tester.pumpWidget(MaterialApp(home: LoginPage(onSignedIn: (_) {})));
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: const [Locale('pt')],
+        home: LoginPage(onSignedIn: (_) {}),
+      ),
+    );
     final logo = find.bySemanticsLabel('Segue');
     expect(logo, findsOneWidget);
     expect(tester.getSize(logo), const Size.square(96));
@@ -57,7 +70,13 @@ void main() {
   });
 
   testWidgets('the keyboard offers "next" from field to field, and from the password, signing in', (tester) async {
-    await tester.pumpWidget(MaterialApp(home: LoginPage(onSignedIn: (_) {})));
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: const [Locale('pt')],
+        home: LoginPage(onSignedIn: (_) {}),
+      ),
+    );
 
     for (final (label, action) in [
       ('Servidor', 'TextInputAction.next'),
@@ -77,6 +96,9 @@ void main() {
   });
 
   testWidgets('in the app, the arrows down and up (a TV remote\'s) go from field to field', (tester) async {
+    // The system in Portuguese, which the app follows.
+    tester.platformDispatcher.localesTestValue = const [Locale('pt', 'BR')];
+    addTearDown(tester.platformDispatcher.clearLocalesTestValue);
     await tester.pumpWidget(const SegueApp(session: null));
     await tester.tap(find.widgetWithText(TextFormField, 'Servidor'));
     await tester.pump();
@@ -96,6 +118,8 @@ void main() {
     final client = MockClient((_) => answer.future);
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: const [Locale('pt')],
         home: LoginPage(onSignedIn: (_) {}, client: client),
       ),
     );
@@ -128,6 +152,8 @@ void main() {
     });
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: const [Locale('pt')],
         home: LoginPage(onSignedIn: (session) => signedIn = session, client: client),
       ),
     );
@@ -140,6 +166,8 @@ void main() {
     final client = MockClient((_) async => http.Response('<!doctype html>', 200));
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: const [Locale('pt')],
         home: LoginPage(onSignedIn: (_) {}, client: client),
       ),
     );

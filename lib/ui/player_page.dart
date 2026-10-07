@@ -6,6 +6,7 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:flutter/services.dart';
 
 import '../connect/connect.dart';
+import '../l10n/app_localizations.dart';
 import '../segue/protocol.dart';
 import '../services.dart';
 import 'cover.dart';
@@ -54,13 +55,14 @@ class PlayerPage extends StatelessWidget {
               final lyrics = _lyrics.value;
               final colors = Theme.of(context).colorScheme;
               final device = now?.device;
+              final strings = AppLocalizations.of(context);
               return Scaffold(
                 appBar: AppBar(
                   // The background's color, always: neither the lyrics nor, on a phone, the page tint it as
                   // they scroll under it.
                   notificationPredicate: (_) => false,
                   leading: IconButton(
-                    tooltip: 'Fechar',
+                    tooltip: strings.close,
                     icon: const ThemedIcon(HugeIcons.strokeRoundedArrowDown01),
                     onPressed: close,
                   ),
@@ -69,7 +71,7 @@ class PlayerPage extends StatelessWidget {
                   // there the devices button at the bottom, tinted, says where it plays.
                   title: switch (now) {
                     final now? when wide && device != null => Text(
-                      '${now.playing ? 'Tocando' : 'Pausado'} em $device',
+                      now.playing ? strings.playingOn(device) : strings.pausedOn(device),
                       style: Theme.of(context).textTheme.titleSmall,
                     ),
                     final now? when !wide && now.album != null => SongLink.album(
@@ -84,7 +86,7 @@ class PlayerPage extends StatelessWidget {
                   actions: [if (!wide) const SizedBox(width: kToolbarHeight)],
                 ),
                 body: now == null
-                    ? const Center(child: Text('Nada tocando'))
+                    ? Center(child: Text(strings.nothingPlaying))
                     : _Player(now, lyrics: lyrics, controls: !wide),
                 bottomNavigationBar: wide
                     ? NowPlayingBar(lyrics: _lyrics)
@@ -96,7 +98,7 @@ class PlayerPage extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               IconButton(
-                                tooltip: lyrics ? 'Esconder a letra' : 'Mostrar a letra',
+                                tooltip: lyrics ? strings.hideLyrics : strings.showLyrics,
                                 icon: ThemedIcon(
                                   HugeIcons.strokeRoundedMicVocal,
                                   color: lyrics ? colors.primary : null,
@@ -104,7 +106,7 @@ class PlayerPage extends StatelessWidget {
                                 onPressed: () => _lyrics.value = !lyrics,
                               ),
                               IconButton(
-                                tooltip: 'Aparelhos',
+                                tooltip: strings.devices,
                                 icon: ThemedIcon(
                                   HugeIcons.strokeRoundedMonitorSpeaker,
                                   color: device == null ? null : colors.primary,
@@ -112,7 +114,7 @@ class PlayerPage extends StatelessWidget {
                                 onPressed: () => showDevicesSheet(context),
                               ),
                               IconButton(
-                                tooltip: 'Fila',
+                                tooltip: strings.queue,
                                 icon: const ThemedIcon(HugeIcons.strokeRoundedPlaylist03),
                                 onPressed: () => QueuePage.open(context),
                               ),
@@ -273,7 +275,7 @@ class _Player extends StatelessWidget {
                             top: 0,
                             right: 0,
                             child: IconButton(
-                              tooltip: 'Maximizar a letra',
+                              tooltip: AppLocalizations.of(context).maximizeLyrics,
                               icon: const ThemedIcon(HugeIcons.strokeRoundedArrowExpand01),
                               onPressed: () => LyricsPage.open(context),
                             ),

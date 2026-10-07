@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:segue/connect/connect.dart';
+import 'package:segue/l10n/app_localizations.dart';
 import 'package:segue/player/player.dart';
 import 'package:segue/server/models.dart';
 import 'package:segue/services.dart';
@@ -30,6 +31,8 @@ void main() {
     // As in the app: services and shortcuts above the navigator, the page below.
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: const [Locale('pt')],
         builder: (context, child) => ServicesScope(
           services: services,
           child: PlaybackShortcuts(mediaKeys: mediaKeys, child: child!),
@@ -91,6 +94,8 @@ void main() {
     /// The library, with the shortcuts above the navigator, as in the app. [television] as on a TV.
     Future<void> pumpLibrary(WidgetTester tester, {bool television = false}) => tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: const [Locale('pt')],
         builder: (context, child) => DirectionalNavigation(
           enabled: television,
           child: TextFieldArrowShortcuts(child: BackShortcut(child: child!)),
@@ -186,6 +191,8 @@ void main() {
   group('Esc', () {
     Future<void> pumpPage(WidgetTester tester, Widget body) => tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: const [Locale('pt')],
         builder: (context, child) => UnfocusShortcut(child: child!),
         home: Scaffold(body: body),
       ),

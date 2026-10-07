@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
+import '../l10n/app_localizations.dart';
 import '../server/models.dart';
 import '../server/server.dart';
 import '../services.dart';
@@ -16,15 +17,15 @@ import 'spinner.dart';
 
 /// How the app names an order of albums, and what a list in it says when it has none.
 extension AlbumOrderText on AlbumOrder {
-  String get label => switch (this) {
-    AlbumOrder.name => 'Nome',
-    AlbumOrder.released => 'Lançamentos',
-    AlbumOrder.mostPlayed => 'Mais tocados',
-    AlbumOrder.latest => 'Adicionados recentemente',
+  String label(AppLocalizations strings) => switch (this) {
+    AlbumOrder.name => strings.orderName,
+    AlbumOrder.released => strings.orderReleased,
+    AlbumOrder.mostPlayed => strings.mostPlayed,
+    AlbumOrder.latest => strings.orderLatest,
   };
 
-  String get emptyMessage =>
-      this == AlbumOrder.mostPlayed ? 'Os álbuns que você mais ouvir aparecem aqui.' : 'A biblioteca está vazia.';
+  String emptyMessage(AppLocalizations strings) =>
+      this == AlbumOrder.mostPlayed ? strings.mostPlayedAlbumsEmpty : strings.libraryEmpty;
 }
 
 /// The library's albums in [order], or a genre's by name, a page at a time: the next as the grid nears
@@ -165,12 +166,13 @@ class _AlbumsViewState extends State<AlbumsView> {
       return _albumsGrid();
     }
 
+    final strings = AppLocalizations.of(context);
     // The chips stay at the top, also while another order's albums come. Their line takes the whole width, the chips
     // starting at its left, lined up with the albums.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        OrderChips(widget.order, orders: _orders, label: (order) => order.label, onOrder: onOrder),
+        OrderChips(widget.order, orders: _orders, label: (order) => order.label(strings), onOrder: onOrder),
         Expanded(child: _albumsGrid()),
       ],
     );
@@ -178,10 +180,11 @@ class _AlbumsViewState extends State<AlbumsView> {
 
   Widget _albumsGrid() {
     final error = _error;
+    final strings = AppLocalizations.of(context);
 
     if (_albums.isEmpty) {
       if (error != null) {
-        return Center(child: _Retry('Não consegui listar os álbuns: $error', onRetry: _retry));
+        return Center(child: _Retry(strings.couldNotListAlbums('$error'), onRetry: _retry));
       }
 
       if (!_done) {
@@ -197,14 +200,14 @@ class _AlbumsViewState extends State<AlbumsView> {
           _albums,
           header: widget.header,
           footer: error != null
-              ? _Retry('Não consegui listar mais álbuns: $error', onRetry: _retry)
+              ? _Retry(strings.couldNotListMoreAlbums('$error'), onRetry: _retry)
               : _loading
               ? const Padding(
                   padding: EdgeInsets.only(bottom: 16),
                   child: Center(child: Spinner()),
                 )
               : _albums.isEmpty && widget.genre == null
-              ? Center(child: Text(widget.order.emptyMessage))
+              ? Center(child: Text(widget.order.emptyMessage(strings)))
               : null,
         ),
       ),
@@ -227,7 +230,7 @@ class _Retry extends StatelessWidget {
       children: [
         Text(message, textAlign: TextAlign.center),
         const SizedBox(height: 8),
-        TextButton(onPressed: onRetry, child: const Text('Tentar de novo')),
+        TextButton(onPressed: onRetry, child: Text(AppLocalizations.of(context).tryAgain)),
       ],
     ),
   );

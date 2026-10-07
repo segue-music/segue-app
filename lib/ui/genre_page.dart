@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
 import '../server/models.dart';
 import '../services.dart';
 import 'album_row.dart';
@@ -29,6 +30,7 @@ class _GenrePageState extends State<GenrePage> {
   @override
   Widget build(BuildContext context) {
     final mostPlayed = _mostPlayed!;
+    final strings = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
         // Under a wide screen's top bar, whose arrow goes back: no arrow of its own.
@@ -48,10 +50,10 @@ class _GenrePageState extends State<GenrePage> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                AlbumRow(title: 'Mais tocados', albums: mostPlayed),
+                AlbumRow(title: strings.mostPlayed, albums: mostPlayed),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
-                  child: Text('Álbuns', style: Theme.of(context).textTheme.titleLarge),
+                  child: Text(strings.albums, style: Theme.of(context).textTheme.titleLarge),
                 ),
               ],
             );

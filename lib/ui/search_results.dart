@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
 import '../server/models.dart';
 import '../services.dart';
 import 'album_page.dart';
@@ -21,10 +22,11 @@ class SearchResultsList extends StatelessWidget {
 
   static Future<void> _play(BuildContext context, List<Song> songs, int index) async {
     final messenger = ScaffoldMessenger.of(context);
+    final strings = AppLocalizations.of(context);
     final result = await ServicesScope.of(context).connect.playSongs(songs, index);
 
     if (!result.ok) {
-      messenger.showSnackBar(SnackBar(content: Text(describeError(result.error))));
+      messenger.showSnackBar(SnackBar(content: Text(describeError(strings, result.error))));
     }
   }
 
@@ -32,8 +34,10 @@ class SearchResultsList extends StatelessWidget {
   Widget build(BuildContext context) => FutureBuilder(
     future: results,
     builder: (context, snapshot) {
+      final strings = AppLocalizations.of(context);
+
       if (snapshot.hasError) {
-        return Center(child: Text('Não consegui buscar: ${snapshot.error}'));
+        return Center(child: Text(strings.couldNotSearch('${snapshot.error}')));
       }
 
       final results = snapshot.data;
@@ -45,22 +49,22 @@ class SearchResultsList extends StatelessWidget {
       final (:artists, :albums, :songs) = results;
 
       if (artists.isEmpty && albums.isEmpty && songs.isEmpty) {
-        return const Center(child: Text('Nada encontrado.'));
+        return Center(child: Text(strings.nothingFound));
       }
 
       return ListView(
         children: [
-          if (artists.isNotEmpty) const _Heading('Artistas'),
+          if (artists.isNotEmpty) _Heading(strings.artists),
           for (final artist in artists)
             ListTile(
               leading: Thumbnail(artist.coverArt, round: true),
               title: Text(artist.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-              subtitle: Text(albumCount(artist.albumCount)),
+              subtitle: Text(albumCount(strings, artist.albumCount)),
               onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ArtistPage(artist))),
             ),
-          if (albums.isNotEmpty) const _Heading('Álbuns'),
+          if (albums.isNotEmpty) _Heading(strings.albums),
           for (final album in albums) _AlbumResult(album),
-          if (songs.isNotEmpty) const _Heading('Músicas'),
+          if (songs.isNotEmpty) _Heading(strings.songs),
           // As on the album page: the queue is the songs listed, from the one picked.
           for (final (i, song) in songs.indexed)
             CurrentSong(

@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' show decodePng;
+import 'package:segue/l10n/app_localizations.dart';
 import 'package:segue/ui/theme.dart';
 
 double hue(Color color) => HSLColor.fromColor(color).hue;
@@ -138,6 +139,8 @@ void main() {
       final theme = segueTheme(brightness);
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: const [Locale('pt')],
           key: ValueKey(brightness), // each from the start, rather than the one before turning into it
           theme: theme,
           home: Scaffold(

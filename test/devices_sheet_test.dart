@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:segue/connect/connect.dart';
+import 'package:segue/l10n/app_localizations.dart';
 import 'package:segue/player/player.dart';
 import 'package:segue/segue/client.dart';
 import 'package:segue/segue/protocol.dart';
@@ -64,6 +65,8 @@ Future<void> openSheet(WidgetTester tester, List<Device> devices, {Size? size, b
   );
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: const [Locale('pt')],
       // Above the navigator, as in the app, so that the sheet sees it.
       builder: (context, child) => MediaQuery(
         // As DirectionalNavigation says it, on a TV.

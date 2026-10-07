@@ -1,0 +1,8 @@
+# The app's words in each language, from lib/l10n/app_<language>.arb, generated into lib/l10n on pub
+# get and on every build (not in git). Portuguese is the template: a message starts there, with its
+# description, and then goes into each of the others.
+arb-dir: lib/l10n
+template-arb-file: app_pt.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+nullable-getter: false

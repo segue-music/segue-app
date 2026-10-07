@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../connect/connect.dart';
+import '../l10n/app_localizations.dart';
 import '../segue/protocol.dart';
 import '../server/server.dart';
 
@@ -16,6 +17,7 @@ class MediaControls extends BaseAudioHandler with SeekHandler {
   ConnectController? _connect;
   MediaServer? _api;
   Timer? _tick;
+  AppLocalizations? _strings;
 
   /// Starts the system's media service, on the platforms where the app sets it up: Linux (MPRIS)
   /// and iOS for now. Null when it can't, e.g. without a D-Bus session.
@@ -39,6 +41,17 @@ class MediaControls extends BaseAudioHandler with SeekHandler {
     }
   }
 
+  /// The app's words, in the language it shows, for what the controls say of a song on another device: "(em laptop)".
+  /// Until it has them, the artist alone.
+  AppLocalizations? get strings => _strings;
+
+  set strings(AppLocalizations? strings) {
+    if (strings?.localeName != _strings?.localeName) {
+      _strings = strings;
+      _sync();
+    }
+  }
+
   /// Shows [connect]'s playback; null (signed out) shows nothing. [api] fetches the covers.
   void attach(ConnectController? connect, MediaServer? api) {
     _connect?.removeListener(_sync);
@@ -58,14 +71,19 @@ class MediaControls extends BaseAudioHandler with SeekHandler {
       return;
     }
 
-    final id = [now!.device, now.coverArt, now.title].join('|');
+    final strings = _strings;
+    // The language too, for a song on another device: another says the device in other words.
+    final id = [now!.device, now.coverArt, now.title, if (now.device != null) strings?.localeName].join('|');
 
     if (mediaItem.value?.id != id) {
       mediaItem.add(
         MediaItem(
           id: id,
           title: now.title!,
-          artist: now.device == null ? now.artist : '${now.artist ?? ''} (em ${now.device})',
+          artist: switch ((now.device, strings)) {
+            (final device?, final strings?) => strings.artistOnDevice(now.artist ?? '', device),
+            _ => now.artist,
+          },
           duration: now.duration,
         ),
       );

@@ -1,17 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+import '../l10n/app_localizations.dart';
+import '../language_choice.dart';
 import '../server/server.dart';
 import '../server/sign_in.dart';
 import '../session.dart';
+import 'language_button.dart';
 import 'spinner.dart';
 
 /// Server, user and password: the media server's own account, nothing else to create. Whether the
 /// server speaks Subsonic or Jellyfin, the app finds out.
 class LoginPage extends StatefulWidget {
-  const LoginPage({required this.onSignedIn, @visibleForTesting this.client, super.key});
+  const LoginPage({required this.onSignedIn, this.languageChoice, @visibleForTesting this.client, super.key});
 
   final void Function(Session session) onSignedIn;
+
+  /// The language picked, which a menu in the top right corner picks; none, no menu.
+  final LanguageChoice? languageChoice;
 
   /// What talks to the media server, for tests.
   final http.Client? client;
@@ -47,6 +53,7 @@ class _LoginPageState extends State<LoginPage> {
       _busy = true;
       _error = null;
     });
+    final strings = AppLocalizations.of(context);
     final server = normalizeServer(_server.text);
     MediaServer? api;
 
@@ -73,17 +80,17 @@ class _LoginPageState extends State<LoginPage> {
       try {
         await session.save();
       } on Exception catch (e) {
-        setState(() => _error = 'Entrou, mas não consegui guardar o login no chaveiro do sistema: $e');
+        setState(() => _error = strings.couldNotSaveSignIn('$e'));
         return;
       }
 
       widget.onSignedIn(session);
     } on NotAMediaServer {
-      setState(() => _error = 'Não achei um servidor Subsonic nem Jellyfin em ${server.host}.');
+      setState(() => _error = strings.notAMediaServer(server.host));
     } on ServerError catch (e) {
-      setState(() => _error = e.isAuth ? 'Usuário ou senha errados.' : 'O servidor recusou: $e');
+      setState(() => _error = e.isAuth ? strings.wrongCredentials : strings.serverRefused('$e'));
     } on Exception catch (e) {
-      setState(() => _error = 'Não consegui falar com ${server.host}: $e');
+      setState(() => _error = strings.couldNotReachServer(server.host, '$e'));
     } finally {
       api?.close();
 
@@ -93,74 +100,97 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  String? _required(String? value) => (value ?? '').trim().isEmpty ? 'Obrigatório' : null;
+  String? _required(String? value) => (value ?? '').trim().isEmpty ? AppLocalizations.of(context).required : null;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 400),
-            child: Form(
-              key: _form,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Center(child: Image.asset('assets/logo_large.png', width: 96, height: 96, semanticLabel: 'Segue')),
-                  const SizedBox(height: 32),
-                  TextFormField(
-                    controller: _server,
-                    decoration: const InputDecoration(labelText: 'Servidor', hintText: 'musica.exemplo.com:4533'),
-                    keyboardType: TextInputType.url,
-                    // The keyboard's button goes on to the next field (a TV's keyboard has no other way).
-                    textInputAction: TextInputAction.next,
-                    validator: _required,
-                  ),
-                  TextFormField(
-                    controller: _username,
-                    decoration: const InputDecoration(labelText: 'Usuário'),
-                    textInputAction: TextInputAction.next,
-                    validator: _required,
-                  ),
-                  TextFormField(
-                    controller: _password,
-                    decoration: const InputDecoration(labelText: 'Senha'),
-                    obscureText: true,
-                    textInputAction: TextInputAction.done,
-                    validator: _required,
-                    onFieldSubmitted: (_) => _submit(),
-                  ),
-                  ExpansionTile(
-                    title: const Text('Avançado'),
-                    tilePadding: EdgeInsets.zero,
-                    children: [
-                      TextFormField(
-                        controller: _hub,
-                        decoration: const InputDecoration(
-                          labelText: 'Endereço do hub (opcional)',
-                          helperText: 'Em branco, ele é procurado no endereço do servidor.',
-                        ),
-                        keyboardType: TextInputType.url,
-                        textInputAction: TextInputAction.done,
-                        onFieldSubmitted: (_) => _submit(),
-                      ),
-                    ],
-                  ),
-                  if (_error != null) ...[
-                    const SizedBox(height: 16),
-                    Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+    final strings = AppLocalizations.of(context);
+    final languageChoice = widget.languageChoice;
+    final form = Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: Form(
+            key: _form,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(child: Image.asset('assets/logo_large.png', width: 96, height: 96, semanticLabel: 'Segue')),
+                const SizedBox(height: 32),
+                TextFormField(
+                  controller: _server,
+                  decoration: InputDecoration(labelText: strings.server, hintText: strings.serverHint),
+                  keyboardType: TextInputType.url,
+                  // The keyboard's button goes on to the next field (a TV's keyboard has no other way).
+                  textInputAction: TextInputAction.next,
+                  validator: _required,
+                ),
+                TextFormField(
+                  controller: _username,
+                  decoration: InputDecoration(labelText: strings.username),
+                  textInputAction: TextInputAction.next,
+                  validator: _required,
+                ),
+                TextFormField(
+                  controller: _password,
+                  decoration: InputDecoration(labelText: strings.password),
+                  obscureText: true,
+                  textInputAction: TextInputAction.done,
+                  validator: _required,
+                  onFieldSubmitted: (_) => _submit(),
+                ),
+                ExpansionTile(
+                  title: Text(strings.advanced),
+                  tilePadding: EdgeInsets.zero,
+                  children: [
+                    TextFormField(
+                      controller: _hub,
+                      decoration: InputDecoration(labelText: strings.hubAddress, helperText: strings.hubAddressHelp),
+                      keyboardType: TextInputType.url,
+                      textInputAction: TextInputAction.done,
+                      onFieldSubmitted: (_) => _submit(),
+                    ),
                   ],
-                  const SizedBox(height: 24),
-                  FilledButton(
-                    onPressed: _busy ? null : _submit,
-                    child: _busy ? const Spinner(size: 20, strokeWidth: 2.5) : const Text('Entrar'),
-                  ),
+                ),
+                if (_error != null) ...[
+                  const SizedBox(height: 16),
+                  Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
                 ],
-              ),
+                const SizedBox(height: 24),
+                FilledButton(
+                  onPressed: _busy ? null : _submit,
+                  child: _busy ? const Spinner(size: 20, strokeWidth: 2.5) : Text(strings.signIn),
+                ),
+              ],
             ),
           ),
+        ),
+      ),
+    );
+
+    if (languageChoice == null) {
+      return Scaffold(body: form);
+    }
+
+    // The language menu in the top right corner, out of the form's way. For the keyboard's Tab it comes after the form,
+    // rather than first, as the top of the page; the arrows (a TV remote's) go up to it from the first field.
+    return Scaffold(
+      body: FocusTraversalGroup(
+        policy: OrderedTraversalPolicy(),
+        child: Stack(
+          children: [
+            FocusTraversalOrder(order: const NumericFocusOrder(0), child: form),
+            SafeArea(
+              child: Align(
+                alignment: Alignment.topRight,
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: FocusTraversalOrder(order: const NumericFocusOrder(1), child: LanguageButton(languageChoice)),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

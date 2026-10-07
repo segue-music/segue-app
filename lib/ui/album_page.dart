@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:intl/intl.dart';
 
+import '../l10n/app_localizations.dart';
 import '../releases/musicbrainz.dart';
 import '../server/models.dart';
 import '../server/server.dart';
@@ -83,7 +85,8 @@ class _AlbumPageState extends State<AlbumPage> {
     final result = await ServicesScope.of(context).connect.playSongs(songs, index);
 
     if (!result.ok && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(describeError(result.error))));
+      final message = describeError(AppLocalizations.of(context), result.error);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     }
   }
 
@@ -92,6 +95,7 @@ class _AlbumPageState extends State<AlbumPage> {
     // On a phone, or a window as narrow (as the home counts it), the album's name is under its cover, and the songs
     // have no header naming their columns.
     final narrow = MediaQuery.sizeOf(context).width < 600;
+    final strings = AppLocalizations.of(context);
     return FutureBuilder(
       future: _album,
       builder: (context, snapshot) {
@@ -101,7 +105,7 @@ class _AlbumPageState extends State<AlbumPage> {
           appBar: PageHeader.bar(context, shown: data != null),
           body: switch (data) {
             _ when snapshot.hasError => Center(
-              child: Text('Não consegui abrir ${albumWithArticle(widget.album.releaseType)}: ${snapshot.error}'),
+              child: Text(strings.couldNotOpenRelease(releaseSelector(widget.album.releaseType), '${snapshot.error}')),
             ),
             null => const Center(child: Spinner()),
             (final album, final songs) => ListView(
@@ -138,6 +142,7 @@ class _AlbumPageState extends State<AlbumPage> {
   /// at the end of its line, and the type before the year.
   Widget _header(Album album, List<Song> songs, {required ReleaseType? type, required bool narrow}) {
     final text = Theme.of(context).textTheme;
+    final strings = AppLocalizations.of(context);
     final name = Text(album.name, style: text.titleLarge);
     final byline = _Byline(
       album,
@@ -149,7 +154,7 @@ class _AlbumPageState extends State<AlbumPage> {
     );
     // Just the icon, its name in the tooltip, as the play button on the albums' covers.
     final play = IconButton.filled(
-      tooltip: 'Tocar ${albumWithArticle(type)}',
+      tooltip: strings.playRelease(releaseSelector(type)),
       onPressed: songs.isEmpty ? null : () => _play(songs, 0),
       icon: const ThemedIcon(HugeIcons.strokeRoundedPlay),
     );
@@ -205,7 +210,7 @@ class _AlbumPageState extends State<AlbumPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (type != null) Text(releaseTypeName(type), style: text.labelLarge),
+                    if (type != null) Text(releaseTypeName(strings, type), style: text.labelLarge),
                     name,
                     byline,
                     const SizedBox(height: 12),
@@ -264,10 +269,11 @@ class _Byline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppLocalizations.of(context);
     final details = [
-      if (type case final type?) releaseTypeName(type),
+      if (type case final type?) releaseTypeName(strings, type),
       if (album.year case final year?) '$year',
-      if (songs.isNotEmpty) _songsLength(songs),
+      if (songs.isNotEmpty) _songsLength(strings, songs),
     ].join(' · ');
     final artist = album.artist == null
         ? null
@@ -299,8 +305,8 @@ class _Byline extends StatelessWidget {
 }
 
 /// How many songs there are, and how long they last together, where each says: "9 faixas, 37 min".
-String _songsLength(List<Song> songs) {
-  final count = songs.length == 1 ? '1 faixa' : '${songs.length} faixas';
+String _songsLength(AppLocalizations strings, List<Song> songs) {
+  final count = strings.trackCount(songs.length);
 
   if (songs.any((song) => song.duration == null)) {
     return count;
@@ -309,12 +315,12 @@ String _songsLength(List<Song> songs) {
   final length = songs.fold(Duration.zero, (sum, song) => sum + song.duration!);
   final (hours, minutes) = (length.inHours, length.inMinutes % 60);
   final time = switch ((hours, minutes)) {
-    (0, 0) => '${length.inSeconds} s',
-    (0, _) => '$minutes min',
-    (_, 0) => '$hours h',
-    _ => '$hours h $minutes min',
+    (0, 0) => strings.lengthSeconds(length.inSeconds),
+    (0, _) => strings.lengthMinutes(minutes),
+    (_, 0) => strings.lengthHours(hours),
+    _ => strings.lengthHoursMinutes(hours, minutes),
   };
-  return '$count, $time';
+  return strings.tracksAndLength(count, time);
 }
 
 /// The picture of the album's artist, small and round, before their name: a person until it comes, and where the
@@ -362,7 +368,10 @@ class _LastSong extends StatelessWidget {
       initialData: (date: album.releaseDate, labels: album.recordLabels, type: album.releaseType),
       builder: (context, snapshot) {
         final (:date, :labels, type: _) = snapshot.requireData;
-        final lines = [if (date != null) _formatDate(date), if (labels.isNotEmpty) labels.join(', ')];
+        final lines = [
+          if (date != null) _formatDate(AppLocalizations.of(context), date),
+          if (labels.isNotEmpty) labels.join(', '),
+        ];
         // The same widgets around the song, with or without the lines under it: rebuilt, it would lose the focus.
         return Focus(
           canRequestFocus: false,
@@ -391,33 +400,18 @@ class _LastSong extends StatelessWidget {
   }
 }
 
-const _months = [
-  'janeiro',
-  'fevereiro',
-  'março',
-  'abril',
-  'maio',
-  'junho',
-  'julho',
-  'agosto',
-  'setembro',
-  'outubro',
-  'novembro',
-  'dezembro',
-];
-
-/// [date] in Portuguese, as precisely as it is known: "8 de abril de 1975", "abril de 1975", "1975".
-String _formatDate(ReleaseDate date) {
+/// [date] as precisely as it is known: "8 de abril de 1975", "abril de 1975", "1975". The month's name is intl's,
+/// in the app's language.
+String _formatDate(AppLocalizations strings, ReleaseDate date) {
   final ReleaseDate(:year, :month, :day) = date;
 
   if (month == null || month > 12) {
     return '$year';
   }
 
-  final monthAndYear = '${_months[month - 1]} de $year';
+  final monthName = DateFormat.MMMM(strings.localeName).format(DateTime(year, month));
   return switch (day) {
-    null => monthAndYear,
-    1 => '1º de $monthAndYear',
-    _ => '$day de $monthAndYear',
+    null => strings.releaseMonth(monthName, '$year'),
+    _ => strings.releaseDay(day, monthName, '$year'),
   };
 }

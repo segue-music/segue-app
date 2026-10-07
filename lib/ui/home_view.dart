@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
 import '../server/models.dart';
 import '../server/server.dart';
 import '../services.dart';
@@ -43,6 +44,7 @@ class _HomeViewState extends State<HomeView> {
   @override
   Widget build(BuildContext context) {
     final onShowAll = widget.onShowAll;
+    final strings = AppLocalizations.of(context);
     return RefreshIndicator(
       onRefresh: () async {
         setState(_load);
@@ -55,9 +57,9 @@ class _HomeViewState extends State<HomeView> {
         children: [
           for (final order in _rows)
             AlbumRow(
-              title: order.label,
+              title: order.label(strings),
               albums: _albums[order]!,
-              empty: order.emptyMessage,
+              empty: order.emptyMessage(strings),
               onShowAll: onShowAll == null ? null : () => onShowAll(order),
             ),
         ],
