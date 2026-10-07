@@ -377,11 +377,16 @@ void main() {
     }
   });
 
-  testWidgets('on a wide screen, the cover is asked of the server as a grid\'s', (tester) async {
+  testWidgets('on a wide screen, the cover is 220, asked of the server as the phone\'s', (tester) async {
     await pumpAlbum(tester);
     final cover = find.byTooltip('Ver a capa');
-    expect(find.descendant(of: cover, matching: coverAt(300)), findsOneWidget);
-    expect(find.descendant(of: cover, matching: coverAt(800)), findsNothing);
+    expect(tester.getSize(cover), const Size.square(220));
+    expect(find.descendant(of: cover, matching: coverAt(800)), findsOneWidget);
+    expect(
+      find.descendant(of: cover, matching: coverAt(300)),
+      findsOneWidget,
+      reason: 'under it, as it comes',
+    );
     await tester.pumpWidget(const SizedBox());
   });
 

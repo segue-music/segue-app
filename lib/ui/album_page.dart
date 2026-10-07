@@ -133,8 +133,8 @@ class _AlbumPageState extends State<AlbumPage> {
 
   /// The top of the page: the album's cover, its type (album, EP, ...), its name and byline, and the button that plays
   /// it. On a wide screen the name is beside the cover, the type above it, the button under them; on a narrow one
-  /// ([narrow]) the cover is bigger, centered, and the name under it, from the page's margin as the songs are, with the
-  /// button at the end of its line, and the type before the year.
+  /// ([narrow]) the cover is centered, and the name under it, from the page's margin as the songs are, with the button
+  /// at the end of its line, and the type before the year.
   Widget _header(Album album, List<Song> songs, {required ReleaseType? type, required bool narrow}) {
     final text = Theme.of(context).textTheme;
     final name = Text(album.name, style: text.titleLarge);
@@ -185,15 +185,16 @@ class _AlbumPageState extends State<AlbumPage> {
       );
     }
 
-    // How big the cover is, square.
-    const size = 140.0;
+    // How big the cover is, square; asked of the server as the phone's, which a screen of more than one pixel per point
+    // needs at this size.
+    const size = 220.0;
     return PageHeader(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(0, 16, 16, 16),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox.square(dimension: size, child: CoverButton(album.coverArt)),
+            SizedBox.square(dimension: size, child: CoverButton(album.coverArt, size: 800)),
             const SizedBox(width: 16),
             // Centered on the cover, which stays at the top where a long name and its byline beside it are taller.
             Expanded(
