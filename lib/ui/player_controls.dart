@@ -221,3 +221,42 @@ class RepeatButton extends StatelessWidget {
     );
   }
 }
+
+/// The full-screen player's buttons, big, where the bar isn't under it (on a phone): shuffle, previous, play or pause,
+/// next and repeat. The full-screen lyrics have them too.
+class PlaybackButtons extends StatelessWidget {
+  const PlaybackButtons(this.now, {super.key});
+
+  final NowPlaying now;
+
+  @override
+  Widget build(BuildContext context) {
+    final connect = ServicesScope.of(context).connect;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        ShuffleButton(now),
+        IconButton(
+          tooltip: 'Anterior',
+          iconSize: 36,
+          icon: const ThemedIcon(HugeIcons.strokeRoundedPrevious),
+          onPressed: () => runCommand(context, connect.previous),
+        ),
+        IconButton.filled(
+          tooltip: now.playing ? 'Pausar' : 'Tocar',
+          iconSize: 40,
+          padding: const EdgeInsets.all(14),
+          icon: ThemedIcon(now.playing ? HugeIcons.strokeRoundedPause : HugeIcons.strokeRoundedPlay),
+          onPressed: () => runCommand(context, connect.toggle),
+        ),
+        IconButton(
+          tooltip: 'Próxima',
+          iconSize: 36,
+          icon: const ThemedIcon(HugeIcons.strokeRoundedNext),
+          onPressed: () => runCommand(context, connect.next),
+        ),
+        RepeatButton(now),
+      ],
+    );
+  }
+}

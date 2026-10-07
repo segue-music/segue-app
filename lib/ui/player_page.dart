@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import '../connect/connect.dart';
 import 'cover.dart';
 import 'devices_sheet.dart';
+import 'lyrics_page.dart';
 import 'lyrics_view.dart';
 import 'now_playing_bar.dart';
 import 'page_area.dart';
@@ -37,7 +38,7 @@ class PlayerPage extends StatelessWidget {
     void close() => Navigator.of(context).maybePop();
 
     // On a wide screen the bar stays under the player, with what would be at its top: the lyrics, the
-    // queue and the devices. A phone's bar has no room for the first two, which stay at the top.
+    // queue and the devices. On a phone, which has no bar there, they go in one of their own, at the bottom.
     final wide = MediaQuery.sizeOf(context).width >= NowPlayingBar.wideFrom;
     return CallbackShortcuts(
       bindings: {const SingleActivator(LogicalKeyboardKey.escape): close},
@@ -46,7 +47,7 @@ class PlayerPage extends StatelessWidget {
         child: ListenableBuilder(
           listenable: _lyrics,
           builder: (context, _) => NowPlayingBuilder(
-            builder: (context, connect, now) {
+            builder: (context, _, now) {
               final lyrics = _lyrics.value;
               final colors = Theme.of(context).colorScheme;
               final device = now?.device;
@@ -61,41 +62,61 @@ class PlayerPage extends StatelessWidget {
                     onPressed: close,
                   ),
                   centerTitle: true,
-                  // Where it plays, when that's another device. A phone's top has no room for it beside its
-                  // buttons: there the devices button, tinted, says so.
-                  title: device == null || !wide
-                      ? null
-                      : Text(
-                          '${now!.playing ? 'Tocando' : 'Pausado'} em $device',
-                          style: Theme.of(context).textTheme.titleSmall,
-                        ),
-                  actions: [
-                    if (!wide) ...[
-                      IconButton(
-                        tooltip: lyrics ? 'Esconder a letra' : 'Mostrar a letra',
-                        icon: ThemedIcon(HugeIcons.strokeRoundedMicVocal, color: lyrics ? colors.primary : null),
-                        onPressed: () => _lyrics.value = !lyrics,
-                      ),
-                      IconButton(
-                        tooltip: 'Fila',
-                        icon: const ThemedIcon(HugeIcons.strokeRoundedPlaylist03),
-                        onPressed: () => QueuePage.open(context),
-                      ),
-                      IconButton(
-                        tooltip: 'Aparelhos',
-                        icon: ThemedIcon(
-                          HugeIcons.strokeRoundedMonitorSpeaker,
-                          color: device == null ? null : colors.primary,
-                        ),
-                        onPressed: () => showDevicesSheet(context),
-                      ),
-                    ],
-                  ],
+                  // On a wide screen, where it plays, when that's another device. On a phone, the song's album:
+                  // there the devices button at the bottom, tinted, says where it plays.
+                  title: switch (now) {
+                    final now? when wide && device != null => Text(
+                      '${now.playing ? 'Tocando' : 'Pausado'} em $device',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    final now? when !wide && now.album != null => SongLink.album(
+                      now,
+                      style: Theme.of(context).textTheme.titleSmall,
+                      textAlign: TextAlign.center,
+                      replace: true,
+                    ),
+                    _ => null,
+                  },
+                  // As wide as the close button, so that the album stays in the middle, a long one too.
+                  actions: [if (!wide) const SizedBox(width: kToolbarHeight)],
                 ),
                 body: now == null
                     ? const Center(child: Text('Nada tocando'))
-                    : _Player(now, connect, lyrics: lyrics, controls: !wide),
-                bottomNavigationBar: wide ? NowPlayingBar(lyrics: _lyrics) : null,
+                    : _Player(now, lyrics: lyrics, controls: !wide),
+                bottomNavigationBar: wide
+                    ? NowPlayingBar(lyrics: _lyrics)
+                    : SafeArea(
+                        top: false,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              IconButton(
+                                tooltip: lyrics ? 'Esconder a letra' : 'Mostrar a letra',
+                                icon: ThemedIcon(
+                                  HugeIcons.strokeRoundedMicVocal,
+                                  color: lyrics ? colors.primary : null,
+                                ),
+                                onPressed: () => _lyrics.value = !lyrics,
+                              ),
+                              IconButton(
+                                tooltip: 'Aparelhos',
+                                icon: ThemedIcon(
+                                  HugeIcons.strokeRoundedMonitorSpeaker,
+                                  color: device == null ? null : colors.primary,
+                                ),
+                                onPressed: () => showDevicesSheet(context),
+                              ),
+                              IconButton(
+                                tooltip: 'Fila',
+                                icon: const ThemedIcon(HugeIcons.strokeRoundedPlaylist03),
+                                onPressed: () => QueuePage.open(context),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
               );
             },
           ),
@@ -143,10 +164,9 @@ class PlayerRoute extends PageRouteBuilder<void> {
 }
 
 class _Player extends StatelessWidget {
-  const _Player(this.now, this.connect, {required this.lyrics, required this.controls});
+  const _Player(this.now, {required this.lyrics, required this.controls});
 
   final NowPlaying now;
-  final ConnectController connect;
 
   /// Whether the lyrics show.
   final bool lyrics;
@@ -181,10 +201,15 @@ class _Player extends StatelessWidget {
     // Beside the player, the lyrics take half the screen, the player the rest, which shrinks as they come in.
     final room = beside ? box.maxWidth * (1 - shown / 2) : box.maxWidth;
     // The cover as big as it fits, leaving room for the rest under it: the song, and the controls where they show.
+    // Under the player, the lyrics take that room from the cover as they come in: in the end, it keeps two fifths.
     final width = room - 48;
-    final side = min(width, box.maxHeight - (controls ? 280 : 160)).clamp(96.0, _maxCover);
+    final height = box.maxHeight - (controls ? 280 : 160);
+    final alone = min(width, height).clamp(96.0, _maxCover);
+    final withLyrics = min(width, height * 2 / 5).clamp(96.0, _maxCover);
+    final side = beside ? alone : alone + (withLyrics - alone) * shown;
+    // As wide as the cover alone: the rest keeps its width as the lyrics make the cover smaller.
     final player = SizedBox(
-      width: max(side, 280),
+      width: max(alone, 280),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -208,7 +233,8 @@ class _Player extends StatelessWidget {
             textAlign: TextAlign.center,
             replace: true,
           ),
-          if (now.album != null)
+          // On a phone the album is in the top bar.
+          if (!controls && now.album != null)
             SongLink.album(
               now,
               style: text.titleMedium?.copyWith(color: muted),
@@ -219,34 +245,10 @@ class _Player extends StatelessWidget {
             const SizedBox(height: 12),
             SeekSlider(now, timesBelow: true),
             const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ShuffleButton(now),
-                IconButton(
-                  tooltip: 'Anterior',
-                  iconSize: 36,
-                  icon: const ThemedIcon(HugeIcons.strokeRoundedPrevious),
-                  onPressed: () => runCommand(context, connect.previous),
-                ),
-                IconButton.filled(
-                  tooltip: now.playing ? 'Pausar' : 'Tocar',
-                  iconSize: 40,
-                  padding: const EdgeInsets.all(14),
-                  icon: ThemedIcon(now.playing ? HugeIcons.strokeRoundedPause : HugeIcons.strokeRoundedPlay),
-                  onPressed: () => runCommand(context, connect.toggle),
-                ),
-                IconButton(
-                  tooltip: 'Próxima',
-                  iconSize: 36,
-                  icon: const ThemedIcon(HugeIcons.strokeRoundedNext),
-                  onPressed: () => runCommand(context, connect.next),
-                ),
-                RepeatButton(now),
-              ],
-            ),
+            PlaybackButtons(now),
           ],
-          // Under the player, the lyrics' room grows as they fade in.
+          // Under the player, the lyrics are as tall as the room the cover gives up in the end (on a small phone, still
+          // a few lines' worth), and their room grows to it as they fade in.
           if (shown > 0 && !beside)
             ClipRect(
               child: Align(
@@ -256,7 +258,24 @@ class _Player extends StatelessWidget {
                   opacity: shown,
                   child: Padding(
                     padding: const EdgeInsets.only(top: 24),
-                    child: SizedBox(height: 400, child: LyricsView(now)),
+                    // A tap opens them full screen, as does the button at their corner.
+                    child: SizedBox(
+                      height: max(height - withLyrics - 24, 200),
+                      child: Stack(
+                        children: [
+                          LyricsView(now, onTap: () => LyricsPage.open(context)),
+                          Positioned(
+                            top: 0,
+                            right: 0,
+                            child: IconButton(
+                              tooltip: 'Maximizar a letra',
+                              icon: const ThemedIcon(HugeIcons.strokeRoundedArrowExpand01),
+                              onPressed: () => LyricsPage.open(context),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -266,9 +285,15 @@ class _Player extends StatelessWidget {
     );
 
     if (!beside) {
+      // In the middle of the room between the bars. Taller than it, as on a small phone with the lyrics, it goes out
+      // at the top rather than the bottom: the cover, rather than the controls and the lyrics' line that plays.
       return SingleChildScrollView(
+        reverse: true,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-        child: Center(child: player),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: max(0, box.maxHeight - 16)),
+          child: Center(child: player),
+        ),
       );
     }
 

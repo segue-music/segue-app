@@ -13,11 +13,15 @@ import 'spinner.dart';
 import 'themed_icon.dart';
 
 /// The lyrics of what plays, wherever it plays. Synced ones mark the line that plays and keep it in view,
-/// and a line tapped goes there; others show as they are.
+/// and a line tapped goes there (unless a tap does something else, [onTap]); others show as they are.
 class LyricsView extends StatefulWidget {
-  const LyricsView(this.now, {super.key});
+  const LyricsView(this.now, {this.onTap, super.key});
 
   final NowPlaying now;
+
+  /// What a tap anywhere on the lyrics does, in place of a line's going there: under the full-screen player on a
+  /// phone, where they are short, opening them full screen.
+  final VoidCallback? onTap;
 
   /// How tall the fades at the lyrics' top and bottom are.
   static const edgeFade = 40.0;
@@ -164,7 +168,7 @@ class _LyricsViewState extends State<LyricsView> {
   @override
   Widget build(BuildContext context) {
     final style = Theme.of(context).textTheme.bodyLarge;
-    return FutureBuilder(
+    final lyrics = FutureBuilder(
       future: _lyrics,
       builder: (context, snapshot) {
         if (snapshot.hasError) {
@@ -178,6 +182,16 @@ class _LyricsViewState extends State<LyricsView> {
         final lyrics = snapshot.data;
         return lyrics == null ? _Message('Esta música não tem letra.', style: style) : _lines(lyrics);
       },
+    );
+    final onTap = widget.onTap;
+
+    if (onTap == null) {
+      return lyrics;
+    }
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: onTap, child: lyrics),
     );
   }
 
@@ -241,11 +255,15 @@ class _LyricsViewState extends State<LyricsView> {
                   for (final (i, line) in lyrics.lines.indexed)
                     InkWell(
                       key: _keys[i],
-                      mouseCursor: WidgetStateMouseCursor.clickable,
+                      // With a tap of their own, the lyrics' hand, over the lines too.
+                      mouseCursor: widget.onTap == null ? WidgetStateMouseCursor.clickable : MouseCursor.defer,
                       borderRadius: BorderRadius.circular(8),
                       onTap: switch (line.start) {
-                        final start? => () => runCommand(context, () => ServicesScope.of(context).connect.seek(start)),
-                        null => null,
+                        final start? when widget.onTap == null => () => runCommand(
+                          context,
+                          () => ServicesScope.of(context).connect.seek(start),
+                        ),
+                        _ => null,
                       },
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
