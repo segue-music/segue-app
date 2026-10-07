@@ -9,6 +9,7 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:http/testing.dart';
 import 'package:segue/connect/connect.dart';
 import 'package:segue/l10n/app_localizations.dart';
+import 'package:segue/language_choice.dart';
 import 'package:segue/player/player.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
@@ -47,7 +48,8 @@ http.Response albumList(List<String> names) => subsonic({
 /// The home page on a screen of [size], over a server whose latest released albums are [released],
 /// whose most played are [mostPlayed] (null: it fails to list them) and whose latest added are
 /// [latest], however many are asked for. In the app's themes, as [themeChoice] picks them, which the home switches, as
-/// the app does (ThemeFade). Returns the queries of the album lists asked for.
+/// the app does (ThemeFade). [languageChoice] is the home's to pick, though the app stays in Portuguese. Returns the
+/// queries of the album lists asked for.
 Future<List<Map<String, String>>> pumpHome(
   WidgetTester tester,
   Size size, {
@@ -56,6 +58,8 @@ Future<List<Map<String, String>>> pumpHome(
   List<String> latest = const ['Night in the Ruts'],
   bool television = false,
   ThemeChoice? themeChoice,
+  LanguageChoice? languageChoice,
+  VoidCallback? onSignOut,
 }) async {
   const credentials = SubsonicCredentials(username: 'a', token: 't', salt: 's');
   final asked = <Map<String, String>>[];
@@ -113,7 +117,7 @@ Future<List<Map<String, String>>> pumpHome(
         child: DirectionalNavigation(enabled: television, child: child!),
       ),
     ),
-    home: HomePage(onSignOut: () {}, themeChoice: themeChoice),
+    home: HomePage(onSignOut: onSignOut ?? () {}, themeChoice: themeChoice, languageChoice: languageChoice),
   );
 
   await tester.pumpWidget(
@@ -122,6 +126,16 @@ Future<List<Map<String, String>>> pumpHome(
   await tester.pumpAndSettle();
   return asked;
 }
+
+/// On a phone, the top bar's menu's button.
+final phoneMenu = find.byTooltip('Mostrar menu');
+
+/// On a phone, the top bar's menu's item that says [text].
+Finder menuItem(String text) => find.widgetWithText(PopupMenuItem<void>, text);
+
+/// Whether the top bar's menu's item that says [text] has the check of the one picked.
+bool checked(String text) =>
+    find.descendant(of: menuItem(text), matching: themedIcon(HugeIcons.strokeRoundedTick02)).evaluate().isNotEmpty;
 
 /// The rows' sideways lists, in order.
 final rows = find.byWidgetPredicate((widget) => widget is ListView && widget.scrollDirection == Axis.horizontal);
@@ -342,13 +356,98 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('on a phone, the top bar has no theme button', (tester) async {
+  testWidgets(
+    'on a phone, the theme, the language and signing out are in the top bar\'s menu, after the hub\'s status',
+    (tester) async {
+      final (themeChoice, languageChoice) = (ThemeChoice(), LanguageChoice());
+      addTearDown(themeChoice.dispose);
+      addTearDown(languageChoice.dispose);
+      await pumpHome(tester, const Size(360, 640), themeChoice: themeChoice, languageChoice: languageChoice);
+
+      for (final tooltip in ['Tema escuro', 'Tema claro', 'Idioma', 'Sair']) {
+        expect(find.byTooltip(tooltip), findsNothing, reason: 'no button of its own: $tooltip');
+      }
+
+      expect(
+        tester.getRect(phoneMenu).left,
+        greaterThanOrEqualTo(tester.getRect(find.byTooltip('Sem hub: só toca neste aparelho')).right),
+        reason: 'the hub\'s status in sight, before the menu',
+      );
+
+      await tester.tap(phoneMenu);
+      await tester.pumpAndSettle();
+      final texts = [
+        'Tema do sistema',
+        'Tema claro',
+        'Tema escuro',
+        'Idioma do sistema',
+        'English',
+        'Español',
+        'Português',
+        'Sair',
+      ];
+      final tops = [for (final text in texts) tester.getTopLeft(menuItem(text)).dy];
+      expect([...tops]..sort(), tops, reason: 'in this order, top to bottom');
+      expect(
+        [for (final text in texts) checked(text)],
+        [true, false, false, true, false, false, false, false],
+        reason: 'the system\'s theme and language, until a pick',
+      );
+      expect(
+        find.byType(PopupMenuDivider),
+        findsNWidgets(2),
+        reason: 'between the themes, the languages and signing out',
+      );
+      expect(
+        find.descendant(of: menuItem('Sair'), matching: themedIcon(HugeIcons.strokeRoundedLogout01)),
+        findsOneWidget,
+      );
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets('on a phone, the top bar\'s menu picks the theme, the old one fading away, and the system\'s again', (
+    tester,
+  ) async {
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
+    addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
     final choice = ThemeChoice();
     addTearDown(choice.dispose);
     await pumpHome(tester, const Size(360, 640), themeChoice: choice);
-    expect(find.byTooltip('Tema escuro'), findsNothing);
-    expect(find.byTooltip('Tema claro'), findsNothing);
-    expect(find.byTooltip('Sair'), findsOneWidget, reason: 'the top bar\'s other buttons stay');
+    Brightness shown() => Theme.of(tester.element(find.byType(HomePage))).brightness;
+
+    await tester.tap(phoneMenu);
+    await tester.pumpAndSettle();
+    await tester.tap(menuItem('Tema escuro'));
+    await tester.pump();
+    expect(shown(), Brightness.dark);
+    expect(find.byKey(ThemeFade.oldThemeKey), findsOneWidget, reason: 'the app as it was, in the light theme');
+    await tester.pumpAndSettle();
+    expect(find.byKey(ThemeFade.oldThemeKey), findsNothing, reason: 'faded away');
+    expect(menuItem('Tema escuro'), findsNothing, reason: 'the menu closed');
+    expect((await ThemeChoice.load()).value, ThemeMode.dark, reason: 'kept for the next launch');
+
+    await tester.tap(phoneMenu);
+    await tester.pumpAndSettle();
+    expect([checked('Tema do sistema'), checked('Tema escuro')], [false, true]);
+    await tester.tap(menuItem('Tema do sistema'));
+    await tester.pumpAndSettle();
+    expect(shown(), Brightness.light, reason: 'the system\'s again');
+    expect((await ThemeChoice.load()).value, ThemeMode.system);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a phone, the top bar\'s menu signs out, and with nothing else to pick has only that', (tester) async {
+    var signedOut = false;
+    await pumpHome(tester, const Size(360, 640), onSignOut: () => signedOut = true);
+    await tester.tap(phoneMenu);
+    await tester.pumpAndSettle();
+    expect(find.byType(PopupMenuItem<void>), findsOneWidget);
+    expect(find.byType(PopupMenuDivider), findsNothing);
+
+    await tester.tap(menuItem('Sair'));
+    await tester.pumpAndSettle();
+    expect(signedOut, isTrue);
     await tester.pumpWidget(const SizedBox());
   });
 

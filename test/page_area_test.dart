@@ -120,7 +120,11 @@ void main() {
       expect(find.byType(AlbumPage), findsOneWidget);
       expect(find.text('Início').hitTestable(), findsOneWidget, reason: 'the sections\' bar\'s');
       expect(find.byTooltip('Abrir o player').hitTestable(), findsOneWidget);
-      expect(find.byTooltip('Sair').hitTestable(), findsNothing, reason: 'the home\'s top bar is under the page');
+      expect(
+        find.byTooltip('Mostrar menu').hitTestable(),
+        findsNothing,
+        reason: 'the home\'s top bar is under the page',
+      );
       expect(find.byType(BackButton), findsOneWidget);
       expect(
         find.descendant(of: find.byType(AppBar), matching: album),

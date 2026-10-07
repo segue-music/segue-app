@@ -144,10 +144,16 @@ void main() {
     await tester.pumpWidget(const SizedBox()); // stops the player bar's timers
   });
 
-  testWidgets('on a phone, the bar at the bottom too, and a page\'s back arrow', (tester) async {
+  testWidgets('on a phone, the bar at the bottom too, the top bar\'s menu, and a page\'s back arrow', (tester) async {
     await pumpApp(tester, const Size(360, 640));
     expect(find.byType(NavigationBar), findsOneWidget);
     expect(otherIcons, findsNothing);
+
+    await tap(tester, find.byTooltip('Mostrar menu'));
+    expect(find.text('English'), findsOneWidget);
+    expect(otherIcons, findsNothing, reason: 'the top bar\'s menu');
+    await tester.tapAt(const Offset(20, 600)); // out of the menu, which closes
+    await tester.pumpAndSettle();
 
     await tap(tester, find.text('Toys in the Attic').first);
     expect(find.byType(BackButton), findsOneWidget);

@@ -53,8 +53,9 @@ Future<void> pumpHome(WidgetTester tester, LanguageChoice choice) async {
   await tester.pumpAndSettle();
 }
 
-/// The language menu's item that says [name].
-Finder item(String name) => find.widgetWithText(PopupMenuItem<String>, name);
+/// A menu's item that says [name]: the language menu's, or on a phone the top bar's menu's.
+Finder item(String name) =>
+    find.ancestor(of: find.text(name), matching: find.byWidgetPredicate((widget) => widget is PopupMenuItem));
 
 /// What has the focus: the language menu's button, or by what it says, a text field, the sign-in's advanced settings or
 /// its button.
@@ -180,6 +181,39 @@ void main() {
     await tester.pumpAndSettle();
     expect(choice.value, isNull);
     expect(find.byTooltip('Álbuns'), findsOneWidget);
+  });
+
+  testWidgets('on a phone, the top bar\'s menu picks the language, the system\'s again too', (tester) async {
+    tester.platformDispatcher.localesTestValue = const [Locale('pt', 'BR')];
+    addTearDown(tester.platformDispatcher.clearLocalesTestValue);
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final choice = LanguageChoice();
+    addTearDown(choice.dispose);
+    await pumpHome(tester, choice);
+    expect(find.byTooltip('Idioma'), findsNothing, reason: 'no language menu of its own');
+
+    await tester.tap(find.byTooltip('Mostrar menu'));
+    await tester.pumpAndSettle();
+    await tester.tap(item('English'));
+    await tester.pumpAndSettle();
+    expect(choice.value, const Locale('en'));
+    expect(find.text('Albums'), findsOneWidget, reason: 'the sections\' bar, in English');
+
+    await tester.tap(find.byTooltip('Show menu'));
+    await tester.pumpAndSettle();
+    expect(
+      [
+        for (final name in ['System language', 'English', 'Español', 'Português']) checked(tester, name),
+      ],
+      [false, true, false, false],
+    );
+
+    await tester.tap(item('System language'));
+    await tester.pumpAndSettle();
+    expect(choice.value, isNull);
+    expect(find.text('Álbuns'), findsOneWidget);
   });
 
   testWidgets('the sign-in has the menu too, in its corner, which shows the page in the language picked', (

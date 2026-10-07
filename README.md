@@ -118,14 +118,15 @@ the device it runs on.
 - on iOS, playing in the background and with the silent switch on; a call pauses the music, which
   plays again after it, and leaving the car or unplugging the headphones pauses it;
 - the interface in Portuguese, English or Spanish: the system's language, where the app has it
-  (English where it has none of the system's), until the language menu (in the top bar, and in the
-  sign-in's corner) picks one, which the app keeps. Dates, numbers of albums and songs, and Material's own words (tooltips, the text
+  (English where it has none of the system's), until the language menu (in the top bar, on a phone
+  in its menu, and in the sign-in's corner) picks one, which the app keeps. Dates, numbers of albums and songs, and Material's own words (tooltips, the text
   fields' menu) follow it, and on iOS the local network permission's prompt follows the system's;
 - its icon (made by `tool/icons.dart` from `tool/icon.png`): Android's launcher icon, adaptive from
   Android 8 on, the Android TV banner, on Linux the window's icon and an entry in the application
   menu, the iOS and macOS icons, the Windows icon, and the app's own, in its top bar. The theme,
-  light or dark (as the system's, until a button in the top bar picks the other, on a wide screen,
-  which the app keeps, the old theme fading into the new one), takes the icon's colors: its pink,
+  light or dark (as the system's, until a button in the top bar picks the other, or on a phone the top
+  bar's menu picks one or the system's again, which the app keeps, the old theme fading into the new
+  one), takes the icon's colors: its pink,
   the deep and the light pink of the ring around the note, and in the dark the black around it, as
   the background. On Linux the window's title bar, with the close button, takes the background too.
   On a computer the window opens maximized.

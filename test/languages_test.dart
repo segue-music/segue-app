@@ -12,6 +12,7 @@ import 'package:segue/server/models.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
+import 'package:segue/theme_choice.dart';
 import 'package:segue/ui/home_page.dart';
 import 'package:segue/ui/login_page.dart';
 import 'package:segue/ui/theme.dart';
@@ -138,6 +139,10 @@ Future<void> pumpHome(WidgetTester tester, Locale language, Size size) async {
     player,
     ConnectController(player: player),
   );
+  final themeChoice = ThemeChoice();
+  addTearDown(themeChoice.dispose);
+  final languageChoice = LanguageChoice(language);
+  addTearDown(languageChoice.dispose);
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -148,7 +153,7 @@ Future<void> pumpHome(WidgetTester tester, Locale language, Size size) async {
       supportedLocales: AppLocalizations.supportedLocales,
       theme: segueTheme(Brightness.light),
       builder: (context, child) => ServicesScope(services: services, child: child!),
-      home: HomePage(onSignOut: () {}),
+      home: HomePage(onSignOut: () {}, themeChoice: themeChoice, languageChoice: languageChoice),
     ),
   );
   await tester.pumpAndSettle();
@@ -172,6 +177,15 @@ void main() {
         final narrow = size.width < 600;
         await pumpHome(tester, language, size);
         expect(find.text(strings.orderReleased), findsOneWidget, reason: 'the home\'s first row');
+
+        if (narrow) {
+          final menu = MaterialLocalizations.of(tester.element(find.byType(HomePage))).showMenuTooltip;
+          await tap(tester, find.byTooltip(menu));
+          expect(find.text(strings.systemTheme), findsOneWidget, reason: 'the top bar\'s menu');
+          expect(find.text(strings.signOut), findsOneWidget);
+          await tester.tapAt(const Offset(20, 600)); // out of the menu, which closes
+          await tester.pumpAndSettle();
+        }
 
         await tap(tester, narrow ? find.text(strings.albums) : find.byTooltip(strings.albums));
         expect(find.widgetWithText(ChoiceChip, strings.orderLatest), findsOneWidget);

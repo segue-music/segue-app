@@ -646,7 +646,7 @@
   },
   "signOut": "Sair",
   "@signOut": {
-    "description": "The button that signs out."
+    "description": "The button that signs out, on a wide screen, and on a phone the home's menu's item."
   },
   "home": "Início",
   "@home": {
@@ -678,11 +678,15 @@
   },
   "lightTheme": "Tema claro",
   "@lightTheme": {
-    "description": "The tooltip of the button that switches to the light theme."
+    "description": "The tooltip of the button that switches to the light theme, and on a phone the home's menu's choice of it."
   },
   "darkTheme": "Tema escuro",
   "@darkTheme": {
-    "description": "The tooltip of the button that switches to the dark theme."
+    "description": "The tooltip of the button that switches to the dark theme, and on a phone the home's menu's choice of it."
+  },
+  "systemTheme": "Tema do sistema",
+  "@systemTheme": {
+    "description": "On a phone, the home's menu's first choice of theme: light or dark as the system is."
   },
   "noHub": "Sem hub: só toca neste aparelho",
   "@noHub": {

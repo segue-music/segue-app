@@ -120,6 +120,7 @@
   "forward": "Adelante",
   "lightTheme": "Tema claro",
   "darkTheme": "Tema oscuro",
+  "systemTheme": "Tema del sistema",
   "noHub": "Sin hub: solo suena en este dispositivo",
   "hubConnected": "Conectado al hub",
   "hubConnecting": "Conectando al hub…",

@@ -120,6 +120,7 @@
   "forward": "Forward",
   "lightTheme": "Light theme",
   "darkTheme": "Dark theme",
+  "systemTheme": "System theme",
   "noHub": "No hub: plays on this device only",
   "hubConnected": "Connected to the hub",
   "hubConnecting": "Connecting to the hub…",
