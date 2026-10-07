@@ -37,6 +37,26 @@ class Cover extends StatelessWidget {
   }
 }
 
+/// A cover asked of the server at [size] pixels, more than [Cover]'s usual: the usual one, which the page that led here
+/// has likely loaded already, shows under it until it comes.
+class LargeCover extends StatelessWidget {
+  const LargeCover(this.id, {required this.size, super.key});
+
+  final String? id;
+
+  /// Pixels asked of the server.
+  final int size;
+
+  @override
+  Widget build(BuildContext context) => Stack(
+    fit: StackFit.expand,
+    children: [
+      Cover(id),
+      Cover(id, size: size),
+    ],
+  );
+}
+
 /// A small cover, for a list.
 class Thumbnail extends StatelessWidget {
   const Thumbnail(this.coverArt, {this.round = false, this.playing = false, super.key});

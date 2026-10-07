@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/gestures.dart';
@@ -113,6 +114,21 @@ Finder coverOf(String id) => find.byWidgetPredicate(
       widget.image is NetworkImage &&
       Uri.parse((widget.image as NetworkImage).url).queryParameters['id'] == id,
 );
+
+/// The play button, with the room around it that a tap on a touch screen takes too.
+final playButton = find.ancestor(of: find.byTooltip('Tocar o álbum'), matching: find.byType(IconButton));
+
+/// Opens the album's page again over the one [pumpAlbum] opened, so it has a page to go back to, and the back arrow.
+Future<void> pushAlbum(WidgetTester tester) async {
+  unawaited(
+    Navigator.of(tester.element(find.byType(AlbumPage))).push(
+      MaterialPageRoute<void>(
+        builder: (context) => const AlbumPage(Album(id: 'a1', name: 'Toys in the Attic')),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
 
 Future<void> openCover(WidgetTester tester) async {
   await tester.tap(find.byTooltip('Ver a capa'));
@@ -288,6 +304,75 @@ void main() {
     await tester.pumpAndSettle();
     await opened;
     expect(find.byType(BackButton), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a wide screen, the album\'s name and byline are beside its cover, the play button under them', (
+    tester,
+  ) async {
+    await pumpAlbum(tester);
+    final cover = tester.getRect(find.byTooltip('Ver a capa'));
+    final name = tester.getRect(find.text('Toys in the Attic'));
+    final byline = tester.getRect(find.textContaining(' · 1975 · 2 faixas, 8 min'));
+    final play = tester.getRect(playButton);
+    expect(name.left, greaterThan(cover.right));
+    expect(play.bottom, lessThanOrEqualTo(cover.bottom), reason: 'all beside it');
+    expect((byline.left, play.left), (name.left, name.left));
+    expect(play.top, greaterThan(byline.bottom));
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets(
+    'on a phone, they are under the cover, from the page\'s margin, the play button at the end of their line',
+    (tester) async {
+      await pumpAlbum(tester, size: const Size(360, 640));
+      await pushAlbum(tester);
+      final cover = tester.getRect(find.byTooltip('Ver a capa'));
+      final name = tester.getRect(find.text('Toys in the Attic'));
+      final byline = tester.getRect(find.textContaining(' · 1975 · 2 faixas, 8 min'));
+      final play = tester.getRect(playButton);
+      expect(name.top, greaterThanOrEqualTo(cover.bottom));
+      expect(byline.top, greaterThanOrEqualTo(name.bottom));
+      expect((name.left, byline.left), (16, 16), reason: 'from the page\'s margin, not from the cover\'s');
+      expect(cover.left, greaterThan(16));
+      expect(play.right, 360 - 16);
+      expect(play.left, greaterThanOrEqualTo(name.right));
+      expect(play.left, greaterThanOrEqualTo(byline.right));
+      expect(play.center.dy, moreOrLessEquals((name.top + byline.bottom) / 2, epsilon: 1));
+      expect(play.bottom, lessThan(tester.getRect(song('Walk This Way')).top));
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets('on a phone, the cover is centered, in the room the back arrow leaves on both its sides, up to 280', (
+    tester,
+  ) async {
+    for (final (width, side) in [(360.0, 360 - 2 * (kToolbarHeight + 16)), (560.0, 280.0)]) {
+      await pumpAlbum(tester, size: Size(width, 800));
+      await pushAlbum(tester);
+      final cover = find.byTooltip('Ver a capa');
+      expect(tester.getSize(cover), Size.square(side), reason: '$width');
+      expect(tester.getCenter(cover).dx, width / 2, reason: '$width');
+      expect(tester.getRect(find.byType(BackButton)).right, lessThanOrEqualTo(tester.getRect(cover).left));
+      expect(
+        find.descendant(of: cover, matching: coverAt(800)),
+        findsOneWidget,
+        reason: 'asked of the server as the player\'s, for a phone\'s pixels',
+      );
+      expect(
+        find.descendant(of: cover, matching: coverAt(300)),
+        findsOneWidget,
+        reason: 'under it, as it comes',
+      );
+      await tester.pumpWidget(const SizedBox());
+    }
+  });
+
+  testWidgets('on a wide screen, the cover is asked of the server as a grid\'s', (tester) async {
+    await pumpAlbum(tester);
+    final cover = find.byTooltip('Ver a capa');
+    expect(find.descendant(of: cover, matching: coverAt(300)), findsOneWidget);
+    expect(find.descendant(of: cover, matching: coverAt(800)), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
 

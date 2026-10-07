@@ -87,11 +87,9 @@ class _AlbumPageState extends State<AlbumPage> {
 
   @override
   Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    // On a phone, or a window as narrow (as the home counts it), the songs have no header naming their columns.
-    final headed = MediaQuery.sizeOf(context).width >= 600;
-    // How big the cover is, square.
-    const cover = 140.0;
+    // On a phone, or a window as narrow (as the home counts it), the album's name is under its cover, and the songs
+    // have no header naming their columns.
+    final narrow = MediaQuery.sizeOf(context).width < 600;
     return FutureBuilder(
       future: _album,
       builder: (context, snapshot) {
@@ -104,41 +102,8 @@ class _AlbumPageState extends State<AlbumPage> {
             null => const Center(child: Spinner()),
             (final album, final songs) => ListView(
               children: [
-                PageHeader(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(0, 16, 16, 16),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox.square(dimension: cover, child: CoverButton(album.coverArt)),
-                        const SizedBox(width: 16),
-                        // Centered on the cover, which stays at the top, by the arrow, where a long name and its
-                        // byline beside it are taller.
-                        Expanded(
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(minHeight: cover),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(album.name, style: text.titleLarge),
-                                _Byline(album, songs, artistPicture: _artistPicture!, style: text.bodyMedium),
-                                const SizedBox(height: 12),
-                                // Just the icon, its name in the tooltip, as the play button on the albums' covers.
-                                IconButton.filled(
-                                  tooltip: 'Tocar o álbum',
-                                  onPressed: songs.isEmpty ? null : () => _play(songs, 0),
-                                  icon: const ThemedIcon(HugeIcons.strokeRoundedPlay),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                if (headed) const SongListHeader(numbered: true),
+                _header(album, songs, narrow: narrow),
+                if (!narrow) const SongListHeader(numbered: true),
                 for (var i = 0; i < songs.length; i++)
                   if (i == songs.length - 1)
                     _LastSong(_song(songs, i), album: album, release: _release!)
@@ -155,6 +120,79 @@ class _AlbumPageState extends State<AlbumPage> {
           bottomNavigationBar: PageArea.holds(context) ? null : const NowPlayingBar(),
         );
       },
+    );
+  }
+
+  /// The top of the page: the album's cover, its name and byline, and the button that plays it. On a wide screen the
+  /// name is beside the cover, the button under them; on a narrow one ([narrow]) the cover is bigger, centered, and the
+  /// name under it, from the page's margin as the songs are, with the button at the end of its line.
+  Widget _header(Album album, List<Song> songs, {required bool narrow}) {
+    final text = Theme.of(context).textTheme;
+    final name = Text(album.name, style: text.titleLarge);
+    final byline = _Byline(album, songs, artistPicture: _artistPicture!, style: text.bodyMedium);
+    // Just the icon, its name in the tooltip, as the play button on the albums' covers.
+    final play = IconButton.filled(
+      tooltip: 'Tocar o álbum',
+      onPressed: songs.isEmpty ? null : () => _play(songs, 0),
+      icon: const ThemedIcon(HugeIcons.strokeRoundedPlay),
+    );
+
+    if (narrow) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          PageHeader(
+            centered: true,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              // As wide as the room the header leaves it, less a margin, up to a phone's widest; asked of the server
+              // as the player's is, which a phone's pixels need.
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 280),
+                child: AspectRatio(aspectRatio: 1, child: CoverButton(album.coverArt, size: 800)),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [name, byline]),
+                ),
+                const SizedBox(width: 16),
+                play,
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
+    // How big the cover is, square.
+    const size = 140.0;
+    return PageHeader(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(0, 16, 16, 16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox.square(dimension: size, child: CoverButton(album.coverArt)),
+            const SizedBox(width: 16),
+            // Centered on the cover, which stays at the top where a long name and its byline beside it are taller.
+            Expanded(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: size),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [name, byline, const SizedBox(height: 12), play],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

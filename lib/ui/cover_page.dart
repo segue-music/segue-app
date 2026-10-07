@@ -45,15 +45,7 @@ class CoverPage extends StatelessWidget {
                     dimension: side,
                     child: Hero(
                       tag: _heroTag(id),
-                      // The smaller cover, which the page that opened this one has already loaded,
-                      // shows until the big one arrives.
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          Cover(id),
-                          Cover(id, size: pixels),
-                        ],
-                      ),
+                      child: LargeCover(id, size: pixels),
                     ),
                   ),
                 ),
@@ -80,16 +72,22 @@ class CoverPage extends StatelessWidget {
 /// A cover that opens full screen ([CoverPage]) when tapped, or pressed from the keyboard or the
 /// remote. Without a cover it is only the placeholder, and opens nothing.
 class CoverButton extends StatelessWidget {
-  const CoverButton(this.id, {super.key});
+  const CoverButton(this.id, {this.size, super.key});
 
   final String? id;
+
+  /// Pixels asked of the server, for a cover bigger than usual ([LargeCover]); none: [Cover]'s usual.
+  final int? size;
 
   static const _borderRadius = BorderRadius.all(Radius.circular(8));
 
   @override
   Widget build(BuildContext context) {
-    final id = this.id;
-    final cover = ClipRRect(borderRadius: _borderRadius, child: Cover(id));
+    final (id, size) = (this.id, this.size);
+    final cover = ClipRRect(
+      borderRadius: _borderRadius,
+      child: size == null ? Cover(id) : LargeCover(id, size: size),
+    );
 
     if (id == null) {
       return cover;
