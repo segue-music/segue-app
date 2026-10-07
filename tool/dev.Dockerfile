@@ -5,7 +5,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates curl git unzip xz-utils zip \
       clang cmake make ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-14-dev \
       libmpv-dev libsecret-1-dev libjsoncpp-dev \
+      pipewire-bin \
     && rm -rf /var/lib/apt/lists/*
+# pipewire-bin, for flutter run, brings PipeWire's client config (client.conf) and the modules a
+# client loads: libmpv tries PipeWire first, and without them it failed there, with warnings, before
+# going on to PulseAudio.
 # media_kit builds mimalloc with plain Makefiles, which look for cc and c++.
 ENV CC=clang CXX=clang++
 # On a Flutter update, check the Linux renderer: linux/runner/my_application.cc turns Impeller off

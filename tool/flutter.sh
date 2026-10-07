@@ -53,11 +53,11 @@ if [ -f "$hub" ]; then
 fi
 
 # flutter run opens the app in this desktop: the container gets the terminal (for run's keys, r and
-# q), the display (Wayland or X11), the GPU, the sound server (PulseAudio's socket, which PipeWire
-# also serves), the session bus (the keyring that keeps the token, the media controls) and the
-# accessibility one. Only flutter run: the other commands run code from packages, which needs none of
-# it. Android devices come from this machine's adb server (adb devices starts it), over the host
-# network.
+# q), the display (Wayland or X11), the GPU, the sound server (PipeWire's socket, which libmpv tries
+# first, and PulseAudio's, which PipeWire also serves), the session bus (the keyring that keeps
+# the token, the media controls) and the accessibility one. Only flutter run: the other commands run
+# code from packages, which needs none of it. Android devices come from this machine's adb server
+# (adb devices starts it), over the host network.
 if [ "$tool $command" = "flutter run" ]; then
   [ -t 0 ] && set -- -t "$@"
   runtime=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}
@@ -76,6 +76,8 @@ if [ "$tool $command" = "flutter run" ]; then
     [ -e "$render" ] && set -- --device /dev/dri --group-add "$(stat -c %g "$render")" "$@"
     break
   done
+
+  [ -S "$runtime/pipewire-0" ] && set -- -v "$runtime/pipewire-0:$runtime/pipewire-0" "$@"
 
   # PULSE_SERVER names the socket: otherwise libpulse looks for it in $runtime/pulse only once it has
   # made sure it owns that folder, which Docker made, as root, to mount the socket in, so it never
