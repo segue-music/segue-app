@@ -77,7 +77,12 @@ if [ "$tool $command" = "flutter run" ]; then
     break
   done
 
-  [ -S "$runtime/pulse/native" ] && set -- -v "$runtime/pulse/native:$runtime/pulse/native" "$@"
+  # PULSE_SERVER names the socket: otherwise libpulse looks for it in $runtime/pulse only once it has
+  # made sure it owns that folder, which Docker made, as root, to mount the socket in, so it never
+  # tried the socket and mpv fell back to ALSA, which has no sound card here.
+  if [ -S "$runtime/pulse/native" ]; then
+    set -- -v "$runtime/pulse/native:$runtime/pulse/native" -e PULSE_SERVER="unix:$runtime/pulse/native" "$@"
+  fi
 
   if [ -S "$runtime/bus" ]; then
     set -- -v "$runtime/bus:$runtime/bus" -e DBUS_SESSION_BUS_ADDRESS="unix:path=$runtime/bus" "$@"
