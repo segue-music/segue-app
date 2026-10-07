@@ -68,7 +68,10 @@ class _DevicesSheet extends StatelessWidget {
               title: Text(device.info.name),
               subtitle: Text(_describe(device)),
               selected: connect.activeId == device.id,
-              trailing: _marks(playing: connect.playingId == device.id, active: connect.activeId == device.id),
+              trailing: _marks(
+                playing: device.state?.status == PlaybackStatus.playing,
+                active: connect.activeId == device.id,
+              ),
               onTap: () => act(() => connect.switchTo(device.id)),
             ),
         ],
@@ -93,7 +96,7 @@ class _DevicesSheet extends StatelessWidget {
     };
   }
 
-  /// Which device plays (equalizer) and which one the app controls (check).
+  /// Whether a device plays (equalizer) and whether the app controls it (check).
   static Widget? _marks({required bool playing, required bool active}) {
     if (!playing && !active) {
       return null;
@@ -105,13 +108,15 @@ class _DevicesSheet extends StatelessWidget {
     );
   }
 
+  /// What [device] plays, or has paused, without saying which: the equalizer says it plays. Otherwise its app.
   static String _describe(Device device) {
-    final item = device.state?.current;
-    final what = item == null ? null : [item.title, item.artist].nonNulls.join(' · ');
-    return switch (device.state?.status) {
-      PlaybackStatus.playing => 'Tocando: $what',
-      PlaybackStatus.paused => 'Pausado: $what',
-      _ => device.info.client,
-    };
+    final state = device.state;
+    final item = state?.current;
+
+    if (item == null || state!.status == PlaybackStatus.stopped) {
+      return device.info.client;
+    }
+
+    return [item.title, item.artist].nonNulls.join(' · ');
   }
 }

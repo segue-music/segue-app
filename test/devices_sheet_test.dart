@@ -11,12 +11,13 @@ import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/devices_sheet.dart';
+import 'package:segue/ui/equalizer.dart';
 import 'package:segue/ui/themed_icon.dart';
 
 import 'fakes.dart';
 import 'themed_icons.dart';
 
-Device player(String id, String name, {required bool online}) => Device(
+Device player(String id, String name, {required bool online, StampedState? state}) => Device(
   info: DeviceInfo(
     id: id,
     name: name,
@@ -26,6 +27,7 @@ Device player(String id, String name, {required bool online}) => Device(
     capabilities: const [],
   ),
   online: online,
+  state: state,
 );
 
 /// Opens the device picker with [devices] as the user's other devices, on a screen of [size] (the test's, by
@@ -93,6 +95,36 @@ void main() {
     expect(find.text('Este aparelho (Notebook)'), findsOneWidget);
     expect(find.text('Sala de estar'), findsOneWidget);
     expect(find.text('Celular antigo'), findsNothing);
+  });
+
+  testWidgets('each device that plays has the equalizer, and each one says what it plays or has paused', (
+    tester,
+  ) async {
+    StampedState holding(String title, PlaybackStatus status, {required int at}) => StampedState(
+      status: status,
+      positionMs: 0,
+      at: at,
+      index: 0,
+      queue: [QueueItem(id: title, title: title, artist: 'Aerosmith')],
+    );
+    await openSheet(tester, [
+      player('tv', 'Sala de estar', online: true, state: holding('Dream On', PlaybackStatus.playing, at: 1)),
+      player('bedroom', 'Quarto', online: true, state: holding('Walk This Way', PlaybackStatus.playing, at: 2)),
+      player('kitchen', 'Cozinha', online: true, state: holding('Sweet Emotion', PlaybackStatus.paused, at: 3)),
+      player('phone', 'Celular', online: true),
+    ], size: const Size(800, 1200));
+    Finder inTile(String name, Finder finder) =>
+        find.descendant(of: find.widgetWithText(ListTile, name), matching: finder);
+
+    expect(inTile('Sala de estar', find.text('Dream On · Aerosmith')), findsOneWidget);
+    expect(inTile('Sala de estar', find.byType(Equalizer)), findsOneWidget);
+    expect(inTile('Quarto', find.text('Walk This Way · Aerosmith')), findsOneWidget);
+    expect(inTile('Quarto', find.byType(Equalizer)), findsOneWidget, reason: 'two play at once');
+    expect(inTile('Cozinha', find.text('Sweet Emotion · Aerosmith')), findsOneWidget);
+    expect(inTile('Cozinha', find.byType(Equalizer)), findsNothing, reason: 'paused');
+    expect(inTile('Celular', find.text('test')), findsOneWidget, reason: 'with nothing, its app');
+    expect(find.textContaining('Tocando'), findsNothing);
+    expect(find.textContaining('Pausado'), findsNothing);
   });
 
   testWidgets('this device shows as a computer on a computer', variant: TargetPlatformVariant.desktop(), (
