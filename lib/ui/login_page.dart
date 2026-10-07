@@ -108,7 +108,7 @@ class _LoginPageState extends State<LoginPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text('Segue', style: Theme.of(context).textTheme.headlineLarge, textAlign: TextAlign.center),
+                  Center(child: Image.asset('assets/logo_large.png', width: 96, height: 96, semanticLabel: 'Segue')),
                   const SizedBox(height: 32),
                   TextFormField(
                     controller: _server,

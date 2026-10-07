@@ -47,6 +47,15 @@ void main() {
     expect(signedIn, isFalse);
   });
 
+  testWidgets('the app\'s logo, not its name, is over the form', (tester) async {
+    await tester.pumpWidget(MaterialApp(home: LoginPage(onSignedIn: (_) {})));
+    final logo = find.bySemanticsLabel('Segue');
+    expect(logo, findsOneWidget);
+    expect(tester.getSize(logo), const Size.square(96));
+    expect(tester.getRect(logo).bottom, lessThan(tester.getRect(find.widgetWithText(TextFormField, 'Servidor')).top));
+    expect(find.text('Segue'), findsNothing);
+  });
+
   testWidgets('the keyboard offers "next" from field to field, and from the password, signing in', (tester) async {
     await tester.pumpWidget(MaterialApp(home: LoginPage(onSignedIn: (_) {})));
 
