@@ -49,7 +49,8 @@ the device it runs on.
   with the seek bar and the buttons; a wide bar's lyrics button opens the player with them. The bar stays put from page to page, and on a wide screen under the
   full-screen player too, whose top then leaves the lyrics, the queue and the devices to it, and the
   player the seek bar and the buttons, showing the song alone; on a phone it has them all, the
-  lyrics, the devices and the queue in a bar at the bottom, and the album's name at the top. In both,
+  lyrics, the devices and the queue in a bar at the bottom, and the album's name at the top. A swipe on
+  its cover goes to the next song (to the left) or the previous one (to the right). In both,
   the song's title
   opens its album (as does the album's name, in the full-screen player) and its artist their page
   (the first artist, when it has several), whichever device it plays on; on a phone the whole song

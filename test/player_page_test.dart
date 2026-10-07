@@ -914,6 +914,43 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('a swipe on the cover to the left goes to the next song, and to the right to the previous one, wherever '
+      'the song is; a short one, back to its place', (tester) async {
+    final player = await pumpBar(tester);
+    await player.playQueue(const [
+      Song(id: 's1', title: 'Sweet Emotion', artist: 'Aerosmith', duration: Duration(seconds: 274)),
+      Song(id: 's2', title: 'Walk This Way', artist: 'Run-DMC', duration: Duration(seconds: 311)),
+    ], play: false);
+    await openPlayer(tester);
+    final place = tester.getRect(playerCover);
+
+    await tester.drag(playerCover, const Offset(-40, 0));
+    await tester.pumpAndSettle();
+    expect(player.index, 0, reason: 'too short');
+    expect(tester.getRect(playerCover), place, reason: 'back in its place');
+
+    await tester.drag(playerCover, Offset(-place.width / 2, 0));
+    await tester.pumpAndSettle();
+    expect(player.index, 1);
+    expect(onPage(find.text('Walk This Way')), findsOneWidget);
+    expect(tester.getRect(playerCover), place, reason: 'back from the other side');
+
+    // Past the first seconds, where the button only starts the song over.
+    await player.seek(const Duration(seconds: 30));
+    await tester.fling(playerCover, const Offset(60, 0), 1000);
+    await tester.pumpAndSettle();
+    expect(player.index, 0, reason: 'flung, however short');
+
+    // The first song has none before it.
+    await player.seek(const Duration(seconds: 30));
+    await tester.fling(playerCover, const Offset(60, 0), 1000);
+    await tester.pumpAndSettle();
+    expect(player.index, 0);
+    expect(player.position, greaterThanOrEqualTo(const Duration(seconds: 30)), reason: 'not started over');
+    expect(tester.getRect(playerCover), place);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('its slider jumps to where it is tapped', (tester) async {
     final player = await pumpBar(tester);
     await openPlayer(tester);

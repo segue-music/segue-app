@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -5,6 +6,8 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:flutter/services.dart';
 
 import '../connect/connect.dart';
+import '../segue/protocol.dart';
+import '../services.dart';
 import 'cover.dart';
 import 'devices_sheet.dart';
 import 'lyrics_page.dart';
@@ -214,9 +217,11 @@ class _Player extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Center(
-            child: SizedBox.square(
-              dimension: side,
-              child: ClipRRect(borderRadius: BorderRadius.circular(12), child: Cover(now.coverArt, size: 800)),
+            child: _SwipeToSkip(
+              child: SizedBox.square(
+                dimension: side,
+                child: ClipRRect(borderRadius: BorderRadius.circular(12), child: Cover(now.coverArt, size: 800)),
+              ),
             ),
           ),
           const SizedBox(height: 24),
@@ -325,4 +330,94 @@ class _Player extends StatelessWidget {
       ],
     );
   }
+}
+
+/// The cover, which a swipe to the side goes to the next song with (to the left) or to the previous one (to the
+/// right). It follows the finger; let go past a third of its width, or flung, it goes out on that side and comes back
+/// from the other, with the song it went to, and otherwise back to its place.
+class _SwipeToSkip extends StatefulWidget {
+  const _SwipeToSkip({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_SwipeToSkip> createState() => _SwipeToSkipState();
+}
+
+class _SwipeToSkipState extends State<_SwipeToSkip> with SingleTickerProviderStateMixin {
+  /// How far the cover is from its place, in pixels: to the left, below zero.
+  late final _offset = AnimationController.unbounded(vsync: this);
+
+  /// How wide the cover is, from when a drag starts.
+  double _width = 0;
+
+  /// How fast a fling goes to another song, however short, in pixels a second.
+  static const _flingFrom = 700.0;
+
+  @override
+  void dispose() {
+    _offset.dispose();
+    super.dispose();
+  }
+
+  /// What a swipe [toward] a side does: to the left, the next song; to the right, the previous one, wherever the song
+  /// is (the button, past a song's first seconds, starts it over), by its place in the queue, on a device that takes a
+  /// jump to one. On the first song there is none to go to.
+  Future<Result> Function()? _skip(double toward) {
+    final connect = ServicesScope.of(context).connect;
+
+    if (toward < 0) {
+      return connect.next;
+    }
+
+    if (!(connect.nowPlaying?.canJump ?? false)) {
+      return connect.previous;
+    }
+
+    final previous = connect.queue.index - 1;
+    return previous < 0 ? null : () => connect.jump(previous);
+  }
+
+  Future<void> _letGo(DragEndDetails details) async {
+    final velocity = details.primaryVelocity ?? 0;
+    final offset = _offset.value;
+    // Where it goes: where it was flung, or else where it was let go, past a third of its width.
+    final toward = velocity.abs() >= _flingFrom ? velocity : (offset.abs() > _width / 3 ? offset : 0.0);
+    final skip = toward == 0 ? null : _skip(toward);
+
+    if (skip == null) {
+      await _offset.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+      return;
+    }
+
+    unawaited(runCommand(context, skip));
+    final out = toward < 0 ? -_width : _width;
+    await _offset.animateTo(out, duration: const Duration(milliseconds: 150), curve: Curves.easeIn);
+
+    if (!mounted) {
+      return;
+    }
+
+    _offset.value = -out;
+    await _offset.animateTo(0, duration: const Duration(milliseconds: 250), curve: Curves.easeOutCubic);
+  }
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    onHorizontalDragStart: (_) {
+      _offset.stop();
+      _width = context.size?.width ?? 0;
+    },
+    onHorizontalDragUpdate: (details) => _offset.value += details.primaryDelta ?? 0,
+    onHorizontalDragEnd: _letGo,
+    child: AnimatedBuilder(
+      animation: _offset,
+      // Fading as it goes, to half at a width away.
+      builder: (context, child) => Transform.translate(
+        offset: Offset(_offset.value, 0),
+        child: Opacity(opacity: _width == 0 ? 1 : 1 - min(_offset.value.abs() / _width, 1) / 2, child: child),
+      ),
+      child: widget.child,
+    ),
+  );
 }
