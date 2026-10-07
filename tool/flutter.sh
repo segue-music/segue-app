@@ -93,6 +93,12 @@ if [ "$tool $command" = "flutter run" ]; then
     set -- -v "$runtime/bus:$runtime/bus" -e DBUS_SESSION_BUS_ADDRESS="unix:path=$runtime/bus" "$@"
   fi
 
+  # The media controls hand the desktop the cover as a file, in /tmp/segue-covers
+  # (lib/player/media_controls.dart): the desktop reads it from this machine's /tmp, not the
+  # container's, so that folder is this machine's.
+  mkdir -p /tmp/segue-covers
+  set -- -v /tmp/segue-covers:/tmp/segue-covers "$@"
+
   [ -S "$runtime/at-spi/bus" ] && set -- -v "$runtime/at-spi/bus:$runtime/at-spi/bus" "$@"
 fi
 
