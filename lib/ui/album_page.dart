@@ -141,6 +141,9 @@ class _AlbumPageState extends State<AlbumPage> {
           );
         },
       ),
+      // The songs go on behind the player bar, slightly see-through on a phone; the list, with no padding of its own,
+      // takes the room MediaQuery says the bar takes at its end.
+      extendBody: true,
       bottomNavigationBar: const NowPlayingBar(),
     );
   }

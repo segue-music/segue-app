@@ -58,6 +58,9 @@ class _GenrePageState extends State<GenrePage> {
           },
         ),
       ),
+      // The albums go on behind the player bar, slightly see-through on a phone; the grid ends with the room
+      // MediaQuery says the bar takes.
+      extendBody: true,
       bottomNavigationBar: const NowPlayingBar(),
     );
   }

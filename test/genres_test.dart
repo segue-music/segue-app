@@ -6,10 +6,14 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:segue/connect/connect.dart';
 import 'package:segue/player/player.dart';
+import 'package:segue/server/models.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
+import 'package:segue/ui/albums_view.dart';
+import 'package:segue/ui/genre_page.dart';
 import 'package:segue/ui/home_page.dart';
+import 'package:segue/ui/now_playing_bar.dart';
 
 import 'fakes.dart';
 import 'side_rail.dart';
@@ -243,12 +247,23 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('on a phone, the genres are in the bar at the bottom', (tester) async {
-    await pumpHome(tester, const Size(360, 640));
-    await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Gêneros')));
-    await tester.pumpAndSettle();
-    expect(title('Gêneros'), findsOneWidget);
-    expect(tile('hard rock'), findsOneWidget);
-    await tester.pumpWidget(const SizedBox());
-  });
+  testWidgets(
+    'on a phone, the genres are in the bar at the bottom, and a genre\'s albums go on behind the player bar',
+    (tester) async {
+      await pumpHome(tester, const Size(360, 640));
+      await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Gêneros')));
+      await tester.pumpAndSettle();
+      expect(title('Gêneros'), findsOneWidget);
+      expect(tile('hard rock'), findsOneWidget);
+
+      await tester.tap(tile('hard rock'));
+      await tester.pumpAndSettle();
+      final page = find.byType(GenrePage);
+      await ServicesScope.of(tester.element(page)).player.playQueue(const [Song(id: 's1', title: 'Dream Police')]);
+      await tester.pumpAndSettle();
+      expect(tester.getRect(find.descendant(of: page, matching: find.byType(NowPlayingBar))).bottom, 640);
+      expect(tester.getRect(find.descendant(of: page, matching: find.byType(AlbumGrid))).bottom, 640);
+      await tester.pumpWidget(const SizedBox()); // stops the player bar's timer
+    },
+  );
 }

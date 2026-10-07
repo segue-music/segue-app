@@ -8,12 +8,15 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:segue/connect/connect.dart';
 import 'package:segue/player/player.dart';
+import 'package:segue/server/models.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
+import 'package:segue/ui/albums_view.dart';
 import 'package:segue/ui/artist_page.dart';
 import 'package:segue/ui/cover.dart';
 import 'package:segue/ui/home_page.dart';
+import 'package:segue/ui/now_playing_bar.dart';
 
 import 'fakes.dart';
 import 'side_rail.dart';
@@ -247,7 +250,8 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('on a phone, the sections are in a bar at the bottom', (tester) async {
+  testWidgets('on a phone, the sections are in a bar at the bottom, and an artist\'s albums go on behind the player '
+      'bar', (tester) async {
     await pumpHome(tester, const Size(360, 640));
     expect(find.byType(NavigationBar), findsOneWidget);
     expect(find.byTooltip('Artistas'), findsOneWidget, reason: 'in the bar alone, with no side rail');
@@ -255,7 +259,15 @@ void main() {
     await tester.pumpAndSettle();
     expect(title('Artistas'), findsOneWidget);
     expect(find.text('Cheap Trick'), findsOneWidget);
-    await tester.pumpWidget(const SizedBox());
+
+    await tester.tap(find.text('Cheap Trick'));
+    await tester.pumpAndSettle();
+    final page = find.byType(ArtistPage);
+    await ServicesScope.of(tester.element(page)).player.playQueue(const [Song(id: 's1', title: 'Dream Police')]);
+    await tester.pumpAndSettle();
+    expect(tester.getRect(find.descendant(of: page, matching: find.byType(NowPlayingBar))).bottom, 640);
+    expect(tester.getRect(find.descendant(of: page, matching: find.byType(AlbumGrid))).bottom, 640);
+    await tester.pumpWidget(const SizedBox()); // stops the player bar's timer
   });
 
   testWidgets('an artist\'s picture darkens a little while the pointer is over the artist, as an album\'s cover does', (

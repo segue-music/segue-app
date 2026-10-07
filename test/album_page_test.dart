@@ -17,6 +17,7 @@ import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/album_page.dart';
 import 'package:segue/ui/artist_page.dart';
 import 'package:segue/ui/cover_page.dart';
+import 'package:segue/ui/now_playing_bar.dart';
 
 import 'fakes.dart';
 
@@ -29,7 +30,7 @@ http.Response subsonic(Map<String, Object?> body) => http.Response(
 );
 
 /// The page of Toys in the Attic, with the cover [coverArt], two songs by Aerosmith and then [more] songs, the release
-/// date [releaseDate] and the record labels [recordLabels], on a 1000×700 screen, with what [musicBrainz] adds.
+/// date [releaseDate] and the record labels [recordLabels], on a screen of [size], with what [musicBrainz] adds.
 /// Aerosmith's picture is `ar-ar1`. Returns the player's engine.
 Future<FakeEngine> pumpAlbum(
   WidgetTester tester, {
@@ -38,6 +39,7 @@ Future<FakeEngine> pumpAlbum(
   Map<String, int>? releaseDate,
   List<String> recordLabels = const [],
   MusicBrainz? musicBrainz,
+  Size size = const Size(1000, 700),
 }) async {
   const credentials = SubsonicCredentials(username: 'a', token: 't', salt: 's');
   final api = SubsonicApi(
@@ -80,7 +82,7 @@ Future<FakeEngine> pumpAlbum(
     ConnectController(player: player),
     musicBrainz: musicBrainz,
   );
-  tester.view.physicalSize = const Size(1000, 700);
+  tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
   await tester.pumpWidget(
@@ -119,6 +121,20 @@ Future<void> openCover(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets('on a phone, the songs go on behind the player bar, and the last one scrolls clear of it', (
+    tester,
+  ) async {
+    await pumpAlbum(tester, more: 20, size: const Size(360, 640));
+    await tester.tap(song('Walk This Way'));
+    await tester.pumpAndSettle();
+    expect(tester.getRect(find.byType(ListView)).bottom, 640);
+
+    await tester.drag(find.byType(ListView), const Offset(0, -100000));
+    await tester.pumpAndSettle();
+    expect(tester.getRect(song('Song 20')).bottom, lessThanOrEqualTo(tester.getRect(find.byType(NowPlayingBar)).top));
+    await tester.pumpWidget(const SizedBox()); // stops the player bar's timer
+  });
+
   testWidgets('the cover opens full screen: as big as the screen\'s shorter side, asked of the server so', (
     tester,
   ) async {
