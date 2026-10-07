@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 import '../server/models.dart';
 import '../server/server.dart';
@@ -287,39 +288,81 @@ class AlbumGrid extends StatelessWidget {
   /// The line under each name; the artist, by default.
   final String Function(Album album)? subtitle;
 
+  /// How far a row's lines are from what comes under them: the next row's covers, or the next section's title. About as
+  /// far as a list's last song is from a title under it, as the most played songs on an artist's page are from their
+  /// albums.
+  static const _below = 36.0;
+
   @override
-  Widget build(BuildContext context) => CustomScrollView(
-    slivers: [
-      if (header != null) SliverToBoxAdapter(child: header),
-      for (final (:title, :albums) in sections) ...[
-        if (title != null)
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
-              child: Text(title, style: Theme.of(context).textTheme.titleLarge),
+  Widget build(BuildContext context) {
+    final lines = AlbumTile.linesHeight(context);
+    return CustomScrollView(
+      slivers: [
+        if (header != null) SliverToBoxAdapter(child: header),
+        for (final (i, (:title, :albums)) in sections.indexed) ...[
+          if (title != null)
+            SliverToBoxAdapter(
+              child: Padding(
+                // Under another section, _below from its lines, which its grid and its tiles leave 16 under.
+                padding: EdgeInsets.fromLTRB(16, i == 0 ? 24 : _below - 16, 16, 0),
+                child: Text(title, style: Theme.of(context).textTheme.titleLarge),
+              ),
+            ),
+          // Covers of up to 180 pixels, 16 from the edges and from one another, of which the tiles' room inside
+          // (AlbumTile.padding) is part.
+          SliverPadding(
+            padding: const EdgeInsets.all(16 - AlbumTile.padding),
+            sliver: SliverGrid.builder(
+              gridDelegate: _AlbumGridDelegate(
+                lines: lines,
+                maxCrossAxisExtent: 180 + 2 * AlbumTile.padding,
+                mainAxisSpacing: _below - 2 * AlbumTile.padding,
+                crossAxisSpacing: 16 - 2 * AlbumTile.padding,
+              ),
+              itemCount: albums.length,
+              itemBuilder: (context, i) => AlbumTile(albums[i], subtitle: subtitle?.call(albums[i])),
             ),
           ),
-        // Covers of up to 180 pixels, 16 from the edges and from one another, of which the tiles' room inside
-        // (AlbumTile.padding) is part.
-        SliverPadding(
-          padding: const EdgeInsets.all(16 - AlbumTile.padding),
-          sliver: SliverGrid.builder(
-            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 180 + 2 * AlbumTile.padding,
-              mainAxisSpacing: 16 - 2 * AlbumTile.padding,
-              crossAxisSpacing: 16 - 2 * AlbumTile.padding,
-              childAspectRatio: 0.75,
-            ),
-            itemCount: albums.length,
-            itemBuilder: (context, i) => AlbumTile(albums[i], subtitle: subtitle?.call(albums[i])),
-          ),
-        ),
+        ],
+        if (footer != null) SliverToBoxAdapter(child: footer),
+        // Clear of the bars a phone's home has over it.
+        SliverToBoxAdapter(child: SizedBox(height: MediaQuery.paddingOf(context).bottom)),
       ],
-      if (footer != null) SliverToBoxAdapter(child: footer),
-      // Clear of the bars a phone's home has over it.
-      SliverToBoxAdapter(child: SizedBox(height: MediaQuery.paddingOf(context).bottom)),
-    ],
-  );
+    );
+  }
+}
+
+/// An [AlbumGrid]'s tiles: as wide as [SliverGridDelegateWithMaxCrossAxisExtent] makes them, and as tall as what they
+/// hold, with no room left under their lines. A tile's cover is as wide as it, less the room inside on either side,
+/// which it has above and below too: the tile is as much taller than wide as its [lines] take.
+class _AlbumGridDelegate extends SliverGridDelegateWithMaxCrossAxisExtent {
+  const _AlbumGridDelegate({
+    required this.lines,
+    required super.maxCrossAxisExtent,
+    super.mainAxisSpacing,
+    super.crossAxisSpacing,
+  });
+
+  /// [AlbumTile.linesHeight].
+  final double lines;
+
+  @override
+  SliverGridLayout getLayout(SliverConstraints constraints) {
+    final layout = super.getLayout(constraints) as SliverGridRegularTileLayout;
+    final height = layout.childCrossAxisExtent + lines;
+    return SliverGridRegularTileLayout(
+      crossAxisCount: layout.crossAxisCount,
+      mainAxisStride: height + mainAxisSpacing,
+      crossAxisStride: layout.crossAxisStride,
+      childMainAxisExtent: height,
+      childCrossAxisExtent: layout.childCrossAxisExtent,
+      reverseCrossAxis: layout.reverseCrossAxis,
+    );
+  }
+
+  @override
+  bool shouldRelayout(_AlbumGridDelegate oldDelegate) =>
+      super.shouldRelayout(oldDelegate) || oldDelegate.lines != lines;
 }
 
 /// An album's cover, with its name and a line under it. It opens the album's page, but for its
@@ -335,6 +378,29 @@ class AlbumTile extends StatefulWidget {
   /// The room inside, around the cover and the lines under it, where the tint (the pointer's, the focus's) shows. The
   /// grid and the rows take it from the room around the albums, so that the covers line up with what is over them.
   static const padding = 8.0;
+
+  /// The room between the cover and the name.
+  static const _spaceAboveName = 6.0;
+
+  /// What a tile holds under its cover, at the size its text shows: the room above its name, its name and the line
+  /// under it, one line each.
+  static double linesHeight(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+
+    double lineHeight(TextStyle? style) {
+      final painter = TextPainter(
+        text: TextSpan(text: ' ', style: DefaultTextStyle.of(context).style.merge(style)),
+        textDirection: TextDirection.ltr,
+        textScaler: MediaQuery.textScalerOf(context),
+        maxLines: 1,
+      )..layout();
+      final height = painter.height;
+      painter.dispose();
+      return height;
+    }
+
+    return _spaceAboveName + lineHeight(text.titleSmall) + lineHeight(text.bodySmall);
+  }
 
   @override
   State<AlbumTile> createState() => _AlbumTileState();
@@ -373,7 +439,7 @@ class _AlbumTileState extends State<AlbumTile> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: AlbumTile._spaceAboveName),
                 Text(album.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: text.titleSmall),
                 if (widget.subtitle case final line?)
                   Text(line, maxLines: 1, overflow: TextOverflow.ellipsis, style: text.bodySmall)

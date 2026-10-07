@@ -297,6 +297,12 @@ void main() {
     expect(tester.getTopLeft(heading).dy, lessThan(tester.getTopLeft(top).dy));
     expect(tester.getTopLeft(top).dy, lessThan(tester.getTopLeft(second).dy), reason: 'the most played first');
     expect(tester.getTopLeft(second).dy, lessThan(tester.getTopLeft(albums).dy), reason: 'the albums under them');
+    final last = find.descendant(of: find.widgetWithText(ListTile, 'Downed'), matching: find.text('In Color'));
+    expect(
+      tester.getRect(albums).top - tester.getRect(last).bottom,
+      moreOrLessEquals(36, epsilon: 1),
+      reason: 'as far from the last song\'s lines as a section of albums is from the one over it',
+    );
     expect(find.text('So Good to See You'), findsNothing, reason: 'the sixth');
     final tile = find.widgetWithText(ListTile, 'Hello There');
     final number = find.descendant(of: tile, matching: find.text('2'));
@@ -337,6 +343,11 @@ void main() {
     );
     expect(albums.bottom, lessThan(toys.top));
     expect(toys.bottom, lessThan(singles.top), reason: 'the albums first');
+    expect(
+      singles.top - tester.getRect(find.text('1975')).bottom,
+      36,
+      reason: 'from the albums\' last lines, with no room left empty under them, as far as the albums from the songs',
+    );
     expect(singles.bottom, lessThan(pink.top));
     expect((pink.top, singles.left), (dreamOn.top, albums.left));
     expect(pink.left, lessThan(dreamOn.left), reason: 'the 1997 EP before the 1973 single');
