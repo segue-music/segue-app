@@ -81,7 +81,7 @@ class _ArtistPageState extends State<ArtistPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(artist.name, style: text.titleLarge),
-                                Text(albumCount(artist.albumCount ?? albums.length), style: text.bodyMedium),
+                                Text(_count(albums), style: text.bodyMedium),
                               ],
                             ),
                           ),
@@ -102,6 +102,23 @@ class _ArtistPageState extends State<ArtistPage> {
         );
       },
     );
+  }
+
+  /// How many of [albums] are albums, and singles and EPs, as the sections under part them: "8 álbuns · 4 singles e
+  /// EPs", "8 álbuns · 1 EP", "2 singles"; "0 álbuns" with none.
+  static String _count(List<Album> albums) {
+    final singles = albums.where((album) => album.releaseType == ReleaseType.single).length;
+    final eps = albums.where((album) => album.releaseType == ReleaseType.ep).length;
+    final full = albums.length - singles - eps;
+    final short = switch ((singles, eps)) {
+      (0, 0) => null,
+      (1, 0) => '1 single',
+      (_, 0) => '$singles singles',
+      (0, 1) => '1 EP',
+      (0, _) => '$eps EPs',
+      _ => '${singles + eps} singles e EPs',
+    };
+    return [if (full > 0 || short == null) albumCount(full), ?short].join(' · ');
   }
 
   /// [albums], newest first, in sections: the artist's albums (with those the server says no type of), then their

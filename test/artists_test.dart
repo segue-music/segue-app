@@ -324,6 +324,7 @@ void main() {
     expect(find.text('1997 · EP'), findsOneWidget, reason: 'its year and its type');
     expect(find.text('1973 · Single'), findsOneWidget);
     expect(find.text('1975'), findsOneWidget, reason: 'an album\'s year alone');
+    expect(find.text('2 álbuns · 2 singles e EPs'), findsOneWidget, reason: 'by their picture, how many of each');
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -347,6 +348,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('1977'), findsOneWidget, reason: 'the album, in the grid');
     expect(find.text('Singles e EPs'), findsNothing);
+    expect(find.text('1 álbum'), findsOneWidget, reason: 'and no singles or EPs to count');
     await tester.pumpWidget(const SizedBox());
   });
 
