@@ -69,6 +69,10 @@ set_target_properties(${BINARY_NAME}
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/intermediates_do_not_run"
 )
 
+# The jni plugin comes with path_provider_android and serves only there, but on Linux it builds as soon as CMake
+# finds a JDK, linked to its JVM (libjvm.so): in the Android image (tool/android.Dockerfile), say. The app would then
+# need a JDK wherever it runs, and a build on the dev image would fail on the JVM's path, cached in the build folder.
+set(CMAKE_DISABLE_FIND_PACKAGE_JNI TRUE)
 
 # Generated plugin build rules, which manage building the plugins and adding
 # them to the application.
