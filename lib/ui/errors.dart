@@ -9,6 +9,7 @@ String describeError(String? error) => switch (error) {
   'notPlayer' => 'Esse aparelho não toca música.',
   'unknownDevice' => 'O aparelho não está mais na lista.',
   'nothingToTransfer' => 'Não há nada tocando lá.',
+  'failed' => 'O aparelho não conseguiu.',
   'closed' => 'Sem conexão com o hub.',
   null => 'Algo deu errado.',
   _ => error,
