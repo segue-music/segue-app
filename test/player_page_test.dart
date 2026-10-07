@@ -767,6 +767,17 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('LRCLIB failing, with the media server having no lyrics, says so, but not how', (tester) async {
+    final lrclib = Lrclib(client: MockClient((_) async => http.Response('', 503)));
+    await pumpBar(tester, server: withLyrics([]), lrclib: lrclib, size: const Size(1280, 800));
+    await openPlayer(tester);
+    await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
+    await tester.pumpAndSettle();
+    expect(onPage(find.text('Não consegui buscar a letra.')), findsOneWidget);
+    expect(onPage(find.textContaining('503')), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('a song without lyrics says so', (tester) async {
     await pumpBar(tester, server: withLyrics([]));
     await openPlayer(tester);

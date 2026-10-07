@@ -82,8 +82,8 @@ class _LyricsViewState extends State<LyricsView> {
     _lyrics = _find(now).then(_withIntro);
   }
 
-  /// The song's lyrics from the media server; when it has none, or fails, from LRCLIB. The server's
-  /// failure shows only if LRCLIB has none either.
+  /// The song's lyrics from the media server; when it has none, or fails, from LRCLIB. A failure shows only
+  /// if neither has them: the server's, or else LRCLIB's ([_LrclibFailed]).
   Future<Lyrics?> _find(NowPlaying now) async {
     final services = ServicesScope.of(context);
     final (songId, title, artist) = (now.songId, now.title, now.artist);
@@ -99,7 +99,11 @@ class _LyricsViewState extends State<LyricsView> {
     final lrclib = services.lrclib;
 
     if (lyrics == null && lrclib != null && title != null && artist != null) {
-      lyrics = await lrclib.find(title: title, artist: artist, album: now.album, duration: now.duration);
+      try {
+        lyrics = await lrclib.find(title: title, artist: artist, album: now.album, duration: now.duration);
+      } on Object catch (_, stack) {
+        failure ??= (const _LrclibFailed(), stack);
+      }
     }
 
     if ((lyrics, failure) case (null, (final error, final stack)?)) {
@@ -171,8 +175,11 @@ class _LyricsViewState extends State<LyricsView> {
     final lyrics = FutureBuilder(
       future: _lyrics,
       builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return _Message('Não consegui buscar a letra: ${snapshot.error}', style: style);
+        if (snapshot.error case final error?) {
+          return _Message(
+            error is _LrclibFailed ? 'Não consegui buscar a letra.' : 'Não consegui buscar a letra: $error',
+            style: style,
+          );
         }
 
         if (snapshot.connectionState != ConnectionState.done) {
@@ -317,4 +324,10 @@ class _Message extends StatelessWidget {
       child: Text(text, textAlign: TextAlign.center, style: style),
     ),
   );
+}
+
+/// LRCLIB failed, with the media server having no lyrics either. What it said stays out of the message: an
+/// HTTP status (a 503 when it is too busy) or a network error, of no use to the user.
+class _LrclibFailed implements Exception {
+  const _LrclibFailed();
 }
