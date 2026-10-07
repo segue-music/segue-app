@@ -6,14 +6,14 @@ import 'package:http/http.dart' as http;
 import '../server/models.dart';
 import '../server/server.dart';
 
-/// When an album came out and the labels that put it out, as its page shows them.
-typedef AlbumRelease = ({ReleaseDate? date, List<String> labels});
+/// When an album came out, the labels that put it out and what kind of release it is, as its page shows them.
+typedef AlbumRelease = ({ReleaseDate? date, List<String> labels, ReleaseType? type});
 
-/// What MusicBrainz has of an album: dates, the one to show first first, and labels.
-typedef _Found = ({List<ReleaseDate> dates, List<String> labels});
+/// What MusicBrainz has of an album: dates, the one to show first first, labels and its type.
+typedef _Found = ({List<ReleaseDate> dates, List<String> labels, ReleaseType? type});
 
-/// MusicBrainz (musicbrainz.org), the open database of music releases: where an album's release date and record
-/// labels come from when the media server doesn't say them.
+/// MusicBrainz (musicbrainz.org), the open database of music releases: where an album's release date, record labels
+/// and type come from when the media server doesn't say them.
 class MusicBrainz {
   MusicBrainz({http.Client? client, Uri? base, this.spacing = const Duration(seconds: 1)})
     : _http = client ?? http.Client(),
@@ -38,25 +38,30 @@ class MusicBrainz {
   /// nothing.
   final _found = <String, Future<_Found>>{};
 
-  /// [album]'s release date and record labels: the media server's, with what MusicBrainz adds where it says nothing,
-  /// or less. A date where it has none, or one more precise than its own that agrees with it (the same year, and the
-  /// same month where it has one); labels where it has none.
+  /// [album]'s release date, record labels and type: the media server's, with what MusicBrainz adds where it says
+  /// nothing, or less. A date where it has none, or one more precise than its own that agrees with it (the same year,
+  /// and the same month where it has one); labels and a type where it has none.
   ///
-  /// By the album's MusicBrainz id, the date is its release's (its edition's), else its release group's first, and
-  /// the labels its release's. Without that id, there are no labels, and the date is the first of the release group
-  /// that the album's name and artist match (and its year, where the server has one), when they match only one date.
-  /// The media server's alone when MusicBrainz has nothing more, or fails.
+  /// By the album's MusicBrainz id, the date is its release's (its edition's), else its release group's first, the
+  /// labels its release's and the type its release group's. Without that id, there are no labels, and the date and the
+  /// type are those of the release groups that the album's name and artist match (and its year, where the server has
+  /// one), when they match only one date, and one type. The media server's alone when MusicBrainz has nothing more, or
+  /// fails.
   Future<AlbumRelease> complete(Album album) async {
-    final own = (date: album.releaseDate, labels: album.recordLabels);
+    final own = (date: album.releaseDate, labels: album.recordLabels, type: album.releaseType);
     final labelsWanted = album.recordLabels.isEmpty && album.musicBrainzId != null;
 
-    if (album.releaseDate?.day != null && !labelsWanted) {
+    if (album.releaseDate?.day != null && album.releaseType != null && !labelsWanted) {
       return own;
     }
 
     try {
       final found = await (_found[album.id] ??= _lookUp(album));
-      return (date: _fuller(own.date, found.dates), labels: own.labels.isEmpty ? found.labels : own.labels);
+      return (
+        date: _fuller(own.date, found.dates),
+        labels: own.labels.isEmpty ? found.labels : own.labels,
+        type: own.type ?? found.type,
+      );
     } on Object {
       // To try again the next time.
       _found.remove(album.id);
@@ -78,13 +83,17 @@ class MusicBrainz {
         for (final info in release['label-info'] as List? ?? const [])
           if ((info as Map<String, dynamic>)['label'] case {'name': final String name} when !_special(name)) name,
       };
-      return (dates: [?_date(release['date']), ?_date(group?['first-release-date'])], labels: labels.toList());
+      return (
+        dates: [?_date(release['date']), ?_date(group?['first-release-date'])],
+        labels: labels.toList(),
+        type: _type(group),
+      );
     }
 
     final artist = album.artist;
 
     if (artist == null) {
-      return (dates: const <ReleaseDate>[], labels: const <String>[]);
+      return (dates: const <ReleaseDate>[], labels: const <String>[], type: null);
     }
 
     final found = await _get('release-group', {
@@ -95,14 +104,23 @@ class MusicBrainz {
       if (found case {'release-groups': final List<Object?> list})
         for (final group in list) group as Map<String, dynamic>,
     ];
-    // By their text, which one date has in every group.
-    final dates = {
+    // Those of its name and artist, and of its year where the server has one.
+    final matched = [
       for (final group in groups)
         if (_key(group['title'] as String? ?? '') == _key(album.name) && _byArtist(group, artist))
-          if (group['first-release-date'] case final String text)
-            if (_date(text) case final date? when album.year == null || date.year == album.year) text: date,
+          if (album.year == null || _date(group['first-release-date'])?.year == album.year) group,
+    ];
+    // By their text, which one date has in every group.
+    final dates = {
+      for (final group in matched)
+        if (group['first-release-date'] case final String text) text: ?_date(text),
     };
-    return (dates: dates.length == 1 ? [dates.values.single] : const <ReleaseDate>[], labels: const <String>[]);
+    final types = {for (final group in matched) ?_type(group)};
+    return (
+      dates: dates.length == 1 ? [dates.values.single] : const <ReleaseDate>[],
+      labels: const <String>[],
+      type: types.length == 1 ? types.single : null,
+    );
   }
 
   /// The JSON at [path], or null for a 404: none there. One request at a time, [spacing] apart.
@@ -160,6 +178,13 @@ bool _byArtist(Map<String, dynamic> group, String artist) {
   return credit.isNotEmpty &&
       (_key(artist) == _key(all) || _key(artist) == _key(credit.first['name'] as String? ?? ''));
 }
+
+/// What kind of release [group], a release group of MusicBrainz's, is, by its primary type and its secondary ones.
+ReleaseType? _type(Map<String, dynamic>? group) => ReleaseType.named([
+  if (group?['primary-type'] case final String type) type,
+  for (final type in group?['secondary-types'] as List? ?? const [])
+    if (type is String) type,
+]);
 
 /// A date of MusicBrainz's, as precise as it is: "1975-04-08", "1975-04" or "1975"; none for an empty one.
 ReleaseDate? _date(Object? text) {

@@ -4,6 +4,7 @@ import 'package:hugeicons/hugeicons.dart';
 import '../server/models.dart';
 import '../services.dart';
 import 'errors.dart';
+import 'release_types.dart';
 import 'spinner.dart';
 import 'themed_icon.dart';
 
@@ -49,7 +50,9 @@ class _AlbumPlayButtonState extends State<AlbumPlayButton> {
         messenger.showSnackBar(SnackBar(content: Text(describeError(result.error))));
       }
     } on Object catch (error) {
-      messenger.showSnackBar(SnackBar(content: Text('Não consegui tocar o álbum: $error')));
+      messenger.showSnackBar(
+        SnackBar(content: Text('Não consegui tocar ${albumWithArticle(widget.album.releaseType)}: $error')),
+      );
     } finally {
       if (mounted) {
         setState(() => _loading = false);
@@ -100,7 +103,7 @@ class _AlbumPlayButtonState extends State<AlbumPlayButton> {
     // Out of the focus's way, as the album's artist is: for the keyboard the album stays one stop.
     return ExcludeFocus(
       child: IconButton.filled(
-        tooltip: 'Tocar o álbum',
+        tooltip: 'Tocar ${albumWithArticle(widget.album.releaseType)}',
         iconSize: iconSize,
         // The filled button's colors, said again: in a list tile's leading, the tile's icon button theme
         // would give the icon the tile's icons' color.

@@ -13,6 +13,7 @@ import 'errors.dart';
 import 'now_playing_bar.dart';
 import 'page_area.dart';
 import 'page_header.dart';
+import 'release_types.dart';
 import 'song_list_header.dart';
 import 'spinner.dart';
 import 'themed_icon.dart';
@@ -32,7 +33,7 @@ class _AlbumPageState extends State<AlbumPage> {
   /// The cover id of the picture of the album's artist.
   Future<String?>? _artistPicture;
 
-  /// The album's release date and record labels, with what MusicBrainz adds to the media server's.
+  /// The album's release date, record labels and type, with what MusicBrainz adds to the media server's.
   Future<AlbumRelease>? _release;
 
   @override
@@ -44,19 +45,19 @@ class _AlbumPageState extends State<AlbumPage> {
     _release ??= _releaseOf(album, musicBrainz: services.musicBrainz);
   }
 
-  /// [album]'s release date and record labels: the media server's, with what [musicBrainz] adds (null: nothing).
-  /// None when the server fails to give the album, which the page says.
+  /// [album]'s release date, record labels and type: the media server's, with what [musicBrainz] adds (null:
+  /// nothing). None when the server fails to give the album, which the page says.
   static Future<AlbumRelease> _releaseOf(Future<(Album, List<Song>)> album, {MusicBrainz? musicBrainz}) async {
     try {
       final (found, _) = await album;
 
       if (musicBrainz == null) {
-        return (date: found.releaseDate, labels: found.recordLabels);
+        return (date: found.releaseDate, labels: found.recordLabels, type: found.releaseType);
       }
 
       return await musicBrainz.complete(found);
     } on Object {
-      return (date: null, labels: const <String>[]);
+      return (date: null, labels: const <String>[], type: null);
     }
   }
 
@@ -98,11 +99,18 @@ class _AlbumPageState extends State<AlbumPage> {
           // No title: the album's name is by its cover, which is beside the back arrow.
           appBar: PageHeader.bar(context, shown: data != null),
           body: switch (data) {
-            _ when snapshot.hasError => Center(child: Text('Não consegui abrir o álbum: ${snapshot.error}')),
+            _ when snapshot.hasError => Center(
+              child: Text('Não consegui abrir ${albumWithArticle(widget.album.releaseType)}: ${snapshot.error}'),
+            ),
             null => const Center(child: Spinner()),
             (final album, final songs) => ListView(
               children: [
-                _header(album, songs, narrow: narrow),
+                // The type the media server says, then the one MusicBrainz finds, as it comes.
+                FutureBuilder(
+                  future: _release,
+                  initialData: (date: album.releaseDate, labels: album.recordLabels, type: album.releaseType),
+                  builder: (context, release) => _header(album, songs, type: release.requireData.type, narrow: narrow),
+                ),
                 if (!narrow) const SongListHeader(numbered: true),
                 for (var i = 0; i < songs.length; i++)
                   if (i == songs.length - 1)
@@ -123,16 +131,24 @@ class _AlbumPageState extends State<AlbumPage> {
     );
   }
 
-  /// The top of the page: the album's cover, its name and byline, and the button that plays it. On a wide screen the
-  /// name is beside the cover, the button under them; on a narrow one ([narrow]) the cover is bigger, centered, and the
-  /// name under it, from the page's margin as the songs are, with the button at the end of its line.
-  Widget _header(Album album, List<Song> songs, {required bool narrow}) {
+  /// The top of the page: the album's cover, its type (album, EP, ...), its name and byline, and the button that plays
+  /// it. On a wide screen the name is beside the cover, the type above it, the button under them; on a narrow one
+  /// ([narrow]) the cover is bigger, centered, and the name under it, from the page's margin as the songs are, with the
+  /// button at the end of its line, and the type before the year.
+  Widget _header(Album album, List<Song> songs, {required ReleaseType? type, required bool narrow}) {
     final text = Theme.of(context).textTheme;
     final name = Text(album.name, style: text.titleLarge);
-    final byline = _Byline(album, songs, artistPicture: _artistPicture!, style: text.bodyMedium, stacked: narrow);
+    final byline = _Byline(
+      album,
+      songs,
+      artistPicture: _artistPicture!,
+      type: narrow ? type : null,
+      style: text.bodyMedium,
+      stacked: narrow,
+    );
     // Just the icon, its name in the tooltip, as the play button on the albums' covers.
     final play = IconButton.filled(
-      tooltip: 'Tocar o álbum',
+      tooltip: 'Tocar ${albumWithArticle(type)}',
       onPressed: songs.isEmpty ? null : () => _play(songs, 0),
       icon: const ThemedIcon(HugeIcons.strokeRoundedPlay),
     );
@@ -186,7 +202,13 @@ class _AlbumPageState extends State<AlbumPage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [name, byline, const SizedBox(height: 12), play],
+                  children: [
+                    if (type != null) Text(releaseTypeName(type), style: text.labelLarge),
+                    name,
+                    byline,
+                    const SizedBox(height: 12),
+                    play,
+                  ],
                 ),
               ),
             ),
@@ -218,11 +240,11 @@ class _AlbumPageState extends State<AlbumPage> {
   }
 }
 
-/// Under the album's name: its artist, with their picture, a link to their page; its year; how many songs it has and
-/// how long they last. One paragraph, beside the cover; or, [stacked], the artist on a line of their own and the rest
-/// under them.
+/// Under the album's name: its artist, with their picture, a link to their page; its type, where it isn't above the
+/// name; its year; how many songs it has and how long they last. One paragraph, beside the cover;
+/// or, [stacked], the artist on a line of their own and the rest under them.
 class _Byline extends StatelessWidget {
-  const _Byline(this.album, this.songs, {required this.artistPicture, this.style, this.stacked = false});
+  const _Byline(this.album, this.songs, {required this.artistPicture, this.type, this.style, this.stacked = false});
 
   final Album album;
   final List<Song> songs;
@@ -230,14 +252,21 @@ class _Byline extends StatelessWidget {
   /// The cover id of the artist's picture.
   final Future<String?> artistPicture;
 
+  /// The album's type, before its year; null where the page doesn't show it here.
+  final ReleaseType? type;
+
   final TextStyle? style;
 
-  /// Whether the year, the songs and how long they last are under the artist, rather than after them.
+  /// Whether the type, the year, the songs and how long they last are under the artist, rather than after them.
   final bool stacked;
 
   @override
   Widget build(BuildContext context) {
-    final details = [if (album.year case final year?) '$year', if (songs.isNotEmpty) _songsLength(songs)].join(' · ');
+    final details = [
+      if (type case final type?) releaseTypeName(type),
+      if (album.year case final year?) '$year',
+      if (songs.isNotEmpty) _songsLength(songs),
+    ].join(' · ');
     final artist = album.artist == null
         ? null
         : ArtistLink.album(album, style: style, picture: album.artistId == null ? null : _ArtistPicture(artistPicture));
@@ -328,9 +357,9 @@ class _LastSong extends StatelessWidget {
     final style = theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant);
     return FutureBuilder(
       future: release,
-      initialData: (date: album.releaseDate, labels: album.recordLabels),
+      initialData: (date: album.releaseDate, labels: album.recordLabels, type: album.releaseType),
       builder: (context, snapshot) {
-        final (:date, :labels) = snapshot.requireData;
+        final (:date, :labels, type: _) = snapshot.requireData;
         final lines = [if (date != null) _formatDate(date), if (labels.isNotEmpty) labels.join(', ')];
         // The same widgets around the song, with or without the lines under it: rebuilt, it would lose the focus.
         return Focus(

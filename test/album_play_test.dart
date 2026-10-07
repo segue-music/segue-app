@@ -30,17 +30,17 @@ http.Response subsonic(Map<String, Object?> body) => http.Response(
 );
 
 /// A library of two albums: Toys in the Attic, with two songs, and Pump, which the server fails to
-/// give. A search finds Toys in the Attic.
-http.Response server(http.Request request) {
+/// give, both of the release types [releaseTypes]. A search finds Toys in the Attic.
+http.Response server(http.Request request, {List<String>? releaseTypes}) {
   final path = request.url.path;
-  const toys = {'id': 'a1', 'name': 'Toys in the Attic', 'artist': 'Aerosmith'};
+  final toys = {'id': 'a1', 'name': 'Toys in the Attic', 'artist': 'Aerosmith', 'releaseTypes': ?releaseTypes};
 
   if (path.endsWith('getAlbumList2.view')) {
     return subsonic({
       'albumList2': {
         'album': [
           toys,
-          {'id': 'a2', 'name': 'Pump', 'artist': 'Aerosmith'},
+          {'id': 'a2', 'name': 'Pump', 'artist': 'Aerosmith', 'releaseTypes': ?releaseTypes},
         ],
       },
     });
@@ -69,16 +69,18 @@ http.Response server(http.Request request) {
   return http.Response('', 500);
 }
 
-/// The app on the albums tab, on a screen of [size], a TV's with [television]. Returns its player.
+/// The app on the albums tab, on a screen of [size], a TV's with [television], its albums of the release types
+/// [releaseTypes]. Returns its player.
 Future<PlayerController> pumpAlbums(
   WidgetTester tester, {
   bool television = false,
   Size size = const Size(1000, 700),
+  List<String>? releaseTypes,
 }) async {
   final api = SubsonicApi(
     Uri.parse('https://music.test'),
     credentials,
-    client: MockClient((request) async => server(request)),
+    client: MockClient((request) async => server(request, releaseTypes: releaseTypes)),
   );
   final player = PlayerController(FakeEngine(), api);
   final services = Services(
@@ -288,6 +290,16 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('Não consegui tocar o álbum'), findsOneWidget);
     expect(player.queue, isEmpty);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('the play button, and its failure, name the album\'s type, where the server says it', (tester) async {
+    await pumpAlbums(tester, releaseTypes: ['EP']);
+    final play = find.descendant(of: tile('Pump'), matching: find.byTooltip('Tocar o EP'));
+    expect(play, findsOneWidget);
+    await tester.tap(play);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Não consegui tocar o EP'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 }

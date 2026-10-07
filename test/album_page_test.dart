@@ -31,7 +31,8 @@ http.Response subsonic(Map<String, Object?> body) => http.Response(
 );
 
 /// The page of Toys in the Attic, with the cover [coverArt], two songs by Aerosmith and then [more] songs, the release
-/// date [releaseDate] and the record labels [recordLabels], on a screen of [size], with what [musicBrainz] adds.
+/// date [releaseDate], the record labels [recordLabels] and the release types [releaseTypes], on a screen of [size],
+/// with what [musicBrainz] adds.
 /// Aerosmith's picture is `ar-ar1`. Returns the player's engine.
 Future<FakeEngine> pumpAlbum(
   WidgetTester tester, {
@@ -39,6 +40,7 @@ Future<FakeEngine> pumpAlbum(
   int more = 0,
   Map<String, int>? releaseDate,
   List<String> recordLabels = const [],
+  List<String>? releaseTypes,
   MusicBrainz? musicBrainz,
   Size size = const Size(1000, 700),
 }) async {
@@ -62,6 +64,7 @@ Future<FakeEngine> pumpAlbum(
           'year': 1975,
           'coverArt': ?coverArt,
           'releaseDate': ?releaseDate,
+          'releaseTypes': ?releaseTypes,
           'recordLabels': [
             for (final label in recordLabels) {'name': label},
           ],
@@ -449,7 +452,46 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('where the server says no release date, MusicBrainz\'s, as it comes', (tester) async {
+  testWidgets('on a wide screen, the album\'s type is above its name, lined up with it', (tester) async {
+    await pumpAlbum(tester, releaseTypes: ['EP']);
+    final (type, name) = (tester.getRect(find.text('EP')), tester.getRect(find.text('Toys in the Attic')));
+    expect(type.bottom, lessThanOrEqualTo(name.top));
+    expect(type.left, name.left);
+    expect(find.textContaining('EP ·'), findsNothing, reason: 'not in the byline too');
+    expect(find.byTooltip('Tocar o EP'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a phone, the album\'s type is before its year, under the artist', (tester) async {
+    await pumpAlbum(tester, releaseTypes: ['EP'], size: const Size(360, 640));
+    expect(find.text('EP · 1975 · 2 faixas, 8 min'), findsOneWidget);
+    expect(find.text('EP'), findsNothing, reason: 'not above the name too');
+    expect(find.byTooltip('Tocar o EP'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('each type has its name, which the play button says too; an album the server says nothing of has none', (
+    tester,
+  ) async {
+    for (final (types, name, play) in [
+      (['album'], 'Álbum', 'Tocar o álbum'),
+      (['single'], 'Single', 'Tocar o single'),
+      (['album', 'compilation'], 'Coletânea', 'Tocar a coletânea'),
+    ]) {
+      await pumpAlbum(tester, releaseTypes: types);
+      expect(find.text(name), findsOneWidget, reason: '$types');
+      expect(find.byTooltip(play), findsOneWidget, reason: '$types');
+      await tester.pumpWidget(const SizedBox());
+    }
+
+    await pumpAlbum(tester);
+    expect(find.text('Álbum'), findsNothing, reason: 'not an album where it doesn\'t say');
+    expect(find.byTooltip('Tocar o álbum'), findsOneWidget, reason: 'but its play button says album');
+    expect(find.text('Toys in the Attic'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('where the server says no release date or type, MusicBrainz\'s, as they come', (tester) async {
     final brainz = MusicBrainz(
       spacing: Duration.zero,
       client: MockClient(
@@ -459,6 +501,7 @@ void main() {
               {
                 'title': 'Toys in the Attic',
                 'first-release-date': '1975-04-08',
+                'primary-type': 'EP',
                 'artist-credit': [
                   {'name': 'Aerosmith', 'joinphrase': ''},
                 ],
@@ -471,6 +514,8 @@ void main() {
     );
     await pumpAlbum(tester, musicBrainz: brainz);
     expect(find.text('8 de abril de 1975'), findsOneWidget);
+    expect(find.text('EP'), findsOneWidget);
+    expect(find.byTooltip('Tocar o EP'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 

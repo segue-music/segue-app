@@ -80,14 +80,18 @@ the device it runs on.
   above it. A tap on a track plays it there;
 - the album's songs and the queue have a header naming their columns: the number ("#") or the
   cover, the title, and the duration as a clock; over the queue it stays as the tracks scroll;
-- on the album page, under the album's name, its artist with their picture, its year, how many songs
-  it has and how long they last; after its songs, its release date, as precisely as the server knows
-  it, and its record labels (OpenSubsonic's; on a Jellyfin server, which reads no labels from music
-  files, the album's studios, where someone set them), which the keyboard and the remote, coming to
-  the last song, scroll on to. Where the server says no date (or only the year) or no labels,
+- on the album page, what kind of release it is (an album, an EP, a single or a compilation: on a
+  computer above its name, on a phone before its year), which its play button, and the one on its
+  cover wherever albums are listed, say too ("Tocar o EP"); under its name, its artist with their
+  picture, its year, how many songs it has and how long they last; after its songs, its release
+  date, as precisely as the server knows it, and its record labels (OpenSubsonic's; on a Jellyfin
+  server, which reads no labels from music files, the album's studios, where someone set them),
+  which the keyboard and the remote, coming to the last song, scroll on to. The kind is
+  OpenSubsonic's (in Navidrome, the files' MusicBrainz release type, or their compilation tag).
+  Where the server says no date (or only the year), no labels or no kind (Jellyfin never says it),
   MusicBrainz (musicbrainz.org) fills them in: by the album's MusicBrainz id, where the server knows
-  it, its edition's date and labels; without it, only the date the album first came out, by its
-  name, artist and year, when these match one album only;
+  it, its edition's date and labels and its kind; without it, only the date the album first came
+  out and its kind, by its name, artist and year, when these match one album only;
 - on the album page and in search, the current song (on whichever device the app controls) stands
   out in the theme's color, with an equalizer in place of its number, or over its cover, while it
   plays;

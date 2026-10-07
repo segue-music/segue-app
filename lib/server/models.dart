@@ -14,6 +14,7 @@ class Album {
     this.releaseDate,
     this.recordLabels = const [],
     this.musicBrainzId,
+    this.releaseType,
   });
 
   final String id;
@@ -36,6 +37,37 @@ class Album {
   /// The id of its release in MusicBrainz (its edition, with its date and labels); null when the server doesn't know
   /// it.
   final String? musicBrainzId;
+
+  /// What kind of release it is: an album proper, an EP, a single, a compilation; null when the server doesn't say,
+  /// as Jellyfin never does.
+  final ReleaseType? releaseType;
+}
+
+/// What kind of release an album is, as MusicBrainz sorts them: by its primary type (an album, an EP, a single), or
+/// its secondary one, a compilation, which is an album too.
+enum ReleaseType {
+  album,
+  ep,
+  single,
+
+  /// Songs that came out before, as a best of.
+  compilation;
+
+  /// The type of a release whose types, as MusicBrainz names them ("Album", "EP", "Compilation"), in any case, are
+  /// [names], which may also hold several apart by commas, semicolons or slashes, as a file's tag does; null when none
+  /// is one of these.
+  static ReleaseType? named(Iterable<String> names) {
+    final types = {
+      for (final name in names)
+        for (final type in name.split(RegExp('[,;/]'))) type.trim().toLowerCase(),
+    };
+
+    if (types.contains('compilation')) {
+      return compilation;
+    }
+
+    return [album, ep, single].where((type) => types.contains(type.name)).firstOrNull;
+  }
 }
 
 /// A date as precisely as the server knows it: a day, or only a month, or only a year.

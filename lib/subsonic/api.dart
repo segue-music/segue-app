@@ -316,6 +316,13 @@ Album _album(Map<String, dynamic> json) => Album(
     final String id when id.isNotEmpty => id,
     _ => null,
   },
+  // In Navidrome, the files' MusicBrainz types, and whether they are tagged as a compilation.
+  releaseType: json['isCompilation'] == true
+      ? ReleaseType.compilation
+      : ReleaseType.named([
+          for (final type in json['releaseTypes'] as List? ?? const [])
+            if (type is String) type,
+        ]),
 );
 
 /// An OpenSubsonic ItemDate, as much of a date as the server knows; none without a year.

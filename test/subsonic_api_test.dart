@@ -4,6 +4,7 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:segue/server/models.dart';
 import 'package:segue/server/server.dart';
 import 'package:segue/subsonic/api.dart';
 
@@ -143,6 +144,64 @@ void main() {
       expect(await released({'releaseDate': <String, Object?>{}}), (null, null, null), reason: 'only the year');
     },
   );
+
+  test('an album\'s type is OpenSubsonic\'s releaseTypes, in any case, or a compilation where isCompilation', () async {
+    Future<ReleaseType?> type(Map<String, Object?> types) async {
+      final api = SubsonicApi(
+        Uri.parse('https://music.test'),
+        credentials,
+        client: MockClient(
+          (_) async => subsonic({
+            'status': 'ok',
+            'album': {'id': 'a1', 'name': 'Rocks', ...types},
+          }),
+        ),
+      );
+      return (await api.album('a1')).$1.releaseType;
+    }
+
+    expect(
+      await type({
+        'releaseTypes': ['EP'],
+      }),
+      ReleaseType.ep,
+    );
+    expect(
+      await type({
+        'releaseTypes': ['single'],
+      }),
+      ReleaseType.single,
+      reason: 'as a file\'s tag has it',
+    );
+    expect(
+      await type({
+        'releaseTypes': ['album', 'compilation'],
+      }),
+      ReleaseType.compilation,
+      reason: 'over album',
+    );
+    expect(
+      await type({
+        'releaseTypes': ['album; live'],
+      }),
+      ReleaseType.album,
+      reason: 'two in one tag',
+    );
+    expect(
+      await type({
+        'releaseTypes': ['album'],
+        'isCompilation': true,
+      }),
+      ReleaseType.compilation,
+    );
+    expect(
+      await type({
+        'releaseTypes': ['broadcast'],
+      }),
+      isNull,
+    );
+    expect(await type({}), isNull, reason: 'a server that doesn\'t say');
+  });
 
   test('a song comes with the ids of its album and its artist (getSong)', () async {
     late Uri asked;

@@ -10,15 +10,19 @@ import 'package:segue/server/models.dart';
 http.Response json(Object body, [int status = 200]) =>
     http.Response(jsonEncode(body), status, headers: {'content-type': 'application/json'});
 
-/// A release group of MusicBrainz's, credited to [credit]: names, each with what joins it to the next.
+/// A release group of MusicBrainz's, of the primary type [type], credited to [credit]: names, each with what joins it
+/// to the next.
 Map<String, Object?> group({
   String title = 'Toys in the Attic',
   String date = '1975-04-08',
+  String type = 'Album',
   List<(String, String)> credit = const [('Aerosmith', '')],
 }) => {
   'id': 'rg1',
   'title': title,
   'first-release-date': date,
+  'primary-type': type,
+  'secondary-types': <String>[],
   'artist-credit': [
     for (final (name, join) in credit) {'name': name, 'joinphrase': join},
   ],
@@ -51,6 +55,7 @@ Album album({
   ReleaseDate? releaseDate,
   List<String> recordLabels = const [],
   String? musicBrainzId,
+  ReleaseType? releaseType,
 }) => Album(
   id: 'a1',
   name: name,
@@ -59,6 +64,7 @@ Album album({
   releaseDate: releaseDate,
   recordLabels: recordLabels,
   musicBrainzId: musicBrainzId,
+  releaseType: releaseType,
 );
 
 (int?, int?, int?) parts(ReleaseDate? date) => (date?.year, date?.month, date?.day);
@@ -83,7 +89,12 @@ const reissue = {
       'label': {'name': '[no label]'},
     },
   ],
-  'release-group': {'id': 'rg1', 'first-release-date': '1975-04-08'},
+  'release-group': {
+    'id': 'rg1',
+    'first-release-date': '1975-04-08',
+    'primary-type': 'Album',
+    'secondary-types': <String>[],
+  },
 };
 
 void main() {
@@ -92,6 +103,7 @@ void main() {
     final found = await musicBrainz(release: reissue, asked: asked).complete(album(musicBrainzId: 'r1'));
     expect(parts(found.date), (2012, 11, 2), reason: 'the edition\'s');
     expect(found.labels, ['Columbia']);
+    expect(found.type, ReleaseType.album, reason: 'its release group\'s');
     final url = asked.single.url;
     expect(url.path, '/ws/2/release/r1');
     expect(url.queryParameters, {'inc': 'labels release-groups', 'fmt': 'json'});
@@ -112,16 +124,23 @@ void main() {
     final asked = <http.Request>[];
     final brainz = musicBrainz(release: reissue, asked: asked);
     const full = ReleaseDate(1975, month: 4, day: 8);
-    final kept = await brainz.complete(album(releaseDate: full, recordLabels: ['Sony'], musicBrainzId: 'r1'));
+    const ep = ReleaseType.ep;
+    final kept = await brainz.complete(
+      album(releaseDate: full, recordLabels: ['Sony'], musicBrainzId: 'r1', releaseType: ep),
+    );
     expect(parts(kept.date), (1975, 4, 8));
     expect(kept.labels, ['Sony']);
-    await brainz.complete(album(releaseDate: full));
-    expect(asked, isEmpty, reason: 'without a MusicBrainz id, it would look for a date only');
+    expect(kept.type, ep);
+    await brainz.complete(album(releaseDate: full, releaseType: ep));
+    expect(asked, isEmpty, reason: 'without a MusicBrainz id, it would look for a date and a type only');
     final dated = await brainz.complete(
-      album(releaseDate: const ReleaseDate(1975), recordLabels: ['Sony'], musicBrainzId: 'r1'),
+      album(releaseDate: const ReleaseDate(1975), recordLabels: ['Sony'], musicBrainzId: 'r1', releaseType: ep),
     );
     expect(parts(dated.date), (1975, 4, 8), reason: 'a fuller date');
     expect(dated.labels, ['Sony'], reason: 'its own labels');
+    expect(dated.type, ep, reason: 'its own type');
+    final typed = await brainz.complete(album(releaseDate: full, recordLabels: ['Sony'], musicBrainzId: 'r1'));
+    expect(typed.type, ReleaseType.album, reason: 'a type where it has none');
   });
 
   test('without a MusicBrainz id, the date of the release group its name, artist and year match; no labels', () async {
@@ -148,6 +167,42 @@ void main() {
     expect(await date([group(), group(date: '1976')], null), (null, null, null));
     expect(await date([group(), group(date: '1976')], 1976), (1976, null, null), reason: 'the one of its year');
     expect(await date([group()], 1993), (null, null, null));
+  });
+
+  test('the type of its release group: a compilation over its primary one, which names the others', () async {
+    Future<ReleaseType?> type(Map<String, Object?> releaseGroup) async =>
+        (await musicBrainz(release: {...reissue, 'release-group': releaseGroup}).complete(album(musicBrainzId: 'r1')))
+            .type;
+
+    expect(await type({'primary-type': 'EP', 'secondary-types': <String>[]}), ReleaseType.ep);
+    expect(await type({'primary-type': 'Single'}), ReleaseType.single);
+    expect(
+      await type({
+        'primary-type': 'Album',
+        'secondary-types': ['Live', 'Compilation'],
+      }),
+      ReleaseType.compilation,
+    );
+    expect(await type({'primary-type': 'Broadcast'}), isNull, reason: 'none the page names');
+    expect(await type({'primary-type': null}), isNull);
+  });
+
+  test('without a MusicBrainz id, the type of the release groups it matches, when they have one', () async {
+    // A MusicBrainz for each, as each asks once for an album.
+    Future<ReleaseType?> type(List<Map<String, Object?>> groups) async =>
+        (await musicBrainz(groups: groups).complete(album())).type;
+
+    expect(
+      await type([group(type: 'EP'), group(type: 'EP', date: '1975'), group(title: 'Rocks')]),
+      ReleaseType.ep,
+      reason: 'of different dates, one type',
+    );
+    expect(await type([group(type: 'EP'), group(type: 'Single')]), isNull);
+    expect(
+      await type([group(type: 'EP', date: '1993')]),
+      isNull,
+      reason: 'none of its year',
+    );
   });
 
   test('artists credited together match the album\'s, however their names are joined', () async {
