@@ -263,12 +263,15 @@ class ConnectController extends ChangeNotifier {
 
   void _update() {
     final playing = _whoIsPlaying();
+    final started = playing != null && playing != _playing;
+    // Music held paused here goes; if it was playing here, the hub stops it itself.
+    final leave = started && playing != _here && _playing != _here;
+    _playing = playing;
 
-    if (playing != null && playing != _playing) {
+    if (started) {
       _active = playing == _here ? null : playing;
     }
 
-    _playing = playing;
     final active = activeDevice;
 
     if (_active != null && !(active?.online ?? false)) {
@@ -280,6 +283,11 @@ class ConnectController extends ChangeNotifier {
     }
 
     notifyListeners();
+
+    // Last, since stopping the player comes back here.
+    if (leave) {
+      unawaited(_leave());
+    }
   }
 
   /// The device the app controlled went offline (closed, say): its music stays in the bar, here,
@@ -304,6 +312,22 @@ class ConnectController extends ChangeNotifier {
     } on CommandFailed {
       // nothing in it can be played here
     }
+
+    // It came back playing, or another device started, while the music loaded here.
+    if (playingId != null) {
+      await _leave();
+    }
+  }
+
+  /// Another device started playing: the music this one holds, paused, goes, as the hub leaves a
+  /// device that played (SPEC.md, section 4). Kept, it would show on the other apps' devices as
+  /// paused here, often with the very music that plays there (kept here as that device closed).
+  Future<void> _leave() async {
+    if (player.queue.isEmpty || player.playing) {
+      return;
+    }
+
+    await player.stop();
   }
 
   /// This device if it plays; otherwise the other device that reported playing most recently.

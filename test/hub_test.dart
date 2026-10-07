@@ -266,6 +266,49 @@ void main() {
     expect(phone.connect.nowPlaying?.device, isNull);
   });
 
+  test('when the device it follows comes back and plays, the music kept here goes', () async {
+    final user = newUser();
+    final laptop = await App(user, 'laptop').start();
+    final phone = await App(user, 'phone').start();
+    final tv = await App(user, 'tv').start();
+    await laptop.player.playQueue(songs, index: 1);
+    await until(() => phone.connect.playingId == 'laptop' && tv.connect.playingId == 'laptop', 'the others to follow');
+    await laptop.client.close();
+    await until(() => phone.player.queue.isNotEmpty && tv.player.queue.isNotEmpty, 'the music kept on the others');
+    final again = await App(user, 'laptop').start();
+    await until(() => again.player.queue.isNotEmpty, 'the music back on the laptop');
+    await again.player.play();
+    await until(() => phone.player.queue.isEmpty && tv.player.queue.isEmpty, 'the others to let go of it');
+    expect(phone.connect.nowPlaying?.device, 'laptop');
+    expect(phone.connect.nowPlaying?.playing, isTrue);
+    // Listed on the laptop as left, not as paused with the music it plays.
+    await until(
+      () => [
+        for (final id in ['phone', 'tv']) again.client.devices[id]?.state?.status,
+      ].every((status) => status == PlaybackStatus.stopped),
+      'the laptop to see the others stopped',
+    );
+  });
+
+  test('when another device starts playing, one paused with music of its own lets go of it', () async {
+    final user = newUser();
+    final laptop = await App(user, 'laptop').start();
+    final phone = await App(user, 'phone').start();
+    await phone.player.playQueue(songs);
+    await phone.player.pause();
+    await until(
+      () => laptop.client.devices['phone']?.state?.status == PlaybackStatus.paused,
+      'the laptop to see the phone paused',
+    );
+    await laptop.player.playQueue(songs, index: 1);
+    await until(() => phone.player.queue.isEmpty, 'the phone to let go of its music');
+    expect(phone.connect.nowPlaying?.device, 'laptop');
+    await until(
+      () => laptop.client.devices['phone']?.state?.status == PlaybackStatus.stopped,
+      'the laptop to see the phone stopped',
+    );
+  });
+
   test('repeat and shuffle go to the device it controls, and show from its state', () async {
     final user = newUser();
     final laptop = await App(user, 'laptop').start();
