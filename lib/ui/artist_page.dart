@@ -41,6 +41,9 @@ class _ArtistPageState extends State<ArtistPage> {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
+    // On a phone, or a window as narrow (as the home counts it), the picture is beside the back arrow, where a bigger
+    // one would leave the name no room.
+    final narrow = MediaQuery.sizeOf(context).width < 600;
     return FutureBuilder(
       future: _artist,
       builder: (context, snapshot) {
@@ -66,13 +69,18 @@ class _ArtistPageState extends State<ArtistPage> {
                       padding: const EdgeInsets.fromLTRB(0, 16, 16, 0),
                       child: Row(
                         children: [
+                          // On a wide screen as big as an album's cover on its page, and asked of the server as
+                          // that one is.
                           SizedBox.square(
-                            dimension: 140,
+                            dimension: narrow ? 140 : 220,
                             child: ClipOval(
-                              child: Cover(
-                                artist.coverArt ?? widget.artist.coverArt,
-                                icon: HugeIcons.strokeRoundedUser,
-                              ),
+                              child: narrow
+                                  ? Cover(artist.coverArt ?? widget.artist.coverArt, icon: HugeIcons.strokeRoundedUser)
+                                  : LargeCover(
+                                      artist.coverArt ?? widget.artist.coverArt,
+                                      size: 800,
+                                      icon: HugeIcons.strokeRoundedUser,
+                                    ),
                             ),
                           ),
                           const SizedBox(width: 16),

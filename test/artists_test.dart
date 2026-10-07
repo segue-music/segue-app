@@ -90,6 +90,7 @@ http.Response server(http.Request request) {
       'artist': {
         'id': 'ar1',
         'name': 'Aerosmith',
+        'coverArt': 'ar-ar1',
         'albumCount': 2,
         'album': [
           {'id': 'a1', 'name': 'Aerosmith', 'artist': 'Aerosmith', 'year': 1973},
@@ -213,6 +214,20 @@ Finder title(String text) => find.descendant(of: find.byType(AppBar), matching: 
 /// after them too.
 Finder artistName(String name) => find.descendant(of: find.byType(ArtistPage), matching: find.text(name)).first;
 
+/// The artist's picture by their name, over their page.
+Finder artistPicture() => find.descendant(of: find.byType(ArtistPage), matching: find.byType(ClipOval)).first;
+
+/// The artist's picture as asked of the server at [size] pixels.
+Finder artistPictureAt(int size) => find.descendant(
+  of: artistPicture(),
+  matching: find.byWidgetPredicate(
+    (widget) =>
+        widget is Image &&
+        widget.image is NetworkImage &&
+        Uri.parse((widget.image as NetworkImage).url).queryParameters['size'] == '$size',
+  ),
+);
+
 /// The tile of the artist named [name], in the artists' grid.
 Finder tile(String name) => find.ancestor(of: find.text(name), matching: find.byType(InkWell)).first;
 
@@ -247,6 +262,9 @@ void main() {
     await tester.tap(find.text('Aerosmith'));
     await tester.pumpAndSettle();
     expect(artistName('Aerosmith'), findsOneWidget);
+    expect(tester.getSize(artistPicture()), const Size.square(220), reason: 'as big as an album\'s cover on its page');
+    expect(artistPictureAt(800), findsOneWidget, reason: 'asked of the server as that one is');
+    expect(artistPictureAt(300), findsOneWidget, reason: 'under it, as it comes');
     final newer = tester.getTopLeft(find.text('Toys in the Attic'));
     final older = tester.getTopLeft(find.text('1973'));
     expect(newer.dx < older.dx || newer.dy < older.dy, isTrue, reason: 'the 1975 album comes first');
@@ -263,7 +281,8 @@ void main() {
 
   testWidgets('an artist\'s five songs the user plays most, numbered, come over their albums, and play from the one '
       'picked', (tester) async {
-    final engine = await pumpHome(tester, const Size(1000, 700));
+    // Tall enough for the songs and the album under them.
+    final engine = await pumpHome(tester, const Size(1000, 900));
     await tester.tap(find.byTooltip('Artistas'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Cheap Trick'));
@@ -341,7 +360,8 @@ void main() {
   });
 
   testWidgets('an artist with albums alone has no title for singles and EPs', (tester) async {
-    await pumpHome(tester, const Size(1000, 700));
+    // Tall enough for their songs and their album.
+    await pumpHome(tester, const Size(1000, 900));
     await tester.tap(find.byTooltip('Artistas'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Cheap Trick'));
@@ -373,14 +393,12 @@ void main() {
     expect(find.byType(NavigationBar).hitTestable(), findsOneWidget);
     expect(find.descendant(of: page, matching: find.byType(NowPlayingBar)), findsNothing);
     expect(find.byType(BackButton), findsOneWidget);
-    // Beside their picture, with no bar above them.
-    final (arrow, picture) = (
-      tester.getRect(find.byType(BackButton)),
-      tester.getRect(find.descendant(of: page, matching: find.byType(ClipOval)).first),
-    );
-    expect(picture.top, 16);
-    expect(arrow.bottom, greaterThan(picture.top));
-    expect(arrow.right, lessThanOrEqualTo(picture.left));
+    // Beside their picture, with no bar above them; smaller than on a wide screen, to leave their name room.
+    final (arrow, rect) = (tester.getRect(find.byType(BackButton)), tester.getRect(artistPicture()));
+    expect(rect.top, 16);
+    expect(rect.size, const Size.square(140));
+    expect(arrow.bottom, greaterThan(rect.top));
+    expect(arrow.right, lessThanOrEqualTo(rect.left));
     expect(tester.getRect(grid).bottom, 640);
     expect(MediaQuery.paddingOf(tester.element(grid)).bottom, 640 - tester.getRect(find.byType(NowPlayingBar)).top);
     await tester.pumpWidget(const SizedBox()); // stops the player bar's timer

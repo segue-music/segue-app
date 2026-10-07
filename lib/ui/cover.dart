@@ -40,19 +40,22 @@ class Cover extends StatelessWidget {
 /// A cover asked of the server at [size] pixels, more than [Cover]'s usual: the usual one, which the page that led here
 /// has likely loaded already, shows under it until it comes.
 class LargeCover extends StatelessWidget {
-  const LargeCover(this.id, {required this.size, super.key});
+  const LargeCover(this.id, {required this.size, this.icon = HugeIcons.strokeRoundedCd, super.key});
 
   final String? id;
 
   /// Pixels asked of the server.
   final int size;
 
+  /// What the placeholder shows.
+  final HugeIconData icon;
+
   @override
   Widget build(BuildContext context) => Stack(
     fit: StackFit.expand,
     children: [
-      Cover(id),
-      Cover(id, size: size),
+      Cover(id, icon: icon),
+      Cover(id, size: size, icon: icon),
     ],
   );
 }
