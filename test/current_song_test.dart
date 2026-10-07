@@ -130,6 +130,27 @@ void main() {
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
   });
 
+  testWidgets('a tap on another song ends repeating the one that plays, and the queue goes on repeating', (
+    tester,
+  ) async {
+    final services = fakeServices();
+    final player = services.connect.player;
+    await services.connect.playSongs(songs, 1);
+    await services.connect.setRepeat(Repeat.one);
+    await pump(tester, services, const AlbumPage(album));
+
+    await tester.tap(tile('Dream On')); // the song that repeats: it goes on repeating
+    await settle(tester);
+    expect(player.current?.title, 'Dream On');
+    expect(player.repeat, Repeat.one);
+
+    await tester.tap(tile('Make It'));
+    await settle(tester);
+    expect(player.current?.title, 'Make It');
+    expect(player.repeat, Repeat.all);
+    await tester.pumpWidget(const SizedBox()); // stops the bar's timer
+  });
+
   testWidgets('it stands out too when it plays on another device', (tester) async {
     final client = SegueClient(
       url: Uri.parse('ws://unused'),

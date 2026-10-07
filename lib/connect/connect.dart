@@ -157,10 +157,21 @@ class ConnectController extends ChangeNotifier {
     return (tracks: device.state?.queue ?? const [], index: device.state?.index ?? 0);
   }
 
-  Future<Result> playSongs(List<Song> songs, int index) => _run(
-    Command.setQueue(queue: [for (final song in songs) song.toQueueItem()], index: index, positionMs: 0, play: true),
-    () => player.playQueue(songs, index: index),
-  );
+  /// Plays [songs] from the one at [index]. If that is another song than the one repeating, it turns
+  /// repeating one track into repeating the queue, as a skip does on the player.
+  Future<Result> playSongs(List<Song> songs, int index) async {
+    final now = nowPlaying;
+    final result = await _run(
+      Command.setQueue(queue: [for (final song in songs) song.toQueueItem()], index: index, positionMs: 0, play: true),
+      () => player.playQueue(songs, index: index),
+    );
+
+    if (result.ok && now != null && now.repeat == Repeat.one && now.canRepeat && now.songId != songs[index].id) {
+      await setRepeat(Repeat.all);
+    }
+
+    return result;
+  }
 
   Future<Result> play() => _run(const Command(CommandAction.play), player.play);
 
