@@ -14,8 +14,8 @@ import 'page_header.dart';
 import 'song_list_header.dart';
 import 'spinner.dart';
 
-/// An artist and their albums, newest first, under the songs of theirs the user plays most: once any
-/// has played.
+/// An artist and their albums, newest first, under the songs of theirs the user plays most (once any has played) and,
+/// if they have any albums, a title for them.
 class ArtistPage extends StatefulWidget {
   const ArtistPage(this.artist, {super.key});
 
@@ -86,6 +86,12 @@ class _ArtistPageState extends State<ArtistPage> {
                     ),
                   ),
                   _MostPlayedSongs(_mostPlayed!),
+                  // Over the albums, whether the songs above are there or not; with none, nothing to name.
+                  if (albums.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+                      child: Text('Álbuns', style: text.titleLarge),
+                    ),
                 ],
               ),
             ),
@@ -101,9 +107,8 @@ class _ArtistPageState extends State<ArtistPage> {
   }
 }
 
-/// The artist's songs the user plays most, the first few ([count]), numbered, over a title for the albums under them.
-/// Each plays the list from it, as an album's songs do. Nothing while they come, nor before any has played: the albums
-/// alone.
+/// The artist's songs the user plays most, the first few ([count]), numbered. Each plays the list from it, as an album's
+/// songs do. Nothing while they come, nor before any has played.
 class _MostPlayedSongs extends StatelessWidget {
   const _MostPlayedSongs(this.songs);
 
@@ -164,10 +169,6 @@ class _MostPlayedSongs extends StatelessWidget {
                 onTap: () => _play(context, songs, i),
               ),
             ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
-            child: Text('Álbuns', style: text.titleLarge),
-          ),
         ],
       );
     },

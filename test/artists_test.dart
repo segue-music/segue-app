@@ -29,9 +29,8 @@ http.Response subsonic(Map<String, Object?> body) => http.Response(
   headers: {'content-type': 'application/json'},
 );
 
-/// A server with two artists: Aerosmith, with two albums, none of them played, and Cheap Trick, with
-/// one, six of whose songs have played. A search for "toys" finds an album; any other, the artist
-/// Aerosmith.
+/// A server with three artists: Aerosmith, with two albums, none of them played, Cheap Trick, with one, six of whose
+/// songs have played, and Ramones, with none. A search for "toys" finds an album; any other, the artist Aerosmith.
 http.Response server(http.Request request) {
   final path = request.url.path;
   final id = request.url.queryParameters['id'];
@@ -56,6 +55,12 @@ http.Response server(http.Request request) {
               {'id': 'ar2', 'name': 'Cheap Trick', 'albumCount': 1},
             ],
           },
+          {
+            'name': 'R',
+            'artist': [
+              {'id': 'ar3', 'name': 'Ramones', 'albumCount': 0},
+            ],
+          },
         ],
       },
     });
@@ -71,6 +76,12 @@ http.Response server(http.Request request) {
           {'id': 'a3', 'name': 'In Color', 'artist': 'Cheap Trick', 'year': 1977, 'playCount': 7},
         ],
       },
+    });
+  }
+
+  if (path.endsWith('getArtist.view') && id == 'ar3') {
+    return subsonic({
+      'artist': {'id': 'ar3', 'name': 'Ramones', 'albumCount': 0},
     });
   }
 
@@ -220,6 +231,9 @@ void main() {
     final older = tester.getTopLeft(find.text('1973'));
     expect(newer.dx < older.dx || newer.dy < older.dy, isTrue, reason: 'the 1975 album comes first');
     expect(find.text('Mais tocadas'), findsNothing, reason: 'none of their songs has played');
+    final albums = find.descendant(of: find.byType(ArtistPage), matching: find.text('Álbuns'));
+    expect(albums, findsOneWidget, reason: 'their albums have a title all the same');
+    expect(tester.getTopLeft(albums).dy, lessThan(tester.getTopLeft(find.text('Toys in the Attic')).dy));
 
     await tester.tap(find.text('Toys in the Attic'));
     await tester.pumpAndSettle();
@@ -263,6 +277,17 @@ void main() {
       reason: 'the songs listed',
     );
     expect(engine.index, 1, reason: 'from the one picked');
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('an artist with no albums has no title for them', (tester) async {
+    await pumpHome(tester, const Size(1000, 700));
+    await tester.tap(find.byTooltip('Artistas'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Ramones'));
+    await tester.pumpAndSettle();
+    expect(artistName('Ramones'), findsOneWidget);
+    expect(find.descendant(of: find.byType(ArtistPage), matching: find.text('Álbuns')), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
 
