@@ -329,16 +329,22 @@ void main() {
       await pushAlbum(tester);
       final cover = tester.getRect(find.byTooltip('Ver a capa'));
       final name = tester.getRect(find.text('Toys in the Attic'));
-      final byline = tester.getRect(find.textContaining(' · 1975 · 2 faixas, 8 min'));
+      // The artist with their picture, which the songs' have not.
+      final artist = tester.getRect(find.ancestor(of: coverOf('ar-ar1'), matching: find.byTooltip('Abrir o artista')));
+      final details = tester.getRect(find.text('1975 · 2 faixas, 8 min'));
       final play = tester.getRect(playButton);
       expect(name.top, greaterThanOrEqualTo(cover.bottom));
-      expect(byline.top, greaterThanOrEqualTo(name.bottom));
-      expect((name.left, byline.left), (16, 16), reason: 'from the page\'s margin, not from the cover\'s');
+      expect(artist.top, greaterThanOrEqualTo(name.bottom));
+      expect(details.top, greaterThanOrEqualTo(artist.bottom), reason: 'the year and the songs under the artist');
+      expect((name.left, artist.left, details.left), (16, 16, 16), reason: 'from the page\'s margin, not the cover\'s');
       expect(cover.left, greaterThan(16));
       expect(play.right, 360 - 16);
-      expect(play.left, greaterThanOrEqualTo(name.right));
-      expect(play.left, greaterThanOrEqualTo(byline.right));
-      expect(play.center.dy, moreOrLessEquals((name.top + byline.bottom) / 2, epsilon: 1));
+
+      for (final text in [name, artist, details]) {
+        expect(play.left, greaterThanOrEqualTo(text.right));
+      }
+
+      expect(play.center.dy, moreOrLessEquals((name.top + details.bottom) / 2, epsilon: 1));
       expect(play.bottom, lessThan(tester.getRect(song('Walk This Way')).top));
       await tester.pumpWidget(const SizedBox());
     },

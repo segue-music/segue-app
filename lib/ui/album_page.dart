@@ -129,7 +129,7 @@ class _AlbumPageState extends State<AlbumPage> {
   Widget _header(Album album, List<Song> songs, {required bool narrow}) {
     final text = Theme.of(context).textTheme;
     final name = Text(album.name, style: text.titleLarge);
-    final byline = _Byline(album, songs, artistPicture: _artistPicture!, style: text.bodyMedium);
+    final byline = _Byline(album, songs, artistPicture: _artistPicture!, style: text.bodyMedium, stacked: narrow);
     // Just the icon, its name in the tooltip, as the play button on the albums' covers.
     final play = IconButton.filled(
       tooltip: 'Tocar o álbum',
@@ -219,9 +219,10 @@ class _AlbumPageState extends State<AlbumPage> {
 }
 
 /// Under the album's name: its artist, with their picture, a link to their page; its year; how many songs it has and
-/// how long they last. One paragraph, which a narrow screen wraps.
+/// how long they last. One paragraph, beside the cover; or, [stacked], the artist on a line of their own and the rest
+/// under them.
 class _Byline extends StatelessWidget {
-  const _Byline(this.album, this.songs, {required this.artistPicture, this.style});
+  const _Byline(this.album, this.songs, {required this.artistPicture, this.style, this.stacked = false});
 
   final Album album;
   final List<Song> songs;
@@ -231,21 +232,31 @@ class _Byline extends StatelessWidget {
 
   final TextStyle? style;
 
+  /// Whether the year, the songs and how long they last are under the artist, rather than after them.
+  final bool stacked;
+
   @override
   Widget build(BuildContext context) {
     final details = [if (album.year case final year?) '$year', if (songs.isNotEmpty) _songsLength(songs)].join(' · ');
+    final artist = album.artist == null
+        ? null
+        : ArtistLink.album(album, style: style, picture: album.artistId == null ? null : _ArtistPicture(artistPicture));
+
+    if (stacked) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ?artist,
+          if (details.isNotEmpty) Text(details, style: style),
+        ],
+      );
+    }
+
     return Text.rich(
       TextSpan(
         children: [
-          if (album.artist != null) ...[
-            WidgetSpan(
-              alignment: PlaceholderAlignment.middle,
-              child: ArtistLink.album(
-                album,
-                style: style,
-                picture: album.artistId == null ? null : _ArtistPicture(artistPicture),
-              ),
-            ),
+          if (artist != null) ...[
+            WidgetSpan(alignment: PlaceholderAlignment.middle, child: artist),
             if (details.isNotEmpty) const TextSpan(text: ' · '),
           ],
           TextSpan(text: details),
