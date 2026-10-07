@@ -5,7 +5,10 @@
 set -e
 app=$(cd "$(dirname "$0")/.." && pwd)
 cache=${SEGUE_FLUTTER_CACHE:-$HOME/.cache/segue-flutter}
-mkdir -p "$cache"
+# The container keeps its own .dart_tool, in the cache: pub writes absolute paths there (/opt/flutter,
+# /home/dev/.pub-cache), which would break the analyzer of an editor running on a Flutter installed
+# here.
+mkdir -p "$cache/dart_tool" "$app/.dart_tool"
 tool=flutter
 [ -n "$DART" ] && tool=dart
 set -- "${SEGUE_FLUTTER_IMAGE:-segue-flutter-dev}" "$tool" "$@"
@@ -19,4 +22,5 @@ if [ -f "$hub" ]; then
 fi
 
 exec docker run --rm -i --user "$(id -u):$(id -g)" --network host \
-  -v "$app:$app" -v "$cache:/home/dev" -w "$app" -e HOME=/home/dev -e PUB_CACHE=/home/dev/.pub-cache "$@"
+  -v "$app:$app" -v "$cache/dart_tool:$app/.dart_tool" -v "$cache:/home/dev" -w "$app" \
+  -e HOME=/home/dev -e PUB_CACHE=/home/dev/.pub-cache "$@"

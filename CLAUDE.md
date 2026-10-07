@@ -49,6 +49,8 @@ segue repository had without the app when it moved out, so that build numbers ke
 TestFlight and Android.
 
 With Flutter installed locally, the same commands work as `flutter ...` (`flutter run -d linux`).
+The container keeps its own `.dart_tool` (in `~/.cache/segue-flutter/dart_tool`), whose paths are
+the container's, so it doesn't break the analyzer of an editor that uses the local Flutter.
 
 Test prerequisites:
 - `test/hub_test.dart` runs the app's client and `ConnectController` against the real Go hub
