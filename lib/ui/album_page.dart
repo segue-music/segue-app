@@ -306,9 +306,9 @@ class _AlbumPageState extends State<AlbumPage> {
           child: playing ? const Equalizer() : SongNumber(index + 1),
         ),
         title: Text(song.title),
-        // The artist takes no focus: for the keyboard and the remote the song stays one stop, as an album in the grid
+        // The artists take no focus: for the keyboard and the remote the song stays one stop, as an album in the grid
         // is.
-        subtitle: song.artist == null ? null : ExcludeFocus(child: ArtistLink.song(song)),
+        subtitle: song.artist == null ? null : ExcludeFocus(child: ArtistLinks.song(song)),
         trailing: SongDuration(song.duration),
         onTap: () => _play(songs, index),
       ),

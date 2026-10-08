@@ -92,7 +92,7 @@ class Song {
     this.coverArt,
     this.duration,
     this.albumId,
-    this.artistId,
+    this.artists = const [],
   });
 
   /// A song another device sent, by its id in this device's API. The cover goes by the song id:
@@ -118,8 +118,12 @@ class Song {
   /// Its album's id; null for a song another device sent, whose queue item doesn't carry it.
   final String? albumId;
 
+  /// Its artists, with their ids, the ones [artist] names: the main one first, then those with them ("Run-DMC;
+  /// Aerosmith", "Santana feat. Rob Thomas"). None for a song another device sent, as for [albumId].
+  final List<Artist> artists;
+
   /// The id of its first artist, the one its [artist] starts with; null as [albumId] is.
-  final String? artistId;
+  String? get artistId => artists.firstOrNull?.id;
 
   QueueItem toQueueItem() =>
       QueueItem(id: id, title: title, artist: artist, album: album, durationMs: duration?.inMilliseconds);

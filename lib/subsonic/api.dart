@@ -431,8 +431,16 @@ Song _song(Map<String, dynamic> json) => Song(
   coverArt: json['coverArt'] as String?,
   duration: json['duration'] == null ? null : Duration(seconds: (json['duration'] as num).toInt()),
   albumId: json['albumId'] as String?,
-  artistId: json['artistId'] as String?,
+  artists: _songArtists(json),
 );
+
+/// A song's artists: OpenSubsonic's artists, all of them, or else Subsonic's one, artistId, whom its artist names.
+List<Artist> _songArtists(Map<String, dynamic> json) => switch (json['artists']) {
+  final List<Object?> artists when artists.isNotEmpty => [
+    for (final artist in artists) _artist(artist as Map<String, dynamic>),
+  ],
+  _ => [if (json['artistId'] case final String id) Artist(id: id, name: json['artist'] as String? ?? '')],
+};
 
 Genre _genre(Map<String, dynamic> json) => Genre(
   id: json['value'] as String,

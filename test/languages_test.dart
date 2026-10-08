@@ -145,7 +145,7 @@ Future<void> pumpHome(WidgetTester tester, Locale language, Size size) async {
         artist: 'Aerosmith',
         album: 'Toys in the Attic',
         albumId: 'a1',
-        artistId: 'ar1',
+        artists: const [Artist(id: 'ar1', name: 'Aerosmith')],
         duration: Duration(seconds: song['duration']! as int),
       ),
   ], play: false);

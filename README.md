@@ -64,9 +64,11 @@ the device it runs on.
   from anywhere but the lyrics, which scroll (taller than the screen, it scrolls to its top first). A swipe on
   its cover goes to the next song (to the left) or the previous one (to the right). In both,
   the song's title
-  opens its album (as does the album's name, in the full-screen player) and its artist their page
-  (the first artist, when it has several), whichever device it plays on; on a phone the whole song
-  in the bar opens the player. A song the media server fails to give (as when it can't read its disk)
+  opens its album (as does the album's name, in the full-screen player) and each of its artists
+  their page, whichever device it plays on (several apart by a dot, "Run-DMC · Aerosmith", whatever
+  the media server puts between them, and in too little room, as many as fit); on a phone the whole song
+  in the bar opens the player (its artists there apart by commas where the media server has
+  semicolons). A song the media server fails to give (as when it can't read its disk)
   stops the player on it, paused where it was, and says so, rather than the player skipping through
   the queue; play tries it again. As the app opens on the last playback, paused, it already loads the
   song, so that play starts at once; should the server fail it then, the app says so only if play,
@@ -75,8 +77,8 @@ the device it runs on.
   its first song (on a computer, while the pointer is over the album; on a tablet, always; on a
   phone, where it covered much of the cover, and on a TV, which goes from album to album, never), and the rest of it opens the album; on the album's
   page the artist links too, and there the keyboard and the remote get to them (in the lists, each
-  album is one stop), and each song's artist, under its title, opens their page too (the first
-  artist, when it has several; for the keyboard and the remote, each song is one stop);
+  album is one stop), and each song's artists, under its title, open their page too, each their
+  own (for the keyboard and the remote, each song is one stop);
 - on a wide screen (a computer, a tablet, a TV), the top bar, the side rail and the player bar stay,
   and pages (an album, an artist, a genre, the queue, the full-screen player) open between them, with
   the search bar in the middle of the top bar. Arrows beside the app's icon go back and forward through

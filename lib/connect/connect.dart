@@ -15,6 +15,7 @@ class NowPlaying {
     this.songId,
     this.title,
     this.artist,
+    this.artists = const [],
     this.album,
     this.coverArt,
     this.duration,
@@ -32,6 +33,11 @@ class NowPlaying {
 
   final String? title;
   final String? artist;
+
+  /// The artists [artist] names, with their ids in the app's API; none where the song doesn't have them, as one
+  /// another device plays, which the hub gives with its artist's name only.
+  final List<Artist> artists;
+
   final String? album;
   final String? coverArt;
   final bool playing;
@@ -112,6 +118,7 @@ class ConnectController extends ChangeNotifier {
         songId: song.id,
         title: song.title,
         artist: song.artist,
+        artists: song.artists,
         album: song.album,
         coverArt: song.coverArt,
         playing: player.playing,

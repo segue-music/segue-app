@@ -427,7 +427,10 @@ void main() {
     final found = await api.song('s1');
     expect((found.title, found.artist), ('Walk This Way', 'Run-DMC, Aerosmith'));
     expect((found.albumId, found.artistId), ('a1', 'ar2'));
-    expect((await api.song('s2')).artistId, 'ar1', reason: 'its artist shows as the album artist');
+    expect(found.artists.map((artist) => (artist.id, artist.name)), [('ar2', 'Run-DMC'), ('ar1', 'Aerosmith')]);
+    final untaggedFound = await api.song('s2');
+    expect(untaggedFound.artistId, 'ar1', reason: 'its artist shows as the album artist');
+    expect(untaggedFound.artists.map((artist) => (artist.id, artist.name)), [('ar1', 'Aerosmith')]);
     await expectLater(api.song('s3'), throwsA(isA<ServerError>()));
   });
 

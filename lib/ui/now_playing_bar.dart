@@ -134,8 +134,10 @@ class NowPlayingBar extends StatelessWidget {
                                                         maxLines: 1,
                                                         overflow: TextOverflow.ellipsis,
                                                       ),
+                                                      // Several artists apart by commas, where the media
+                                                      // server has semicolons ("Run-DMC; Aerosmith").
                                                       Text(
-                                                        now.artist ?? '',
+                                                        (now.artist ?? '').replaceAll(';', ','),
                                                         style: line,
                                                         maxLines: 1,
                                                         overflow: TextOverflow.ellipsis,

@@ -12,12 +12,6 @@ class ArtistLink extends StatelessWidget {
     : name = album.artist ?? '',
       artistId = album.artistId;
 
-  /// A song's artist: the first, when it has several, though the link shows them all.
-  ArtistLink.song(Song song, {this.style, super.key})
-    : name = song.artist ?? '',
-      artistId = song.artistId,
-      picture = null;
-
   final String name;
   final String? artistId;
   final TextStyle? style;
@@ -41,6 +35,115 @@ class ArtistLink extends StatelessWidget {
       style: style,
       leading: picture,
     );
+  }
+}
+
+/// A song's artists, each a link to their page, apart as an album's artist, year and songs are: "Run-DMC · Aerosmith",
+/// whatever the media server puts between them in the song's artist ("Run-DMC; Aerosmith", "Santana feat. Rob
+/// Thomas"). What goes between them belongs to what holds them, as the rest of a [TextLink]'s line does. In one line:
+/// where they don't fit, the one the room runs out in ends in an ellipsis, as one text would, and those after it are
+/// left out.
+class ArtistLinks extends StatelessWidget {
+  /// A song's artists, whose pages open over the current one.
+  ArtistLinks.song(Song song, {this.style, super.key})
+    : text = song.artist ?? '',
+      artists = song.artists,
+      onOpen = null,
+      onTapUnknown = null,
+      textAlign = null;
+
+  const ArtistLinks(
+    this.text,
+    this.artists, {
+    required this.onOpen,
+    this.onTapUnknown,
+    this.style,
+    this.textAlign,
+    super.key,
+  });
+
+  /// The song's artist, as the media server writes it, which shows where [artists] is empty.
+  final String text;
+
+  final List<Artist> artists;
+
+  /// What a link does: opens the page of its artist. Null opens it over the current one.
+  final void Function(Artist artist)? onOpen;
+
+  /// What a tap on the whole of it does where [artists] is empty, as while who they are isn't known yet; null leaves
+  /// it plain text.
+  final VoidCallback? onTapUnknown;
+
+  final TextStyle? style;
+  final TextAlign? textAlign;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = AppLocalizations.of(context);
+    final open =
+        onOpen ?? (artist) => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ArtistPage(artist)));
+    final pieces = <(String, Artist?)>[
+      if (artists.isEmpty) (text, null),
+      for (final (i, artist) in artists.indexed) ...[if (i > 0) (' · ', null), (artist.name, artist)],
+    ];
+
+    // Every piece a TextLink, also what has nowhere to go: from one song to the next, a link keeps its place, and with
+    // it the focus.
+    Widget link((String, Artist?) piece) => TextLink(
+      piece.$1,
+      tooltip: strings.openArtist,
+      onTap: switch (piece.$2) {
+        final artist? => () => open(artist),
+        null => artists.isEmpty ? onTapUnknown : null,
+      },
+      style: style,
+      textAlign: textAlign,
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // As a Text takes it, to find out how wide each piece is.
+        final textStyle = DefaultTextStyle.of(context).style
+            .merge(style)
+            .merge(MediaQuery.boldTextOf(context) ? const TextStyle(fontWeight: FontWeight.bold) : null);
+        final shown = <Widget>[];
+        var width = 0.0;
+
+        for (final piece in pieces) {
+          width += _widthOf(piece.$1, textStyle, MediaQuery.textScalerOf(context), Directionality.of(context));
+
+          if (width > constraints.maxWidth) {
+            shown.add(Flexible(child: link(piece)));
+            break;
+          }
+
+          shown.add(link(piece));
+        }
+
+        return Align(
+          alignment: textAlign == TextAlign.center ? Alignment.center : AlignmentDirectional.centerStart,
+          widthFactor: 1,
+          heightFactor: 1,
+          child: Row(mainAxisSize: MainAxisSize.min, children: shown),
+        );
+      },
+    );
+  }
+}
+
+/// How wide [text] is in one line, in [style] at [scaler]'s size.
+double _widthOf(String text, TextStyle style, TextScaler scaler, TextDirection direction) {
+  final painter = TextPainter(
+    text: TextSpan(text: text, style: style),
+    textDirection: direction,
+    textScaler: scaler,
+    maxLines: 1,
+  )..layout();
+
+  try {
+    return painter.width;
+  } finally {
+    painter.dispose();
   }
 }
 

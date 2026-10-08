@@ -293,6 +293,38 @@ void main() {
     expect((song.title, song.albumId, song.artistId), ('Dream On', 'a1', 'ar1'));
   });
 
+  test('a song\'s artists are OpenSubsonic\'s, all of them, or else the one of its artistId', () async {
+    final api = SubsonicApi(
+      Uri.parse('https://music.test'),
+      credentials,
+      client: MockClient(
+        (request) async => subsonic({
+          'status': 'ok',
+          'song': switch (request.url.queryParameters['id']) {
+            's1' => {
+              'id': 's1',
+              'title': 'Walk This Way',
+              'artist': 'Run-DMC; Aerosmith',
+              'artistId': 'ar2',
+              'artists': [
+                {'id': 'ar2', 'name': 'Run-DMC'},
+                {'id': 'ar1', 'name': 'Aerosmith', 'coverArt': 'ar-ar1'},
+              ],
+            },
+            _ => {'id': 's2', 'title': 'Dream On', 'artist': 'Aerosmith', 'artistId': 'ar1'},
+          },
+        }),
+      ),
+    );
+    final duet = await api.song('s1');
+    expect(duet.artists.map((artist) => (artist.id, artist.name, artist.coverArt)), [
+      ('ar2', 'Run-DMC', null),
+      ('ar1', 'Aerosmith', 'ar-ar1'),
+    ]);
+    expect(duet.artistId, 'ar2');
+    expect((await api.song('s2')).artists.map((artist) => (artist.id, artist.name)), [('ar1', 'Aerosmith')]);
+  });
+
   test('albums by name are getAlbumList2\'s alphabeticalByName, and the latest added its newest', () async {
     final asked = <Uri>[];
     final api = SubsonicApi(

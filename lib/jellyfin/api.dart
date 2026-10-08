@@ -406,6 +406,12 @@ String? _joined(Object? names) => names is List && names.isNotEmpty ? names.join
 String? _firstId(Object? items) =>
     items is List && items.isNotEmpty ? (items.first as Map<String, dynamic>)['Id'] as String? : null;
 
+/// The artists of a list of names with ids, as ArtistItems and AlbumArtists are.
+List<Artist> _namesWithIds(Object? items) => [
+  for (final item in items as List? ?? const [])
+    if ((item as Map<String, dynamic>)['Id'] case final String id) Artist(id: id, name: item['Name'] as String? ?? ''),
+];
+
 /// How many times the user played an item.
 int _playCount(Map<String, dynamic> json) =>
     ((json['UserData'] as Map<String, dynamic>?)?['PlayCount'] as num?)?.toInt() ?? 0;
@@ -450,7 +456,7 @@ Album _album(Map<String, dynamic> json) => Album(
 );
 
 /// A song's cover is its own image or else its album's, as Jellyfin's apps show it. Its artists are
-/// the album's when it has none of its own, and its artist id is the first of those it shows.
+/// the album's when it has none of its own, both in its artist's name and in its list of artists.
 Song _song(Map<String, dynamic> json) => Song(
   id: json['Id'] as String,
   title: json['Name'] as String? ?? '',
@@ -459,7 +465,10 @@ Song _song(Map<String, dynamic> json) => Song(
   coverArt: _primaryImage(json) ?? (json['AlbumPrimaryImageTag'] == null ? null : json['AlbumId'] as String?),
   duration: _duration(json),
   albumId: json['AlbumId'] as String?,
-  artistId: _firstId(json['ArtistItems']) ?? _firstId(json['AlbumArtists']),
+  artists: switch (_namesWithIds(json['ArtistItems'])) {
+    [] => _namesWithIds(json['AlbumArtists']),
+    final artists => artists,
+  },
 );
 
 Artist _artist(Map<String, dynamic> json) => Artist(

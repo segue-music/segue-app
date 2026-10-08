@@ -59,10 +59,14 @@ http.Response library(http.Request request) {
     's2': {
       'id': 's2',
       'title': 'Walk This Way',
-      'artist': 'Run-DMC, Aerosmith',
+      'artist': 'Run-DMC; Aerosmith',
       'album': 'Raising Hell',
       'albumId': 'a2',
       'artistId': 'ar2',
+      'artists': [
+        {'id': 'ar2', 'name': 'Run-DMC'},
+        {'id': 'ar1', 'name': 'Aerosmith'},
+      ],
     },
   };
   final albums = {
@@ -133,10 +137,18 @@ SegueClient tvPlaying(QueueItem song) {
   return client;
 }
 
+const sweetEmotion = Song(
+  id: 's1',
+  title: 'Sweet Emotion',
+  artist: 'Aerosmith',
+  album: 'Toys in the Attic',
+  duration: Duration(seconds: 274),
+);
+
 /// The player bar, under the navigator as in the app, on a screen of [size] (a phone's by default),
-/// playing Sweet Emotion here: under an empty page, or with [inHome], the home's. [client] adds a hub,
-/// and the bar then shows what it says; [server] answers for the media server, which by default knows
-/// nothing.
+/// playing [song] here, Sweet Emotion by default: under an empty page, or with [inHome], the home's.
+/// [client] adds a hub, and the bar then shows what it says; [server] answers for the media server,
+/// which by default knows nothing.
 Future<PlayerController> pumpBar(
   WidgetTester tester, {
   SegueClient? client,
@@ -144,6 +156,7 @@ Future<PlayerController> pumpBar(
   Lrclib? lrclib,
   Size size = const Size(360, 640),
   bool inHome = false,
+  Song song = sweetEmotion,
 }) async {
   final api = SubsonicApi(
     Uri.parse('https://music.test'),
@@ -153,15 +166,7 @@ Future<PlayerController> pumpBar(
   final player = PlayerController(FakeEngine(), api);
 
   if (client == null) {
-    await player.playQueue(const [
-      Song(
-        id: 's1',
-        title: 'Sweet Emotion',
-        artist: 'Aerosmith',
-        album: 'Toys in the Attic',
-        duration: Duration(seconds: 274),
-      ),
-    ], play: false);
+    await player.playQueue([song], play: false);
   }
 
   final connect = ConnectController(player: player, client: client);
@@ -1435,20 +1440,58 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('another device\'s song links too, and the artist page is named after the artist it opened', (
-    tester,
-  ) async {
+  testWidgets('another device\'s song links too, each of its artists, whose page is named after them', (tester) async {
     await pumpBar(
       tester,
-      client: tvPlaying(const QueueItem(id: 's2', title: 'Walk This Way', artist: 'Run-DMC, Aerosmith')),
+      client: tvPlaying(const QueueItem(id: 's2', title: 'Walk This Way', artist: 'Run-DMC; Aerosmith')),
       server: library,
     );
     await openPlayer(tester);
-    await tester.tap(onPage(find.text('Run-DMC, Aerosmith')));
+    expect(onPage(find.byTooltip('Abrir o artista')), findsNWidgets(2), reason: 'the media server says who they are');
+    await tester.tap(onPage(find.text('Run-DMC')));
     await tester.pumpAndSettle();
     expect(find.byType(ArtistPage), findsOneWidget);
     expect(find.descendant(of: find.byType(ArtistPage), matching: find.text('Run-DMC')), findsOneWidget);
     expect(find.text('Raising Hell'), findsOneWidget);
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+
+    await openPlayer(tester);
+    await tester.tap(onPage(find.text('Aerosmith')));
+    await tester.pumpAndSettle();
+    expect(find.descendant(of: find.byType(ArtistPage), matching: find.text('Aerosmith')), findsOneWidget);
+    expect(find.text('Get Your Wings'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('the song that plays here links each of its artists, without asking the server who they are', (
+    tester,
+  ) async {
+    final asked = <http.Request>[];
+    await pumpBar(
+      tester,
+      song: const Song(
+        id: 's2',
+        title: 'Walk This Way',
+        artist: 'Run-DMC; Aerosmith',
+        album: 'Raising Hell',
+        albumId: 'a2',
+        artists: [
+          Artist(id: 'ar2', name: 'Run-DMC'),
+          Artist(id: 'ar1', name: 'Aerosmith'),
+        ],
+      ),
+      server: (request) {
+        asked.add(request);
+        return library(request);
+      },
+      size: const Size(1000, 600),
+    );
+    expect(find.byTooltip('Abrir o artista'), findsNWidgets(2), reason: 'in the bar');
+    await tester.tap(find.text('Aerosmith'));
+    await tester.pumpAndSettle();
+    expect(tester.widget<ArtistPage>(find.byType(ArtistPage)).artist.id, 'ar1');
+    expect(asked.where((request) => request.url.path.endsWith('getSong.view')), isEmpty);
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -1520,6 +1563,17 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(PlayerPage), findsOneWidget);
     expect(find.byType(ArtistPage), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a phone, the bar parts several artists by commas, where the media server has semicolons', (
+    tester,
+  ) async {
+    await pumpBar(
+      tester,
+      song: const Song(id: 's2', title: 'Walk This Way', artist: 'Run-DMC; Aerosmith', album: 'Raising Hell'),
+    );
+    expect(find.text('Run-DMC, Aerosmith'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 

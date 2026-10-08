@@ -32,14 +32,15 @@ http.Response subsonic(Map<String, Object?> body) => http.Response(
   headers: {'content-type': 'application/json'},
 );
 
-/// The page of Toys in the Attic, with the cover [coverArt], two songs by Aerosmith and then [more] songs, the release
-/// date [releaseDate], the record labels [recordLabels] and the release types [releaseTypes], on a screen of [size],
-/// with what [musicBrainz] adds.
+/// The page of Toys in the Attic, with the cover [coverArt], two songs by Aerosmith and then [more] songs and [others],
+/// the release date [releaseDate], the record labels [recordLabels] and the release types [releaseTypes], on a screen
+/// of [size], with what [musicBrainz] adds.
 /// Aerosmith's picture is `ar-ar1`. Returns the player's engine.
 Future<FakeEngine> pumpAlbum(
   WidgetTester tester, {
   String? coverArt = 'al-a1',
   int more = 0,
+  List<Map<String, Object?>> others = const [],
   Map<String, int>? releaseDate,
   List<String> recordLabels = const [],
   List<String>? releaseTypes,
@@ -74,6 +75,7 @@ Future<FakeEngine> pumpAlbum(
             {'id': 's1', 'title': 'Walk This Way', 'artist': 'Aerosmith', 'artistId': 'ar1', 'duration': 220},
             {'id': 's2', 'title': 'Sweet Emotion', 'artist': 'Aerosmith', 'artistId': 'ar1', 'duration': 274},
             for (var i = 1; i <= more; i++) {'id': 'm$i', 'title': 'Song $i', 'artist': 'Aerosmith', 'duration': 200},
+            ...others,
           ],
         },
       });
@@ -234,6 +236,36 @@ void main() {
     expect(find.byType(ArtistPage), findsOneWidget);
     expect(find.descendant(of: find.byType(ArtistPage), matching: find.text('Aerosmith')).first, findsOneWidget);
     expect(engine.tracks, isEmpty, reason: 'the song didn\'t play');
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('a song by several artists links each of them, on a phone too', (tester) async {
+    await pumpAlbum(
+      tester,
+      others: [
+        {
+          'id': 's3',
+          'title': 'Walk This Way (Run-DMC)',
+          'artist': 'Run-DMC; Aerosmith',
+          'artistId': 'ar2',
+          'artists': [
+            {'id': 'ar2', 'name': 'Run-DMC'},
+            {'id': 'ar1', 'name': 'Aerosmith'},
+          ],
+          'duration': 311,
+        },
+      ],
+      size: const Size(360, 640),
+    );
+    final duet = song('Walk This Way (Run-DMC)');
+    expect(find.descendant(of: duet, matching: find.byTooltip('Abrir o artista')), findsNWidgets(2));
+    expect(find.descendant(of: duet, matching: find.text(' · ')), findsOneWidget);
+    final runDmc = find.descendant(of: duet, matching: find.text('Run-DMC'));
+    await tester.ensureVisible(runDmc);
+    await tester.pumpAndSettle();
+    await tester.tap(runDmc);
+    await tester.pumpAndSettle();
+    expect(tester.widget<ArtistPage>(find.byType(ArtistPage)).artist.id, 'ar2');
     await tester.pumpWidget(const SizedBox());
   });
 
