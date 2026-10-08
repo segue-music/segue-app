@@ -22,9 +22,10 @@ import 'segmented_choice.dart';
 import 'song_list_header.dart';
 import 'spinner.dart';
 import 'themed_icon.dart';
+import 'tile_row.dart';
 
 /// An artist and their albums, newest first, under a few songs of theirs (the ones the user plays most, or the popular
-/// ones: [_ArtistSongs]): their albums, then their singles and EPs, each under a title.
+/// ones: [_ArtistSongs]): their albums, then their singles and EPs, each under a title, then the artists like them.
 class ArtistPage extends StatefulWidget {
   const ArtistPage(this.artist, {super.key});
 
@@ -40,6 +41,9 @@ class _ArtistPageState extends State<ArtistPage> {
 
   /// Their biography; none where the server has none, or can't say.
   Future<Biography?>? _biography;
+
+  /// The library's artists like them; none where the server can't say.
+  Future<List<Artist>>? _similar;
 
   /// How much of the page's color its bar has. On a phone, over the artist's picture: none at the top of the page, where
   /// the name has its halo, and more as the page scrolls, all of it once half the picture has gone up under the bar, so
@@ -64,6 +68,8 @@ class _ArtistPageState extends State<ArtistPage> {
     _mostPlayed ??= api.mostPlayedSongs(widget.artist.id, size: _ArtistSongs.count);
     // A biography the server can't give is one it doesn't have: the page goes on without its button.
     _biography ??= api.biography(widget.artist.id).catchError((Object _) => null);
+    // Artists like them the server can't give are none, as with a biography.
+    _similar ??= api.similarArtists(widget.artist.id).catchError((Object _) => const <Artist>[]);
   }
 
   @override
@@ -116,6 +122,7 @@ class _ArtistPageState extends State<ArtistPage> {
                   // On a phone, how many albums they have, at the end of the choice's line.
                   trailing: narrow ? _counts(artist, albums, end: true) : null,
                 ),
+                footer: _similarArtists(),
               ),
             ),
           },
@@ -347,6 +354,35 @@ class _ArtistPageState extends State<ArtistPage> {
       },
     );
   }
+
+  /// Pictures of 160 pixels in the row of artists like them, as an album's cover is in a row of albums, with the tiles'
+  /// room inside ([ArtistTile.padding]).
+  static const _similarTileSize = Size(
+    160 + 2 * ArtistTile.padding,
+    (160 + 2 * ArtistTile.padding) / ArtistTile.aspectRatio,
+  );
+
+  /// The artists like them ([_similar]), in a row of their pictures, each of which opens their page; nothing until they
+  /// come, and nothing with none. As far under its last pictures' lines as the albums are from the page's end.
+  Widget _similarArtists() => FutureBuilder(
+    future: _similar,
+    builder: (context, snapshot) {
+      final strings = AppLocalizations.of(context);
+      return switch (snapshot.data) {
+        null || [] => const SizedBox.shrink(),
+        final artists => Padding(
+          padding: const EdgeInsets.only(bottom: 16 - ArtistTile.padding),
+          child: TileRow(
+            title: strings.similarArtists,
+            tiles: [for (final artist in artists) ArtistTile(artist)],
+            tileSize: _similarTileSize,
+            previousLabel: strings.previousArtists,
+            nextLabel: strings.nextArtists,
+          ),
+        ),
+      };
+    },
+  );
 
   /// How many of [albums] are albums, and singles and EPs, as the sections under part them: "8 álbuns · 4 singles e
   /// EPs", "8 álbuns · 1 EP", "2 singles"; "0 álbuns" with none.

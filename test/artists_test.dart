@@ -17,6 +17,7 @@ import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/albums_view.dart';
 import 'package:segue/ui/artist_page.dart';
+import 'package:segue/ui/artists_view.dart';
 import 'package:segue/ui/biography_page.dart';
 import 'package:segue/ui/cover.dart';
 import 'package:segue/ui/home_page.dart';
@@ -24,6 +25,7 @@ import 'package:segue/ui/now_playing_bar.dart';
 import 'package:segue/ui/page_bar.dart';
 import 'package:segue/ui/segmented_choice.dart';
 import 'package:segue/ui/themed_icon.dart';
+import 'package:segue/ui/tile_row.dart';
 
 import 'fakes.dart';
 import 'side_rail.dart';
@@ -40,7 +42,7 @@ http.Response subsonic(Map<String, Object?> body) => http.Response(
 /// with one album, six of whose songs have played, and Ramones, with none. A search for "toys" finds an album; any other, the artist Aerosmith.
 /// Unless [played], nothing has played: not even Cheap Trick's songs. Cheap Trick's popular songs are three of that
 /// album's, Big Eyes first; the others' fail, as on a server that has none to give. Aerosmith has a biography, Last.fm's,
-/// and a MusicBrainz id; the others have none, which fails too.
+/// a MusicBrainz id, and Cheap Trick and Ramones as the artists like them; the others have neither, which fails too.
 http.Response server(http.Request request, {bool played = true}) {
   final path = request.url.path;
   final id = request.url.queryParameters['id'];
@@ -104,6 +106,10 @@ http.Response server(http.Request request, {bool played = true}) {
         'biography':
             'Aerosmith is an American rock band formed in Boston in 1970. <a target=\'_blank\' '
             'href="https://www.last.fm/music/Aerosmith" rel="nofollow">Read more on Last.fm</a>',
+        'similarArtist': [
+          {'id': 'ar2', 'name': 'Cheap Trick', 'coverArt': 'ar-ar2', 'albumCount': 1},
+          {'id': 'ar3', 'name': 'Ramones', 'albumCount': 0},
+        ],
       },
     });
   }
@@ -888,6 +894,50 @@ void main() {
       expect(find.byTooltip('Ver a biografia'), findsNothing);
       await tester.pumpWidget(const SizedBox());
     });
+  }
+
+  for (final (screen, size) in [('a wide screen', const Size(1000, 700)), ('a phone', const Size(360, 640))]) {
+    testWidgets(
+      'on $screen, the artists like one come at the end of their page, in a row of their pictures, which open '
+      'their pages; an artist with none has no row',
+      (tester) async {
+        await pumpHome(tester, size);
+        await tester.tap(size.width < 600 ? find.text('Artistas') : find.byTooltip('Artistas'));
+        await tester.pumpAndSettle();
+        await tester.tap(tile('Aerosmith'));
+        await tester.pumpAndSettle();
+        // The page's own, the first: the row's scrolls sideways.
+        final page = find.descendant(of: find.byType(ArtistPage), matching: find.byType(Scrollable)).first;
+        await tester.drag(page, const Offset(0, -3000));
+        await tester.pumpAndSettle();
+
+        final row = find.descendant(of: find.byType(ArtistPage), matching: find.byType(TileRow));
+        expect(find.descendant(of: row, matching: find.text('Artistas parecidos')), findsOneWidget);
+        expect(
+          tester.getTopLeft(row).dy,
+          greaterThan(tester.getBottomLeft(find.text('Dream On')).dy),
+          reason:
+              'after '
+              'their singles and EPs',
+        );
+        final artists = find.descendant(of: row, matching: find.byType(ArtistTile));
+        expect(
+          [for (final tile in tester.widgetList<ArtistTile>(artists)) tile.artist.name],
+          ['Cheap Trick', 'Ramones'],
+        );
+        final picture = find.descendant(of: artists.first, matching: find.byType(ClipOval));
+        expect(tester.getSize(picture), const Size.square(160), reason: 'as big as a cover in a row of albums');
+
+        await tester.tap(picture);
+        await tester.pumpAndSettle();
+        expect(artistName('Cheap Trick'), findsOneWidget);
+        await tester.drag(page, const Offset(0, -3000));
+        await tester.pumpAndSettle();
+        expect(find.text('In Color'), findsWidgets, reason: 'at the end of their page');
+        expect(find.text('Artistas parecidos'), findsNothing, reason: 'the server gives none like them');
+        await tester.pumpWidget(const SizedBox());
+      },
+    );
   }
 
   testWidgets('a band\'s biography has its years beside its name, asked of MusicBrainz as it opens', (tester) async {

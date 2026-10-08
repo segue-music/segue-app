@@ -560,6 +560,27 @@ void main() {
     expect(await jellyfin((_) => items([artist])).biography('ar1'), isNull);
   });
 
+  test('the artists like one are Artists/{id}/Similar\'s, 20 at most, but the artist themselves', () async {
+    final asked = <http.Request>[];
+    final similar = await jellyfin(
+      (_) => items([
+        {
+          'Id': 'ar2',
+          'Name': 'Cheap Trick',
+          'Type': 'MusicArtist',
+          'ImageTags': {'Primary': 'tag'},
+        },
+        artist,
+        {'Id': 'ar3', 'Name': 'Ramones', 'Type': 'MusicArtist'},
+      ]),
+      asked,
+    ).similarArtists('ar1');
+    expect(asked.single.url.path, '/jellyfin/Artists/ar1/Similar');
+    expect(asked.single.url.queryParameters, allOf(containsPair('Limit', '20'), containsPair('userId', 'u1')));
+    expect([for (final artist in similar) artist.name], ['Cheap Trick', 'Ramones']);
+    expect([for (final artist in similar) artist.coverArt], ['ar2', null]);
+  });
+
   test('audio and covers come from URLs a player can open, the token in the stream\'s', () {
     final api = jellyfin((_) => http.Response('', 404));
     final stream = api.streamUrl('s1');

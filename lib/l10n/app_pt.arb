@@ -356,6 +356,18 @@
   "@nextAlbums": {
     "description": "The tooltip of a row of albums' arrow that scrolls forward."
   },
+  "previousArtists": "Anteriores",
+  "@previousArtists": {
+    "description": "The tooltip of a row of artists' arrow that scrolls back."
+  },
+  "nextArtists": "Próximos",
+  "@nextArtists": {
+    "description": "The tooltip of a row of artists' arrow that scrolls forward."
+  },
+  "similarArtists": "Artistas parecidos",
+  "@similarArtists": {
+    "description": "The title of the row of artists like this one, at the end of an artist's page."
+  },
   "albums": "Álbuns",
   "@albums": {
     "description": "The albums section, and the heading of a list of albums."

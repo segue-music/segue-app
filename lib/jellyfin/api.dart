@@ -292,6 +292,14 @@ class JellyfinApi implements MediaServer {
     return Biography.fromHtml(artist['Overview'] as String?);
   }
 
+  /// Artists/{id}/Similar, which Jellyfin finds by what their metadata shares (genres, tags), but the artist themselves,
+  /// should it count them.
+  @override
+  Future<List<Artist>> similarArtists(String artistId) async => [
+    for (final json in await _list('Artists/${Uri.encodeComponent(artistId)}/Similar', {'Limit': '20'}))
+      if (json['Id'] != artistId) _artist(json),
+  ];
+
   /// The file as it is (static), with the token in the URL: the player can't send headers. With [maxBitRate],
   /// Audio/{id}/universal, which sends the file as it is where its bitrate is within it, and otherwise transcodes it into
   /// AAC over HLS, which the player can seek in, unlike a stream transcoded as it goes.

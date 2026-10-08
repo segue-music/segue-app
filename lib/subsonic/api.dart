@@ -43,8 +43,8 @@ class SubsonicApi implements MediaServer {
   // Whether the server has OpenSubsonic's transcodeOffset, once asked.
   Future<bool>? _transcodeOffset;
 
-  // The getArtist requests under way, by the artist's id.
-  final _artistRequests = <String, Future<Map<String, dynamic>>>{};
+  // The requests under way that more than one method makes ([_shared]), by their endpoint and the id they ask for.
+  final _sharedRequests = <(String, String), Future<Map<String, dynamic>>>{};
 
   @override
   Api get api => Api.subsonic;
@@ -270,19 +270,33 @@ class SubsonicApi implements MediaServer {
 
   /// getArtistInfo2's biography: Navidrome's comes from its agents (Last.fm's, where it's on), as HTML.
   @override
-  Future<Biography?> biography(String artistId) async {
-    final body = await _get('getArtistInfo2', {'id': artistId});
-    return Biography.fromHtml((body['artistInfo2'] as Map<String, dynamic>?)?['biography'] as String?);
-  }
+  Future<Biography?> biography(String artistId) async =>
+      Biography.fromHtml((await _artistInfo(artistId))['biography'] as String?);
+
+  /// getArtistInfo2's similar artists, as many as it gives by default (20): Navidrome learns them from its agents
+  /// (Last.fm's, where it's on) and gives those in the library.
+  @override
+  Future<List<Artist>> similarArtists(String artistId) async => [
+    for (final artist in (await _artistInfo(artistId))['similarArtist'] as List? ?? const [])
+      _artist(artist as Map<String, dynamic>),
+  ];
 
   /// The artist whose id is [id] and their albums, as getArtist gives them. The artist page asks for the artist and for
-  /// their most played songs at once, which both start here, so a request under way for them answers both; one that
-  /// has answered isn't kept, since the plays change.
-  Future<Map<String, dynamic>> _artistJson(String id) => _artistRequests[id] ??= _get('getArtist', {'id': id})
-      .then((body) => body['artist'] as Map<String, dynamic>)
-      .whenComplete(() {
+  /// their most played songs at once, which both start here: a request under way answers both ([_shared]).
+  Future<Map<String, dynamic>> _artistJson(String id) =>
+      _shared('getArtist', id).then((body) => body['artist'] as Map<String, dynamic>);
+
+  /// What getArtistInfo2 knows of the artist whose id is [id]. The artist page asks for their biography and the artists
+  /// like them at once, which both start here: a request under way answers both ([_shared]).
+  Future<Map<String, dynamic>> _artistInfo(String id) =>
+      _shared('getArtistInfo2', id).then((body) => body['artistInfo2'] as Map<String, dynamic>? ?? const {});
+
+  /// What [endpoint] answers for the id [id], asked once for all that ask while a request is under way. One that has
+  /// answered isn't kept: what it says may have changed since (an artist's plays).
+  Future<Map<String, dynamic>> _shared(String endpoint, String id) =>
+      _sharedRequests[(endpoint, id)] ??= _get(endpoint, {'id': id}).whenComplete(() {
         // In braces: whenComplete waits for what this returns, and remove returns the request itself.
-        _artistRequests.remove(id);
+        _sharedRequests.remove((endpoint, id));
       });
 
   /// The format of a transcoded song is the server's pick (Navidrome's is Opus).

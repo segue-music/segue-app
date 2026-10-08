@@ -778,6 +778,70 @@ void main() {
     }
   });
 
+  test('the artists like one are getArtistInfo2\'s similar artists, in its order; one without them has none', () async {
+    final asked = <Uri>[];
+    final api = SubsonicApi(
+      Uri.parse('https://music.test'),
+      credentials,
+      client: MockClient((request) async {
+        asked.add(request.url);
+        return subsonic({
+          'status': 'ok',
+          'artistInfo2': {
+            // As Navidrome gives them: those of the library, from Last.fm.
+            'similarArtist': [
+              {'id': 'ar2', 'name': 'Cheap Trick', 'coverArt': 'ar-ar2', 'albumCount': 3, 'musicBrainzId': 'mb2'},
+              {'id': 'ar3', 'name': 'Ramones', 'albumCount': 1},
+            ],
+          },
+        });
+      }),
+    );
+    final similar = await api.similarArtists('ar1');
+    expect(asked.single.path, '/rest/getArtistInfo2.view');
+    expect(asked.single.queryParameters, containsPair('id', 'ar1'));
+    expect([for (final artist in similar) artist.id], ['ar2', 'ar3']);
+    expect(similar.first.name, 'Cheap Trick');
+    expect(similar.first.coverArt, 'ar-ar2');
+    expect(similar.first.albumCount, 3);
+    expect(similar.first.musicBrainzId, 'mb2');
+
+    final none = SubsonicApi(
+      Uri.parse('https://music.test'),
+      credentials,
+      client: MockClient((_) async => subsonic({'status': 'ok', 'artistInfo2': <String, Object?>{}})),
+    );
+    expect(await none.similarArtists('ar1'), isEmpty);
+  });
+
+  test('an artist\'s biography and the artists like them, asked at once, share one getArtistInfo2', () async {
+    final asked = <String>[];
+    final api = SubsonicApi(
+      Uri.parse('https://music.test'),
+      credentials,
+      client: MockClient((request) async {
+        asked.add(request.url.path);
+        return subsonic({
+          'status': 'ok',
+          'artistInfo2': {
+            'biography': 'Aerosmith is an American rock band.',
+            'similarArtist': [
+              {'id': 'ar2', 'name': 'Cheap Trick'},
+            ],
+          },
+        });
+      }),
+    );
+    final (biography, similar) = await (api.biography('ar1'), api.similarArtists('ar1')).wait;
+    expect(biography!.paragraphs, ['Aerosmith is an American rock band.']);
+    expect([for (final artist in similar) artist.name], ['Cheap Trick']);
+    expect(asked, ['/rest/getArtistInfo2.view']);
+
+    // One that has answered isn't kept, as getArtist's isn't.
+    await api.biography('ar1');
+    expect(asked, hasLength(2));
+  });
+
   test('an artist\'s popular songs are getTopSongs\', asked by their name', () async {
     final asked = <Uri>[];
     final api = SubsonicApi(

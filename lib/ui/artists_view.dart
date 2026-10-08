@@ -139,27 +139,27 @@ class _ArtistGrid extends StatelessWidget {
   final List<Artist> artists;
 
   // Pictures of up to 180 pixels, 16 from the edges and from one another, of which the tiles' room inside
-  // (_ArtistTile.padding) is part, as the albums' are; the rows as far apart as with no room inside. At the end, clear
+  // (ArtistTile.padding) is part, as the albums' are; the rows as far apart as with no room inside. At the end, clear
   // of the bars a phone's home has over them.
   @override
   Widget build(BuildContext context) => GridView.builder(
     padding:
-        const EdgeInsets.all(16 - _ArtistTile.padding) + EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom),
+        const EdgeInsets.all(16 - ArtistTile.padding) + EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom),
     gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-      maxCrossAxisExtent: 180 + 2 * _ArtistTile.padding,
-      mainAxisSpacing: 16 - 2 * _ArtistTile.padding,
-      crossAxisSpacing: 16 - 2 * _ArtistTile.padding,
-      childAspectRatio: 0.74,
+      maxCrossAxisExtent: 180 + 2 * ArtistTile.padding,
+      mainAxisSpacing: 16 - 2 * ArtistTile.padding,
+      crossAxisSpacing: 16 - 2 * ArtistTile.padding,
+      childAspectRatio: ArtistTile.aspectRatio,
     ),
     itemCount: artists.length,
-    itemBuilder: (context, i) => _ArtistTile(artists[i]),
+    itemBuilder: (context, i) => ArtistTile(artists[i]),
   );
 }
 
 /// An artist's picture, with their name and how many albums they have, which opens their page. While the pointer is
 /// over the artist, the picture darkens a little, as an album's cover does under its play button.
-class _ArtistTile extends StatefulWidget {
-  const _ArtistTile(this.artist);
+class ArtistTile extends StatefulWidget {
+  const ArtistTile(this.artist, {super.key});
 
   final Artist artist;
 
@@ -167,11 +167,14 @@ class _ArtistTile extends StatefulWidget {
   /// an album has (`AlbumTile.padding`). The grid takes it from the room around the artists.
   static const padding = 8.0;
 
+  /// How wide it is for how tall, with room for the picture and the two lines under it.
+  static const aspectRatio = 0.74;
+
   @override
-  State<_ArtistTile> createState() => _ArtistTileState();
+  State<ArtistTile> createState() => _ArtistTileState();
 }
 
-class _ArtistTileState extends State<_ArtistTile> {
+class _ArtistTileState extends State<ArtistTile> {
   /// The pointer is over the artist: their picture darkens.
   bool _hovered = false;
 
@@ -188,7 +191,7 @@ class _ArtistTileState extends State<_ArtistTile> {
           borderRadius: BorderRadius.circular(8),
           onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ArtistPage(artist))),
           child: Padding(
-            padding: const EdgeInsets.all(_ArtistTile.padding),
+            padding: const EdgeInsets.all(ArtistTile.padding),
             child: Column(
               children: [
                 AspectRatio(

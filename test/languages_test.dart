@@ -67,7 +67,7 @@ const songs = [
 ];
 
 /// A library of an album and an EP by one artist, in one genre, whose songs have lyrics, one of them played, and are
-/// the artist's popular ones. The artist has a biography, Last.fm's.
+/// the artist's popular ones. The artist has a biography, Last.fm's, and an artist like them.
 http.Response server(http.Request request) {
   final path = request.url.path;
 
@@ -113,6 +113,9 @@ http.Response server(http.Request request) {
         'biography':
             'Aerosmith is an American rock band formed in Boston in 1970. <a target=\'_blank\' '
             'href="https://www.last.fm/music/Aerosmith" rel="nofollow">Read more on Last.fm</a>',
+        'similarArtist': [
+          {'id': 'ar2', 'name': 'Cheap Trick', 'albumCount': 1},
+        ],
       },
     }),
     'getTopSongs.view' => subsonic({
@@ -251,6 +254,8 @@ void main() {
         // Under the songs, the page scrolls to them.
         final page = find.descendant(of: find.byType(ArtistPage), matching: find.byType(Scrollable)).first;
         await tester.scrollUntilVisible(find.text(strings.singlesAndEps), 100, scrollable: page);
+        // Then the artists like them.
+        await tester.scrollUntilVisible(find.text(strings.similarArtists), 100, scrollable: page);
 
         await tap(tester, find.byTooltip(strings.openPlayer));
         await tap(tester, find.byTooltip(strings.showLyrics));

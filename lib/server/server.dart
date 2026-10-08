@@ -109,6 +109,10 @@ abstract interface class MediaServer {
   /// its metadata or the user); null when it has none.
   Future<Biography?> biography(String artistId);
 
+  /// The library's artists like the one whose id is [artistId], the most alike first, 20 at most, as the server learns
+  /// them (Navidrome from Last.fm, Jellyfin from their metadata); none where it can't say.
+  Future<List<Artist>> similarArtists(String artistId);
+
   /// Where a song's audio is, for the player: the URL carries the credentials. With [maxBitRate], in kbps, the server
   /// transcodes a song whose bitrate is higher, as it goes: on Subsonic a stream that can't seek ([transcodedStreamUrl]
   /// stands in), and on Jellyfin HLS, which can.

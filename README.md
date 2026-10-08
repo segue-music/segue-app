@@ -37,7 +37,9 @@ the device it runs on.
   as the grid nears its end), artists (by name or the most played first, picked above them, a thumb
   sliding to the one picked: on a Subsonic server, which counts no plays by artist, from the 500
   most played albums; each with their albums and then, apart, their singles and EPs, where the
-  server says which are, a button after how many they have that opens their biography, where the
+  server says which are, and at the end a row of the library's artists like them, each opening their page,
+  where the server knows them (Navidrome from Last.fm, Jellyfin by their metadata),
+  a button after how many they have that opens their biography, where the
   server has one (Navidrome's comes from Last.fm), on black under their picture, as a cover full
   screen is, and for a band, beside its name, in parentheses, the years it has been together, which
   MusicBrainz knows by the artist's MusicBrainz id, where the server has it ("desde 1991", "1966 – 1978"),
