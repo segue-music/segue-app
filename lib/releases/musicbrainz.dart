@@ -34,9 +34,25 @@ typedef Origin = ({String? place, String? country});
 /// none) and its members, in the order they came in ([_members]).
 typedef Band = ({BandYears? years, List<BandMember> members});
 
+/// Where a recording was made, as MusicBrainz names it, in English mostly: a place (a studio, a hall), or an area (a
+/// city, a country), a country with its code ([country]), whose name the app has in its language.
+typedef RecordingPlace = ({String id, String name, String? country});
+
+/// A time a recording was made somewhere, as MusicBrainz knows it: where, and when, from [begin] to [end], one day or
+/// several (either or both null where it doesn't know).
+typedef RecordingSession = ({RecordingPlace place, ReleaseDate? begin, ReleaseDate? end});
+
+/// One of a release's tracks, as its credits take it: its MusicBrainz id, and its recording's, who is credited on it (on
+/// its recording, and on the works it performs: who wrote them), and where it was recorded.
+typedef ReleaseTrack = ({String id, String recording, List<Credit> credits, List<RecordingSession> sessions});
+
+/// Who MusicBrainz credits on a release, and where it was recorded: on each of its tracks, in order ([tracks]), and on
+/// the release itself, which is on all of them ([credits], [sessions]).
+typedef ReleaseCredits = ({List<ReleaseTrack> tracks, List<Credit> credits, List<RecordingSession> sessions});
+
 /// MusicBrainz (musicbrainz.org), the open database of music releases: where an album's release date, record labels
-/// and type come from when the media server doesn't say them, and the years a band has been together, its members and
-/// where an artist comes from, which it never says.
+/// and type come from when the media server doesn't say them, and its credits where the server has none; where it was
+/// recorded, the years a band has been together, its members and where an artist comes from, which it never says.
 class MusicBrainz {
   MusicBrainz({
     http.Client? client,
@@ -80,6 +96,10 @@ class MusicBrainz {
 
   /// Each area looked up, with what it's part of, by its MusicBrainz id, for the session.
   final _areas = <String, Future<Object?>>{};
+
+  /// Each release looked up for its credits, with its recordings' relations and their works', by its MusicBrainz id,
+  /// for the session.
+  final _releaseCredits = <String, Future<Object?>>{};
 
   /// [album]'s release date, record labels and type: the media server's, with what MusicBrainz adds where it says
   /// nothing, or less. A date where it has none, or one more precise than its own that agrees with it (the same year,
@@ -163,6 +183,43 @@ class MusicBrainz {
       dates: dates.length == 1 ? [dates.values.single] : const <ReleaseDate>[],
       labels: const <String>[],
       type: types.length == 1 ? types.single : null,
+    );
+  }
+
+  /// Who MusicBrainz credits on [album]'s release, by the album's MusicBrainz id, and where it was recorded: on each of
+  /// its tracks, those its recording's relations name (who played, sang, produced, mixed it; where, and when, it was
+  /// recorded), and those of the works it performs (who wrote them); on the release, those its own relations name
+  /// (who mastered it). None for an album without that id, a release MusicBrainz doesn't have, and when it fails (asked
+  /// again the next time).
+  Future<ReleaseCredits?> credits(Album album) async {
+    final id = album.musicBrainzId;
+
+    if (id == null) {
+      return null;
+    }
+
+    final Object? found;
+
+    try {
+      found = await _lookUpOnce(_releaseCredits, 'release', id, const {
+        'inc': 'recordings recording-level-rels work-rels work-level-rels artist-rels place-rels area-rels',
+      });
+    } on Object {
+      return null;
+    }
+
+    if (found is! Map<String, dynamic>) {
+      return null;
+    }
+
+    final relations = _maps(found['relations']);
+    return (
+      tracks: [
+        for (final medium in _maps(found['media']))
+          for (final track in _maps(medium['tracks'])) ?_track(track),
+      ],
+      credits: [for (final relation in relations) ..._credits(relation)],
+      sessions: [for (final relation in relations) ?_session(relation)],
     );
   }
 
@@ -370,6 +427,113 @@ class MusicBrainz {
   }
 
   void close() => _http.close();
+}
+
+/// The maps in [list], a list of MusicBrainz's JSON; none for none.
+List<Map<String, dynamic>> _maps(Object? list) => [
+  for (final item in list as List? ?? const [])
+    if (item is Map<String, dynamic>) item,
+];
+
+/// [track], one of a release's in MusicBrainz, with what its recording's relations, and those of the works it
+/// performs, credit on it, and where it was recorded; none for one without its ids.
+ReleaseTrack? _track(Map<String, dynamic> track) {
+  if (track case {
+    'id': final String id,
+    'recording': {'id': final String recording} && final Map<String, dynamic> data,
+  }) {
+    final relations = _maps(data['relations']);
+    // The works it performs, more than one in a medley.
+    final works = [
+      for (final relation in relations)
+        if (relation case {'type': 'performance', 'work': final Map<String, dynamic> work}) work,
+    ];
+    return (
+      id: id,
+      recording: recording,
+      credits: [
+        for (final relation in relations) ..._credits(relation),
+        for (final work in works)
+          for (final relation in _maps(work['relations'])) ..._credits(relation),
+      ],
+      sessions: [for (final relation in relations) ?_session(relation)],
+    );
+  }
+
+  return null;
+}
+
+/// What the attributes of a relation say of it, rather than of the instrument or the voice it's for.
+const _qualifiers = {'additional', 'assistant', 'associate', 'co', 'executive', 'guest', 'solo', 'task'};
+
+/// The credits [relation], one of MusicBrainz's of a recording, a work or a release to an artist, gives: one for each
+/// instrument it names, or voice; none for a relation of a kind the credits don't show.
+List<Credit> _credits(Map<String, dynamic> relation) {
+  if (relation case {
+    'type': final String type,
+    'direction': 'backward',
+    'artist': {'id': final String id, 'name': final String name},
+  }) {
+    final attributes = [
+      for (final attribute in relation['attributes'] as List? ?? const [])
+        if (attribute is String) attribute,
+    ];
+    final parts = attributes.where((attribute) => !_qualifiers.contains(attribute)).toList();
+    Credit credit(CreditRole role, {String? part}) => Credit(name, role, part: part, musicBrainzId: id);
+
+    return switch (type) {
+      'instrument' => [for (final part in parts) credit(CreditRole.performer, part: part)],
+      'vocal' => [
+        for (final part in parts.isEmpty ? const ['vocals'] : parts) credit(CreditRole.performer, part: part),
+      ],
+      'performer' => [credit(CreditRole.performer)],
+      'performing orchestra' => [credit(CreditRole.orchestra)],
+      'conductor' || 'chorus master' => [credit(CreditRole.conductor)],
+      'composer' => [credit(CreditRole.composer)],
+      'lyricist' => [credit(CreditRole.lyricist)],
+      'writer' => [credit(CreditRole.writer)],
+      'librettist' => [credit(CreditRole.librettist)],
+      'arranger' || 'instrument arranger' || 'vocal arranger' => [credit(CreditRole.arranger)],
+      'orchestrator' => [credit(CreditRole.orchestrator)],
+      'producer' => [credit(attributes.contains('executive') ? CreditRole.executiveProducer : CreditRole.producer)],
+      'engineer' ||
+      'audio' ||
+      'sound' ||
+      'balance' => [credit(attributes.contains('assistant') ? CreditRole.assistantEngineer : CreditRole.engineer)],
+      'recording' => [credit(CreditRole.recordingEngineer)],
+      'mix' => [credit(CreditRole.mixer)],
+      'mix-DJ' => [credit(CreditRole.djMixer)],
+      'mastering' => [credit(CreditRole.masteringEngineer)],
+      'editor' => [credit(CreditRole.editor)],
+      'programming' => [credit(CreditRole.programmer)],
+      'remixer' => [credit(CreditRole.remixer)],
+      _ => const [],
+    };
+  }
+
+  return const [];
+}
+
+/// Where, and when, [relation], one of MusicBrainz's of a recording or a release, says it was recorded: at a place,
+/// or in an area; none for a relation of another kind.
+RecordingSession? _session(Map<String, dynamic> relation) {
+  final place = switch (relation) {
+    {'type': 'recorded at', 'place': {'id': final String id, 'name': final String name}} => (
+      id: id,
+      name: name,
+      country: null,
+    ),
+    {'type': 'recorded in', 'area': {'id': final String id, 'name': final String name} && final area} => (
+      id: id,
+      name: name,
+      country: switch (area) {
+        {'iso-3166-1-codes': [final String code, ...]} => code,
+        _ => null,
+      },
+    ),
+    _ => null,
+  };
+  return place == null ? null : (place: place, begin: _date(relation['begin']), end: _date(relation['end']));
 }
 
 /// The years of a life span of MusicBrainz's, or of a relation's dates; none where it knows neither year.

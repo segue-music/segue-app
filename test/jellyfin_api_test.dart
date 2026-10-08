@@ -389,6 +389,43 @@ void main() {
     expect(first.coverArt, 'a1');
   });
 
+  test('an album\'s songs come with their credits, Jellyfin\'s people of the kinds the credits show, whose ids are '
+      'people\'s, and their MusicBrainz ids, their recordings\' or their tracks\', all asked for', () async {
+    final (_, songs) = await jellyfin((request) {
+      final query = request.url.queryParameters;
+
+      if (query['ParentId'] != 'a1') {
+        return items([album]);
+      }
+
+      final fields = query['Fields']?.split(',') ?? const <String>[];
+      return items([
+        {
+          ...song,
+          if (fields.contains('People'))
+            'People': [
+              {'Name': 'Steven Tyler', 'Id': 'p1', 'Type': 'Composer'},
+              {'Name': 'Jack Douglas', 'Id': 'p2', 'Type': 'Producer'},
+              {'Name': 'Aerosmith', 'Id': 'p3', 'Type': 'AlbumArtist'},
+            ],
+          if (fields.contains('ProviderIds')) 'ProviderIds': {'MusicBrainzTrack': 't1', 'MusicBrainzRecording': 'rec1'},
+        },
+        {
+          ...song,
+          'Id': 's2',
+          if (fields.contains('ProviderIds')) 'ProviderIds': {'MusicBrainzTrack': 't2', 'MusicBrainzRecording': ''},
+        },
+        {...song, 'Id': 's3'},
+      ]);
+    }).album('a1');
+    expect(
+      [for (final credit in songs.first.credits) (credit.name, credit.role, credit.artistId)],
+      [('Steven Tyler', CreditRole.composer, null), ('Jack Douglas', CreditRole.producer, null)],
+    );
+    expect([for (final song in songs) song.musicBrainzId], ['rec1', 't2', null]);
+    expect(songs.last.credits, isEmpty);
+  });
+
   test(
     'an album\'s release date is its PremiereDate; on the first of January, which a year alone gets, its year',
     () async {

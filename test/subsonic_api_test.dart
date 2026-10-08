@@ -337,6 +337,71 @@ void main() {
     expect((await api.song('s2')).artists.map((artist) => (artist.id, artist.name)), [('ar1', 'Aerosmith')]);
   });
 
+  test(
+    'a song\'s credits are OpenSubsonic\'s contributors, a performer with their instrument, and its MusicBrainz id its '
+    'recording\'s; roles the credits don\'t show are left out, and a plain Subsonic server\'s song has none',
+    () async {
+      final api = SubsonicApi(
+        Uri.parse('https://music.test'),
+        credentials,
+        client: MockClient(
+          (request) async => subsonic({
+            'status': 'ok',
+            'song': switch (request.url.queryParameters['id']) {
+              's1' => {
+                'id': 's1',
+                'title': 'Walk This Way',
+                'musicBrainzId': 'rec1',
+                'contributors': [
+                  {
+                    'role': 'composer',
+                    'artist': {'id': 'ar3', 'name': 'Steven Tyler', 'musicBrainzId': 'mb3'},
+                  },
+                  {
+                    'role': 'performer',
+                    'subRole': 'harmonica',
+                    'artist': {'id': 'ar3', 'name': 'Steven Tyler', 'musicBrainzId': 'mb3'},
+                  },
+                  {
+                    'role': 'performer',
+                    'subRole': '',
+                    'artist': {'id': 'ar4', 'name': 'Joe Perry'},
+                  },
+                  {
+                    'role': 'djmixer',
+                    'artist': {'id': 'ar5', 'name': 'Jam Master Jay', 'musicBrainzId': ''},
+                  },
+                  {
+                    'role': 'director',
+                    'artist': {'id': 'ar6', 'name': 'Marty Callner'},
+                  },
+                ],
+              },
+              _ => {'id': 's2', 'title': 'Dream On', 'musicBrainzId': ''},
+            },
+          }),
+        ),
+      );
+      final song = await api.song('s1');
+      expect(song.musicBrainzId, 'rec1');
+      expect(
+        [
+          for (final credit in song.credits)
+            (credit.name, credit.role, credit.part, credit.artistId, credit.musicBrainzId),
+        ],
+        [
+          ('Steven Tyler', CreditRole.composer, null, 'ar3', 'mb3'),
+          ('Steven Tyler', CreditRole.performer, 'harmonica', 'ar3', 'mb3'),
+          ('Joe Perry', CreditRole.performer, null, 'ar4', null),
+          ('Jam Master Jay', CreditRole.djMixer, null, 'ar5', null),
+        ],
+      );
+      final plain = await api.song('s2');
+      expect(plain.musicBrainzId, isNull);
+      expect(plain.credits, isEmpty);
+    },
+  );
+
   test('albums by name are getAlbumList2\'s alphabeticalByName, and the latest added its newest', () async {
     final asked = <Uri>[];
     final api = SubsonicApi(

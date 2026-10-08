@@ -97,6 +97,8 @@ class Song {
     this.duration,
     this.albumId,
     this.artists = const [],
+    this.musicBrainzId,
+    this.credits = const [],
   });
 
   /// A song another device sent, by its id in this device's API. The cover goes by the song id:
@@ -129,9 +131,93 @@ class Song {
   /// The id of its first artist, the one its [artist] starts with; null as [albumId] is.
   String? get artistId => artists.firstOrNull?.id;
 
+  /// The id in MusicBrainz of its recording, or of its track on its release (as Jellyfin may have it); null when the
+  /// server doesn't know it.
+  final String? musicBrainzId;
+
+  /// Who is credited on it, where the server says (OpenSubsonic's contributors, from the file's tags; Jellyfin's
+  /// people, where asked for them): who wrote it, played in it, produced it. None where it says nothing, and for a
+  /// song another device sent, as for [albumId].
+  final List<Credit> credits;
+
   QueueItem toQueueItem() =>
       QueueItem(id: id, title: title, artist: artist, album: album, durationMs: duration?.inMilliseconds);
 }
+
+/// Someone credited on a song, by name, and what they did in it ([role]); a musician with what they played or sang
+/// ([part]: "guitar", "background vocals"), as the server or MusicBrainz names it, in English mostly.
+class Credit {
+  const Credit(this.name, this.role, {this.part, this.artistId, this.musicBrainzId});
+
+  final String name;
+  final CreditRole role;
+
+  /// The instrument a [CreditRole.performer] played, or the voice they sang in; null where it isn't said.
+  final String? part;
+
+  /// Their id as an artist on the media server; null where they aren't one, or the server doesn't say.
+  final String? artistId;
+
+  /// Their id in MusicBrainz; null where it isn't known.
+  final String? musicBrainzId;
+}
+
+/// What someone credited on a song did in it, each in the section of an album's credits it shows under: performing
+/// it, writing it or producing it.
+enum CreditRole {
+  /// Played or sang in it: what, in [Credit.part].
+  performer(CreditSection.performance),
+  conductor(CreditSection.performance),
+  orchestra(CreditSection.performance),
+
+  /// Wrote its music.
+  composer(CreditSection.writing),
+
+  /// Wrote its words.
+  lyricist(CreditSection.writing),
+
+  /// Wrote it, its music and words, or either, where it isn't said which.
+  writer(CreditSection.writing),
+  arranger(CreditSection.writing),
+  orchestrator(CreditSection.writing),
+  librettist(CreditSection.writing),
+  producer(CreditSection.production),
+  executiveProducer(CreditSection.production),
+  engineer(CreditSection.production),
+  assistantEngineer(CreditSection.production),
+  recordingEngineer(CreditSection.production),
+  mixer(CreditSection.production),
+  masteringEngineer(CreditSection.production),
+  editor(CreditSection.production),
+  programmer(CreditSection.production),
+  remixer(CreditSection.production),
+  djMixer(CreditSection.production);
+
+  const CreditRole(this.section);
+
+  final CreditSection section;
+
+  /// The role a media server names [name], in any case: OpenSubsonic's contributors' ("composer", "performer",
+  /// "djmixer"), Jellyfin's people's types ("Composer", "Conductor"); null for one the credits don't show (an artist,
+  /// a director).
+  static CreditRole? named(String name) => switch (name.toLowerCase()) {
+    'performer' => performer,
+    'conductor' => conductor,
+    'composer' => composer,
+    'lyricist' => lyricist,
+    'writer' => writer,
+    'arranger' => arranger,
+    'producer' => producer,
+    'engineer' => engineer,
+    'mixer' => mixer,
+    'remixer' => remixer,
+    'djmixer' => djMixer,
+    _ => null,
+  };
+}
+
+/// The sections of an album's credits, in the order they show.
+enum CreditSection { performance, writing, production }
 
 /// A song's lyrics, line by line, each with when it starts when they're synced to the song.
 class Lyrics {

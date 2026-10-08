@@ -2,17 +2,20 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
-import 'package:intl/intl.dart';
 
 import '../l10n/app_localizations.dart';
+import '../releases/album_credits.dart';
 import '../releases/musicbrainz.dart';
 import '../server/models.dart';
 import '../server/server.dart';
 import '../services.dart';
 import 'artist_link.dart';
+import 'artist_page.dart';
 import 'cover.dart';
 import 'cover_page.dart';
+import 'credits_page.dart';
 import 'current_song.dart';
+import 'dates.dart';
 import 'equalizer.dart';
 import 'errors.dart';
 import 'now_playing_bar.dart';
@@ -41,6 +44,9 @@ class _AlbumPageState extends State<AlbumPage> {
   /// The album's release date, record labels and type, with what MusicBrainz adds to the media server's.
   Future<AlbumRelease>? _release;
 
+  /// Who is credited on the album, and where it was recorded: the media server's credits, with what MusicBrainz adds.
+  Future<AlbumCredits>? _credits;
+
   /// How much of the page's color its bar has. On a phone, where the page goes on under it: none at the top of the
   /// page, and more as the cover goes up under the bar, all of it once half the cover has. On a wide screen, how much of
   /// the bar shows, which comes in as the cover goes ([PageBarSliver.shadeAt]).
@@ -56,6 +62,7 @@ class _AlbumPageState extends State<AlbumPage> {
     final album = _album ??= services.api.album(widget.album.id);
     _artistPicture ??= _pictureOfArtist(services.api, widget.album.artistId, album);
     _release ??= _releaseOf(album, musicBrainz: services.musicBrainz);
+    _credits ??= _creditsOf(album, musicBrainz: services.musicBrainz);
   }
 
   /// [album]'s release date, record labels and type: the media server's, with what [musicBrainz] adds (null:
@@ -71,6 +78,18 @@ class _AlbumPageState extends State<AlbumPage> {
       return await musicBrainz.complete(found);
     } on Object {
       return (date: null, labels: const <String>[], type: null);
+    }
+  }
+
+  /// Who is credited on [album], and where it was recorded: the media server's credits, with what [musicBrainz] (null:
+  /// nothing) has of the album's release where the server has none. None when the server fails to give the album,
+  /// which the page says.
+  static Future<AlbumCredits> _creditsOf(Future<(Album, List<Song>)> album, {MusicBrainz? musicBrainz}) async {
+    try {
+      final (found, songs) = await album;
+      return AlbumCredits.of(songs, musicBrainz: await musicBrainz?.credits(found));
+    } on Object {
+      return const AlbumCredits();
     }
   }
 
@@ -223,6 +242,7 @@ class _AlbumPageState extends State<AlbumPage> {
       type: narrow ? type : null,
       style: text.bodyMedium,
       stacked: narrow,
+      credits: _creditsButton(album, songs),
     );
     final play = _playButton(songs, type: type);
 
@@ -286,6 +306,45 @@ class _AlbumPageState extends State<AlbumPage> {
     );
   }
 
+  /// Once the album has any, a button that opens its credits ([CreditsPage]): at once where the media server has some,
+  /// else once MusicBrainz's come.
+  Widget _creditsButton(Album album, List<Song> songs) => FutureBuilder(
+    future: _credits,
+    initialData: AlbumCredits.of(songs),
+    builder: (context, snapshot) => switch (snapshot.requireData) {
+      final credits when credits.isEmpty => const SizedBox.shrink(),
+      final credits => IconButton(
+        tooltip: AppLocalizations.of(context).showCredits,
+        icon: const ThemedIcon(HugeIcons.strokeRoundedBookUser),
+        visualDensity: VisualDensity.compact,
+        onPressed: () => CreditsPage.open(
+          context,
+          album,
+          credits: _credits!,
+          initialCredits: credits,
+          inLibrary: _artistsInLibrary(),
+          // Over this page, as the credits close.
+          onOpenArtist: (artist) =>
+              Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ArtistPage(artist))),
+        ),
+      ),
+    },
+  );
+
+  /// The library's artists, by their ids on the server and their MusicBrainz ids: those credited on the album link to
+  /// their pages. None where the server fails.
+  Future<Map<String, Artist>> _artistsInLibrary() async {
+    final api = ServicesScope.of(context).api;
+
+    try {
+      return {
+        for (final artist in await api.artists()) ...{artist.id: artist, ?artist.musicBrainzId: artist},
+      };
+    } on Object {
+      return const {};
+    }
+  }
+
   /// The button that plays the album, of [type], from its first song: just the icon, its name in the tooltip, as the play
   /// button on the albums' covers.
   Widget _playButton(List<Song> songs, {required ReleaseType? type}) => IconButton.filled(
@@ -317,10 +376,18 @@ class _AlbumPageState extends State<AlbumPage> {
 }
 
 /// Under the album's name: its artist, with their picture, a link to their page; its type, where it isn't above the
-/// name; its year; how many songs it has and how long they last. One paragraph, beside the cover;
-/// or, [stacked], the artist on a line of their own and the rest under them.
+/// name; its year; how many songs it has and how long they last; the button that opens its credits. One paragraph,
+/// beside the cover; or, [stacked], the artist on a line of their own and the rest under them.
 class _Byline extends StatelessWidget {
-  const _Byline(this.album, this.songs, {required this.artistPicture, this.type, this.style, this.stacked = false});
+  const _Byline(
+    this.album,
+    this.songs, {
+    required this.artistPicture,
+    required this.credits,
+    this.type,
+    this.style,
+    this.stacked = false,
+  });
 
   final Album album;
   final List<Song> songs;
@@ -335,6 +402,9 @@ class _Byline extends StatelessWidget {
 
   /// Whether the type, the year, the songs and how long they last are under the artist, rather than after them.
   final bool stacked;
+
+  /// The button that opens the album's credits, at the end, beside how long the songs last.
+  final Widget credits;
 
   @override
   Widget build(BuildContext context) {
@@ -353,7 +423,13 @@ class _Byline extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ?artist,
-          if (details.isNotEmpty) Text(details, style: style),
+          Row(
+            children: [
+              if (details.isNotEmpty) Flexible(child: Text(details, style: style)),
+              const SizedBox(width: 4),
+              credits,
+            ],
+          ),
         ],
       );
     }
@@ -366,6 +442,10 @@ class _Byline extends StatelessWidget {
             if (details.isNotEmpty) const TextSpan(text: ' · '),
           ],
           TextSpan(text: details),
+          WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: Padding(padding: const EdgeInsetsDirectional.only(start: 4), child: credits),
+          ),
         ],
       ),
       style: style,
@@ -455,7 +535,7 @@ class _LastSong extends StatelessWidget {
       builder: (context, snapshot) {
         final (:date, :labels, type: _) = snapshot.requireData;
         final lines = [
-          if (date != null) _formatDate(AppLocalizations.of(context), date),
+          if (date != null) formatDate(AppLocalizations.of(context), date),
           if (labels.isNotEmpty) labels.join(', '),
         ];
         // The same widgets around the song, with or without the lines under it: rebuilt, it would lose the focus.
@@ -484,20 +564,4 @@ class _LastSong extends StatelessWidget {
       },
     );
   }
-}
-
-/// [date] as precisely as it is known: "8 de abril de 1975", "abril de 1975", "1975". The month's name is intl's,
-/// in the app's language.
-String _formatDate(AppLocalizations strings, ReleaseDate date) {
-  final ReleaseDate(:year, :month, :day) = date;
-
-  if (month == null || month > 12) {
-    return '$year';
-  }
-
-  final monthName = DateFormat.MMMM(strings.localeName).format(DateTime(year, month));
-  return switch (day) {
-    null => strings.releaseMonth(monthName, '$year'),
-    _ => strings.releaseDay(day, monthName, '$year'),
-  };
 }

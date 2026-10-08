@@ -232,6 +232,87 @@
       }
     }
   },
+  "showCredits": "Ver os créditos",
+  "@showCredits": {
+    "description": "The tooltip of the button, after how many songs an album has and how long they last, that opens its credits: who performed it, wrote it and produced it, and where it was recorded."
+  },
+  "creditSection": "{section, select, performance{Intérpretes} writing{Composição} production{Produção} other{}}",
+  "@creditSection": {
+    "description": "In an album's credits, the title over a section of those credited, by the section: those who performed it (sang, played, conducted), those who wrote it (its music, its words, its arrangements), those who produced it (production, engineering, mixing, mastering).",
+    "placeholders": {
+      "section": {
+        "type": "String"
+      }
+    }
+  },
+  "recordingVenues": "Gravação",
+  "@recordingVenues": {
+    "description": "In an album's credits, the title over where it was recorded (studios, cities, countries), each with when."
+  },
+  "creditRole": "{role, select, performer{interpretação} conductor{regência} orchestra{orquestra} composer{música} lyricist{letra} writer{autoria} arranger{arranjo} orchestrator{orquestração} librettist{libreto} producer{produção} executiveProducer{produção executiva} engineer{engenharia de som} assistantEngineer{assistência de engenharia} recordingEngineer{gravação} mixer{mixagem} masteringEngineer{masterização} editor{edição} programmer{programação} remixer{remixagem} djMixer{mixagem de DJ} other{}}",
+  "@creditRole": {
+    "description": "In an album's credits, beside someone's name, something they did on it, by its role: performed it (where it isn't said what they played or sang), conducted it, was the orchestra; wrote its music (composer), its words (lyricist), both or either (writer), arranged it, orchestrated it, wrote its libretto; produced it, as executive producer, was its sound engineer or their assistant, recorded it, mixed it, mastered it, edited it, programmed it, remixed it, mixed it as a DJ. Several are apart by commas.",
+    "placeholders": {
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "creditPart": "{part, select, vocals{voz} leadVocals{voz principal} backgroundVocals{vocais de apoio} choirVocals{coro} spokenVocals{voz falada} guitar{guitarra} electricGuitar{guitarra} acousticGuitar{violão} classicalGuitar{violão clássico} twelveStringGuitar{violão de 12 cordas} slideGuitar{guitarra slide} bass{baixo} doubleBass{contrabaixo} drums{bateria} percussion{percussão} drumMachine{bateria eletrônica} piano{piano} electricPiano{piano elétrico} keyboards{teclados} synthesizer{sintetizador} bassSynthesizer{sintetizador de baixo} organ{órgão} harpsichord{cravo} accordion{acordeom} harmonica{gaita} saxophone{saxofone} altoSaxophone{saxofone alto} tenorSaxophone{saxofone tenor} baritoneSaxophone{saxofone barítono} sopranoSaxophone{saxofone soprano} trumpet{trompete} trombone{trombone} frenchHorn{trompa} flute{flauta} clarinet{clarinete} oboe{oboé} bassoon{fagote} recorder{flauta doce} violin{violino} cello{violoncelo} harp{harpa} strings{cordas} mandolin{bandolim} tambourine{pandeirola} shaker{chocalho} triangle{triângulo} vibraphone{vibrafone} xylophone{xilofone} timpani{tímpanos} handclaps{palmas} whistling{assobio} effects{efeitos} melodica{escaleta} other{{name}}}",
+  "@creditPart": {
+    "description": "In an album's credits, beside a performer's name, the instrument they played or the voice they sang in, by its key; for another, its name as MusicBrainz or the media server gives it (name), in English mostly. Several are apart by commas.",
+    "placeholders": {
+      "part": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "creditOnTracks": "{count, plural, =1{{credit} (faixa {tracks})} other{{credit} (faixas {tracks})}}",
+  "@creditOnTracks": {
+    "description": "In an album's credits, something someone did (credit: a role, an instrument) or when it was recorded somewhere, with the songs it was on, by their numbers in the album (tracks: \"3\", \"1–3, 5\"), where it isn't all of them; how many (count).",
+    "placeholders": {
+      "credit": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      },
+      "tracks": {
+        "type": "String"
+      }
+    }
+  },
+  "onTracks": "{count, plural, =1{faixa {tracks}} other{faixas {tracks}}}",
+  "@onTracks": {
+    "description": "In an album's credits, beside a place it was recorded at, where it isn't known when, the songs recorded there, by their numbers in the album (tracks: \"3\", \"1–3, 5\"), where it isn't all of them; how many (count).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "tracks": {
+        "type": "String"
+      }
+    }
+  },
+  "datePeriod": "{start} – {end}",
+  "@datePeriod": {
+    "description": "In an album's credits, when it was recorded somewhere, from one date to the other: \"julho – agosto de 1969\", \"setembro de 1995 – março de 1997\" (start: a month alone where both are in the same year).",
+    "placeholders": {
+      "start": {
+        "type": "String"
+      },
+      "end": {
+        "type": "String"
+      }
+    }
+  },
+  "creditsFromMusicBrainz": "Com dados do MusicBrainz",
+  "@creditsFromMusicBrainz": {
+    "description": "Under an album's credits, where MusicBrainz said some of them, or where the album was recorded."
+  },
   "turnShuffleOff": "Desativar aleatório",
   "@turnShuffleOff": {
     "description": "The tooltip of the shuffle button while it shuffles."

@@ -16,6 +16,7 @@ import 'package:segue/subsonic/api.dart';
 import 'package:segue/theme_choice.dart';
 import 'package:segue/ui/artist_page.dart';
 import 'package:segue/ui/biography_page.dart';
+import 'package:segue/ui/credits_page.dart';
 import 'package:segue/ui/home_page.dart';
 import 'package:segue/ui/login_page.dart';
 import 'package:segue/ui/settings_page.dart';
@@ -54,6 +55,26 @@ const songs = [
     'albumId': 'a1',
     'artistId': 'ar1',
     'duration': 185,
+    'contributors': [
+      {
+        'role': 'performer',
+        'subRole': 'lead vocals',
+        'artist': {'id': 'ar3', 'name': 'Steven Tyler'},
+      },
+      {
+        'role': 'performer',
+        'subRole': 'harmonica',
+        'artist': {'id': 'ar3', 'name': 'Steven Tyler'},
+      },
+      {
+        'role': 'composer',
+        'artist': {'id': 'ar3', 'name': 'Steven Tyler'},
+      },
+      {
+        'role': 'producer',
+        'artist': {'id': 'ar5', 'name': 'Jack Douglas'},
+      },
+    ],
   },
   {
     'id': 's2',
@@ -239,6 +260,15 @@ void main() {
         await tap(tester, find.text('Toys in the Attic').first);
         expect(find.byTooltip(strings.playRelease('album')), findsOneWidget);
         expect(find.textContaining(strings.trackCount(2)), findsOneWidget);
+        // Its credits, from the button after how many songs it has.
+        await tap(tester, find.byTooltip(strings.showCredits));
+        expect(find.text(strings.creditSection('performance')), findsOneWidget);
+        // All on the first of its two songs.
+        final voice = strings.creditOnTracks(strings.creditPart('leadVocals', 'lead vocals'), 1, '1');
+        final harmonica = strings.creditOnTracks(strings.creditPart('harmonica', 'harmonica'), 1, '1');
+        expect(find.text('$voice, $harmonica'), findsOneWidget);
+        expect(find.text(strings.creditOnTracks(strings.creditRole('producer'), 1, '1')), findsOneWidget);
+        await tap(tester, find.descendant(of: find.byType(CreditsPage), matching: find.byTooltip(strings.close)));
         await tester.scrollUntilVisible(find.text('Columbia'), 100, scrollable: find.byType(Scrollable).last);
         expect(find.text(strings.releaseDay(8, language.languageCode == 'en' ? 'April' : 'abril', '1975')), findsOne);
 

@@ -18,9 +18,12 @@ import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/album_page.dart';
 import 'package:segue/ui/artist_page.dart';
+import 'package:segue/ui/cover.dart';
 import 'package:segue/ui/cover_page.dart';
+import 'package:segue/ui/credits_page.dart';
 import 'package:segue/ui/now_playing_bar.dart';
 import 'package:segue/ui/page_bar.dart';
+import 'package:segue/ui/text_link.dart';
 
 import 'fakes.dart';
 
@@ -32,18 +35,26 @@ http.Response subsonic(Map<String, Object?> body) => http.Response(
   headers: {'content-type': 'application/json'},
 );
 
-/// The page of Toys in the Attic, with the cover [coverArt], two songs by Aerosmith and then [more] songs and [others],
-/// the release date [releaseDate], the record labels [recordLabels] and the release types [releaseTypes], on a screen
-/// of [size], with what [musicBrainz] adds.
-/// Aerosmith's picture is `ar-ar1`. Returns the player's engine.
+/// The library's artists: Aerosmith, whose picture is `ar-ar1`, and Steven Tyler, whose MusicBrainz id is `mb1`.
+const libraryArtists = [
+  {'id': 'ar1', 'name': 'Aerosmith', 'albumCount': 1, 'coverArt': 'ar-ar1'},
+  {'id': 'ar3', 'name': 'Steven Tyler', 'albumCount': 0, 'musicBrainzId': 'mb1'},
+];
+
+/// The page of Toys in the Attic, with the cover [coverArt], two songs by Aerosmith, `s1` and `s2`, with their
+/// [contributors], by their ids, and then [more] songs and [others], the release date [releaseDate], the record labels
+/// [recordLabels], the release types [releaseTypes] and the MusicBrainz id [musicBrainzId], on a screen of [size], with
+/// what [musicBrainz] adds. Returns the player's engine.
 Future<FakeEngine> pumpAlbum(
   WidgetTester tester, {
   String? coverArt = 'al-a1',
   int more = 0,
   List<Map<String, Object?>> others = const [],
+  Map<String, List<Map<String, Object?>>> contributors = const {},
   Map<String, int>? releaseDate,
   List<String> recordLabels = const [],
   List<String>? releaseTypes,
+  String? musicBrainzId,
   MusicBrainz? musicBrainz,
   Size size = const Size(1000, 700),
 }) async {
@@ -53,8 +64,19 @@ Future<FakeEngine> pumpAlbum(
     credentials,
     client: MockClient((request) async {
       if (request.url.path.endsWith('getArtist.view')) {
+        final id = request.url.queryParameters['id'];
         return subsonic({
-          'artist': {'id': 'ar1', 'name': 'Aerosmith', 'albumCount': 1, 'coverArt': 'ar-ar1'},
+          'artist': libraryArtists.firstWhere((artist) => artist['id'] == id, orElse: () => libraryArtists.first),
+        });
+      }
+
+      if (request.url.path.endsWith('getArtists.view')) {
+        return subsonic({
+          'artists': {
+            'index': [
+              {'name': 'A', 'artist': libraryArtists},
+            ],
+          },
         });
       }
 
@@ -68,12 +90,27 @@ Future<FakeEngine> pumpAlbum(
           'coverArt': ?coverArt,
           'releaseDate': ?releaseDate,
           'releaseTypes': ?releaseTypes,
+          'musicBrainzId': ?musicBrainzId,
           'recordLabels': [
             for (final label in recordLabels) {'name': label},
           ],
           'song': [
-            {'id': 's1', 'title': 'Walk This Way', 'artist': 'Aerosmith', 'artistId': 'ar1', 'duration': 220},
-            {'id': 's2', 'title': 'Sweet Emotion', 'artist': 'Aerosmith', 'artistId': 'ar1', 'duration': 274},
+            {
+              'id': 's1',
+              'title': 'Walk This Way',
+              'artist': 'Aerosmith',
+              'artistId': 'ar1',
+              'duration': 220,
+              'contributors': ?contributors['s1'],
+            },
+            {
+              'id': 's2',
+              'title': 'Sweet Emotion',
+              'artist': 'Aerosmith',
+              'artistId': 'ar1',
+              'duration': 274,
+              'contributors': ?contributors['s2'],
+            },
             for (var i = 1; i <= more; i++) {'id': 'm$i', 'title': 'Song $i', 'artist': 'Aerosmith', 'duration': 200},
             ...others,
           ],
@@ -104,6 +141,127 @@ Future<FakeEngine> pumpAlbum(
   await tester.pumpAndSettle();
   return engine;
 }
+
+/// One of a song's contributors, as Navidrome gives them: [name], the library's artist whose id is [id], of [role],
+/// playing [subRole].
+Map<String, Object?> contributor(String role, String id, String name, {String? subRole}) => {
+  'role': role,
+  'subRole': ?subRole,
+  'artist': {'id': id, 'name': name},
+};
+
+/// Toys in the Attic's credits, as the server has them: Steven Tyler, one of the library's artists, sang both songs,
+/// played the harmonica in the second and wrote both; Joe Perry played the guitar in both and wrote the first; Jack
+/// Douglas produced both, and Jay Messina mixed the second.
+final serverCredits = {
+  's1': [
+    contributor('performer', 'ar3', 'Steven Tyler', subRole: 'lead vocals'),
+    contributor('performer', 'ar4', 'Joe Perry', subRole: 'guitar'),
+    contributor('composer', 'ar3', 'Steven Tyler'),
+    contributor('composer', 'ar4', 'Joe Perry'),
+    contributor('producer', 'ar5', 'Jack Douglas'),
+  ],
+  's2': [
+    contributor('performer', 'ar3', 'Steven Tyler', subRole: 'lead vocals'),
+    contributor('performer', 'ar3', 'Steven Tyler', subRole: 'harmonica'),
+    contributor('performer', 'ar4', 'Joe Perry', subRole: 'Guitar'),
+    contributor('composer', 'ar3', 'Steven Tyler'),
+    contributor('producer', 'ar5', 'Jack Douglas'),
+    contributor('mixer', 'ar6', 'Jay Messina'),
+  ],
+};
+
+/// A relation of MusicBrainz's of a recording, a work or a release to an artist, [name], whose MusicBrainz id is [id],
+/// of [type], with [attributes].
+Map<String, Object?> relation(String type, String id, String name, {List<String> attributes = const []}) => {
+  'type': type,
+  'target-type': 'artist',
+  'direction': 'backward',
+  'attributes': attributes,
+  'artist': {'id': id, 'name': name},
+};
+
+/// A relation of a recording to the place it was recorded at, [name], from [begin] to [end].
+Map<String, Object?> recordedAt(String name, {String? begin, String? end}) => {
+  'type': 'recorded at',
+  'target-type': 'place',
+  'begin': begin,
+  'end': end,
+  'place': {'id': name, 'name': name},
+};
+
+/// MusicBrainz, whose release `r1` is Toys in the Attic, with two tracks: on the first, Steven Tyler sang and Joe
+/// Perry played the guitar, and both wrote it, at the Record Plant in January 1975, in the United Kingdom; on the
+/// second, Steven Tyler sang, at the Record Plant in February, at Electric Lady Studios on the 1st of March, at Media
+/// Sound in January, at Sound City from September 1974 to March 1975, and at a studio of no dates. George Marino
+/// mastered the release. Its credits come once [credits] has completed, where it's given.
+MusicBrainz musicBrainzCredits({Future<void>? credits}) => MusicBrainz(
+  spacing: Duration.zero,
+  client: MockClient((request) async {
+    if (request.url.queryParameters['inc']?.contains('recordings') ?? false) {
+      await credits;
+    }
+
+    return http.Response(
+      jsonEncode({
+        'id': 'r1',
+        'media': [
+          {
+            'tracks': [
+              {
+                'id': 't1',
+                'recording': {
+                  'id': 'rec1',
+                  'relations': [
+                    relation('vocal', 'mb1', 'Steven Tyler', attributes: ['lead vocals']),
+                    relation('instrument', 'mb2', 'Joe Perry', attributes: ['guitar']),
+                    recordedAt('The Record Plant', begin: '1975-01-20', end: '1975-01-25'),
+                    {
+                      'type': 'recorded in',
+                      'target-type': 'area',
+                      'area': {
+                        'id': 'gb',
+                        'name': 'United Kingdom',
+                        'iso-3166-1-codes': ['GB'],
+                      },
+                    },
+                    {
+                      'type': 'performance',
+                      'target-type': 'work',
+                      'work': {
+                        'id': 'w1',
+                        'relations': [
+                          relation('composer', 'mb1', 'Steven Tyler'),
+                          relation('lyricist', 'mb2', 'Joe Perry'),
+                        ],
+                      },
+                    },
+                  ],
+                },
+              },
+              {
+                'id': 't2',
+                'recording': {
+                  'id': 'rec2',
+                  'relations': [
+                    relation('vocal', 'mb1', 'Steven Tyler', attributes: ['lead vocals']),
+                    recordedAt('The Record Plant', begin: '1975-02-03', end: '1975-02-10'),
+                    recordedAt('Electric Lady Studios', begin: '1975-03-01', end: '1975-03-01'),
+                    recordedAt('Media Sound', begin: '1975-01-02', end: '1975-01-09'),
+                    recordedAt('Sound City', begin: '1974-09', end: '1975-03'),
+                    recordedAt('Studio X'),
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        'relations': [relation('mastering', 'mb3', 'George Marino')],
+      }),
+      200,
+    );
+  }),
+);
 
 /// The song titled [title] in the album's list.
 Finder song(String title) => find.widgetWithText(ListTile, title);
@@ -703,6 +861,181 @@ void main() {
       tester.getRect(find.text('Columbia')).bottom,
       lessThanOrEqualTo(tester.getRect(find.byType(CustomScrollView)).bottom),
     );
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  for (final (screen, size) in [('a wide screen', const Size(1000, 700)), ('a phone', const Size(360, 640))]) {
+    testWidgets('on $screen, a button after how many songs the album has and how long they last opens its credits over '
+        'the window, under its cover: who performed it, wrote it and produced it, one a line, what they did beside '
+        'them; an album without any has no button', (tester) async {
+      final narrow = size.width < 600;
+      await pumpAlbum(tester, contributors: serverCredits, size: size);
+      final button = find.byTooltip('Ver os créditos');
+      final details = find.textContaining('2 faixas, 8 min');
+
+      if (narrow) {
+        // At the end of the line under the artist.
+        expect(tester.getCenter(button).dy, moreOrLessEquals(tester.getCenter(details).dy, epsilon: 1));
+        expect(tester.getCenter(button).dx, greaterThan(tester.getRect(details).right));
+      } else {
+        // At the end of the byline, beside the cover.
+        expect(tester.getRect(details).contains(tester.getCenter(button)), isTrue);
+        expect(tester.getCenter(button).dx, greaterThan(tester.getCenter(details).dx));
+      }
+
+      await tester.tap(button);
+      await tester.pumpAndSettle();
+      final page = find.byType(CreditsPage);
+      expect(page, findsOneWidget);
+      Finder inPage(String text) => find.descendant(of: page, matching: find.text(text));
+      expect(tester.widget<LargeCover>(find.descendant(of: page, matching: find.byType(LargeCover))).id, 'al-a1');
+      expect(inPage('Toys in the Attic'), findsOneWidget);
+      expect(inPage('Aerosmith · 1975'), findsOneWidget);
+      final titles = [
+        for (final title in ['Intérpretes', 'Composição', 'Produção']) tester.getRect(inPage(title)),
+      ];
+      expect(titles[0].bottom, lessThan(titles[1].top));
+      expect(titles[1].bottom, lessThan(titles[2].top));
+      expect(inPage('Gravação'), findsNothing, reason: 'only MusicBrainz says where');
+      expect(inPage('Com dados do MusicBrainz'), findsNothing);
+
+      // Each one a line, what they did beside them (wrapping, in the tests' wide letters), lined up; those on most
+      // songs first.
+      final lines = [
+        (inPage('Steven Tyler').first, inPage('voz principal, gaita (faixa 2)')),
+        (inPage('Joe Perry').first, inPage('guitarra')),
+        (inPage('Steven Tyler').last, inPage('música')),
+        (inPage('Joe Perry').last, inPage('música (faixa 1)')),
+        (inPage('Jack Douglas'), inPage('produção')),
+        (inPage('Jay Messina'), inPage('mixagem (faixa 2)')),
+      ];
+
+      for (final (name, did) in lines) {
+        expect(tester.getTopLeft(did).dx, tester.getTopLeft(lines.first.$2).dx);
+        expect(tester.getTopLeft(did).dx, greaterThan(tester.getTopRight(name).dx));
+        expect(tester.getTopLeft(did).dy, tester.getTopLeft(name).dy);
+      }
+
+      expect(tester.getTopLeft(lines[1].$1).dy, greaterThan(tester.getBottomLeft(lines[0].$1).dy));
+      expect(tester.getTopLeft(lines[2].$1).dy, greaterThan(titles[1].bottom));
+      expect(tester.getTopLeft(lines[4].$1).dy, greaterThan(titles[2].bottom));
+
+      if (narrow) {
+        await tester.tap(find.descendant(of: page, matching: find.byTooltip('Fechar')));
+      } else {
+        await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      }
+
+      await tester.pumpAndSettle();
+      expect(page, findsNothing);
+      expect(song('Walk This Way'), findsOneWidget, reason: 'back on the album\'s page');
+
+      await tester.pumpWidget(const SizedBox());
+      await pumpAlbum(tester, size: size);
+      expect(find.byTooltip('Ver os créditos'), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    });
+  }
+
+  testWidgets('the names of the library\'s artists among those credited are links to their pages, which close the '
+      'credits', (tester) async {
+    await pumpAlbum(tester, contributors: serverCredits);
+    await tester.tap(find.byTooltip('Ver os créditos'));
+    await tester.pumpAndSettle();
+    final page = find.byType(CreditsPage);
+    expect(find.descendant(of: page, matching: find.widgetWithText(TextLink, 'Steven Tyler')), findsNWidgets(2));
+    expect(find.descendant(of: page, matching: find.widgetWithText(TextLink, 'Joe Perry')), findsNothing);
+
+    await tester.tap(find.widgetWithText(TextLink, 'Steven Tyler').first);
+    await tester.pumpAndSettle();
+    expect(page, findsNothing);
+    expect(find.byType(ArtistPage), findsOneWidget);
+    expect(tester.widget<ArtistPage>(find.byType(ArtistPage)).artist.id, 'ar3');
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets(
+    'where the server credits no one, MusicBrainz does, by the album\'s MusicBrainz id: the button comes with '
+    'its credits, and where the album was recorded, and when; the page says MusicBrainz said so',
+    (tester) async {
+      final credits = Completer<void>();
+      await pumpAlbum(
+        tester,
+        musicBrainzId: 'r1',
+        musicBrainz: musicBrainzCredits(credits: credits.future),
+      );
+      expect(find.byTooltip('Ver os créditos'), findsNothing);
+      credits.complete();
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Ver os créditos'));
+      await tester.pumpAndSettle();
+
+      final page = find.byType(CreditsPage);
+      Finder inPage(String text) => find.descendant(of: page, matching: find.text(text));
+      // What is beside the name, on its line.
+      String detail(String name, [int index = 0]) {
+        final line = tester.getTopLeft(inPage(name).at(index)).dy;
+        return [
+          for (final element in find.descendant(of: page, matching: find.byType(Text)).evaluate())
+            if ((element.widget as Text).data case final text? when text != name)
+              if (tester.getTopLeft(find.byElementPredicate((found) => found == element)).dy == line) text,
+        ].join(' | ');
+      }
+
+      expect(detail('Steven Tyler'), 'voz principal');
+      expect(detail('Joe Perry'), 'guitarra (faixa 1)');
+      expect(detail('Steven Tyler', 1), 'música (faixa 1)');
+      expect(detail('Joe Perry', 1), 'letra (faixa 1)');
+      expect(detail('George Marino'), 'masterização');
+      expect(inPage('Gravação'), findsOneWidget);
+      expect(detail('The Record Plant'), 'janeiro – fevereiro de 1975');
+      expect(detail('Reino Unido'), 'faixa 1');
+      expect(detail('Electric Lady Studios'), '1º de março de 1975 (faixa 2)');
+      expect(detail('Media Sound'), 'janeiro de 1975 (faixa 2)');
+      expect(detail('Sound City'), 'setembro de 1974 – março de 1975 (faixa 2)');
+      expect(detail('Studio X'), 'faixa 2');
+      final venues = [
+        for (final name in ['The Record Plant', 'Reino Unido', 'Electric Lady Studios', 'Studio X'])
+          tester.getTopLeft(inPage(name)).dy,
+      ];
+      expect(venues, orderedEquals([...venues]..sort()), reason: 'in the order of their songs');
+      expect(inPage('Com dados do MusicBrainz'), findsOneWidget);
+      expect(
+        find.descendant(of: page, matching: find.widgetWithText(TextLink, 'Steven Tyler')),
+        findsNWidgets(2),
+        reason: 'in the library by their MusicBrainz id',
+      );
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets('MusicBrainz\'s credits fill the sections the server has none in, as they come, also on the page open', (
+    tester,
+  ) async {
+    final credits = Completer<void>();
+    await pumpAlbum(
+      tester,
+      contributors: {
+        's2': [contributor('composer', 'ar6', 'Brad Whitford')],
+      },
+      musicBrainzId: 'r1',
+      musicBrainz: musicBrainzCredits(credits: credits.future),
+    );
+    await tester.tap(find.byTooltip('Ver os créditos'));
+    await tester.pumpAndSettle();
+    final page = find.byType(CreditsPage);
+    Finder inPage(String text) => find.descendant(of: page, matching: find.text(text));
+    expect(inPage('Composição'), findsOneWidget);
+    expect(inPage('Intérpretes'), findsNothing);
+    expect(inPage('Gravação'), findsNothing);
+
+    credits.complete();
+    await tester.pumpAndSettle();
+    expect(inPage('Intérpretes'), findsOneWidget);
+    expect(inPage('Gravação'), findsOneWidget);
+    expect(inPage('música (faixa 2)'), findsOneWidget, reason: 'the server\'s writers');
+    expect(inPage('letra (faixa 1)'), findsNothing, reason: 'not MusicBrainz\'s');
+    expect(inPage('Com dados do MusicBrainz'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 

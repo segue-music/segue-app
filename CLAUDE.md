@@ -156,6 +156,12 @@ Running two app instances on one machine as different devices:
   MusicBrainz are their life's, not their music's, so a person has none. It sends a request a second at
   most, as MusicBrainz asks, and remembers what it found for the session. `Services.start` gives it
   one; tests leave `Services.musicBrainz` null, so that none goes out to the internet.
+- `lib/releases/album_credits.dart`: an album's credits (`CreditsPage`, from the button after its
+  byline), by section (performing, writing, producing) and by person: in each section the media
+  server's (`Song.credits`: OpenSubsonic's contributors, Jellyfin's people), or, where it has none
+  there, MusicBrainz's (`MusicBrainz.credits`, by the album's MusicBrainz id, a request of its own:
+  its recordings' relations and their works'), whose tracks are the songs whose MusicBrainz id they
+  have, or else those in their places. Where it was recorded only MusicBrainz says.
 - `lib/segue/`: protocol types, the client (reconnects with backoff; stops on final close codes
   4001/4002/4003) and hub discovery (`/connect/v1/info` next to the server).
 - `MediaControls` (`lib/player/media_controls.dart`) mirrors `connect.nowPlaying` to the system's

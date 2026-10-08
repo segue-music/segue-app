@@ -158,6 +158,68 @@ const reissue = {
   },
 };
 
+/// A relation of MusicBrainz's of a recording, a work or a release to an artist, [name], whose MusicBrainz id is [id],
+/// of [type], with [attributes] (an instrument, a voice, "executive").
+Map<String, Object?> credit(
+  String type,
+  String id,
+  String name, {
+  List<String> attributes = const [],
+  String direction = 'backward',
+}) => {
+  'type': type,
+  'target-type': 'artist',
+  'direction': direction,
+  'attributes': attributes,
+  'artist': {'id': id, 'name': name, 'sort-name': name, 'type': 'Person'},
+};
+
+/// A relation of a recording or a release to the place it was recorded at, [name], whose MusicBrainz id is [id], from
+/// [begin] to [end].
+Map<String, Object?> recordedAt(String id, String name, {String? begin, String? end}) => {
+  'type': 'recorded at',
+  'target-type': 'place',
+  'direction': 'forward',
+  'begin': begin,
+  'end': end,
+  'place': {
+    'id': id,
+    'name': name,
+    'area': {'id': 'ar-$id', 'name': 'New York'},
+  },
+};
+
+/// A relation of a recording or a release to the area it was recorded in, [name], whose MusicBrainz id is [id], a
+/// country with its code ([country]), from [begin] to [end].
+Map<String, Object?> recordedIn(String id, String name, {String? country, String? begin, String? end}) => {
+  'type': 'recorded in',
+  'target-type': 'area',
+  'direction': 'forward',
+  'begin': begin,
+  'end': end,
+  'area': {
+    'id': id,
+    'name': name,
+    'iso-3166-1-codes': ?(country == null ? null : [country]),
+  },
+};
+
+/// A track of a release of MusicBrainz's, whose id is [id], of the recording whose id is [recording], with its
+/// [relations].
+Map<String, Object?> track(String id, String recording, List<Map<String, Object?>> relations) => {
+  'id': id,
+  'title': 'Walk This Way',
+  'recording': {'id': recording, 'title': 'Walk This Way', 'relations': relations},
+};
+
+/// A relation of a recording to the work it performs, whose [relations] say who wrote it.
+Map<String, Object?> performance(List<Map<String, Object?>> relations) => {
+  'type': 'performance',
+  'target-type': 'work',
+  'direction': 'forward',
+  'work': {'id': 'w1', 'title': 'Walk This Way', 'relations': relations},
+};
+
 void main() {
   test('by the album\'s MusicBrainz id, its release\'s date and labels, asked as an app MusicBrainz knows', () async {
     final asked = <http.Request>[];
@@ -696,6 +758,137 @@ void main() {
     status = 200;
     expect((await brainz.band(mutantes))?.years, (begin: 1966, end: null, ended: false));
     expect(asked, hasLength(2));
+  });
+
+  test('an album\'s credits, by its release\'s MusicBrainz id: on each of its tracks, those its recording\'s relations '
+      'and its works\' name, and where and when it was recorded; on the release, those of its own', () async {
+    final asked = <http.Request>[];
+    final found = await musicBrainz(
+      release: {
+        'id': 'r1',
+        'media': [
+          {
+            'tracks': [
+              track('t1', 'rec1', [
+                credit('vocal', 'mb1', 'Steven Tyler', attributes: ['lead vocals']),
+                credit('vocal', 'mb2', 'Joe Perry', attributes: ['additional']),
+                credit('instrument', 'mb1', 'Steven Tyler', attributes: ['guest', 'harmonica']),
+                credit('instrument', 'mb2', 'Joe Perry', attributes: ['guitar', 'slide guitar']),
+                credit('producer', 'mb3', 'Jack Douglas'),
+                credit('producer', 'mb4', 'David Krebs', attributes: ['executive']),
+                credit('engineer', 'mb5', 'Jay Messina', attributes: ['assistant']),
+                credit('recording', 'mb3', 'Jack Douglas'),
+                credit('mix', 'mb5', 'Jay Messina'),
+                // A kind the credits don't show, and one that goes the other way.
+                credit('dedication', 'mb6', 'Someone'),
+                credit('instrument', 'mb7', 'Someone else', attributes: ['piano'], direction: 'forward'),
+                recordedAt('p1', 'The Record Plant', begin: '1975-01-20', end: '1975-01-25'),
+                performance([
+                  credit('writer', 'mb1', 'Steven Tyler'),
+                  credit('writer', 'mb2', 'Joe Perry'),
+                  {
+                    'type': 'other version',
+                    'target-type': 'work',
+                    'direction': 'forward',
+                    'work': {'id': 'w2', 'title': 'Walk This Way (live)'},
+                  },
+                ]),
+              ]),
+            ],
+          },
+          {
+            'tracks': [
+              track('t2', 'rec2', [
+                credit('conductor', 'mb8', 'Michael Kamen'),
+                recordedIn('gb', 'United Kingdom', country: 'GB', begin: '1975'),
+              ]),
+            ],
+          },
+        ],
+        'relations': [credit('mastering', 'mb9', 'George Marino'), recordedIn('nyc', 'New York')],
+      },
+      asked: asked,
+    ).credits(album(musicBrainzId: 'r1'));
+
+    expect(asked.single.url.path, endsWith('/release/r1'));
+    expect(asked.single.url.queryParameters['inc']?.split(' '), [
+      'recordings',
+      'recording-level-rels',
+      'work-rels',
+      'work-level-rels',
+      'artist-rels',
+      'place-rels',
+      'area-rels',
+    ]);
+    final [first, second] = found!.tracks;
+    expect((first.id, first.recording, second.id, second.recording), ('t1', 'rec1', 't2', 'rec2'));
+    expect(
+      [for (final credit in first.credits) (credit.name, credit.role, credit.part, credit.musicBrainzId)],
+      [
+        ('Steven Tyler', CreditRole.performer, 'lead vocals', 'mb1'),
+        ('Joe Perry', CreditRole.performer, 'vocals', 'mb2'),
+        ('Steven Tyler', CreditRole.performer, 'harmonica', 'mb1'),
+        ('Joe Perry', CreditRole.performer, 'guitar', 'mb2'),
+        ('Joe Perry', CreditRole.performer, 'slide guitar', 'mb2'),
+        ('Jack Douglas', CreditRole.producer, null, 'mb3'),
+        ('David Krebs', CreditRole.executiveProducer, null, 'mb4'),
+        ('Jay Messina', CreditRole.assistantEngineer, null, 'mb5'),
+        ('Jack Douglas', CreditRole.recordingEngineer, null, 'mb3'),
+        ('Jay Messina', CreditRole.mixer, null, 'mb5'),
+        ('Steven Tyler', CreditRole.writer, null, 'mb1'),
+        ('Joe Perry', CreditRole.writer, null, 'mb2'),
+      ],
+    );
+    expect(
+      [for (final credit in second.credits) (credit.name, credit.role)],
+      [('Michael Kamen', CreditRole.conductor)],
+    );
+    List<Object?> sessions(List<RecordingSession> sessions) => [
+      for (final (:place, :begin, :end) in sessions) (place.id, place.name, place.country, parts(begin), parts(end)),
+    ];
+    expect(sessions(first.sessions), [('p1', 'The Record Plant', null, (1975, 1, 20), (1975, 1, 25))]);
+    expect(sessions(second.sessions), [('gb', 'United Kingdom', 'GB', (1975, null, null), (null, null, null))]);
+    expect(
+      [for (final credit in found.credits) (credit.name, credit.role)],
+      [('George Marino', CreditRole.masteringEngineer)],
+    );
+    expect(sessions(found.sessions), [('nyc', 'New York', null, (null, null, null), (null, null, null))]);
+  });
+
+  test('an album without a MusicBrainz id has no credits, and asks nothing; a release MusicBrainz doesn\'t have has '
+      'none; one that fails has none, and is asked again the next time; one found, no more', () async {
+    final asked = <http.Request>[];
+    expect(await musicBrainz(asked: asked).credits(album()), isNull);
+    expect(asked, isEmpty);
+    expect(await musicBrainz(asked: asked).credits(album(musicBrainzId: 'r1')), isNull);
+    expect(asked, hasLength(1));
+
+    var fails = true;
+    var requests = 0;
+    final failing = MusicBrainz(
+      spacing: Duration.zero,
+      client: MockClient((request) async {
+        requests++;
+        return fails
+            ? json({'error': 'oops'}, 500)
+            : json({
+                'id': 'r1',
+                'media': [
+                  {
+                    'tracks': [
+                      track('t1', 'rec1', [credit('producer', 'mb3', 'Jack Douglas')]),
+                    ],
+                  },
+                ],
+              });
+      }),
+    );
+    expect(await failing.credits(album(musicBrainzId: 'r1')), isNull);
+    fails = false;
+    final found = await failing.credits(album(musicBrainzId: 'r1'));
+    expect(found?.tracks.single.credits.single.name, 'Jack Douglas');
+    await failing.credits(album(musicBrainzId: 'r1'));
+    expect(requests, 2);
   });
 
   test('requests go one at a time, a second apart, as MusicBrainz asks', () {

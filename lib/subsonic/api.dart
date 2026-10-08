@@ -458,6 +458,8 @@ Set<String> _albumArtists(Map<String, dynamic> json) => {
 /// How many times the user played an album or a song; none when the server doesn't say.
 int _playCount(Map<String, dynamic> json) => (json['playCount'] as num?)?.toInt() ?? 0;
 
+/// A song's MusicBrainz id and credits are OpenSubsonic's: in Navidrome, its recording's id, and its contributors, from
+/// the file's tags (a composer, a performer with their instrument, a producer).
 Song _song(Map<String, dynamic> json) => Song(
   id: json['id'] as String,
   title: json['title'] as String? ?? '',
@@ -467,6 +469,29 @@ Song _song(Map<String, dynamic> json) => Song(
   duration: json['duration'] == null ? null : Duration(seconds: (json['duration'] as num).toInt()),
   albumId: json['albumId'] as String?,
   artists: _songArtists(json),
+  musicBrainzId: switch (json['musicBrainzId']) {
+    final String id when id.isNotEmpty => id,
+    _ => null,
+  },
+  credits: [
+    for (final contributor in json['contributors'] as List? ?? const [])
+      if (contributor case {'role': final String name, 'artist': final Map<String, dynamic> artist})
+        if (CreditRole.named(name) case final role?)
+          Credit(
+            artist['name'] as String? ?? '',
+            role,
+            // The performer's instrument.
+            part: switch (contributor['subRole']) {
+              final String part when part.isNotEmpty => part,
+              _ => null,
+            },
+            artistId: artist['id'] as String?,
+            musicBrainzId: switch (artist['musicBrainzId']) {
+              final String id when id.isNotEmpty => id,
+              _ => null,
+            },
+          ),
+  ],
 );
 
 /// A song's artists: OpenSubsonic's artists, all of them, or else Subsonic's one, artistId, whom its artist names.

@@ -185,13 +185,19 @@ class JellyfinApi implements MediaServer {
 
   /// An album and its songs. Jellyfin has no record labels: an album's studios stand for them, where someone set them
   /// (it reads no label from the tags of songs, only of audiobooks). It gives them, and the album's MusicBrainz id
-  /// among its other ids (ProviderIds), only when asked (Fields).
+  /// among its other ids (ProviderIds), only when asked (Fields), as it does the songs' credits (People) and
+  /// MusicBrainz ids.
   @override
   Future<(Album, List<Song>)> album(String id) async {
     // Future.wait throws the first failure as it came, where a record's wait would wrap it.
     final [albums, songs] = await Future.wait([
       _items({'Ids': id, 'Fields': 'Studios,ProviderIds'}),
-      _items({'ParentId': id, 'IncludeItemTypes': 'Audio', 'SortBy': 'ParentIndexNumber,IndexNumber,SortName'}),
+      _items({
+        'ParentId': id,
+        'IncludeItemTypes': 'Audio',
+        'SortBy': 'ParentIndexNumber,IndexNumber,SortName',
+        'Fields': 'People,ProviderIds',
+      }),
     ]);
     return (_album(_only(albums, id)), [for (final json in songs) _song(json)]);
   }
@@ -489,7 +495,9 @@ Album _album(Map<String, dynamic> json) => Album(
 );
 
 /// A song's cover is its own image or else its album's, as Jellyfin's apps show it. Its artists are
-/// the album's when it has none of its own, both in its artist's name and in its list of artists.
+/// the album's when it has none of its own, both in its artist's name and in its list of artists. Its MusicBrainz id
+/// and its credits come only where asked for (Fields: ProviderIds, People): the people Jellyfin reads from the file's
+/// tags (a composer, a conductor, a producer), whose ids are people's, not artists'.
 Song _song(Map<String, dynamic> json) => Song(
   id: json['Id'] as String,
   title: json['Name'] as String? ?? '',
@@ -502,6 +510,16 @@ Song _song(Map<String, dynamic> json) => Song(
     [] => _namesWithIds(json['AlbumArtists']),
     final artists => artists,
   },
+  musicBrainzId: switch (json['ProviderIds']) {
+    {'MusicBrainzRecording': final String id} when id.isNotEmpty => id,
+    {'MusicBrainzTrack': final String id} when id.isNotEmpty => id,
+    _ => null,
+  },
+  credits: [
+    for (final person in json['People'] as List? ?? const [])
+      if (person case {'Name': final String name, 'Type': final String type})
+        if (CreditRole.named(type) case final role?) Credit(name, role),
+  ],
 );
 
 Artist _artist(Map<String, dynamic> json) => Artist(
