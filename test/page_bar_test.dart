@@ -35,12 +35,11 @@ Future<void> pumpBar(
   await tester.pumpAndSettle();
 }
 
-/// The colors the bar's title, its halo and its arrow have, and how bright the system's icons are over it. Where the
-/// title and the arrow have an outline, they are the last ones, over it, and the halo is on the outline, the first.
+/// The colors the bar's title, its halo and its arrow have, and how bright the system's icons are over it.
 (Color?, Color?, Color?, Brightness?) barColors(WidgetTester tester) {
-  final title = tester.renderObject<RenderParagraph>(find.text('Aerosmith').last).text.style;
-  final halo = tester.renderObject<RenderParagraph>(find.text('Aerosmith').first).text.style?.shadows?.single;
-  final arrow = IconTheme.of(tester.element(find.byType(HugeIcon).last));
+  final title = tester.renderObject<RenderParagraph>(find.text('Aerosmith')).text.style;
+  final halo = title?.shadows?.single;
+  final arrow = IconTheme.of(tester.element(find.byType(HugeIcon)));
   final system = tester.widget<AnnotatedRegion<SystemUiOverlayStyle>>(
     find.descendant(of: find.byType(AppBar), matching: find.byType(AnnotatedRegion<SystemUiOverlayStyle>)),
   );
@@ -76,26 +75,12 @@ void main() {
     expect(barColors(tester), (light.onSurface, light.surface, light.onSurface, Brightness.dark));
   });
 
-  testWidgets(
-    'over a picture, the title and the arrow have a line of the halo\'s color around them; over the page, not',
-    (tester) async {
-      final light = segueTheme(Brightness.light).colorScheme;
-      await pumpBar(tester, under: Colors.black);
-      final outline = tester.renderObject<RenderParagraph>(find.text('Aerosmith').first).text.style?.foreground;
-      expect((outline?.style, outline?.strokeWidth), (PaintingStyle.stroke, 3.0));
-      // A paint's color comes back from its 32 bits.
-      expect(outline?.color, isSameColorAs(light.onSurface));
-      expect(tester.widgetList<HugeIcon>(find.byType(HugeIcon)).map((arrow) => (arrow.color, arrow.strokeWidth)), [
-        (light.onSurface, 4.5),
-        (null, null),
-      ], reason: 'the arrow, in the bar\'s color, over a thicker one, Hugeicons\' own being 1.5');
-      expect(barColors(tester).$1, light.surface);
-
-      await pumpBar(tester, shade: 0.5);
-      expect(find.text('Aerosmith'), findsOneWidget);
-      expect(find.byType(HugeIcon), findsOneWidget);
-    },
-  );
+  testWidgets('over a picture, the title and the arrow have no line around them', (tester) async {
+    await pumpBar(tester, under: Colors.black);
+    expect(find.text('Aerosmith'), findsOneWidget);
+    expect(tester.renderObject<RenderParagraph>(find.text('Aerosmith')).text.style?.foreground, isNull);
+    expect(tester.widget<HugeIcon>(find.byType(HugeIcon)).strokeWidth, isNull, reason: 'Hugeicons\' own');
+  });
 
   testWidgets('over the page itself, the theme\'s colors', (tester) async {
     final light = segueTheme(Brightness.light).colorScheme;

@@ -5,17 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 
-import 'theme.dart';
-import 'themed_icon.dart';
-
 /// The top bar of a page whose name is by its picture on a wide screen (an album's, an artist's), where the page has a
 /// bar of its own (on a phone, not under a top bar: `PageArea.holdsUnderTopBar`): the back arrow, where there is a page
 /// to go back to, and the page's [title] in the middle, which stay as the page scrolls under them. In the page's color;
 /// or, for a page that goes on under the bar ([Scaffold.extendBodyBehindAppBar]), with as much of that color as [shade]
 /// says, as the page scrolls; the title then has a halo, which keeps it easy to read over what passes under it while
 /// the bar has little of it: of the page's color, or of its text's where the arrow and the title take the page's color
-/// to stand out from what the bar is over ([under]). Over that, the arrow and the title also have a line of the halo's
-/// color around them, which keeps them clear where the picture's colors change under them.
+/// to stand out from what the bar is over ([under]).
 class PageBar extends StatelessWidget implements PreferredSizeWidget {
   const PageBar({this.title, this.shade, this.under, super.key});
 
@@ -29,9 +25,6 @@ class PageBar extends StatelessWidget implements PreferredSizeWidget {
   /// system's icons stand out from, under as much of the page's color as [shade] says: dark over a light picture, light
   /// over a dark one. Null where the page itself is under the bar.
   final Color? under;
-
-  /// How thick the line around the arrow and the title is, outside them.
-  static const outlineWidth = 1.5;
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -59,60 +52,22 @@ class PageBar extends StatelessWidget implements PreferredSizeWidget {
     final (foreground, halo) = _contrast(colors.surface, behind) > _contrast(colors.onSurface, behind)
         ? (colors.surface, colors.onSurface)
         : (colors.onSurface, colors.surface);
-    // Over a picture, the line around the arrow and the title.
-    final outline = under == null ? null : halo;
-    final bar = AppBar(
+    return AppBar(
       backgroundColor: background,
       foregroundColor: foreground,
       systemOverlayStyle: under == null ? null : _systemBarWith(foreground),
       centerTitle: true,
-      title: title == null ? null : _title(title, halo: this.shade == null ? null : halo, outline: outline),
+      title: title == null
+          ? null
+          : Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(shadows: this.shade == null ? null : [Shadow(color: halo, blurRadius: 8)]),
+            ),
       // As much room at the end as the arrow takes at the start, so that the title is in the middle of the page, not of
       // the room the arrow leaves.
       actions: const [SizedBox(width: kToolbarHeight)],
-    );
-
-    if (outline == null) {
-      return bar;
-    }
-
-    // The arrow over its outline: the same arrow, thicker than Hugeicons' own 1.5.
-    return ActionIconTheme(
-      data: (ActionIconTheme.of(context) ?? const ActionIconThemeData()).copyWith(
-        backButtonIconBuilder: (context) => Stack(
-          children: [
-            ThemedIcon(backArrow, strokeWidth: 1.5 + 2 * outlineWidth, color: outline),
-            const ThemedIcon(backArrow),
-          ],
-        ),
-      ),
-      child: bar,
-    );
-  }
-
-  /// The [title], on one line, with a [halo] around it where there is one, and a line of [outline]'s color where there
-  /// is one: the words drawn twice, their outline under them, with the halo under it.
-  Widget _title(String title, {Color? halo, Color? outline}) {
-    final shadows = halo == null ? null : [Shadow(color: halo, blurRadius: 8)];
-    Text text(TextStyle? style) => Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: style);
-
-    if (outline == null) {
-      return text(TextStyle(shadows: shadows));
-    }
-
-    // A line as thick as the outline's both sides, half of it over the words, which hide it.
-    final stroke = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2 * outlineWidth
-      ..strokeJoin = StrokeJoin.round
-      ..color = outline;
-    return Stack(
-      children: [
-        ExcludeSemantics(
-          child: text(TextStyle(shadows: shadows, foreground: stroke)),
-        ),
-        text(null),
-      ],
     );
   }
 
