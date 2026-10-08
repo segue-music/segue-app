@@ -12,11 +12,10 @@ import 'cover.dart';
 import 'cover_page.dart';
 import 'current_song.dart';
 import 'errors.dart';
-import 'menu_item_label.dart';
 import 'now_playing_bar.dart';
 import 'page_area.dart';
 import 'page_bar.dart';
-import 'playlist_dialogs.dart';
+import 'playlist_menu.dart';
 import 'song_list_header.dart';
 import 'song_menu.dart';
 import 'spinner.dart';
@@ -42,9 +41,6 @@ class _Entry {
   final Song song;
 }
 
-/// What the playlist's menu does.
-enum _PlaylistAction { rename, delete }
-
 class _PlaylistPageState extends State<PlaylistPage> {
   /// The playlist and its songs as the page shows them: as the server last gave them, with the changes made here since.
   /// Null until they come.
@@ -56,9 +52,6 @@ class _PlaylistPageState extends State<PlaylistPage> {
 
   /// Counts the loads, and the changes made here: a load that another one, or a change, has come after is dropped.
   int _version = 0;
-
-  /// The playlist was deleted here: there is nothing to load again.
-  bool _deleted = false;
 
   PlaylistEditor? _editor;
 
@@ -88,10 +81,6 @@ class _PlaylistPageState extends State<PlaylistPage> {
   }
 
   Future<void> _load() async {
-    if (_deleted) {
-      return;
-    }
-
     final version = ++_version;
 
     try {
@@ -134,48 +123,6 @@ class _PlaylistPageState extends State<PlaylistPage> {
         () => _entries!.insert(to, _entries!.removeAt(from)),
         (editor) => editor.move(widget.playlist.id, from: from, to: to),
       );
-    }
-  }
-
-  Future<void> _rename() async {
-    final playlist = _playlist!;
-    final name = await askPlaylistName(context, name: playlist.name);
-
-    if (name == null || !mounted) {
-      return;
-    }
-
-    _edit(
-      () => _playlist = Playlist(
-        id: playlist.id,
-        name: name,
-        coverArt: playlist.coverArt,
-        songCount: playlist.songCount,
-        editable: playlist.editable,
-      ),
-      (editor) => editor.rename(playlist.id, name),
-    );
-  }
-
-  /// Deletes the playlist, once asked, and closes its page.
-  Future<void> _delete() async {
-    final playlist = _playlist!;
-
-    if (!await confirmPlaylistDeletion(context, playlist) || !mounted) {
-      return;
-    }
-
-    final messenger = ScaffoldMessenger.of(context);
-    final strings = AppLocalizations.of(context);
-    final navigator = Navigator.of(context);
-    _deleted = true;
-
-    try {
-      await _editor!.delete(playlist.id);
-      navigator.maybePop();
-    } on Object catch (error) {
-      _deleted = false;
-      messenger.showSnackBar(SnackBar(content: Text(strings.couldNotChangePlaylist('$error'))));
     }
   }
 
@@ -317,7 +264,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
     final strings = AppLocalizations.of(context);
     final details = songs.isEmpty ? null : Text(songCountAndLength(strings, songs), style: text.bodyMedium);
     final play = _playButton(songs);
-    final menu = playlist.editable ? _menu() : null;
+    final menu = playlist.editable ? _menu(playlist) : null;
     // Asked of the server as an album's cover is.
     final picture = CoverButton(playlist.coverArt, size: 800, icon: HugeIcons.strokeRoundedPlaylist01);
 
@@ -391,26 +338,20 @@ class _PlaylistPageState extends State<PlaylistPage> {
     icon: const ThemedIcon(HugeIcons.strokeRoundedPlay),
   );
 
-  /// The playlist's menu, which renames it and deletes it.
-  Widget _menu() {
+  /// The playlist's menu, which renames it, and deletes it, closing its page.
+  Widget _menu(Playlist playlist) {
     final strings = AppLocalizations.of(context);
-    return PopupMenuButton<_PlaylistAction>(
+    return PopupMenuButton<PlaylistAction>(
       tooltip: strings.moreOptions,
       icon: const ThemedIcon(HugeIcons.strokeRoundedMoreVertical),
-      onSelected: (action) => switch (action) {
-        _PlaylistAction.rename => _rename(),
-        _PlaylistAction.delete => _delete(),
+      onSelected: (action) async {
+        final navigator = Navigator.of(context);
+
+        if (await runPlaylistAction(context, playlist, action) && action == PlaylistAction.delete) {
+          navigator.maybePop();
+        }
       },
-      itemBuilder: (context) => [
-        PopupMenuItem(
-          value: _PlaylistAction.rename,
-          child: MenuItemLabel(strings.renamePlaylist, icon: HugeIcons.strokeRoundedEdit02),
-        ),
-        PopupMenuItem(
-          value: _PlaylistAction.delete,
-          child: MenuItemLabel(strings.deletePlaylist, icon: HugeIcons.strokeRoundedDelete02),
-        ),
-      ],
+      itemBuilder: (context) => playlistMenuItems(strings),
     );
   }
 

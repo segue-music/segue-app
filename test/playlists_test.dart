@@ -14,6 +14,7 @@ import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/home_page.dart';
 import 'package:segue/ui/now_playing_bar.dart';
+import 'package:segue/ui/playlist_menu.dart';
 import 'package:segue/ui/playlist_page.dart';
 import 'package:segue/ui/playlists_view.dart';
 import 'package:segue/ui/themed_icon.dart';
@@ -596,6 +597,76 @@ void main() {
     await tap(tester, item('Remover da playlist'));
     expect(find.text('Não consegui alterar a playlist: not allowed'), findsOneWidget);
     expect(titles(tester), ['Sweet Emotion', 'Dream Police']);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('held, a playlist in the list opens its menu where it was pressed, which renames it', (tester) async {
+    final library = Library();
+    await pumpHome(tester, const Size(1000, 700), library: library);
+    await openPlaylists(tester);
+    // Nearer the left edge, which the menu grows away from.
+    final pressed = tester.getCenter(tile('Road trip')) - const Offset(200, 0);
+    await tester.longPressAt(pressed);
+    await tester.pumpAndSettle();
+    final menu = tester.getRect(find.byType(PopupMenuItem<PlaylistAction>).first);
+    expect(menu.left, moreOrLessEquals(pressed.dx, epsilon: 1), reason: 'from where it was pressed');
+    expect(menu.top, inInclusiveRange(pressed.dy, pressed.dy + 16));
+
+    await tap(tester, item('Renomear a playlist'));
+    await tester.enterText(nameField, 'Night drive');
+    await tester.pump();
+    await tap(tester, find.widgetWithText(TextButton, 'Renomear'));
+    expect(library.playlists['p1']!.name, 'Night drive');
+    expect(tile('Night drive'), findsOneWidget);
+    expect(tile('Road trip'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('held with the mouse, a playlist in the list opens its menu, which deletes it, once asked', (
+    tester,
+  ) async {
+    final library = Library();
+    await pumpHome(tester, const Size(1000, 700), library: library);
+    await openPlaylists(tester);
+    await tester.longPress(tile('Road trip'), kind: PointerDeviceKind.mouse);
+    await tester.pumpAndSettle();
+    await tap(tester, item('Excluir a playlist'));
+    expect(find.text('Excluir “Road trip”?'), findsOneWidget);
+    await tap(tester, item('Excluir'));
+    expect(library.playlists, isNot(contains('p1')));
+    expect(tile('Road trip'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  }, variant: TargetPlatformVariant.only(TargetPlatform.linux));
+
+  testWidgets('another user\'s playlist, held, opens no menu', (tester) async {
+    await pumpHome(tester, const Size(1000, 700));
+    await openPlaylists(tester);
+    await tester.longPress(tile('chill'));
+    await tester.pumpAndSettle();
+    expect(find.text('Renomear a playlist'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('the menu key, or Shift+F10, on a playlist in the list opens its menu, over it', (tester) async {
+    await pumpHome(tester, const Size(1000, 700));
+    await openPlaylists(tester);
+    Focus.of(tester.element(find.text('Road trip'))).requestFocus();
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.contextMenu);
+    await tester.pumpAndSettle();
+    expect(find.text('Excluir a playlist'), findsOneWidget);
+    expect(
+      tester.getRect(find.byType(PopupMenuItem<PlaylistAction>).first).top,
+      inInclusiveRange(tester.getRect(tile('Road trip')).top, tester.getRect(tile('Road trip')).bottom),
+    );
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.f10);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.pumpAndSettle();
+    expect(find.text('Excluir a playlist'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 }

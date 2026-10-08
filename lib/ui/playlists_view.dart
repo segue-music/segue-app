@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../l10n/app_localizations.dart';
@@ -8,11 +9,13 @@ import '../server/playlist_editor.dart';
 import '../services.dart';
 import 'cover.dart';
 import 'playlist_dialogs.dart';
+import 'playlist_menu.dart';
 import 'playlist_page.dart';
 import 'spinner.dart';
 
 /// The user's playlists, and those others share with them, by name, each with its picture and how many songs it has,
-/// opening its page, under a button that makes a new one. They load again as the app changes any.
+/// opening its page, under a button that makes a new one. Held, one the user can change opens its menu, which renames
+/// and deletes it. They load again as the app changes any.
 class PlaylistsView extends StatefulWidget {
   const PlaylistsView({super.key});
 
@@ -92,18 +95,75 @@ class _PlaylistsViewState extends State<PlaylistsView> {
                 );
               }
 
-              final playlist = playlists[i - 1];
-              return ListTile(
-                leading: Thumbnail(playlist.coverArt, icon: HugeIcons.strokeRoundedPlaylist01),
-                title: Text(playlist.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-                subtitle: playlist.songCount == null ? null : Text(strings.trackCount(playlist.songCount!)),
-                onTap: () =>
-                    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => PlaylistPage(playlist))),
-              );
+              return _PlaylistTile(playlists[i - 1]);
             },
           ),
         ),
       );
     },
   );
+}
+
+/// A playlist in the list: a tap opens its page. Where the user can change it, a long press (held, with a finger or the
+/// mouse) opens its menu where it was pressed, as the menu key, or Shift+F10, does over it, for the keyboard and the
+/// remote.
+class _PlaylistTile extends StatefulWidget {
+  const _PlaylistTile(this.playlist);
+
+  final Playlist playlist;
+
+  @override
+  State<_PlaylistTile> createState() => _PlaylistTileState();
+}
+
+class _PlaylistTileState extends State<_PlaylistTile> {
+  /// Where the pointer last went down on it, in the window.
+  Offset? _pressedAt;
+
+  /// Opens the menu: where the pointer is held ([at]), or else over the playlist.
+  Future<void> _openMenu({Offset? at}) async {
+    final overlay = Overlay.of(context).context.findRenderObject()! as RenderBox;
+    final tile = context.findRenderObject()! as RenderBox;
+    final area = switch (at) {
+      final point? => Rect.fromPoints(overlay.globalToLocal(point), overlay.globalToLocal(point)),
+      null => Rect.fromPoints(
+        tile.localToGlobal(Offset.zero, ancestor: overlay),
+        tile.localToGlobal(tile.size.bottomRight(Offset.zero), ancestor: overlay),
+      ),
+    };
+    final action = await showMenu<PlaylistAction>(
+      context: context,
+      position: RelativeRect.fromRect(area, Offset.zero & overlay.size),
+      items: playlistMenuItems(AppLocalizations.of(context)),
+    );
+
+    if (action != null && mounted) {
+      await runPlaylistAction(context, widget.playlist, action);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final playlist = widget.playlist;
+    final strings = AppLocalizations.of(context);
+    final tile = ListTile(
+      leading: Thumbnail(playlist.coverArt, icon: HugeIcons.strokeRoundedPlaylist01),
+      title: Text(playlist.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+      subtitle: playlist.songCount == null ? null : Text(strings.trackCount(playlist.songCount!)),
+      onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => PlaylistPage(playlist))),
+      onLongPress: playlist.editable ? () => _openMenu(at: _pressedAt) : null,
+    );
+
+    if (!playlist.editable) {
+      return tile;
+    }
+
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.contextMenu): _openMenu,
+        const SingleActivator(LogicalKeyboardKey.f10, shift: true): _openMenu,
+      },
+      child: Listener(onPointerDown: (event) => _pressedAt = event.position, child: tile),
+    );
+  }
 }

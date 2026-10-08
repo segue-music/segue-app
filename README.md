@@ -131,7 +131,7 @@ the device it runs on.
   button, to one of those the user can change, picked in a dialog, or to a new one named there; on the
   page of one the user can change, a song taken out from its menu, a song moved by dragging it (on a
   touch screen, once held a moment), and the playlist renamed or deleted (once asked) from its own
-  menu. Another user's playlist, or one the server makes from rules (Navidrome's smart playlists), as
+  menu, which in the list of them a long press on it opens too (with a finger or the mouse), or the menu key. Another user's playlist, or one the server makes from rules (Navidrome's smart playlists), as
   OpenSubsonic says, has none of these. Each change goes to the server as it's made, one after another,
   and what shows the playlists then loads them again as the server has them; one the server refuses
   says so. On a Subsonic server a song moves as the playlist's songs go back in their new order, which
