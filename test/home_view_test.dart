@@ -216,9 +216,10 @@ void main() {
     expect(shown('Álbuns'), findsNothing);
     expect(shown('Artistas'), findsNothing);
     expect(shown('Gêneros'), findsNothing);
+    expect(shown('Playlists'), findsNothing);
     expect(find.byTooltip('Recolher a barra lateral'), findsNothing, reason: 'it is always so');
 
-    for (final section in ['Álbuns', 'Artistas', 'Gêneros']) {
+    for (final section in ['Álbuns', 'Artistas', 'Gêneros', 'Playlists']) {
       expect(tester.getSize(railButton(section)), const Size(40, 40), reason: section);
     }
 
@@ -243,7 +244,7 @@ void main() {
     await mouse.addPointer(location: const Offset(999, 699));
     addTearDown(mouse.removePointer);
 
-    for (final section in ['Álbuns', 'Artistas', 'Gêneros']) {
+    for (final section in ['Álbuns', 'Artistas', 'Gêneros', 'Playlists']) {
       final icon = tester.getRect(railButton(section));
       await mouse.moveTo(icon.center);
       await tester.pumpAndSettle();

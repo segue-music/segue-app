@@ -21,6 +21,7 @@ import 'home_view.dart';
 import 'now_playing_bar.dart';
 import 'page_area.dart';
 import 'player_page.dart';
+import 'playlists_view.dart';
 import 'search_results.dart';
 import 'settings_page.dart';
 import 'shortcuts.dart';
@@ -56,6 +57,7 @@ enum _Section {
   albums(HugeIcons.strokeRoundedCd),
   artists(HugeIcons.strokeRoundedUser),
   genres(HugeIcons.strokeRoundedTag01),
+  playlists(HugeIcons.strokeRoundedPlaylist01),
   search(HugeIcons.strokeRoundedSearch01);
 
   const _Section(this.icon);
@@ -69,6 +71,7 @@ enum _Section {
     albums => strings.albums,
     artists => strings.artists,
     genres => strings.genres,
+    playlists => strings.playlists,
     search => strings.search,
   };
 }
@@ -313,6 +316,7 @@ class _HomePageState extends State<HomePage> {
               ),
               _Section.artists => const ArtistsView(),
               _Section.genres => const GenresView(),
+              _Section.playlists => const PlaylistsView(),
               // On a phone, blank until a search finds something.
               _Section.search => results == null ? const SizedBox.shrink() : SearchResultsList(results),
             },

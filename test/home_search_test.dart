@@ -97,7 +97,7 @@ void main() {
 
     await tester.tap(find.descendant(of: sections, matching: find.text('Buscar')));
     await tester.pumpAndSettle();
-    expect(tester.widget<NavigationBar>(sections).selectedIndex, 4, reason: 'after the genres');
+    expect(tester.widget<NavigationBar>(sections).selectedIndex, 5, reason: 'after the playlists');
     expect(find.text('Toys in the Attic'), findsNothing);
     expect(find.byTooltip('Limpar'), findsNothing);
     expect(tester.testTextInput.isVisible, isTrue, reason: 'ready to type');
@@ -282,7 +282,7 @@ void main() {
 
     expect(await tester.sendKeyEvent(LogicalKeyboardKey.slash, character: '/'), isTrue);
     await tester.pumpAndSettle();
-    expect(tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex, 4);
+    expect(tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex, 5);
     expect(tester.state<EditableTextState>(find.byType(EditableText)).widget.focusNode.hasFocus, isTrue);
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
   });

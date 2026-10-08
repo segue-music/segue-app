@@ -331,5 +331,19 @@ class Genre {
   final int? albumCount;
 }
 
+/// A playlist: songs in the order someone put them in, the user or another who shares it with them.
+class Playlist {
+  const Playlist({required this.id, required this.name, this.coverArt, this.songCount});
+
+  final String id;
+  final String name;
+
+  /// The server's picture for it (Navidrome's and Jellyfin's, a collage of its albums' covers); null when it has none.
+  final String? coverArt;
+
+  /// How many songs it has; null when the server doesn't say.
+  final int? songCount;
+}
+
 /// What a search found.
 typedef SearchResults = ({List<Artist> artists, List<Album> albums, List<Song> songs});

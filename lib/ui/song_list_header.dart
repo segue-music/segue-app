@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../l10n/app_localizations.dart';
+import '../server/models.dart';
 import 'cover.dart';
 import 'player_controls.dart';
 import 'themed_icon.dart';
@@ -70,4 +71,26 @@ class SongListHeader extends StatelessWidget {
       ],
     );
   }
+}
+
+/// How many songs there are, and how long they last together, where each says: "9 faixas, 37 min".
+String songCountAndLength(AppLocalizations strings, List<Song> songs) => switch (songsLength(strings, songs)) {
+  final length? => strings.tracksAndLength(strings.trackCount(songs.length), length),
+  null => strings.trackCount(songs.length),
+};
+
+/// How long [songs] last together: "37 min", "1 h 14 min"; null where one doesn't say.
+String? songsLength(AppLocalizations strings, List<Song> songs) {
+  if (songs.any((song) => song.duration == null)) {
+    return null;
+  }
+
+  final length = songs.fold(Duration.zero, (sum, song) => sum + song.duration!);
+  final (hours, minutes) = (length.inHours, length.inMinutes % 60);
+  return switch ((hours, minutes)) {
+    (0, 0) => strings.lengthSeconds(length.inSeconds),
+    (0, _) => strings.lengthMinutes(minutes),
+    (_, 0) => strings.lengthHours(hours),
+    _ => strings.lengthHoursMinutes(hours, minutes),
+  };
 }

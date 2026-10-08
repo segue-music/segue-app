@@ -205,6 +205,23 @@ class JellyfinApi implements MediaServer {
   @override
   Future<Song> song(String id) async => _song(_only(await _items({'Ids': id}), id));
 
+  /// The playlists of music, but for those of videos, which Jellyfin keeps among them.
+  @override
+  Future<List<Playlist>> playlists() async => [
+    for (final json in await _items({'IncludeItemTypes': 'Playlist', 'Fields': 'ChildCount'}))
+      if (json['MediaType'] != 'Video') _playlist(json),
+  ];
+
+  /// A playlist's songs are its items, which come in its order when no other is asked for (SortBy).
+  @override
+  Future<(Playlist, List<Song>)> playlist(String id) async {
+    final [playlists, songs] = await Future.wait([
+      _items({'Ids': id, 'Fields': 'ChildCount'}),
+      _items({'ParentId': id, 'IncludeItemTypes': 'Audio'}),
+    ]);
+    return (_playlist(_only(playlists, id)), [for (final json in songs) _song(json)]);
+  }
+
   /// Jellyfin's lyrics of a song (Audio/{id}/Lyrics), from the file's tags or a .lrc next to it: a 404
   /// when it has none. Their starts are in ticks, of 100 ns.
   @override
@@ -531,6 +548,13 @@ Artist _artist(Map<String, dynamic> json) => Artist(
     final String id when id.isNotEmpty => id,
     _ => null,
   },
+);
+
+Playlist _playlist(Map<String, dynamic> json) => Playlist(
+  id: json['Id'] as String,
+  name: json['Name'] as String? ?? '',
+  coverArt: _primaryImage(json),
+  songCount: (json['ChildCount'] as num?)?.toInt(),
 );
 
 Genre _genre(Map<String, dynamic> json) => Genre(

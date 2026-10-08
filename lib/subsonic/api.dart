@@ -177,6 +177,22 @@ class SubsonicApi implements MediaServer {
   @override
   Future<Song> song(String id) async => _song((await _get('getSong', {'id': id}))['song'] as Map<String, dynamic>);
 
+  /// getPlaylists: the user's, and the public ones of other users.
+  @override
+  Future<List<Playlist>> playlists() async {
+    final body = await _get('getPlaylists');
+    final list = (body['playlists'] as Map<String, dynamic>?)?['playlist'] as List? ?? const [];
+    return [for (final playlist in list) _playlist(playlist as Map<String, dynamic>)];
+  }
+
+  /// getPlaylist, whose entries are its songs.
+  @override
+  Future<(Playlist, List<Song>)> playlist(String id) async {
+    final json = (await _get('getPlaylist', {'id': id}))['playlist'] as Map<String, dynamic>;
+    final songs = json['entry'] as List? ?? const [];
+    return (_playlist(json), [for (final song in songs) _song(song as Map<String, dynamic>)]);
+  }
+
   /// OpenSubsonic's getLyricsBySongId (its songLyrics extension, which Navidrome has, from the file's
   /// tags or a .lrc next to it): the first synced lyrics, else the first. Their offset shifts every line,
   /// a positive one sooner. They come from the server, by the name OpenSubsonic gives it (navidrome).
@@ -501,6 +517,13 @@ List<Artist> _songArtists(Map<String, dynamic> json) => switch (json['artists'])
   ],
   _ => [if (json['artistId'] case final String id) Artist(id: id, name: json['artist'] as String? ?? '')],
 };
+
+Playlist _playlist(Map<String, dynamic> json) => Playlist(
+  id: json['id'] as String,
+  name: json['name'] as String? ?? '',
+  coverArt: json['coverArt'] as String?,
+  songCount: (json['songCount'] as num?)?.toInt(),
+);
 
 Genre _genre(Map<String, dynamic> json) => Genre(
   id: json['value'] as String,

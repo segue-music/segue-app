@@ -392,7 +392,7 @@ bool inSearch() => focusedIn<TextField>() && inTopBar();
 bool focusedIn<T extends Widget>() =>
     FocusManager.instance.primaryFocus?.context?.findAncestorWidgetOfExactType<T>() != null;
 
-bool inRail() => ['Álbuns', 'Artistas', 'Gêneros'].contains(focusedTip());
+bool inRail() => ['Álbuns', 'Artistas', 'Gêneros', 'Playlists'].contains(focusedTip());
 
 /// In the home's top bar: the app's icon, the arrows, the search, the buttons at its end.
 bool inTopBar() => focusedIn<AppBar>() && focusedIn<HomePage>();

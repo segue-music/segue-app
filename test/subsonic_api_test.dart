@@ -569,6 +569,63 @@ void main() {
     expect(asked.last.queryParameters, containsPair('offset', '40'));
   });
 
+  test('playlists are getPlaylists\', and a playlist\'s songs getPlaylist\'s entries, in its order', () async {
+    final asked = <Uri>[];
+    final api = SubsonicApi(
+      Uri.parse('https://music.test'),
+      credentials,
+      client: MockClient((request) async {
+        asked.add(request.url);
+        const playlist = {'id': 'p1', 'name': 'Road trip', 'songCount': 2, 'duration': 494, 'coverArt': 'pl-p1'};
+
+        if (request.url.path.endsWith('getPlaylists.view')) {
+          return subsonic({
+            'status': 'ok',
+            'playlists': {
+              'playlist': [playlist],
+            },
+          });
+        }
+
+        return subsonic({
+          'status': 'ok',
+          'playlist': {
+            ...playlist,
+            'entry': [
+              {'id': 's2', 'title': 'Sweet Emotion', 'artist': 'Aerosmith', 'albumId': 'a1', 'duration': 274},
+              {'id': 's1', 'title': 'Walk This Way', 'artist': 'Aerosmith', 'albumId': 'a1', 'duration': 220},
+            ],
+          },
+        });
+      }),
+    );
+    final playlist = (await api.playlists()).single;
+    expect((playlist.id, playlist.name, playlist.songCount, playlist.coverArt), ('p1', 'Road trip', 2, 'pl-p1'));
+    expect(asked.single.path, '/rest/getPlaylists.view');
+
+    final (found, songs) = await api.playlist('p1');
+    expect(found.name, 'Road trip');
+    expect([for (final song in songs) song.title], ['Sweet Emotion', 'Walk This Way']);
+    expect(songs.first.duration, const Duration(seconds: 274));
+    expect(asked.last.path, '/rest/getPlaylist.view');
+    expect(asked.last.queryParameters, containsPair('id', 'p1'));
+  });
+
+  test('a playlist with no songs has none', () async {
+    final api = SubsonicApi(
+      Uri.parse('https://music.test'),
+      credentials,
+      client: MockClient(
+        (_) async => subsonic({
+          'status': 'ok',
+          'playlist': {'id': 'p1', 'name': 'Empty', 'songCount': 0},
+        }),
+      ),
+    );
+    final (_, songs) = await api.playlist('p1');
+    expect(songs, isEmpty);
+  });
+
   test('the most played albums are getAlbumList2\'s frequent', () async {
     late Uri asked;
     final api = SubsonicApi(

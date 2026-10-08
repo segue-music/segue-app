@@ -142,12 +142,15 @@ class LargeCover extends StatelessWidget {
 
 /// A small cover, for a list.
 class Thumbnail extends StatelessWidget {
-  const Thumbnail(this.coverArt, {this.round = false, this.playing = false, super.key});
+  const Thumbnail(this.coverArt, {this.round = false, this.playing = false, this.icon, super.key});
 
   final String? coverArt;
 
   /// An artist's: round, with a person for a placeholder.
   final bool round;
+
+  /// What the placeholder shows, where it isn't an album's or an artist's: a playlist's.
+  final HugeIconData? icon;
 
   /// A song's that plays: the equalizer goes over it, on a veil.
   final bool playing;
@@ -159,13 +162,13 @@ class Thumbnail extends StatelessWidget {
   Widget build(BuildContext context) => SizedBox.square(
     dimension: size,
     child: round
-        ? ClipOval(child: Cover(coverArt, size: 96, icon: HugeIcons.strokeRoundedUser))
+        ? ClipOval(child: Cover(coverArt, size: 96, icon: icon ?? HugeIcons.strokeRoundedUser))
         : ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: Stack(
               fit: StackFit.expand,
               children: [
-                Cover(coverArt, size: 96),
+                Cover(coverArt, size: 96, icon: icon ?? HugeIcons.strokeRoundedCd),
                 // The primary color's light tone in either theme, which stands out on the dark veil.
                 if (playing)
                   ColoredBox(

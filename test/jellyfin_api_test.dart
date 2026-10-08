@@ -145,6 +145,49 @@ void main() {
     expect(query, containsPair('StartIndex', '40'));
   });
 
+  test('playlists are the items of that type but the ones of videos, and a playlist\'s songs its items', () async {
+    final asked = <http.Request>[];
+    final api = jellyfin(
+      (request) => switch (request.url.queryParameters) {
+        {'IncludeItemTypes': 'Playlist'} => items([
+          {'Id': 'p1', 'Name': 'Road trip', 'Type': 'Playlist', 'MediaType': 'Audio', 'ChildCount': 2},
+          {'Id': 'p2', 'Name': 'Trailers', 'Type': 'Playlist', 'MediaType': 'Video', 'ChildCount': 4},
+        ]),
+        {'Ids': 'p1'} => items([
+          {
+            'Id': 'p1',
+            'Name': 'Road trip',
+            'Type': 'Playlist',
+            'MediaType': 'Audio',
+            'ChildCount': 2,
+            'ImageTags': {'Primary': 'tag'},
+          },
+        ]),
+        _ => items([
+          {...song, 'Id': 's2', 'Name': 'Sweet Emotion'},
+          song,
+        ]),
+      },
+      asked,
+    );
+    final playlist = (await api.playlists()).single;
+    expect((playlist.id, playlist.name, playlist.songCount, playlist.coverArt), ('p1', 'Road trip', 2, null));
+    expect(asked.single.url.path, '/jellyfin/Items');
+    expect(asked.single.url.queryParameters, containsPair('Recursive', 'true'));
+
+    asked.clear();
+    final (found, songs) = await api.playlist('p1');
+    expect((found.name, found.coverArt), ('Road trip', 'p1'));
+    expect([for (final song in songs) song.title], ['Sweet Emotion', 'Walk This Way']);
+    final query = asked
+        .firstWhere((request) => request.url.queryParameters.containsKey('ParentId'))
+        .url
+        .queryParameters;
+    expect(query, containsPair('ParentId', 'p1'));
+    expect(query, containsPair('IncludeItemTypes', 'Audio'));
+    expect(query.containsKey('SortBy'), isFalse, reason: 'in the playlist\'s order');
+  });
+
   test('a genre without its number of albums has none', () async {
     final genres = await jellyfin(
       (_) => items([

@@ -73,12 +73,15 @@ class CoverPage extends StatelessWidget {
 /// A cover that opens full screen ([CoverPage]) when tapped, or pressed from the keyboard or the
 /// remote. Without a cover it is only the placeholder, and opens nothing.
 class CoverButton extends StatelessWidget {
-  const CoverButton(this.id, {this.size, super.key});
+  const CoverButton(this.id, {this.size, this.icon = HugeIcons.strokeRoundedCd, super.key});
 
   final String? id;
 
   /// Pixels asked of the server, for a cover bigger than usual ([LargeCover]); none: [Cover]'s usual.
   final int? size;
+
+  /// What the placeholder shows.
+  final HugeIconData icon;
 
   static const _borderRadius = BorderRadius.all(Radius.circular(8));
 
@@ -87,7 +90,7 @@ class CoverButton extends StatelessWidget {
     final (id, size) = (this.id, this.size);
     final cover = ClipRRect(
       borderRadius: _borderRadius,
-      child: size == null ? Cover(id) : LargeCover(id, size: size),
+      child: size == null ? Cover(id, icon: icon) : LargeCover(id, size: size, icon: icon),
     );
 
     if (id == null) {

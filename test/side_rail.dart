@@ -11,7 +11,7 @@ Finder selectedInRail(String section) => find.descendant(
 /// On a wide screen, that the home shows its own section, which the side rail doesn't list: none of its buttons is
 /// selected.
 void expectHomeInRail() {
-  for (final section in ['Álbuns', 'Artistas', 'Gêneros']) {
+  for (final section in ['Álbuns', 'Artistas', 'Gêneros', 'Playlists']) {
     expect(selectedInRail(section), findsNothing, reason: section);
   }
 }

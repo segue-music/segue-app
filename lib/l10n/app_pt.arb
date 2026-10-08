@@ -866,6 +866,44 @@
   "@genres": {
     "description": "The genres section."
   },
+  "playlists": "Playlists",
+  "@playlists": {
+    "description": "The playlists section."
+  },
+  "playlistsEmpty": "Ainda não há playlists.",
+  "@playlistsEmpty": {
+    "description": "The playlists section when the server has none for the user."
+  },
+  "couldNotListPlaylists": "Não consegui listar as playlists: {error}",
+  "@couldNotListPlaylists": {
+    "description": "Playlists that couldn't load, with the error.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "playlist": "Playlist",
+  "@playlist": {
+    "description": "A playlist's page, as a label above its name, as an album's type is."
+  },
+  "playPlaylist": "Tocar a playlist",
+  "@playPlaylist": {
+    "description": "The button that plays a playlist from its first song."
+  },
+  "playlistEmpty": "Essa playlist está vazia.",
+  "@playlistEmpty": {
+    "description": "A playlist's page when it has no songs."
+  },
+  "couldNotOpenPlaylist": "Não consegui abrir a playlist: {error}",
+  "@couldNotOpenPlaylist": {
+    "description": "A playlist's page that couldn't load, with the error.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "search": "Buscar",
   "@search": {
     "description": "The search section, on a phone."

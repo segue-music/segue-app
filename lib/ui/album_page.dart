@@ -210,7 +210,7 @@ class _AlbumPageState extends State<AlbumPage> {
                               _song(songs, i),
                               album: album,
                               release: _release!,
-                              length: narrow ? _length(strings, songs) : null,
+                              length: narrow ? songsLength(strings, songs) : null,
                             )
                           else
                             _song(songs, i),
@@ -418,7 +418,7 @@ class _Byline extends StatelessWidget {
     final details = [
       if (type case final type?) releaseTypeName(strings, type),
       if (album.year case final year?) '$year',
-      if (songs.isNotEmpty) stacked ? strings.trackCount(songs.length) : _songsLength(strings, songs),
+      if (songs.isNotEmpty) stacked ? strings.trackCount(songs.length) : songCountAndLength(strings, songs),
     ].join(' · ');
     final artist = album.artist == null
         ? null
@@ -457,29 +457,6 @@ class _Byline extends StatelessWidget {
       style: style,
     );
   }
-}
-
-/// How many songs there are, and how long they last together, where each says: "9 faixas, 37 min".
-String _songsLength(AppLocalizations strings, List<Song> songs) => switch (_length(strings, songs)) {
-  final length? => strings.tracksAndLength(strings.trackCount(songs.length), length),
-  null => strings.trackCount(songs.length),
-};
-
-/// How long [songs] last together: "37 min", "1 h 14 min"; null where one doesn't say.
-String? _length(AppLocalizations strings, List<Song> songs) {
-  if (songs.any((song) => song.duration == null)) {
-    return null;
-  }
-
-  final length = songs.fold(Duration.zero, (sum, song) => sum + song.duration!);
-  final (hours, minutes) = (length.inHours, length.inMinutes % 60);
-  final time = switch ((hours, minutes)) {
-    (0, 0) => strings.lengthSeconds(length.inSeconds),
-    (0, _) => strings.lengthMinutes(minutes),
-    (_, 0) => strings.lengthHours(hours),
-    _ => strings.lengthHoursMinutes(hours, minutes),
-  };
-  return time;
 }
 
 /// The picture of the album's artist, small and round, before their name: a person until it comes, and where the

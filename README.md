@@ -56,13 +56,17 @@ the device it runs on.
   ones the user plays most, once any has played (on a Subsonic server, which lists no songs by
   plays, those of the artist's albums, from the albums that have played), or the popular ones, which
   a Subsonic server learns from Last.fm (getTopSongs), picked over them where there are both (a
-  thumb sliding to the one picked), and these alone before any of the user's has played) and
+  thumb sliding to the one picked), and these alone before any of the user's has played),
   genres (by name, each with its number of albums, under the ten the user listens to
   most, and its albums by name, under a row of those the user plays most: on a Subsonic server,
-  which counts no plays by genre, both come from the 500 most played albums):
-  albums, artists and genres in a side rail, as icons that name their sections on hover, beside them,
-  and the home under the app's icon, in the top bar's left corner (on a phone, the icon goes there
-  too, and all four are in a bar at the bottom, with the search after them: its bar shows in it alone,
+  which counts no plays by genre, both come from the 500 most played albums) and playlists (the
+  user's and those shared with them, by name, each with its picture and how many songs it has; its
+  page, laid out as an album's, has its picture, how many songs it has and how long they last, a button
+  that plays it, and its songs, in its order, each with its cover and its artists, which play the
+  playlist from the one picked):
+  albums, artists, genres and playlists in a side rail, as icons that name their sections on hover, beside
+  them, and the home under the app's icon, in the top bar's left corner (on a phone, the icon goes there
+  too, and all five are in a bar at the bottom, with the search after them: its bar shows in it alone,
   blank under it until a search finds something);
   the album page, whose cover opens full screen; search (artists, albums and songs); and playback
   through media_kit (libmpv), with a seek bar, shuffle and repeat (the queue, or the track until
@@ -145,7 +149,7 @@ the device it runs on.
   fevereiro de 1975"), then where it was mixed and mastered ("mixagem, março de 1975"), and, last,
   who made its cover and booklet (art direction, design, illustration, photography, liner notes),
   which the media servers never say;
-- on the album page and in search, the current song (on whichever device the app controls) stands
+- on the album page, a playlist's and in search, the current song (on whichever device the app controls) stands
   out in the theme's color, with an equalizer in place of its number, or over its cover, while it
   plays, its bars moving (still where the system asks for less motion);
 - Connect: the hub is found next to the server (or typed in), and the device picker lists the
@@ -185,7 +189,7 @@ the device it runs on.
   the background. On Linux the window's title bar, with the close button, takes the background too.
   On a computer the window opens maximized.
 
-Not yet: playlists, editing the queue (play next, add to it, reorder it), the media controls on the other platforms (Android's
+Not yet: making and editing playlists (from the app: adding songs, removing them, reordering them), editing the queue (play next, add to it, reorder it), the media controls on the other platforms (Android's
 media session), on a Jellyfin server the cover of a song that came from another device
 when its file has none of its own (Jellyfin doesn't fall back to the album's) and an artist's popular songs (Jellyfin
 knows only its users' plays), an offline cache, settings, sending the music
@@ -198,14 +202,14 @@ has been tried on a tablet and on an Android TV; the iOS build has not been trie
 | Folder | What |
 |---|---|
 | `lib/server/` | `MediaServer`, what the app asks of the media server in either API, and its albums, artists and songs; finding out which API a server speaks, and signing in to it |
-| `lib/subsonic/` | The Subsonic API: token sign-in, albums, artists, songs, search, stream and cover URLs |
+| `lib/subsonic/` | The Subsonic API: token sign-in, albums, artists, songs, playlists, search, stream and cover URLs |
 | `lib/jellyfin/` | The Jellyfin API: sign-in by name for this device, the same library calls, and signing out |
 | `lib/segue/` | The Segue protocol in Dart (its `SPEC.md` is in the segue repository), the hub client (reconnects by itself) and hub discovery |
 | `lib/player/` | `PlayerController` (queue, commands, state reports) over an `AudioEngine`; `MediaKitEngine` is the real one. `MediaControls`: the system's media controls. `AudioInterruptions`: calls and the like pausing the music, on iOS |
 | `lib/connect/` | `ConnectController`: which device the app controls, and moving the music between devices |
 | `lib/lyrics/` | LRCLIB (lrclib.net), where lyrics come from when the media server has none, and LRC |
 | `lib/releases/` | MusicBrainz (musicbrainz.org), where an album's release date and record labels come from when the media server doesn't say them, its credits where the server has none, where it was recorded, mixed and mastered, who made its cover, a band's years and members, and where an artist comes from; `AlbumCredits`, the server's credits and MusicBrainz's together, by person |
-| `lib/ui/` | The pages: sign-in, home, albums, artists, album, artist, search, player bar and full-screen player, queue, device picker |
+| `lib/ui/` | The pages: sign-in, home, albums, artists, genres, playlists, album, artist, playlist, search, player bar and full-screen player, queue, device picker |
 | `lib/l10n/` | The app's words in each language, as ARB files (Portuguese's, the template, says what each is); the Dart code comes from them on `pub get` and on every build |
 | `test/` | Unit and widget tests, and tests against the real Go hub (`hub_test.dart`) |
 | `tool/` | A Docker image and script to build and test without installing Flutter; `icons.dart` makes every icon from the artwork, `icon.png` |

@@ -47,6 +47,8 @@ const album = {
   'playCount': 1,
 };
 
+const playlist = {'id': 'p1', 'name': 'Road trip', 'songCount': 2};
+
 const songs = [
   {
     'id': 's1',
@@ -88,7 +90,7 @@ const songs = [
 ];
 
 /// A library of an album and an EP by one artist, in one genre, whose songs have lyrics, one of them played, and are
-/// the artist's popular ones. The artist has a biography, Last.fm's, and an artist like them.
+/// the artist's popular ones, and a playlist of them. The artist has a biography, Last.fm's, and an artist like them.
 http.Response server(http.Request request) {
   final path = request.url.path;
 
@@ -148,6 +150,14 @@ http.Response server(http.Request request) {
           {'value': 'Rock', 'albumCount': 2, 'songCount': 20},
         ],
       },
+    }),
+    'getPlaylists.view' => subsonic({
+      'playlists': {
+        'playlist': [playlist],
+      },
+    }),
+    'getPlaylist.view' => subsonic({
+      'playlist': {...playlist, 'entry': songs},
     }),
     'getLyricsBySongId.view' => subsonic({
       'lyricsList': {
@@ -255,6 +265,12 @@ void main() {
 
         await tap(tester, narrow ? find.text(strings.genres) : find.byTooltip(strings.genres));
         expect(find.text(strings.albumCount(2)), findsOneWidget);
+
+        await tap(tester, narrow ? find.text(strings.playlists) : find.byTooltip(strings.playlists));
+        expect(find.text(strings.trackCount(2)), findsOneWidget);
+        await tap(tester, find.text('Road trip'));
+        expect(find.byTooltip(strings.playPlaylist), findsOneWidget);
+        expect(find.textContaining(strings.trackCount(2)), findsOneWidget);
 
         await tap(tester, find.byTooltip(strings.home).first);
         await tap(tester, find.text('Toys in the Attic').first);

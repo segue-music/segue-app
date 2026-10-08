@@ -89,6 +89,12 @@ abstract interface class MediaServer {
   /// A song, with its album's and its artist's ids.
   Future<Song> song(String id);
 
+  /// The user's playlists, and those others share with them, in no particular order.
+  Future<List<Playlist>> playlists();
+
+  /// A playlist and its songs, in its order.
+  Future<(Playlist, List<Song>)> playlist(String id);
+
   /// A song's lyrics, the synced ones where the server has both; null when it has none.
   Future<Lyrics?> lyrics(String songId);
 
