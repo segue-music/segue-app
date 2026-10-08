@@ -38,16 +38,20 @@ typedef Band = ({BandYears? years, List<BandMember> members});
 /// city, a country), a country with its code ([country]), whose name the app has in its language.
 typedef RecordingPlace = ({String id, String name, String? country});
 
-/// A time a recording was made somewhere, as MusicBrainz knows it: where, and when, from [begin] to [end], one day or
-/// several (either or both null where it doesn't know).
-typedef RecordingSession = ({RecordingPlace place, ReleaseDate? begin, ReleaseDate? end});
+/// What was done to a recording somewhere: recording it, mixing it or mastering it (a release, which has its own
+/// master).
+enum RecordingStage { recording, mixing, mastering }
+
+/// A time a recording was recorded, mixed or mastered ([stage]) somewhere, as MusicBrainz knows it: where, and when,
+/// from [begin] to [end], one day or several (either or both null where it doesn't know).
+typedef RecordingSession = ({RecordingPlace place, RecordingStage stage, ReleaseDate? begin, ReleaseDate? end});
 
 /// One of a release's tracks, as its credits take it: its MusicBrainz id, and its recording's, who is credited on it (on
-/// its recording, and on the works it performs: who wrote them), and where it was recorded.
+/// its recording, and on the works it performs: who wrote them), and where it was recorded and mixed.
 typedef ReleaseTrack = ({String id, String recording, List<Credit> credits, List<RecordingSession> sessions});
 
-/// Who MusicBrainz credits on a release, and where it was recorded: on each of its tracks, in order ([tracks]), and on
-/// the release itself, which is on all of them ([credits], [sessions]).
+/// Who MusicBrainz credits on a release, and where it was recorded, mixed and mastered: on each of its tracks, in order
+/// ([tracks]), and on the release itself, which is on all of them ([credits], [sessions]).
 typedef ReleaseCredits = ({List<ReleaseTrack> tracks, List<Credit> credits, List<RecordingSession> sessions});
 
 /// MusicBrainz (musicbrainz.org), the open database of music releases: where an album's release date, record labels
@@ -186,11 +190,11 @@ class MusicBrainz {
     );
   }
 
-  /// Who MusicBrainz credits on [album]'s release, by the album's MusicBrainz id, and where it was recorded: on each of
-  /// its tracks, those its recording's relations name (who played, sang, produced, mixed it; where, and when, it was
-  /// recorded), and those of the works it performs (who wrote them); on the release, those its own relations name
-  /// (who mastered it). None for an album without that id, a release MusicBrainz doesn't have, and when it fails (asked
-  /// again the next time).
+  /// Who MusicBrainz credits on [album]'s release, by the album's MusicBrainz id, and where it was recorded, mixed and
+  /// mastered: on each of its tracks, those its recording's relations name (who played, sang, produced, mixed it;
+  /// where, and when, it was recorded and mixed), and those of the works it performs (who wrote them); on the release,
+  /// those its own relations name (who mastered it, where; who made its cover and booklet). None for an album without
+  /// that id, a release MusicBrainz doesn't have, and when it fails (asked again the next time).
   Future<ReleaseCredits?> credits(Album album) async {
     final id = album.musicBrainzId;
 
@@ -507,6 +511,12 @@ List<Credit> _credits(Map<String, dynamic> relation) {
       'editor' => [credit(CreditRole.editor)],
       'programming' => [credit(CreditRole.programmer)],
       'remixer' => [credit(CreditRole.remixer)],
+      'art direction' => [credit(CreditRole.artDirector)],
+      'design' || 'graphic design' || 'design/illustration' => [credit(CreditRole.designer)],
+      'illustration' => [credit(CreditRole.illustrator)],
+      'artwork' => [credit(CreditRole.visualArtist)],
+      'photography' => [credit(CreditRole.photographer)],
+      'liner notes' => [credit(CreditRole.linerNotesWriter)],
       _ => const [],
     };
   }
@@ -514,16 +524,18 @@ List<Credit> _credits(Map<String, dynamic> relation) {
   return const [];
 }
 
-/// Where, and when, [relation], one of MusicBrainz's of a recording or a release, says it was recorded: at a place,
-/// or in an area; none for a relation of another kind.
+/// Where, and when, [relation], one of MusicBrainz's of a recording or a release, says it was recorded, mixed or
+/// mastered: at a place, or in an area; none for a relation of another kind.
 RecordingSession? _session(Map<String, dynamic> relation) {
+  final stage = switch (relation['type']) {
+    'recorded at' || 'recorded in' => RecordingStage.recording,
+    'mixed at' || 'mixed in' => RecordingStage.mixing,
+    'mastered at' || 'mastered in' => RecordingStage.mastering,
+    _ => null,
+  };
   final place = switch (relation) {
-    {'type': 'recorded at', 'place': {'id': final String id, 'name': final String name}} => (
-      id: id,
-      name: name,
-      country: null,
-    ),
-    {'type': 'recorded in', 'area': {'id': final String id, 'name': final String name} && final area} => (
+    {'place': {'id': final String id, 'name': final String name}} => (id: id, name: name, country: null),
+    {'area': {'id': final String id, 'name': final String name} && final area} => (
       id: id,
       name: name,
       country: switch (area) {
@@ -533,7 +545,9 @@ RecordingSession? _session(Map<String, dynamic> relation) {
     ),
     _ => null,
   };
-  return place == null ? null : (place: place, begin: _date(relation['begin']), end: _date(relation['end']));
+  return stage == null || place == null
+      ? null
+      : (place: place, stage: stage, begin: _date(relation['begin']), end: _date(relation['end']));
 }
 
 /// The years of a life span of MusicBrainz's, or of a relation's dates; none where it knows neither year.

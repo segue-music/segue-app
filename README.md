@@ -140,7 +140,9 @@ the device it runs on.
   (OpenSubsonic's contributors, which Navidrome reads from the files' tags; Jellyfin's people), or,
   where it has none there, MusicBrainz's, by the album's MusicBrainz id: those of its recordings and
   of the works they perform, its tracks matched to the album's songs by their MusicBrainz ids or their
-  places. MusicBrainz also says where it was recorded, and when ("janeiro – fevereiro de 1975"),
+  places. MusicBrainz also says, after who produced it, where it was recorded, and when ("janeiro –
+  fevereiro de 1975"), then where it was mixed and mastered ("mixagem, março de 1975"), and, last,
+  who made its cover and booklet (art direction, design, illustration, photography, liner notes),
   which the media servers never say;
 - on the album page and in search, the current song (on whichever device the app controls) stands
   out in the theme's color, with an equalizer in place of its number, or over its cover, while it
@@ -201,7 +203,7 @@ has been tried on a tablet and on an Android TV; the iOS build has not been trie
 | `lib/player/` | `PlayerController` (queue, commands, state reports) over an `AudioEngine`; `MediaKitEngine` is the real one. `MediaControls`: the system's media controls. `AudioInterruptions`: calls and the like pausing the music, on iOS |
 | `lib/connect/` | `ConnectController`: which device the app controls, and moving the music between devices |
 | `lib/lyrics/` | LRCLIB (lrclib.net), where lyrics come from when the media server has none, and LRC |
-| `lib/releases/` | MusicBrainz (musicbrainz.org), where an album's release date and record labels come from when the media server doesn't say them, its credits where the server has none, where it was recorded, a band's years and members, and where an artist comes from; `AlbumCredits`, the server's credits and MusicBrainz's together, by person |
+| `lib/releases/` | MusicBrainz (musicbrainz.org), where an album's release date and record labels come from when the media server doesn't say them, its credits where the server has none, where it was recorded, mixed and mastered, who made its cover, a band's years and members, and where an artist comes from; `AlbumCredits`, the server's credits and MusicBrainz's together, by person |
 | `lib/ui/` | The pages: sign-in, home, albums, artists, album, artist, search, player bar and full-screen player, queue, device picker |
 | `lib/l10n/` | The app's words in each language, as ARB files (Portuguese's, the template, says what each is); the Dart code comes from them on `pub get` and on every build |
 | `test/` | Unit and widget tests, and tests against the real Go hub (`hub_test.dart`) |

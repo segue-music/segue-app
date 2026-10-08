@@ -175,9 +175,9 @@ Map<String, Object?> credit(
 };
 
 /// A relation of a recording or a release to the place it was recorded at, [name], whose MusicBrainz id is [id], from
-/// [begin] to [end].
-Map<String, Object?> recordedAt(String id, String name, {String? begin, String? end}) => {
-  'type': 'recorded at',
+/// [begin] to [end]; or mixed or mastered at, by [type].
+Map<String, Object?> recordedAt(String id, String name, {String? begin, String? end, String type = 'recorded at'}) => {
+  'type': type,
   'target-type': 'place',
   'direction': 'forward',
   'begin': begin,
@@ -190,9 +190,16 @@ Map<String, Object?> recordedAt(String id, String name, {String? begin, String? 
 };
 
 /// A relation of a recording or a release to the area it was recorded in, [name], whose MusicBrainz id is [id], a
-/// country with its code ([country]), from [begin] to [end].
-Map<String, Object?> recordedIn(String id, String name, {String? country, String? begin, String? end}) => {
-  'type': 'recorded in',
+/// country with its code ([country]), from [begin] to [end]; or mixed or mastered in, by [type].
+Map<String, Object?> recordedIn(
+  String id,
+  String name, {
+  String? country,
+  String? begin,
+  String? end,
+  String type = 'recorded in',
+}) => {
+  'type': type,
   'target-type': 'area',
   'direction': 'forward',
   'begin': begin,
@@ -761,7 +768,8 @@ void main() {
   });
 
   test('an album\'s credits, by its release\'s MusicBrainz id: on each of its tracks, those its recording\'s relations '
-      'and its works\' name, and where and when it was recorded; on the release, those of its own', () async {
+      'and its works\' name, and where and when it was recorded and mixed; on the release, those of its own, who made '
+      'its cover and booklet too, and where it was mastered', () async {
     final asked = <http.Request>[];
     final found = await musicBrainz(
       release: {
@@ -783,6 +791,8 @@ void main() {
                 credit('dedication', 'mb6', 'Someone'),
                 credit('instrument', 'mb7', 'Someone else', attributes: ['piano'], direction: 'forward'),
                 recordedAt('p1', 'The Record Plant', begin: '1975-01-20', end: '1975-01-25'),
+                recordedAt('p1', 'The Record Plant', begin: '1975-02-03', type: 'mixed at'),
+                recordedAt('p2', 'The Hit Factory', type: 'edited at'),
                 performance([
                   credit('writer', 'mb1', 'Steven Tyler'),
                   credit('writer', 'mb2', 'Joe Perry'),
@@ -801,11 +811,30 @@ void main() {
               track('t2', 'rec2', [
                 credit('conductor', 'mb8', 'Michael Kamen'),
                 recordedIn('gb', 'United Kingdom', country: 'GB', begin: '1975'),
+                recordedIn('nyc', 'New York', type: 'mixed in'),
               ]),
             ],
           },
         ],
-        'relations': [credit('mastering', 'mb9', 'George Marino'), recordedIn('nyc', 'New York')],
+        'relations': [
+          credit('mastering', 'mb9', 'George Marino'),
+          credit('design/illustration', 'mb10', 'Pacific Eye & Ear'),
+          credit('art direction', 'mb11', 'Ernie Cefalu'),
+          credit('graphic design', 'mb12', 'John Berg'),
+          credit('illustration', 'mb13', 'Ingrid Haenke'),
+          credit('artwork', 'mb14', 'Drew Struzan'),
+          credit('photography', 'mb15', 'Bob Gruen'),
+          credit('liner notes', 'mb16', 'Lisa Robinson'),
+          credit('booklet editor', 'mb17', 'Someone'),
+          recordedIn('nyc', 'New York'),
+          recordedAt('p3', 'Sterling Sound', begin: '1975-03', type: 'mastered at'),
+          {
+            'type': 'manufactured in',
+            'target-type': 'area',
+            'direction': 'forward',
+            'area': {'id': 'us', 'name': 'United States'},
+          },
+        ],
       },
       asked: asked,
     ).credits(album(musicBrainzId: 'r1'));
@@ -844,15 +873,34 @@ void main() {
       [('Michael Kamen', CreditRole.conductor)],
     );
     List<Object?> sessions(List<RecordingSession> sessions) => [
-      for (final (:place, :begin, :end) in sessions) (place.id, place.name, place.country, parts(begin), parts(end)),
+      for (final (:place, :stage, :begin, :end) in sessions)
+        (place.id, place.name, place.country, stage, parts(begin), parts(end)),
     ];
-    expect(sessions(first.sessions), [('p1', 'The Record Plant', null, (1975, 1, 20), (1975, 1, 25))]);
-    expect(sessions(second.sessions), [('gb', 'United Kingdom', 'GB', (1975, null, null), (null, null, null))]);
+    expect(sessions(first.sessions), [
+      ('p1', 'The Record Plant', null, RecordingStage.recording, (1975, 1, 20), (1975, 1, 25)),
+      ('p1', 'The Record Plant', null, RecordingStage.mixing, (1975, 2, 3), (null, null, null)),
+    ]);
+    expect(sessions(second.sessions), [
+      ('gb', 'United Kingdom', 'GB', RecordingStage.recording, (1975, null, null), (null, null, null)),
+      ('nyc', 'New York', null, RecordingStage.mixing, (null, null, null), (null, null, null)),
+    ]);
     expect(
       [for (final credit in found.credits) (credit.name, credit.role)],
-      [('George Marino', CreditRole.masteringEngineer)],
+      [
+        ('George Marino', CreditRole.masteringEngineer),
+        ('Pacific Eye & Ear', CreditRole.designer),
+        ('Ernie Cefalu', CreditRole.artDirector),
+        ('John Berg', CreditRole.designer),
+        ('Ingrid Haenke', CreditRole.illustrator),
+        ('Drew Struzan', CreditRole.visualArtist),
+        ('Bob Gruen', CreditRole.photographer),
+        ('Lisa Robinson', CreditRole.linerNotesWriter),
+      ],
     );
-    expect(sessions(found.sessions), [('nyc', 'New York', null, (null, null, null), (null, null, null))]);
+    expect(sessions(found.sessions), [
+      ('nyc', 'New York', null, RecordingStage.recording, (null, null, null), (null, null, null)),
+      ('p3', 'Sterling Sound', null, RecordingStage.mastering, (1975, 3, null), (null, null, null)),
+    ]);
   });
 
   test('an album without a MusicBrainz id has no credits, and asks nothing; a release MusicBrainz doesn\'t have has '

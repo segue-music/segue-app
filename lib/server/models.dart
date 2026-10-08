@@ -163,7 +163,7 @@ class Credit {
 }
 
 /// What someone credited on a song did in it, each in the section of an album's credits it shows under: performing
-/// it, writing it or producing it.
+/// it, writing it, producing it or making its cover and booklet.
 enum CreditRole {
   /// Played or sang in it: what, in [Credit.part].
   performer(CreditSection.performance),
@@ -191,7 +191,17 @@ enum CreditRole {
   editor(CreditSection.production),
   programmer(CreditSection.production),
   remixer(CreditSection.production),
-  djMixer(CreditSection.production);
+  djMixer(CreditSection.production),
+  artDirector(CreditSection.artwork),
+  designer(CreditSection.artwork),
+  illustrator(CreditSection.artwork),
+
+  /// Made its artwork, of whatever kind.
+  visualArtist(CreditSection.artwork),
+  photographer(CreditSection.artwork),
+
+  /// Wrote the notes in its booklet.
+  linerNotesWriter(CreditSection.artwork);
 
   const CreditRole(this.section);
 
@@ -216,8 +226,8 @@ enum CreditRole {
   };
 }
 
-/// The sections of an album's credits, in the order they show.
-enum CreditSection { performance, writing, production }
+/// The sections of an album's credits, in the order they show, where it was recorded coming before its artwork.
+enum CreditSection { performance, writing, production, artwork }
 
 /// A song's lyrics, line by line, each with when it starts when they're synced to the song.
 class Lyrics {

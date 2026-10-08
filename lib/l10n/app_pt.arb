@@ -236,9 +236,9 @@
   "@showCredits": {
     "description": "The tooltip of the button, after how many songs an album has and how long they last, that opens its credits: who performed it, wrote it and produced it, and where it was recorded."
   },
-  "creditSection": "{section, select, performance{Intérpretes} writing{Composição} production{Produção} other{}}",
+  "creditSection": "{section, select, performance{Intérpretes} writing{Composição} production{Produção} artwork{Arte} other{}}",
   "@creditSection": {
-    "description": "In an album's credits, the title over a section of those credited, by the section: those who performed it (sang, played, conducted), those who wrote it (its music, its words, its arrangements), those who produced it (production, engineering, mixing, mastering).",
+    "description": "In an album's credits, the title over a section of those credited, by the section: those who performed it (sang, played, conducted), those who wrote it (its music, its words, its arrangements), those who produced it (production, engineering, mixing, mastering), those who made its cover and booklet (art direction, design, illustration, photography, liner notes).",
     "placeholders": {
       "section": {
         "type": "String"
@@ -247,11 +247,11 @@
   },
   "recordingVenues": "Gravação",
   "@recordingVenues": {
-    "description": "In an album's credits, the title over where it was recorded (studios, cities, countries), each with when."
+    "description": "In an album's credits, the title over where it was recorded, mixed and mastered (studios, cities, countries), each with when; mixing and mastering said beside the place (creditRole's mixer and masteringEngineer)."
   },
-  "creditRole": "{role, select, performer{interpretação} conductor{regência} orchestra{orquestra} composer{música} lyricist{letra} writer{autoria} arranger{arranjo} orchestrator{orquestração} librettist{libreto} producer{produção} executiveProducer{produção executiva} engineer{engenharia de som} assistantEngineer{assistência de engenharia} recordingEngineer{gravação} mixer{mixagem} masteringEngineer{masterização} editor{edição} programmer{programação} remixer{remixagem} djMixer{mixagem de DJ} other{}}",
+  "creditRole": "{role, select, performer{interpretação} conductor{regência} orchestra{orquestra} composer{música} lyricist{letra} writer{autoria} arranger{arranjo} orchestrator{orquestração} librettist{libreto} producer{produção} executiveProducer{produção executiva} engineer{engenharia de som} assistantEngineer{assistência de engenharia} recordingEngineer{gravação} mixer{mixagem} masteringEngineer{masterização} editor{edição} programmer{programação} remixer{remixagem} djMixer{mixagem de DJ} artDirector{direção de arte} designer{projeto gráfico} illustrator{ilustração} visualArtist{arte} photographer{fotografia} linerNotesWriter{texto do encarte} other{}}",
   "@creditRole": {
-    "description": "In an album's credits, beside someone's name, something they did on it, by its role: performed it (where it isn't said what they played or sang), conducted it, was the orchestra; wrote its music (composer), its words (lyricist), both or either (writer), arranged it, orchestrated it, wrote its libretto; produced it, as executive producer, was its sound engineer or their assistant, recorded it, mixed it, mastered it, edited it, programmed it, remixed it, mixed it as a DJ. Several are apart by commas.",
+    "description": "In an album's credits, beside someone's name, something they did on it, by its role: performed it (where it isn't said what they played or sang), conducted it, was the orchestra; wrote its music (composer), its words (lyricist), both or either (writer), arranged it, orchestrated it, wrote its libretto; produced it, as executive producer, was its sound engineer or their assistant, recorded it, mixed it, mastered it, edited it, programmed it, remixed it, mixed it as a DJ; directed its art, designed it, illustrated it, made its artwork, took its photographs, wrote its liner notes. Several are apart by commas.",
     "placeholders": {
       "role": {
         "type": "String"

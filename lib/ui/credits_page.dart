@@ -10,7 +10,7 @@ import 'reading_page.dart';
 
 /// An album's credits, a [ReadingPage]: its cover at the top, its name and its artist under it, then who performed it,
 /// wrote it and produced it, one a line, what they did beside them, with the songs they did it on where it isn't all
-/// of them, and where it was recorded, and when.
+/// of them, where it was recorded, mixed and mastered, and when, and who made its cover and booklet.
 class CreditsPage extends StatelessWidget {
   const CreditsPage(
     this.album, {
@@ -80,27 +80,31 @@ class CreditsPage extends StatelessWidget {
     );
   }
 
-  /// [credits]' sections, under their titles, one a line, then where the album was recorded, and that MusicBrainz said
-  /// some of it, where it did. Those of [inLibrary] are links to their pages.
+  /// [credits]' sections, under their titles, one a line, where the album was recorded coming after who produced it and
+  /// before who made its cover and booklet, then that MusicBrainz said some of it, where it did. Those of [inLibrary]
+  /// are links to their pages.
   Widget _credits(BuildContext context, AlbumCredits credits, Map<String, Artist> inLibrary) {
     final strings = AppLocalizations.of(context);
+    (String, List<NameLine>) section(CreditSection section) => (
+      strings.creditSection(section.name),
+      [
+        for (final person in credits.sections[section] ?? const <CreditedPerson>[])
+          (
+            name: person.name,
+            artist: inLibrary[person.musicBrainzId] ?? inLibrary[person.artistId],
+            detail: _rolesText(strings, person.roles),
+          ),
+      ],
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         NameTable(
           [
-            for (final MapEntry(key: section, value: people) in credits.sections.entries)
-              (
-                strings.creditSection(section.name),
-                [
-                  for (final person in people)
-                    (
-                      name: person.name,
-                      artist: inLibrary[person.musicBrainzId] ?? inLibrary[person.artistId],
-                      detail: _rolesText(strings, person.roles),
-                    ),
-                ],
-              ),
+            section(CreditSection.performance),
+            section(CreditSection.writing),
+            section(CreditSection.production),
             (
               strings.recordingVenues,
               [
@@ -108,6 +112,7 @@ class CreditsPage extends StatelessWidget {
                   (name: _placeName(strings, venue.place), artist: null, detail: _venueText(strings, venue)),
               ],
             ),
+            section(CreditSection.artwork),
           ],
           // Names take less of the column than a band's members' do, as what they did takes more than years.
           nameWidth: 0.45,
@@ -152,15 +157,22 @@ class CreditsPage extends StatelessWidget {
     _ => place.name,
   };
 
-  /// When the album was recorded at [venue], with its songs recorded there, where it isn't all of them: "julho –
-  /// agosto de 1969 (faixas 1, 2)".
+  /// What was done to the album at [venue], where it was mixing it or mastering it, and when, with its songs it was
+  /// done to, where it isn't all of them: "julho – agosto de 1969 (faixas 1, 2)", "mixagem, março de 1975".
   static String _venueText(AppLocalizations strings, RecordingVenue venue) {
-    final period = formatPeriod(strings, venue.begin, venue.end);
+    final done = [
+      switch (venue.stage) {
+        RecordingStage.recording => '',
+        RecordingStage.mixing => strings.creditRole(CreditRole.mixer.name),
+        RecordingStage.mastering => strings.creditRole(CreditRole.masteringEngineer.name),
+      },
+      formatPeriod(strings, venue.begin, venue.end),
+    ].where((part) => part.isNotEmpty).join(', ');
     final tracks = venue.tracks;
-    return switch ((period, tracks)) {
-      (_, []) => period,
+    return switch ((done, tracks)) {
+      (_, []) => done,
       ('', _) => strings.onTracks(tracks.length, _numbers(tracks)),
-      _ => strings.creditOnTracks(period, tracks.length, _numbers(tracks)),
+      _ => strings.creditOnTracks(done, tracks.length, _numbers(tracks)),
     };
   }
 

@@ -181,9 +181,10 @@ Map<String, Object?> relation(String type, String id, String name, {List<String>
   'artist': {'id': id, 'name': name},
 };
 
-/// A relation of a recording to the place it was recorded at, [name], from [begin] to [end].
-Map<String, Object?> recordedAt(String name, {String? begin, String? end}) => {
-  'type': 'recorded at',
+/// A relation of a recording or a release to the place it was recorded at, [name], from [begin] to [end]; or mixed or
+/// mastered at, by [type].
+Map<String, Object?> recordedAt(String name, {String? begin, String? end, String type = 'recorded at'}) => {
+  'type': type,
   'target-type': 'place',
   'begin': begin,
   'end': end,
@@ -193,8 +194,9 @@ Map<String, Object?> recordedAt(String name, {String? begin, String? end}) => {
 /// MusicBrainz, whose release `r1` is Toys in the Attic, with two tracks: on the first, Steven Tyler sang and Joe
 /// Perry played the guitar, and both wrote it, at the Record Plant in January 1975, in the United Kingdom; on the
 /// second, Steven Tyler sang, at the Record Plant in February, at Electric Lady Studios on the 1st of March, at Media
-/// Sound in January, at Sound City from September 1974 to March 1975, and at a studio of no dates. George Marino
-/// mastered the release. Its credits come once [credits] has completed, where it's given.
+/// Sound in January, at Sound City from September 1974 to March 1975, and at a studio of no dates, and was mixed at
+/// Electric Lady Studios in March. George Marino mastered the release, at Sterling Sound, of no dates; Pacific Eye & Ear
+/// designed it and Bob Gruen took its photographs. Its credits come once [credits] has completed, where it's given.
 MusicBrainz musicBrainzCredits({Future<void>? credits}) => MusicBrainz(
   spacing: Duration.zero,
   client: MockClient((request) async {
@@ -250,13 +252,19 @@ MusicBrainz musicBrainzCredits({Future<void>? credits}) => MusicBrainz(
                     recordedAt('Media Sound', begin: '1975-01-02', end: '1975-01-09'),
                     recordedAt('Sound City', begin: '1974-09', end: '1975-03'),
                     recordedAt('Studio X'),
+                    recordedAt('Electric Lady Studios', begin: '1975-03-10', end: '1975-03-12', type: 'mixed at'),
                   ],
                 },
               },
             ],
           },
         ],
-        'relations': [relation('mastering', 'mb3', 'George Marino')],
+        'relations': [
+          relation('mastering', 'mb3', 'George Marino'),
+          relation('design/illustration', 'mb4', 'Pacific Eye & Ear'),
+          relation('photography', 'mb5', 'Bob Gruen'),
+          recordedAt('Sterling Sound', type: 'mastered at'),
+        ],
       }),
       200,
     );
@@ -956,7 +964,8 @@ void main() {
 
   testWidgets(
     'where the server credits no one, MusicBrainz does, by the album\'s MusicBrainz id: the button comes with '
-    'its credits, and where the album was recorded, and when; the page says MusicBrainz said so',
+    'its credits, and where the album was recorded, mixed and mastered, and when, then who made its cover; the page '
+    'says MusicBrainz said so',
     (tester) async {
       final credits = Completer<void>();
       await pumpAlbum(
@@ -994,11 +1003,33 @@ void main() {
       expect(detail('Media Sound'), 'janeiro de 1975 (faixa 2)');
       expect(detail('Sound City'), 'setembro de 1974 – março de 1975 (faixa 2)');
       expect(detail('Studio X'), 'faixa 2');
-      final venues = [
-        for (final name in ['The Record Plant', 'Reino Unido', 'Electric Lady Studios', 'Studio X'])
-          tester.getTopLeft(inPage(name)).dy,
+      // Where it was mixed and mastered after where it was recorded, saying so; then who made its cover.
+      expect(detail('Electric Lady Studios', 1), 'mixagem, março de 1975 (faixa 2)');
+      expect(detail('Sterling Sound'), 'masterização');
+      expect(detail('Pacific Eye & Ear'), 'projeto gráfico');
+      expect(detail('Bob Gruen'), 'fotografia');
+      final lines = [
+        for (final (name, index) in [
+          ('Produção', 0),
+          ('Gravação', 0),
+          ('The Record Plant', 0),
+          ('Reino Unido', 0),
+          ('Electric Lady Studios', 0),
+          ('Studio X', 0),
+          ('Electric Lady Studios', 1),
+          ('Sterling Sound', 0),
+          ('Arte', 0),
+          ('Pacific Eye & Ear', 0),
+        ])
+          tester.getTopLeft(inPage(name).at(index)).dy,
       ];
-      expect(venues, orderedEquals([...venues]..sort()), reason: 'in the order of their songs');
+      expect(
+        lines,
+        orderedEquals([...lines]..sort()),
+        reason:
+            'after who produced it, where it was recorded, in the order of its songs, then mixed, then mastered; '
+            'then who made its cover',
+      );
       expect(inPage('Com dados do MusicBrainz'), findsOneWidget);
       expect(
         find.descendant(of: page, matching: find.widgetWithText(TextLink, 'Steven Tyler')),

@@ -12,21 +12,27 @@ typedef CreditedPerson = ({String name, String? artistId, String? musicBrainzId,
 /// album's songs they did it on, by their numbers in it, from 1: none where it's all of them.
 typedef CreditedRole = ({CreditRole role, String? part, List<int> tracks});
 
-/// A place an album was recorded at, and when: from the first day it was recorded there to the last (either or both
-/// null where MusicBrainz doesn't know them), and the album's songs recorded there, by their numbers, from 1: none
-/// where it's all of them.
-typedef RecordingVenue = ({RecordingPlace place, ReleaseDate? begin, ReleaseDate? end, List<int> tracks});
+/// A place an album was recorded, mixed or mastered at ([stage]), and when: from the first day it was there to the last
+/// (either or both null where MusicBrainz doesn't know them), and the album's songs it was there, by their numbers,
+/// from 1: none where it's all of them.
+typedef RecordingVenue = ({
+  RecordingPlace place,
+  RecordingStage stage,
+  ReleaseDate? begin,
+  ReleaseDate? end,
+  List<int> tracks,
+});
 
-/// Who is credited on an album, in sections (who performed it, wrote it, produced it), and where it was recorded, as
-/// its credits' page shows them.
+/// Who is credited on an album, in sections (who performed it, wrote it, produced it, made its cover and booklet), and
+/// where it was recorded, mixed and mastered, as its credits' page shows them.
 class AlbumCredits {
   const AlbumCredits({this.sections = const {}, this.venues = const [], this.fromMusicBrainz = false});
 
   /// [songs]' credits: in each section, the media server's, where it says any there, else MusicBrainz's ([musicBrainz],
   /// of the album's release), which come by track, each of [songs] the track whose MusicBrainz id it has (its
   /// recording's or its own), or, where it has none, the one in its place, where the release has as many as the album
-  /// has songs. Where it was recorded, MusicBrainz's. Each section has those on most songs first, then those on the
-  /// earliest, then in the order they come.
+  /// has songs. Where it was recorded, mixed and mastered, MusicBrainz's. Each section has those on most songs first,
+  /// then those on the earliest, then in the order they come.
   factory AlbumCredits.of(List<Song> songs, {ReleaseCredits? musicBrainz}) {
     final tracks = _tracks(songs, musicBrainz);
     final all = {for (var i = 0; i < songs.length; i++) i};
@@ -67,7 +73,8 @@ class AlbumCredits {
   /// Those credited in each section that has any, in the order of [CreditSection].
   final Map<CreditSection, List<CreditedPerson>> sections;
 
-  /// Where it was recorded, the place of its first songs first.
+  /// Where it was recorded, then where it was mixed, then where it was mastered, each the place of its first songs
+  /// first.
   final List<RecordingVenue> venues;
 
   /// Whether any of it comes from MusicBrainz.
@@ -152,25 +159,29 @@ List<CreditedRole> _ordered(List<(CreditRole, String?, Set<int>)> roles, int cou
   return [for (final i in order) (role: roles[i].$1, part: roles[i].$2, tracks: _numbers(roles[i].$3, count))];
 }
 
-/// Where [sessions], each with the songs it's on, by their indexes among [count], were recorded, by place: from the
-/// earliest day of its sessions to the latest, in the order they come.
+/// Where [sessions], each with the songs it's on, by their indexes among [count], were, by place and stage: from the
+/// earliest day of its sessions to the latest. Where they were recorded first, then where mixed, then mastered, each
+/// in the order they come.
 List<RecordingVenue> _venues(List<(RecordingSession, Set<int>)> sessions, int count) {
-  final places = <String, (RecordingPlace, List<ReleaseDate>, Set<int>)>{};
+  final places = <(String, RecordingStage), (RecordingSession, List<ReleaseDate>, Set<int>)>{};
 
   for (final (session, songs) in sessions) {
-    final (_, dates, found) = places[session.place.id] ??= (session.place, [], {});
+    final (_, dates, found) = places[(session.place.id, session.stage)] ??= (session, [], {});
     dates.addAll([?session.begin, ?session.end]);
     found.addAll(songs);
   }
 
   return [
-    for (final (place, dates, songs) in places.values)
-      (
-        place: place,
-        begin: dates.isEmpty ? null : dates.reduce((a, b) => _compare(a, b) <= 0 ? a : b),
-        end: dates.isEmpty ? null : dates.reduce((a, b) => _compare(a, b) >= 0 ? a : b),
-        tracks: _numbers(songs, count),
-      ),
+    for (final stage in RecordingStage.values)
+      for (final (session, dates, songs) in places.values)
+        if (session.stage == stage)
+          (
+            place: session.place,
+            stage: stage,
+            begin: dates.isEmpty ? null : dates.reduce((a, b) => _compare(a, b) <= 0 ? a : b),
+            end: dates.isEmpty ? null : dates.reduce((a, b) => _compare(a, b) >= 0 ? a : b),
+            tracks: _numbers(songs, count),
+          ),
   ];
 }
 

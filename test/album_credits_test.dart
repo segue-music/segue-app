@@ -49,7 +49,7 @@ void main() {
     expect(own.fromMusicBrainz, isFalse);
 
     final both = AlbumCredits.of(songs, musicBrainz: musicBrainz);
-    expect(both.sections.keys, CreditSection.values);
+    expect(both.sections.keys, [CreditSection.performance, CreditSection.writing, CreditSection.production]);
     expect(people(both, CreditSection.writing), people(own, CreditSection.writing), reason: 'the server\'s');
     expect(people(both, CreditSection.performance), ['Joe Perry: guitar']);
     expect(people(both, CreditSection.production), [
@@ -145,10 +145,11 @@ void main() {
   });
 
   test('where it was recorded, by place, in the order of its songs: from the first day there to the last, with the '
-      'songs recorded there', () {
+      'songs recorded there; then where it was mixed, then mastered, a place where it was recorded too apart', () {
     const plant = (id: 'p1', name: 'The Record Plant', country: null);
     const studio = (id: 'p2', name: 'Electric Lady Studios', country: null);
     const kingdom = (id: 'gb', name: 'United Kingdom', country: 'GB');
+    const sterling = (id: 'p3', name: 'Sterling Sound', country: null);
     final credits = AlbumCredits.of(
       [song('s1'), song('s2'), song('s3')],
       musicBrainz: release(
@@ -156,30 +157,51 @@ void main() {
           track(
             '1',
             sessions: [
-              (place: studio, begin: const ReleaseDate(1975, month: 3, day: 1), end: null),
-              (place: plant, begin: const ReleaseDate(1975, month: 1, day: 20), end: const ReleaseDate(1975, month: 1)),
+              (place: plant, stage: RecordingStage.mixing, begin: const ReleaseDate(1975, month: 3), end: null),
+              (
+                place: studio,
+                stage: RecordingStage.recording,
+                begin: const ReleaseDate(1975, month: 3, day: 1),
+                end: null,
+              ),
+              (
+                place: plant,
+                stage: RecordingStage.recording,
+                begin: const ReleaseDate(1975, month: 1, day: 20),
+                end: const ReleaseDate(1975, month: 1),
+              ),
             ],
           ),
           track(
             '2',
             sessions: [
-              (place: plant, begin: const ReleaseDate(1974, month: 12), end: const ReleaseDate(1975, month: 2, day: 2)),
+              (
+                place: plant,
+                stage: RecordingStage.recording,
+                begin: const ReleaseDate(1974, month: 12),
+                end: const ReleaseDate(1975, month: 2, day: 2),
+              ),
             ],
           ),
           track('3'),
         ],
-        sessions: [(place: kingdom, begin: null, end: null)],
+        sessions: [
+          (place: sterling, stage: RecordingStage.mastering, begin: null, end: null),
+          (place: kingdom, stage: RecordingStage.recording, begin: null, end: null),
+        ],
       ),
     );
     expect(
       [
-        for (final (:place, :begin, :end, :tracks) in credits.venues)
-          (place.name, (begin?.year, begin?.month, begin?.day), (end?.year, end?.month, end?.day), '$tracks'),
+        for (final (:place, :stage, :begin, :end, :tracks) in credits.venues)
+          (place.name, stage, (begin?.year, begin?.month, begin?.day), (end?.year, end?.month, end?.day), '$tracks'),
       ],
       [
-        ('Electric Lady Studios', (1975, 3, 1), (1975, 3, 1), '[1]'),
-        ('The Record Plant', (1974, 12, null), (1975, 2, 2), '[1, 2]'),
-        ('United Kingdom', (null, null, null), (null, null, null), '[]'),
+        ('Electric Lady Studios', RecordingStage.recording, (1975, 3, 1), (1975, 3, 1), '[1]'),
+        ('The Record Plant', RecordingStage.recording, (1974, 12, null), (1975, 2, 2), '[1, 2]'),
+        ('United Kingdom', RecordingStage.recording, (null, null, null), (null, null, null), '[]'),
+        ('The Record Plant', RecordingStage.mixing, (1975, 3, null), (1975, 3, null), '[1]'),
+        ('Sterling Sound', RecordingStage.mastering, (null, null, null), (null, null, null), '[]'),
       ],
     );
     expect(credits.sections, isEmpty);
