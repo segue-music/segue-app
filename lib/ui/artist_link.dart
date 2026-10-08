@@ -88,7 +88,8 @@ class ArtistLinks extends StatelessWidget {
     ];
 
     // Every piece a TextLink, also what has nowhere to go: from one song to the next, a link keeps its place, and with
-    // it the focus.
+    // it the focus. Each starts where the one before it ends: the line is aligned as a whole, since one centered on its
+    // own would leave out the space at its end, putting the dot of " · " off its middle.
     Widget link((String, Artist?) piece) => TextLink(
       piece.$1,
       tooltip: strings.openArtist,
@@ -97,7 +98,6 @@ class ArtistLinks extends StatelessWidget {
         null => artists.isEmpty ? onTapUnknown : null,
       },
       style: style,
-      textAlign: textAlign,
     );
 
     return LayoutBuilder(

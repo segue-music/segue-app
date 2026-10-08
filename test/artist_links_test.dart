@@ -9,14 +9,15 @@ const runDmc = Artist(id: 'ar2', name: 'Run-DMC');
 const aerosmith = Artist(id: 'ar1', name: 'Aerosmith');
 const robThomas = Artist(id: 'ar4', name: 'Rob Thomas');
 
-/// The links of [artists], whose song's artist is [text], in [width] pixels; returns the artists the links open, as they
-/// open them, and 'unknown' for a tap on [text] where [unknown] is.
+/// The links of [artists], whose song's artist is [text], in [width] pixels, aligned as [textAlign] says; returns the
+/// artists the links open, as they open them, and 'unknown' for a tap on [text] where [unknown] is.
 Future<List<String>> pumpLinks(
   WidgetTester tester,
   String text,
   List<Artist> artists, {
   double width = 600,
   bool unknown = false,
+  TextAlign? textAlign,
 }) async {
   final opened = <String>[];
   await tester.pumpWidget(
@@ -33,6 +34,7 @@ Future<List<String>> pumpLinks(
               artists,
               onOpen: (artist) => opened.add(artist.id),
               onTapUnknown: unknown ? () => opened.add('unknown') : null,
+              textAlign: textAlign,
             ),
           ),
         ),
@@ -64,6 +66,19 @@ void main() {
     );
     expect((between.left, second.left), (first.right, between.right));
     expect(between.width, first.width * 3 / 'Run-DMC'.length, reason: 'the test font\'s letters are all as wide');
+  });
+
+  testWidgets('centered, as in the full-screen player, the dot is still in the middle of its spaces', (tester) async {
+    await pumpLinks(tester, '', [runDmc, aerosmith], textAlign: TextAlign.center);
+    final letter = tester.getSize(find.text('Run-DMC')).width / 'Run-DMC'.length;
+    final dot = tester.renderObject<RenderParagraph>(find.text(' · '));
+    // Off its middle, it was half a space further.
+    expect(
+      dot.getOffsetForCaret(const TextPosition(offset: 1), Rect.zero).dx,
+      moreOrLessEquals(letter, epsilon: 1),
+      reason: 'after one space',
+    );
+    expect(tester.getCenter(find.byType(Row)).dx, 300, reason: 'the line is centered, as a whole');
   });
 
   testWidgets('whatever the media server puts between them, the dot does', (tester) async {

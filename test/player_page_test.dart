@@ -995,7 +995,11 @@ void main() {
       final style = tester.widget<Text>(shown).style;
       expect(style?.fontSize, size?.fontSize, reason: line);
       expect(style?.fontWeight == FontWeight.bold, bold, reason: line);
-      expect(tester.widget<Text>(shown).textAlign, TextAlign.center, reason: line);
+      // The artists are pieces in a line, which is centered as a whole; the title and the album, each one text, center it.
+      if (line != 'Aerosmith') {
+        expect(tester.widget<Text>(shown).textAlign, TextAlign.center, reason: line);
+      }
+
       expect(tester.getCenter(shown).dx, moreOrLessEquals(cover.center.dx, epsilon: 1), reason: line);
     }
 
