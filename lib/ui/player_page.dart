@@ -22,7 +22,7 @@ import 'themed_icon.dart';
 
 /// The full-screen player: what plays, wherever it plays, big, and its lyrics beside it (on a phone, under it). On a
 /// wide screen the player bar stays under it, with the controls; on a phone, where there is none, it has every control
-/// itself.
+/// itself, and a drag down closes it.
 class PlayerPage extends StatelessWidget {
   const PlayerPage(this._lyrics, {super.key});
 
@@ -48,82 +48,85 @@ class PlayerPage extends StatelessWidget {
       bindings: {const SingleActivator(LogicalKeyboardKey.escape): close},
       child: Focus(
         autofocus: true,
-        child: ListenableBuilder(
-          listenable: _lyrics,
-          builder: (context, _) => NowPlayingBuilder(
-            builder: (context, _, now) {
-              final lyrics = _lyrics.value;
-              final colors = Theme.of(context).colorScheme;
-              final device = now?.device;
-              final strings = AppLocalizations.of(context);
-              return Scaffold(
-                appBar: AppBar(
-                  // The background's color, always: neither the lyrics nor, on a phone, the page tint it as
-                  // they scroll under it.
-                  notificationPredicate: (_) => false,
-                  leading: IconButton(
-                    tooltip: strings.close,
-                    icon: const ThemedIcon(HugeIcons.strokeRoundedArrowDown01),
-                    onPressed: close,
+        child: _DragToClose(
+          enabled: !wide,
+          builder: (context, scroll) => ListenableBuilder(
+            listenable: _lyrics,
+            builder: (context, _) => NowPlayingBuilder(
+              builder: (context, _, now) {
+                final lyrics = _lyrics.value;
+                final colors = Theme.of(context).colorScheme;
+                final device = now?.device;
+                final strings = AppLocalizations.of(context);
+                return Scaffold(
+                  appBar: AppBar(
+                    // The background's color, always: neither the lyrics nor, on a phone, the page tint it as
+                    // they scroll under it.
+                    notificationPredicate: (_) => false,
+                    leading: IconButton(
+                      tooltip: strings.close,
+                      icon: const ThemedIcon(HugeIcons.strokeRoundedArrowDown01),
+                      onPressed: close,
+                    ),
+                    centerTitle: true,
+                    // On a wide screen, where it plays, when that's another device. On a phone, the song's album:
+                    // there the devices button at the bottom, tinted, says where it plays.
+                    title: switch (now) {
+                      final now? when wide && device != null => Text(
+                        now.playing ? strings.playingOn(device) : strings.pausedOn(device),
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      final now? when !wide && now.album != null => SongLink.album(
+                        now,
+                        style: Theme.of(context).textTheme.titleSmall,
+                        textAlign: TextAlign.center,
+                        replace: true,
+                      ),
+                      _ => null,
+                    },
+                    // As wide as the close button, so that the album stays in the middle, a long one too.
+                    actions: [if (!wide) const SizedBox(width: kToolbarHeight)],
                   ),
-                  centerTitle: true,
-                  // On a wide screen, where it plays, when that's another device. On a phone, the song's album:
-                  // there the devices button at the bottom, tinted, says where it plays.
-                  title: switch (now) {
-                    final now? when wide && device != null => Text(
-                      now.playing ? strings.playingOn(device) : strings.pausedOn(device),
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                    final now? when !wide && now.album != null => SongLink.album(
-                      now,
-                      style: Theme.of(context).textTheme.titleSmall,
-                      textAlign: TextAlign.center,
-                      replace: true,
-                    ),
-                    _ => null,
-                  },
-                  // As wide as the close button, so that the album stays in the middle, a long one too.
-                  actions: [if (!wide) const SizedBox(width: kToolbarHeight)],
-                ),
-                body: now == null
-                    ? Center(child: Text(strings.nothingPlaying))
-                    : _Player(now, lyrics: lyrics, controls: !wide),
-                bottomNavigationBar: wide
-                    ? NowPlayingBar(lyrics: _lyrics)
-                    : SafeArea(
-                        top: false,
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              IconButton(
-                                tooltip: lyrics ? strings.hideLyrics : strings.showLyrics,
-                                icon: ThemedIcon(
-                                  HugeIcons.strokeRoundedMicVocal,
-                                  color: lyrics ? colors.primary : null,
+                  body: now == null
+                      ? Center(child: Text(strings.nothingPlaying))
+                      : _Player(now, lyrics: lyrics, controls: !wide, scroll: scroll),
+                  bottomNavigationBar: wide
+                      ? NowPlayingBar(lyrics: _lyrics)
+                      : SafeArea(
+                          top: false,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                IconButton(
+                                  tooltip: lyrics ? strings.hideLyrics : strings.showLyrics,
+                                  icon: ThemedIcon(
+                                    HugeIcons.strokeRoundedMicVocal,
+                                    color: lyrics ? colors.primary : null,
+                                  ),
+                                  onPressed: () => _lyrics.value = !lyrics,
                                 ),
-                                onPressed: () => _lyrics.value = !lyrics,
-                              ),
-                              IconButton(
-                                tooltip: strings.devices,
-                                icon: ThemedIcon(
-                                  HugeIcons.strokeRoundedMonitorSpeaker,
-                                  color: device == null ? null : colors.primary,
+                                IconButton(
+                                  tooltip: strings.devices,
+                                  icon: ThemedIcon(
+                                    HugeIcons.strokeRoundedMonitorSpeaker,
+                                    color: device == null ? null : colors.primary,
+                                  ),
+                                  onPressed: () => showDevicesSheet(context),
                                 ),
-                                onPressed: () => showDevicesSheet(context),
-                              ),
-                              IconButton(
-                                tooltip: strings.queue,
-                                icon: const ThemedIcon(HugeIcons.strokeRoundedPlaylist03),
-                                onPressed: () => QueuePage.open(context),
-                              ),
-                            ],
+                                IconButton(
+                                  tooltip: strings.queue,
+                                  icon: const ThemedIcon(HugeIcons.strokeRoundedPlaylist03),
+                                  onPressed: () => QueuePage.open(context),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-              );
-            },
+                );
+              },
+            ),
           ),
         ),
       ),
@@ -132,7 +135,7 @@ class PlayerPage extends StatelessWidget {
 }
 
 /// The full-screen player's route, which slides it up, and holds whether it shows the lyrics: on a wide screen, the
-/// home's player bar under it turns them on and off.
+/// home's player bar under it turns them on and off. On a phone, a drag down slides it down ([_CloseDrag]).
 class PlayerRoute extends PageRouteBuilder<void> {
   PlayerRoute({bool lyrics = false, PageArea? area}) : this._(ValueNotifier(lyrics), area);
 
@@ -146,13 +149,6 @@ class PlayerRoute extends PageRouteBuilder<void> {
                 underTopBar: area.underTopBar,
                 child: PlayerPage(lyrics),
               ),
-        transitionsBuilder: (_, animation, _, child) => SlideTransition(
-          position: Tween(
-            begin: const Offset(0, 1),
-            end: Offset.zero,
-          ).chain(CurveTween(curve: Curves.easeOutCubic)).animate(animation),
-          child: child,
-        ),
       );
 
   final ValueNotifier<bool> lyrics;
@@ -161,6 +157,24 @@ class PlayerRoute extends PageRouteBuilder<void> {
   /// its links open their pages there all the same.
   final PageArea? area;
 
+  /// Slides it up as it opens and down as it closes, and, as a drag down moves it, with no curve, with the finger.
+  @override
+  Widget buildTransitions(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    final slide = Tween(begin: const Offset(0, 1), end: Offset.zero);
+    return SlideTransition(
+      position: (popGestureInProgress ? slide : slide.chain(CurveTween(curve: Curves.easeOutCubic))).animate(animation),
+      child: child,
+    );
+  }
+
+  /// Starts a drag of the player down, [height] pixels tall.
+  _CloseDrag _startClosing(double height) => _CloseDrag(this, controller!, height);
+
   @override
   void dispose() {
     lyrics.dispose();
@@ -168,8 +182,253 @@ class PlayerRoute extends PageRouteBuilder<void> {
   }
 }
 
+/// A finger dragging the full-screen player down, on a phone: the player follows it, and let go, closes, or goes back
+/// up ([end]). The navigator takes it as a user's gesture, as it does the iOS back swipe: until the player has settled,
+/// its route slides it with no curve ([PlayerRoute.buildTransitions]), and the page under it shows.
+class _CloseDrag {
+  _CloseDrag(this._route, this._controller, this._height) : _navigator = _route.navigator! {
+    _navigator.didStartUserGesture();
+  }
+
+  final PlayerRoute _route;
+  final NavigatorState _navigator;
+
+  /// The route's animation: 1 with the player open, 0 with it a screen down, closed.
+  final AnimationController _controller;
+
+  /// How tall the player is: how far down it goes to close.
+  final double _height;
+
+  /// How fast a fling down closes the player, however short, in pixels a second.
+  static const _flingFrom = 700.0;
+
+  /// Whether the player is down from where it opens.
+  bool get moved => _controller.value < 1;
+
+  /// Moves the player [down] pixels down (below zero, up), no higher than it opens, and returns what is left of
+  /// [down]: up, past where it opens.
+  double update(double down) {
+    if (!_route.isCurrent) {
+      return down;
+    }
+
+    final moving = max(down, -(1 - _controller.value) * _height);
+    _controller.value -= moving / _height;
+    return down - moving;
+  }
+
+  /// Lets go of the player, moving at [velocity] pixels a second down (below zero, up): flung down, or let go past a
+  /// third of the way down, it closes; otherwise it goes back up.
+  void end(double velocity) {
+    final close = _route.isCurrent
+        ? moved && (velocity.abs() >= _flingFrom ? velocity > 0 : _controller.value < 2 / 3)
+        // Gone from the top meanwhile: closed, it goes on closing; under another page, it goes back up.
+        : !_route.isActive;
+
+    if (!close) {
+      _controller.animateTo(1, curve: Curves.easeOutCubic);
+    } else {
+      if (_route.isCurrent) {
+        _navigator.pop();
+      }
+
+      // From where it is, unless it has closed already, from all the way down.
+      if (_controller.isAnimating) {
+        _controller.animateBack(0, curve: Curves.easeOutCubic);
+      }
+    }
+
+    if (!_controller.isAnimating) {
+      _settle(closed: close);
+      return;
+    }
+
+    late final AnimationStatusListener settle;
+    settle = (_) {
+      _controller.removeStatusListener(settle);
+      _settle(closed: close);
+    };
+    _controller.addStatusListener(settle);
+  }
+
+  /// Ends the drag as [end] does for a finger let go still, after this frame: for one that nothing follows any more, as
+  /// its widgets go, when the navigator can't change.
+  void endLater() => WidgetsBinding.instance.addPostFrameCallback((_) => end(0));
+
+  /// Ends the user's gesture, the player settled. Back up, it takes back the focus, which the navigator gave the page
+  /// under it for the gesture (Esc closes it again): after the frame that lets it have it.
+  void _settle({required bool closed}) {
+    if (!_navigator.mounted) {
+      return;
+    }
+
+    _navigator.didStopUserGesture();
+
+    if (!closed) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final context = _route.subtreeContext;
+
+        if (_route.isCurrent && context != null) {
+          FocusScope.of(context, createDependency: false).requestFocus();
+        }
+      });
+    }
+  }
+}
+
+/// On a phone, the full-screen player, which a drag down takes down with it, toward closing it ([_CloseDrag]): on the
+/// bars as on the song, and, where the page is taller than the screen (on a small phone, with the lyrics), once it has
+/// scrolled to its top ([_ClosingScrollPosition]). The lyrics scroll as they do.
+class _DragToClose extends StatefulWidget {
+  const _DragToClose({required this.enabled, required this.builder});
+
+  /// Whether a drag down closes the player: on a phone.
+  final bool enabled;
+
+  /// The player, whose page scrolls with `scroll`, where it is taller than the screen.
+  final Widget Function(BuildContext context, ScrollController scroll) builder;
+
+  @override
+  State<_DragToClose> createState() => _DragToCloseState();
+}
+
+class _DragToCloseState extends State<_DragToClose> {
+  late final _scroll = _ClosingScrollController(_start);
+
+  /// The drag down under way on the page, rather than on its scroll view, which follows its own.
+  _CloseDrag? _drag;
+
+  /// Starts a drag of the player down, if one closes it.
+  _CloseDrag? _start() {
+    final route = ModalRoute.of(context);
+    return widget.enabled && route is PlayerRoute && route.isCurrent ? route._startClosing(context.size!.height) : null;
+  }
+
+  void _update(DragUpdateDetails details) {
+    final down = details.primaryDelta ?? 0;
+
+    if (_drag == null && down > 0) {
+      _drag = _start();
+    }
+
+    _drag?.update(down);
+  }
+
+  void _end(DragEndDetails details) {
+    _drag?.end(details.primaryVelocity ?? 0);
+    _drag = null;
+  }
+
+  /// Ends the drag under way, whose end won't come, as the page goes or stops being a phone's.
+  void _abandon() {
+    _drag?.endLater();
+    _drag = null;
+  }
+
+  @override
+  void didUpdateWidget(_DragToClose oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (!widget.enabled) {
+      _abandon();
+    }
+  }
+
+  @override
+  void dispose() {
+    _abandon();
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    onVerticalDragUpdate: widget.enabled ? _update : null,
+    onVerticalDragEnd: widget.enabled ? _end : null,
+    child: widget.builder(context, _scroll),
+  );
+}
+
+/// The player's scroll controller, whose page, dragged down at its top, drags the player down instead
+/// ([_ClosingScrollPosition]).
+class _ClosingScrollController extends ScrollController {
+  _ClosingScrollController(this._start);
+
+  /// Starts a drag of the player down, if one closes it.
+  final _CloseDrag? Function() _start;
+
+  @override
+  ScrollPosition createScrollPosition(ScrollPhysics physics, ScrollContext context, ScrollPosition? oldPosition) =>
+      _ClosingScrollPosition(_start, physics: physics, context: context, oldPosition: oldPosition);
+}
+
+/// Where the player's page has scrolled to, when it is taller than the screen: dragged down at its top, the cover's, it
+/// drags the player down, toward closing it, as the finger goes on, and scrolls again once the player is back up.
+class _ClosingScrollPosition extends ScrollPositionWithSingleContext {
+  _ClosingScrollPosition(this._start, {required super.physics, required super.context, super.oldPosition});
+
+  /// Starts a drag of the player down, if one closes it.
+  final _CloseDrag? Function() _start;
+
+  /// The drag of the player down under way, from when the finger went on down from the page's top.
+  _CloseDrag? _drag;
+
+  /// Whether the offsets go up the screen: the player's page, which starts at its bottom, is reversed.
+  bool get _reversed => axisDirectionIsReversed(axisDirection);
+
+  @override
+  void applyUserOffset(double delta) {
+    var down = _reversed ? -delta : delta;
+
+    // Down to the page's top, the page scrolls, and from there on, the player goes down, until it is back up.
+    if (!(_drag?.moved ?? false)) {
+      final scrolling = min(down, max(_reversed ? maxScrollExtent - pixels : pixels - minScrollExtent, 0.0));
+      _scroll(scrolling);
+      down -= scrolling;
+
+      if (down <= 0) {
+        return;
+      }
+
+      _drag ??= _start();
+    }
+
+    _scroll(_drag?.update(down) ?? down);
+  }
+
+  /// Scrolls the page as a finger going [down] pixels down does.
+  void _scroll(double down) {
+    if (down != 0) {
+      super.applyUserOffset(_reversed ? -down : down);
+    }
+  }
+
+  /// The finger let go: the player closes or goes back up, and the page, if the player took the drag, stays.
+  @override
+  void goBallistic(double velocity) {
+    final drag = _drag;
+
+    if (drag == null) {
+      super.goBallistic(velocity);
+      return;
+    }
+
+    _drag = null;
+    final moved = drag.moved;
+    drag.end(_reversed ? velocity : -velocity);
+    super.goBallistic(moved ? 0 : velocity);
+  }
+
+  @override
+  void dispose() {
+    // Gone as the page changes, with no end to come to the drag.
+    _drag?.endLater();
+    super.dispose();
+  }
+}
+
 class _Player extends StatelessWidget {
-  const _Player(this.now, {required this.lyrics, required this.controls});
+  const _Player(this.now, {required this.lyrics, required this.controls, required this.scroll});
 
   final NowPlaying now;
 
@@ -178,6 +437,9 @@ class _Player extends StatelessWidget {
 
   /// Whether the slider and the buttons show under the song: on a phone, where the bar isn't under the player.
   final bool controls;
+
+  /// How the page scrolls, under the player, where it is taller than the screen.
+  final ScrollController scroll;
 
   /// From how wide the lyrics go beside the player rather than under it.
   static const _lyricsBesideFrom = 720.0;
@@ -295,6 +557,7 @@ class _Player extends StatelessWidget {
       // In the middle of the room between the bars. Taller than it, as on a small phone with the lyrics, it goes out
       // at the top rather than the bottom: the cover, rather than the controls and the lyrics' line that plays.
       return SingleChildScrollView(
+        controller: scroll,
         reverse: true,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
         child: ConstrainedBox(

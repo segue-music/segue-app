@@ -965,6 +965,114 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('on a phone, a drag down takes the player down with it, over the page under it; let go past a third of '
+      'the way down, or flung, it closes, and otherwise goes back up', (tester) async {
+    await pumpBar(tester);
+    await openPlayer(tester);
+    final top = onPage(find.byType(AppBar));
+
+    final finger = await tester.startGesture(tester.getCenter(playerCover));
+    await finger.moveBy(const Offset(0, 20)); // past the slop, where the drag starts
+    await finger.moveBy(const Offset(0, 150));
+    await tester.pump();
+    expect(tester.getRect(top).top, 150, reason: 'with the finger');
+    expect(find.byTooltip('Abrir o player'), findsOneWidget, reason: 'the bar under it shows');
+    await finger.moveBy(const Offset(0, -50));
+    await tester.pump();
+    expect(tester.getRect(top).top, 100);
+    await finger.up();
+    await tester.pumpAndSettle();
+    expect(tester.getRect(top).top, 0, reason: 'back up, short of a third');
+    expect(find.byTooltip('Abrir o player'), findsNothing);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(find.byType(PlayerPage), findsNothing, reason: 'Esc closes it, the focus back in it');
+
+    await openPlayer(tester);
+    await tester.drag(playerCover, const Offset(0, 300));
+    await tester.pumpAndSettle();
+    expect(find.byType(PlayerPage), findsNothing);
+
+    // From its bars too.
+    await openPlayer(tester);
+    await tester.fling(onPage(find.byTooltip('Fila')), const Offset(0, 60), 1000);
+    await tester.pumpAndSettle();
+    expect(find.byType(PlayerPage), findsNothing, reason: 'flung, however short');
+
+    // Not up, past where it opens.
+    await openPlayer(tester);
+    await tester.fling(playerCover, const Offset(0, -200), 1000);
+    await tester.pumpAndSettle();
+    expect(tester.getRect(top).top, 0);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a small phone, where the player with its lyrics is taller than the screen, a drag down scrolls it to '
+      'its top, and from there on takes it down; the lyrics scroll as they do', (tester) async {
+    await pumpBar(tester, server: withLyrics([for (var line = 0; line < 30; line++) (line * 5, 'Line $line')]));
+    await openPlayer(tester);
+    await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
+    await tester.pumpAndSettle();
+    final top = onPage(find.byType(AppBar));
+    // Where the cover is at the page's top, under its padding.
+    final room = tester.getRect(onPage(find.byType(SingleChildScrollView)).first).top + 8;
+    final hidden = room - tester.getRect(playerCover).top;
+    expect(hidden, greaterThan(8), reason: 'the cover goes out at the top');
+
+    await tester.drag(onPage(find.byType(LyricsView)), const Offset(0, 300));
+    await tester.pumpAndSettle();
+    expect(tester.getRect(top).top, 0, reason: 'the lyrics took it');
+    expect(room - tester.getRect(playerCover).top, hidden);
+
+    final finger = await tester.startGesture(tester.getCenter(onPage(find.text('Sweet Emotion'))));
+    await finger.moveBy(const Offset(0, 20)); // past the slop, where the drag starts
+    await finger.moveBy(Offset(0, hidden + 100));
+    await tester.pump();
+    expect(tester.getRect(top).top, 100, reason: 'on down from the top');
+    expect(tester.getRect(playerCover).top, room + 100);
+    await finger.moveBy(const Offset(0, -150));
+    await tester.pump();
+    expect(tester.getRect(top).top, 0, reason: 'back up first');
+    expect(tester.getRect(playerCover).top, room - 50, reason: 'then scrolled');
+    await finger.moveBy(const Offset(0, 300));
+    await tester.pump();
+    expect(tester.getRect(top).top, 250);
+    await finger.up();
+    await tester.pumpAndSettle();
+    expect(find.byType(PlayerPage), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('a drag down cut short, as the screen turns wide, leaves the player where it opens, still at hand', (
+    tester,
+  ) async {
+    await pumpBar(tester);
+    await openPlayer(tester);
+    final finger = await tester.startGesture(tester.getCenter(playerCover));
+    await finger.moveBy(const Offset(0, 20));
+    await finger.moveBy(const Offset(0, 150));
+    await tester.pump();
+    tester.view.physicalSize = const Size(1280, 800);
+    await tester.pumpAndSettle();
+    expect(tester.getRect(onPage(find.byType(AppBar))).top, 0);
+    await finger.up();
+
+    await tester.tap(onPage(find.byTooltip('Fechar')));
+    await tester.pumpAndSettle();
+    expect(find.byType(PlayerPage), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a wide screen, a drag down leaves the player be', (tester) async {
+    await pumpBar(tester, size: const Size(1280, 800));
+    await openPlayer(tester);
+    await tester.fling(playerCover, const Offset(0, 300), 1000);
+    await tester.pumpAndSettle();
+    expect(find.byType(PlayerPage), findsOneWidget);
+    expect(tester.getRect(onPage(find.byType(AppBar))).top, 0);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('its slider jumps to where it is tapped', (tester) async {
     final player = await pumpBar(tester);
     await openPlayer(tester);
