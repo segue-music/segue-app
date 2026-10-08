@@ -19,6 +19,7 @@ import 'package:segue/theme_choice.dart';
 import 'package:segue/ui/album_page.dart';
 import 'package:segue/ui/albums_view.dart';
 import 'package:segue/ui/home_page.dart';
+import 'package:segue/ui/home_view.dart';
 import 'package:segue/ui/settings_page.dart';
 import 'package:segue/ui/shortcuts.dart';
 import 'package:segue/ui/theme.dart';
@@ -598,6 +599,23 @@ void main() {
     // Buttons are smaller on a desktop.
     variant: const TargetPlatformVariant({TargetPlatform.android, TargetPlatform.linux}),
   );
+
+  for (final (device, kind, size) in [
+    ('a finger, on a phone', PointerDeviceKind.touch, const Size(360, 640)),
+    ('the mouse, on a computer', PointerDeviceKind.mouse, const Size(1000, 700)),
+  ]) {
+    testWidgets('dragged down from its top by $device, the home asks the server for its rows again', (tester) async {
+      final asked = await pumpHome(tester, size);
+      final rows = [for (final query in asked) query['type']];
+      expect(rows, unorderedEquals(['byYear', 'frequent', 'newest']));
+
+      final list = find.descendant(of: find.byType(HomeView), matching: find.byType(Scrollable)).first;
+      await tester.dragFrom(tester.getTopLeft(list) + const Offset(300, 100), const Offset(0, 300), kind: kind);
+      await tester.pumpAndSettle();
+      expect([for (final query in asked.skip(rows.length)) query['type']], unorderedEquals(rows));
+      await tester.pumpWidget(const SizedBox());
+    });
+  }
 
   testWidgets('on a phone, the app\'s icon is in the top left corner too, and the bar at the bottom keeps the home', (
     tester,

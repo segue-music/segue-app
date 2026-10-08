@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
@@ -51,18 +52,23 @@ class _HomeViewState extends State<HomeView> {
         // Each row shows its own failure.
         await Future.wait(_albums.values).catchError((_) => const <List<Album>>[]);
       },
-      child: ListView(
-        // At the end, clear of the bars a phone's home has over it.
-        padding: EdgeInsets.only(bottom: 16 + MediaQuery.paddingOf(context).bottom),
-        children: [
-          for (final order in _rows)
-            AlbumRow(
-              title: order.label(strings),
-              albums: _albums[order]!,
-              empty: order.emptyMessage(strings),
-              onShowAll: onShowAll == null ? null : () => onShowAll(order),
-            ),
-        ],
+      // Dragged by the mouse too, as the rows are sideways: on a computer, which drags only a finger's or a touchpad's,
+      // down from the top it refreshes the rows as well.
+      child: ScrollConfiguration(
+        behavior: ScrollConfiguration.of(context).copyWith(dragDevices: PointerDeviceKind.values.toSet()),
+        child: ListView(
+          // At the end, clear of the bars a phone's home has over it.
+          padding: EdgeInsets.only(bottom: 16 + MediaQuery.paddingOf(context).bottom),
+          children: [
+            for (final order in _rows)
+              AlbumRow(
+                title: order.label(strings),
+                albums: _albums[order]!,
+                empty: order.emptyMessage(strings),
+                onShowAll: onShowAll == null ? null : () => onShowAll(order),
+              ),
+          ],
+        ),
       ),
     );
   }
