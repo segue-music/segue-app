@@ -661,12 +661,15 @@ class _SwipeToSkipState extends State<_SwipeToSkip> with SingleTickerProviderSta
 
   /// What a swipe [toward] a side does: to the left, the next song; to the right, the previous one, wherever the song
   /// is (the button, past a song's first seconds, starts it over), by its place in the queue, on a device that takes a
-  /// jump to one. On the first song there is none to go to.
+  /// jump to one. On the first song there is none to go to, and on the last none either, unless the queue repeats: then
+  /// the next one is the first (SPEC.md, section 5).
   Future<Result> Function()? _skip(double toward) {
     final connect = ServicesScope.of(context).connect;
 
     if (toward < 0) {
-      return connect.next;
+      final queue = connect.queue;
+      final last = queue.index == queue.tracks.length - 1;
+      return last && connect.nowPlaying?.repeat == Repeat.off ? null : connect.next;
     }
 
     if (!(connect.nowPlaying?.canJump ?? false)) {

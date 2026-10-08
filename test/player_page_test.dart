@@ -996,17 +996,42 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('on the last song, a swipe to the left goes nowhere, as one to the right on the first; unless the queue '
+      'repeats, when it goes to the first', (tester) async {
+    final player = await pumpBar(tester);
+    await player.playQueue(
+      const [
+        Song(id: 's1', title: 'Sweet Emotion', artist: 'Aerosmith', duration: Duration(seconds: 274)),
+        Song(id: 's2', title: 'Walk This Way', artist: 'Run-DMC', duration: Duration(seconds: 311)),
+      ],
+      index: 1,
+      play: false,
+    );
+    await openPlayer(tester);
+    final place = tester.getRect(playerCover);
+
+    await tester.fling(playerCover, const Offset(-60, 0), 1000);
+    await tester.pumpAndSettle();
+    expect(player.index, 1);
+    expect(find.text('Não há próxima faixa.'), findsNothing);
+    expect(tester.getRect(playerCover), place, reason: 'back in its place');
+
+    await player.setRepeat(Repeat.all);
+    await tester.fling(playerCover, const Offset(-60, 0), 1000);
+    await tester.pumpAndSettle();
+    expect(player.index, 0);
+    expect(tester.getRect(playerCover), place);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('a swipe sends the cover out as it was, and it comes back from the other side with the song it went to', (
     tester,
   ) async {
     final player = await pumpBar(tester);
     await player.playQueue(const [
-      Song(id: 's1', title: 'Sweet Emotion', coverArt: 'c1'),
-      Song(id: 's2', title: 'Walk This Way', coverArt: 'c2'),
+      Song(id: 's1', title: 'Sweet Emotion', artist: 'Aerosmith', coverArt: 'c1', duration: Duration(seconds: 274)),
+      Song(id: 's2', title: 'Walk This Way', artist: 'Run-DMC', coverArt: 'c2', duration: Duration(seconds: 311)),
     ], play: false);
-    // The bar's cover fails to load (the tests have no images) before the player slides over it: in the middle of the
-    // slide, that trips an assertion of Flutter's semantics.
-    await tester.pumpAndSettle();
     await openPlayer(tester);
     final place = tester.getRect(playerCover);
     String? cover() => tester.widget<Cover>(playerCover).id;
@@ -1039,15 +1064,20 @@ void main() {
       final player = await pumpBar(tester);
       await player.playQueue(
         const [
-          Song(id: 's1', title: 'Sweet Emotion', coverArt: 'c1'),
-          Song(id: 's2', title: 'Walk This Way', coverArt: 'c2'),
-          Song(id: 's3', title: 'Dream On', coverArt: 'c3'),
-          Song(id: 's4', title: 'Back in the Saddle', coverArt: 'c4'),
+          Song(id: 's1', title: 'Sweet Emotion', artist: 'Aerosmith', coverArt: 'c1', duration: Duration(seconds: 274)),
+          Song(id: 's2', title: 'Walk This Way', artist: 'Run-DMC', coverArt: 'c2', duration: Duration(seconds: 311)),
+          Song(id: 's3', title: 'Dream On', artist: 'Aerosmith', coverArt: 'c3', duration: Duration(seconds: 267)),
+          Song(
+            id: 's4',
+            title: 'Back in the Saddle',
+            artist: 'Aerosmith',
+            coverArt: 'c4',
+            duration: Duration(seconds: 280),
+          ),
         ],
         index: 1,
         play: false,
       );
-      await tester.pumpAndSettle(); // the bar's cover, which fails to load, before the player slides over it
       await openPlayer(tester);
       expect(covers.at(800), {'c1', 'c2', 'c3'});
 
