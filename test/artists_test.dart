@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:segue/connect/connect.dart';
 import 'package:segue/l10n/app_localizations.dart';
 import 'package:segue/player/player.dart';
@@ -19,6 +20,7 @@ import 'package:segue/ui/cover.dart';
 import 'package:segue/ui/home_page.dart';
 import 'package:segue/ui/now_playing_bar.dart';
 import 'package:segue/ui/segmented_choice.dart';
+import 'package:segue/ui/themed_icon.dart';
 
 import 'fakes.dart';
 import 'side_rail.dart';
@@ -97,6 +99,7 @@ http.Response server(http.Request request, {bool played = true}) {
       'artist': {
         'id': 'ar2',
         'name': 'Cheap Trick',
+        'coverArt': 'ar-ar2',
         'albumCount': 1,
         'album': [
           {'id': 'a3', 'name': 'In Color', 'artist': 'Cheap Trick', 'year': 1977, 'playCount': ?(played ? 7 : null)},
@@ -242,8 +245,8 @@ Finder title(String text) => find.descendant(of: find.byType(AppBar), matching: 
 /// after them too.
 Finder artistName(String name) => find.descendant(of: find.byType(ArtistPage), matching: find.text(name)).first;
 
-/// The artist's picture by their name, over their page.
-Finder artistPicture() => find.descendant(of: find.byType(ArtistPage), matching: find.byType(ClipOval)).first;
+/// The artist's picture, at the top of their page.
+Finder artistPicture() => find.descendant(of: find.byType(ArtistPage), matching: find.byType(LargeCover)).first;
 
 /// The artist's picture as asked of the server at [size] pixels.
 Finder artistPictureAt(int size) => find.descendant(
@@ -255,6 +258,9 @@ Finder artistPictureAt(int size) => find.descendant(
         Uri.parse((widget.image as NetworkImage).url).queryParameters['size'] == '$size',
   ),
 );
+
+/// The icon [data] draws.
+Finder icon(HugeIconData data) => find.byWidgetPredicate((widget) => widget is ThemedIcon && widget.icon == data);
 
 /// The tile of the artist named [name], in the artists' grid.
 Finder tile(String name) => find.ancestor(of: find.text(name), matching: find.byType(InkWell)).first;
@@ -535,14 +541,94 @@ void main() {
     expect(find.byType(NavigationBar).hitTestable(), findsOneWidget);
     expect(find.descendant(of: page, matching: find.byType(NowPlayingBar)), findsNothing);
     expect(find.byType(BackButton), findsOneWidget);
-    // Beside their picture, with no bar above them; smaller than on a wide screen, to leave their name room.
-    final (arrow, rect) = (tester.getRect(find.byType(BackButton)), tester.getRect(artistPicture()));
-    expect(rect.top, 16);
-    expect(rect.size, const Size.square(140));
-    expect(arrow.bottom, greaterThan(rect.top));
-    expect(arrow.right, lessThanOrEqualTo(rect.left));
     expect(tester.getRect(grid).bottom, 640);
     expect(MediaQuery.paddingOf(tester.element(grid)).bottom, 640 - tester.getRect(find.byType(NowPlayingBar)).top);
+    await tester.pumpWidget(const SizedBox()); // stops the player bar's timer
+  });
+
+  testWidgets('on a phone, an artist\'s picture goes across the top of their page, under the system\'s bar, their name '
+      'centered over it on the back arrow\'s line, and the choice of their songs over its bottom, in icons, with how '
+      'many albums they have at the end of its line', (tester) async {
+    // A system's bar at the top of the screen.
+    tester.view.padding = const FakeViewPadding(top: 24);
+    tester.view.viewPadding = const FakeViewPadding(top: 24);
+    await pumpHome(tester, const Size(360, 640));
+    await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Artistas')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cheap Trick'));
+    await tester.pumpAndSettle();
+    final picture = tester.getRect(artistPicture());
+    expect(
+      picture,
+      const Rect.fromLTWH(0, 0, 360, 24 + 320),
+      reason: 'as wide as the page, from the top of the screen, and half the screen tall at most under the bar',
+    );
+    expect(find.descendant(of: find.byType(ArtistPage), matching: find.byType(ClipOval)), findsNothing);
+    expect(artistPictureAt(1200), findsOneWidget, reason: 'asked of the server as many pixels across as a phone has');
+    expect(artistPictureAt(300), findsOneWidget, reason: 'under it, as it comes');
+    final (arrow, name) = (tester.getRect(find.byType(BackButton)), tester.getRect(artistName('Cheap Trick')));
+    expect(arrow.center.dy, 24 + kToolbarHeight / 2, reason: 'over the picture, where a top bar has it, under the bar');
+    expect(name.left, greaterThanOrEqualTo(arrow.right));
+    expect(name.center.dx, moreOrLessEquals(180, epsilon: 1), reason: 'centered on the page');
+    expect(name.center.dy, moreOrLessEquals(arrow.center.dy, epsilon: 1), reason: 'on the arrow\'s line');
+    final choice = tester.getRect(find.byWidgetPredicate((widget) => widget is SegmentedChoice));
+    expect(choice.bottom, lessThanOrEqualTo(picture.bottom));
+    expect(choice.top, greaterThan(picture.center.dy), reason: 'over the bottom of the picture');
+    final count = tester.getRect(find.text('1 álbum'));
+    expect(count.center.dy, moreOrLessEquals(choice.center.dy, epsilon: 1), reason: 'on the choice\'s line');
+    expect(count.right, moreOrLessEquals(360 - 16, epsilon: 1), reason: 'at its end, the page\'s margin from the edge');
+    expect(
+      tester.getRect(find.text('I Want You to Want Me')).top,
+      greaterThanOrEqualTo(picture.bottom),
+      reason: 'the songs under the picture',
+    );
+    // Icons, their names in tooltips: headphones for what the user listens to, fire for what's hot.
+    expect(
+      find.descendant(of: find.byWidgetPredicate((widget) => widget is SegmentedChoice), matching: find.byType(Text)),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: find.byTooltip('Suas mais tocadas'), matching: icon(HugeIcons.strokeRoundedHeadphones)),
+      findsOne,
+    );
+    expect(find.descendant(of: find.byTooltip('Populares'), matching: icon(HugeIcons.strokeRoundedFire)), findsOne);
+    expect(tester.getSemantics(find.byTooltip('Suas mais tocadas')), isSemantics(isSelected: true));
+    // The picture fades to the page's color: some of it at the top, under the system's bar and the name, and all of it
+    // at the bottom.
+    final surface = Theme.of(tester.element(find.byType(ArtistPage))).colorScheme.surface;
+    final fade = find.descendant(
+      of: find.byType(ArtistPage),
+      matching: find.byWidgetPredicate(
+        (widget) => switch (widget) {
+          DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(:final colors))) =>
+            colors.first.a > 0 &&
+                colors.first.a < 1 &&
+                colors.first.withValues(alpha: 1) == surface &&
+                colors.last == surface,
+          _ => false,
+        },
+      ),
+    );
+    expect(tester.getRect(fade), picture);
+    // The system's bar lets the picture show, until the page goes up past it, whose albums would show under the bar.
+    final appBar = find.descendant(of: find.byType(ArtistPage), matching: find.byType(AppBar));
+    Color bar() => tester.widget<Material>(find.descendant(of: appBar, matching: find.byType(Material)).first).color!;
+    expect(bar().a, 0);
+
+    await tester.drag(find.byType(AlbumGrid), const Offset(0, -400));
+    await tester.pumpAndSettle();
+    expect(tester.getRect(artistPicture()).bottom, lessThanOrEqualTo(24), reason: 'gone up past it');
+    expect(bar().a, 1, reason: 'a top bar\'s color');
+
+    await tester.drag(find.byType(AlbumGrid), const Offset(0, 400));
+    await tester.pumpAndSettle();
+    expect(tester.getRect(artistPicture()).top, 0);
+    expect(bar().a, 0, reason: 'clear again');
+
+    await tester.tap(find.byTooltip('Populares'));
+    await tester.pumpAndSettle();
+    expect(tester.getSemantics(find.byTooltip('Populares')), isSemantics(isSelected: true));
+    expect(find.text('Big Eyes'), findsOneWidget, reason: 'the popular ones');
     await tester.pumpWidget(const SizedBox()); // stops the player bar's timer
   });
 

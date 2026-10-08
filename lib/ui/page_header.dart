@@ -17,14 +17,22 @@ class PageHeader extends StatelessWidget {
   final bool centered;
 
   /// The page's top bar, where it has one of its own: while the header doesn't show yet ([shown]), as the page's
-  /// content comes or when it fails, the usual one, with the back arrow; then one of no height, which only keeps the
-  /// page clear of the system's bar at the top of the screen.
-  static PreferredSizeWidget? bar(BuildContext context, {required bool shown}) {
+  /// content comes or when it fails, the usual one, with the back arrow; then one of no height, which only gives the
+  /// system's bar at the top of the screen the page's color. Or, [seeThrough], it lets the page show there instead, as
+  /// an artist's picture at its top does: for a page that goes on under it ([Scaffold.extendBodyBehindAppBar]).
+  static PreferredSizeWidget? bar(BuildContext context, {required bool shown, bool seeThrough = false}) {
     if (PageArea.holdsUnderTopBar(context)) {
       return null;
     }
 
-    return shown ? AppBar(toolbarHeight: 0, automaticallyImplyLeading: false) : AppBar();
+    if (!shown) {
+      return AppBar();
+    }
+
+    // The page's color with none of it: the system's icons take their brightness from the color, which the page has
+    // under them.
+    final clear = Theme.of(context).colorScheme.surface.withValues(alpha: 0);
+    return AppBar(toolbarHeight: 0, automaticallyImplyLeading: false, backgroundColor: seeThrough ? clear : null);
   }
 
   @override

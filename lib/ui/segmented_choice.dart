@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
 
 import 'focus_ring.dart';
+import 'themed_icon.dart';
 
 /// A choice of a few [options], side by side in a pill-shaped track, the one [selected] under a thumb that slides to
 /// another as it's picked: for a page's two or three views of one thing, as an artist's songs or the library's artists.
 /// More, as the albums' orders, are chips (`OrderChips`), which scroll sideways where they don't fit. The options are
 /// as wide as the widest, so that the thumb keeps its size on the way; where the system asks for less motion, it moves
-/// at once.
+/// at once. They say themselves in words, or with an [icon] each.
 class SegmentedChoice<T> extends StatelessWidget {
   const SegmentedChoice(
     this.selected, {
     required this.options,
     required this.label,
     required this.onSelected,
+    this.icon,
     super.key,
   });
 
@@ -24,6 +26,9 @@ class SegmentedChoice<T> extends StatelessWidget {
   /// What an option says of itself.
   final String Function(T option) label;
 
+  /// What an option shows instead of its [label], which is then its tooltip, and what a screen reader says of it.
+  final HugeIconData Function(T option)? icon;
+
   final ValueChanged<T> onSelected;
 
   /// How long the thumb takes from one option to another.
@@ -32,7 +37,6 @@ class SegmentedChoice<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
     final duration = MediaQuery.disableAnimationsOf(context) ? Duration.zero : SegmentedChoice.duration;
     final index = options.indexOf(selected);
     return IntrinsicWidth(
@@ -69,32 +73,7 @@ class SegmentedChoice<T> extends StatelessWidget {
                           button: true,
                           selected: option == selected,
                           inMutuallyExclusiveGroup: true,
-                          // On the thumb the theme's focus tint, in its color, wouldn't show.
-                          child: FocusRing(
-                            borderRadius: const BorderRadius.all(Radius.circular(100)),
-                            child: InkWell(
-                              onTap: () => onSelected(option),
-                              customBorder: const StadiumBorder(),
-                              mouseCursor: WidgetStateMouseCursor.clickable,
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                                child: Center(
-                                  child: AnimatedDefaultTextStyle(
-                                    style: text.labelLarge!.copyWith(
-                                      color: option == selected ? colors.onPrimary : colors.onSurfaceVariant,
-                                    ),
-                                    duration: duration,
-                                    child: Text(
-                                      label(option),
-                                      maxLines: 1,
-                                      softWrap: false,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
+                          child: _option(context, option, duration),
                         ),
                       ),
                   ],
@@ -105,5 +84,40 @@ class SegmentedChoice<T> extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// An option, over the thumb where it's [selected], its words or its icon in the color they have on it; taking
+  /// [duration] to change it.
+  Widget _option(BuildContext context, T option, Duration duration) {
+    final colors = Theme.of(context).colorScheme;
+    final color = option == selected ? colors.onPrimary : colors.onSurfaceVariant;
+    final icon = this.icon;
+    // On the thumb the theme's focus tint, in its color, wouldn't show.
+    final button = FocusRing(
+      borderRadius: const BorderRadius.all(Radius.circular(100)),
+      child: InkWell(
+        onTap: () => onSelected(option),
+        customBorder: const StadiumBorder(),
+        mouseCursor: WidgetStateMouseCursor.clickable,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          child: Center(
+            child: icon == null
+                ? AnimatedDefaultTextStyle(
+                    style: Theme.of(context).textTheme.labelLarge!.copyWith(color: color),
+                    duration: duration,
+                    child: Text(label(option), maxLines: 1, softWrap: false, overflow: TextOverflow.ellipsis),
+                  )
+                // As tall as the words' line.
+                : TweenAnimationBuilder(
+                    tween: ColorTween(end: color),
+                    duration: duration,
+                    builder: (context, color, _) => ThemedIcon(icon(option), size: 20, color: color),
+                  ),
+          ),
+        ),
+      ),
+    );
+    return icon == null ? button : Tooltip(message: label(option), child: button);
   }
 }

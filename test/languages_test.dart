@@ -238,8 +238,9 @@ void main() {
 
         await tap(tester, find.text('Aerosmith').first);
         expect(find.text('${strings.albumCount(1)} · ${strings.epCount(1)}'), findsOneWidget);
-        expect(find.text(strings.mostPlayedSongs), findsOneWidget);
-        expect(find.text(strings.popularSongs), findsOneWidget);
+        // On a phone, icons, their names in tooltips.
+        expect(narrow ? find.byTooltip(strings.mostPlayedSongs) : find.text(strings.mostPlayedSongs), findsOneWidget);
+        expect(narrow ? find.byTooltip(strings.popularSongs) : find.text(strings.popularSongs), findsOneWidget);
         // Under the songs, the page scrolls to them.
         final page = find.descendant(of: find.byType(ArtistPage), matching: find.byType(Scrollable)).first;
         await tester.scrollUntilVisible(find.text(strings.singlesAndEps), 100, scrollable: page);

@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
@@ -16,6 +18,7 @@ import 'release_types.dart';
 import 'segmented_choice.dart';
 import 'song_list_header.dart';
 import 'spinner.dart';
+import 'themed_icon.dart';
 
 /// An artist and their albums, newest first, under a few songs of theirs (the ones the user plays most, or the popular
 /// ones: [_ArtistSongs]): their albums, then their singles and EPs, each under a title.
@@ -32,6 +35,10 @@ class _ArtistPageState extends State<ArtistPage> {
   Future<(Artist, List<Album>)>? _artist;
   Future<List<Song>>? _mostPlayed;
 
+  /// Whether the page, on a phone, has gone up past the artist's picture, which shows under the system's bar until
+  /// then: the bar then has the page's color.
+  bool _pastPicture = false;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -44,64 +51,40 @@ class _ArtistPageState extends State<ArtistPage> {
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final strings = AppLocalizations.of(context);
-    // On a phone, or a window as narrow (as the home counts it), the picture is beside the back arrow, where a bigger
-    // one would leave the name no room.
+    // On a phone, or a window as narrow (as the home counts it), the picture goes across the top of the page, the name
+    // over it: beside it, a picture of some size would leave the name no room.
     final narrow = MediaQuery.sizeOf(context).width < 600;
     return FutureBuilder(
       future: _artist,
       builder: (context, snapshot) {
         final data = snapshot.data;
         return Scaffold(
-          // No title: the artist's name is by their picture, which is beside the back arrow.
-          appBar: PageHeader.bar(context, shown: data != null),
+          // No title: the artist's name is by their picture, or over it, beside the back arrow.
+          appBar: PageHeader.bar(context, shown: data != null, seeThrough: narrow && !_pastPicture),
+          // On a phone the picture goes on under the system's bar, to the top of the screen.
+          extendBodyBehindAppBar: narrow && data != null,
           body: switch (data) {
             _ when snapshot.hasError => Center(child: Text(strings.couldNotOpenArtistError('${snapshot.error}'))),
             null => const Center(child: Spinner()),
-            (final artist, final albums) => AlbumGrid.sections(
-              _sections(strings, albums),
-              // Its year, and its type where it isn't an album: "2020 · EP".
-              subtitle: (album) => [
-                if (album.year case final year?) '$year',
-                if (album.releaseType case final type? when type != ReleaseType.album) releaseTypeName(strings, type),
-              ].join(' · '),
-              header: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  PageHeader(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(0, 16, 16, 0),
-                      child: Row(
-                        children: [
-                          // On a wide screen as big as an album's cover on its page, and asked of the server as
-                          // that one is.
-                          SizedBox.square(
-                            dimension: narrow ? 140 : 220,
-                            child: ClipOval(
-                              child: narrow
-                                  ? Cover(artist.coverArt ?? widget.artist.coverArt, icon: HugeIcons.strokeRoundedUser)
-                                  : LargeCover(
-                                      artist.coverArt ?? widget.artist.coverArt,
-                                      size: 800,
-                                      icon: HugeIcons.strokeRoundedUser,
-                                    ),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(artist.name, style: text.titleLarge),
-                                Text(_count(strings, albums), style: text.bodyMedium),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  _ArtistSongs(artist, mostPlayed: _mostPlayed!),
-                ],
+            (final artist, final albums) => NotificationListener<ScrollNotification>(
+              onNotification: narrow ? _followScroll : null,
+              child: AlbumGrid.sections(
+                _sections(strings, albums),
+                // Its year, and its type where it isn't an album: "2020 · EP".
+                subtitle: (album) => [
+                  if (album.year case final year?) '$year',
+                  if (album.releaseType case final type? when type != ReleaseType.album) releaseTypeName(strings, type),
+                ].join(' · '),
+                header: _ArtistSongs(
+                  artist,
+                  mostPlayed: _mostPlayed!,
+                  builder: (heading, songs) => _header(artist, albums, heading, songs, narrow: narrow),
+                  icons: narrow,
+                  // On a phone, how many albums they have, at the end of the choice's line.
+                  trailing: narrow
+                      ? Text(_count(strings, albums), style: text.bodyMedium, textAlign: TextAlign.end)
+                      : null,
+                ),
               ),
             ),
           },
@@ -112,6 +95,153 @@ class _ArtistPageState extends State<ArtistPage> {
           bottomNavigationBar: PageArea.holds(context) ? null : const NowPlayingBar(),
         );
       },
+    );
+  }
+
+  /// In how many steps the artist's picture fades into the page at its bottom, on a phone.
+  static const _fadeSteps = 12;
+
+  /// How tall the artist's picture is on a phone, under the system's bar: as tall as it's wide, as an artist's picture
+  /// mostly is, but half a short window at most.
+  double get _pictureHeight {
+    final screen = MediaQuery.sizeOf(context);
+    return min(screen.width, screen.height / 2);
+  }
+
+  /// Follows the page as it scrolls, on a phone, to tell when it has gone up past the artist's picture ([_pastPicture]):
+  /// when the picture's bottom, where it has faded to the page's color, reaches the system's bar.
+  bool _followScroll(ScrollNotification notification) {
+    final past = notification.metrics.pixels >= _pictureHeight;
+
+    if (notification.depth == 0 && past != _pastPicture) {
+      setState(() => _pastPicture = past);
+    }
+
+    return false;
+  }
+
+  /// The top of the page, down to the artist's [songs] and the choice of their lists, or its title ([heading]). On a
+  /// wide screen the picture is round, the name beside it, with how many albums they have. On a narrow one ([narrow])
+  /// it goes across the page from the top of the screen, under the system's bar, the name centered over it on the back
+  /// arrow's line and the heading over its bottom, with how many albums they have at the end of its line, where it
+  /// fades to the page's color (darker in the dark theme, lighter in the light one), as it does a little under the bar
+  /// and the name.
+  Widget _header(Artist artist, List<Album> albums, Widget? heading, List<Widget> songs, {required bool narrow}) {
+    final text = Theme.of(context).textTheme;
+    final strings = AppLocalizations.of(context);
+    final picture = artist.coverArt ?? widget.artist.coverArt;
+    final count = Text(_count(strings, albums), style: text.bodyMedium);
+
+    if (narrow) {
+      // The system's bar, which the picture goes on under.
+      final top = MediaQuery.paddingOf(context).top;
+      final height = top + _pictureHeight;
+      final surface = Theme.of(context).colorScheme.surface;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Stack(
+            children: [
+              SizedBox(
+                width: double.infinity,
+                height: height,
+                child: DecoratedBox(
+                  position: DecorationPosition.foreground,
+                  // Some of the page's color under the system's icons and the name, enough to read them over any
+                  // picture, then less, to the picture as it is; and from the middle down, more and more of it, to all
+                  // of it at the bottom, under the heading: eased at both ends, in steps the gradient joins, so that
+                  // neither shows where the picture starts to fade nor where the page goes on, as one.
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        surface.withValues(alpha: 0.6),
+                        surface.withValues(alpha: 0.5),
+                        surface.withValues(alpha: 0),
+                        for (var step = 0; step <= _fadeSteps; step++)
+                          surface.withValues(alpha: Curves.easeInOut.transform(step / _fadeSteps)),
+                      ],
+                      stops: [
+                        0,
+                        min((top + kToolbarHeight) / height, 0.4),
+                        0.4,
+                        for (var step = 0; step <= _fadeSteps; step++) 0.5 + 0.5 * step / _fadeSteps,
+                      ],
+                    ),
+                  ),
+                  // Asked of the server as many pixels across as a phone's screen has.
+                  child: LargeCover(picture, size: 1200, icon: HugeIcons.strokeRoundedUser),
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.only(top: top),
+                child: PageHeader(
+                  centered: true,
+                  // On the arrow's line, as a top bar's title.
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: kToolbarHeight),
+                    child: Center(
+                      child: Text(
+                        artist.name,
+                        style: text.titleLarge,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              // With how many albums they have at the end of its line; with no heading, alone at the end.
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child:
+                    heading ??
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                      child: Align(alignment: AlignmentDirectional.centerEnd, child: count),
+                    ),
+              ),
+            ],
+          ),
+          ...songs,
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        PageHeader(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(0, 16, 16, 0),
+            child: Row(
+              children: [
+                // As big as an album's cover on its page, and asked of the server as that one is.
+                SizedBox.square(
+                  dimension: 220,
+                  child: ClipOval(child: LargeCover(picture, size: 800, icon: HugeIcons.strokeRoundedUser)),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(artist.name, style: text.titleLarge),
+                      count,
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        ?heading,
+        ...songs,
+      ],
     );
   }
 
@@ -151,7 +281,7 @@ class _ArtistPageState extends State<ArtistPage> {
 }
 
 /// The lists of an artist's songs their page shows: what each says of itself, as an option to pick or the title of the
-/// one alone.
+/// one alone, and the icon an option can show instead.
 enum _SongRanking {
   /// The songs the user plays most.
   mostPlayed,
@@ -163,6 +293,12 @@ enum _SongRanking {
     mostPlayed => strings.mostPlayedSongs,
     popular => strings.popularSongs,
   };
+
+  /// What the user listens to; what's hot.
+  HugeIconData get icon => switch (this) {
+    mostPlayed => HugeIcons.strokeRoundedHeadphones,
+    popular => HugeIcons.strokeRoundedFire,
+  };
 }
 
 /// The artist's songs the user plays most, or the popular ones (those everyone plays most, as the server learns them),
@@ -171,13 +307,24 @@ enum _SongRanking {
 /// nothing is. Nothing until the user's have come, so that the popular ones, should they come first, don't give way to
 /// them as they come; the popular ones that fail aren't there either, as a server that has none to give.
 class _ArtistSongs extends StatefulWidget {
-  const _ArtistSongs(this.artist, {required this.mostPlayed});
+  const _ArtistSongs(this.artist, {required this.mostPlayed, required this.builder, this.icons = false, this.trailing});
 
   /// The artist as the server gives them, whose name is the one the popular songs are asked by: a link's may be an
   /// album's artists together ("A & B").
   final Artist artist;
 
   final Future<List<Song>> mostPlayed;
+
+  /// Lays the songs out under what comes over them, given the choice of the lists or the title of the one alone, with
+  /// the room around it ([heading]: none with no list), and the list's songs.
+  final Widget Function(Widget? heading, List<Widget> songs) builder;
+
+  /// Whether the choice of the lists shows them as icons, their names in tooltips: over the picture, on a phone.
+  final bool icons;
+
+  /// What ends the line of the choice of the lists, or of the title of the one alone, across from it: how many albums
+  /// the artist has, on a phone.
+  final Widget? trailing;
 
   /// How many there are at most.
   static const count = 5;
@@ -218,7 +365,7 @@ class _ArtistSongsState extends State<_ArtistSongs> {
         final strings = AppLocalizations.of(context);
 
         if (mostPlayed.connectionState != ConnectionState.done) {
-          return const SizedBox.shrink();
+          return widget.builder(null, const []);
         }
 
         final lists = {
@@ -227,30 +374,37 @@ class _ArtistSongsState extends State<_ArtistSongs> {
         };
 
         if (lists.isEmpty) {
-          return const SizedBox.shrink();
+          return widget.builder(null, const []);
         }
 
         final shown = lists.containsKey(_picked) ? _picked! : lists.keys.first;
         final snapshot = lists[shown]!;
         final songs = snapshot.data ?? const <Song>[];
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (lists.length > 1)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
-                child: SegmentedChoice(
-                  shown,
-                  options: [...lists.keys],
-                  label: (list) => list.label(strings),
-                  onSelected: (list) => setState(() => _picked = list),
-                ),
+        final heading = lists.length > 1
+            ? SegmentedChoice<_SongRanking>(
+                shown,
+                options: [...lists.keys],
+                label: (list) => list.label(strings),
+                icon: widget.icons ? (list) => list.icon : null,
+                onSelected: (list) => setState(() => _picked = list),
               )
-            else
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-                child: Text(shown.label(strings), style: text.titleLarge),
-              ),
+            : Text(shown.label(strings), style: text.titleLarge);
+        final trailing = widget.trailing;
+        return widget.builder(
+          Padding(
+            padding: EdgeInsets.fromLTRB(16, lists.length > 1 ? 20 : 24, 16, 8),
+            // The trailing in the room the heading leaves, centered on it.
+            child: trailing == null
+                ? heading
+                : Row(
+                    children: [
+                      heading,
+                      const SizedBox(width: 16),
+                      Expanded(child: trailing),
+                    ],
+                  ),
+          ),
+          [
             if (snapshot.hasError)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
