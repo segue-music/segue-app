@@ -164,12 +164,16 @@ class PlayerRoute extends PageRouteBuilder<void> {
     Animation<double> animation,
     Animation<double> secondaryAnimation,
     Widget child,
-  ) {
+  ) => SlideTransition(
+    position: _slide(animation, dragged: popGestureInProgress),
+    child: child,
+  );
+
+  /// Where the player is as [animation] goes: a screen down at 0, closed, and in its place at 1, open. On the way, a
+  /// curve, unless it is [dragged], with the finger.
+  static Animation<Offset> _slide(Animation<double> animation, {required bool dragged}) {
     final slide = Tween(begin: const Offset(0, 1), end: Offset.zero);
-    return SlideTransition(
-      position: (popGestureInProgress ? slide : slide.chain(CurveTween(curve: Curves.easeOutCubic))).animate(animation),
-      child: child,
-    );
+    return (dragged ? slide : slide.chain(CurveTween(curve: Curves.easeOutCubic))).animate(animation);
   }
 
   /// Starts a drag of the player down, [height] pixels tall.
@@ -182,30 +186,106 @@ class PlayerRoute extends PageRouteBuilder<void> {
   }
 }
 
-/// A finger dragging the full-screen player down, on a phone: the player follows it, and let go, closes, or goes back
-/// up ([end]). The navigator takes it as a user's gesture, as it does the iOS back swipe: until the player has settled,
-/// its route slides it with no curve ([PlayerRoute.buildTransitions]), and the page under it shows.
+/// The lyrics full screen ([LyricsPage]), over the full-screen player. Minimized, it fades out, back to the player with
+/// the lyrics under it. Hidden, at the button at its top or, on a phone, as a drag down takes it down, it goes down,
+/// back to the player as it opened: the lyrics hide under the player too.
+class _LyricsRoute extends PageRoute<void> {
+  _LyricsRoute(this.player);
+
+  /// The full-screen player's route, under it.
+  final PlayerRoute player;
+
+  /// Whether the button at its top has hidden the lyrics.
+  bool _hidden = false;
+
+  /// Fades it in over the full-screen player that [context] is in.
+  static Future<void> open(BuildContext context) =>
+      Navigator.of(context).push(_LyricsRoute(ModalRoute.of(context)! as PlayerRoute));
+
+  @override
+  Color? get barrierColor => null;
+
+  @override
+  String? get barrierLabel => null;
+
+  @override
+  bool get maintainState => true;
+
+  @override
+  Duration get transitionDuration => const Duration(milliseconds: 300);
+
+  @override
+  Widget buildPage(BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation) =>
+      _DragToClose(
+        enabled: MediaQuery.sizeOf(context).width < NowPlayingBar.wideFrom,
+        builder: (context, _) => LyricsPage(onHide: hide),
+      );
+
+  /// Whether it goes down, rather than fading: hidden, or as a drag moves it.
+  bool get _down => _hidden || popGestureInProgress;
+
+  /// Fades it in and out over the player; going down ([_down]), it slides as the player does, whole.
+  @override
+  Widget buildTransitions(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    final down = _down;
+    return SlideTransition(
+      position: down
+          ? PlayerRoute._slide(animation, dragged: popGestureInProgress)
+          : const AlwaysStoppedAnimation(Offset.zero),
+      child: FadeTransition(opacity: down ? kAlwaysCompleteAnimation : animation, child: child),
+    );
+  }
+
+  /// Closes it, going down, and hides the lyrics under the player too.
+  void hide() {
+    _hidden = true;
+    navigator!.pop();
+  }
+
+  /// Gone down, it hides the lyrics under the player too: the player is back as it opened.
+  @override
+  bool didPop(void result) {
+    if (_down) {
+      player.lyrics.value = false;
+    }
+
+    return super.didPop(result);
+  }
+
+  /// Starts a drag of it down, [height] pixels tall.
+  _CloseDrag _startClosing(double height) => _CloseDrag(this, controller!, height);
+}
+
+/// A finger dragging the full-screen player down, on a phone, or the lyrics full screen over it: the page follows it,
+/// and let go, closes, or goes back up ([end]). The navigator takes it as a user's gesture, as it does the iOS back
+/// swipe: until the page has settled, its route slides it with no curve ([PlayerRoute.buildTransitions]), and the page
+/// under it shows.
 class _CloseDrag {
   _CloseDrag(this._route, this._controller, this._height) : _navigator = _route.navigator! {
     _navigator.didStartUserGesture();
   }
 
-  final PlayerRoute _route;
+  final ModalRoute<void> _route;
   final NavigatorState _navigator;
 
-  /// The route's animation: 1 with the player open, 0 with it a screen down, closed.
+  /// The route's animation: 1 with the page open, 0 with it a screen down, closed.
   final AnimationController _controller;
 
-  /// How tall the player is: how far down it goes to close.
+  /// How tall the page is: how far down it goes to close.
   final double _height;
 
-  /// How fast a fling down closes the player, however short, in pixels a second.
+  /// How fast a fling down closes the page, however short, in pixels a second.
   static const _flingFrom = 700.0;
 
-  /// Whether the player is down from where it opens.
+  /// Whether the page is down from where it opens.
   bool get moved => _controller.value < 1;
 
-  /// Moves the player [down] pixels down (below zero, up), no higher than it opens, and returns what is left of
+  /// Moves the page [down] pixels down (below zero, up), no higher than it opens, and returns what is left of
   /// [down]: up, past where it opens.
   double update(double down) {
     if (!_route.isCurrent) {
@@ -217,7 +297,7 @@ class _CloseDrag {
     return down - moving;
   }
 
-  /// Lets go of the player, moving at [velocity] pixels a second down (below zero, up): flung down, or let go past a
+  /// Lets go of the page, moving at [velocity] pixels a second down (below zero, up): flung down, or let go past a
   /// third of the way down, it closes; otherwise it goes back up.
   void end(double velocity) {
     final close = _route.isCurrent
@@ -255,7 +335,7 @@ class _CloseDrag {
   /// its widgets go, when the navigator can't change.
   void endLater() => WidgetsBinding.instance.addPostFrameCallback((_) => end(0));
 
-  /// Ends the user's gesture, the player settled. Back up, it takes back the focus, which the navigator gave the page
+  /// Ends the user's gesture, the page settled. Back up, it takes back the focus, which the navigator gave the page
   /// under it for the gesture (Esc closes it again): after the frame that lets it have it.
   void _settle({required bool closed}) {
     if (!_navigator.mounted) {
@@ -276,16 +356,17 @@ class _CloseDrag {
   }
 }
 
-/// On a phone, the full-screen player, which a drag down takes down with it, toward closing it ([_CloseDrag]): on the
-/// bars as on the song, and, where the page is taller than the screen (on a small phone, with the lyrics), once it has
-/// scrolled to its top ([_ClosingScrollPosition]). The lyrics scroll as they do.
+/// On a phone, the full-screen player, or the lyrics full screen over it, which a drag down takes down with it, toward
+/// closing it ([_CloseDrag]): on the bars as on the song, and, where the player's page is taller than the screen (on a
+/// small phone, with the lyrics), once it has scrolled to its top ([_ClosingScrollPosition]). The lyrics scroll as they
+/// do.
 class _DragToClose extends StatefulWidget {
   const _DragToClose({required this.enabled, required this.builder});
 
   /// Whether a drag down closes the player: on a phone.
   final bool enabled;
 
-  /// The player, whose page scrolls with `scroll`, where it is taller than the screen.
+  /// The page, the player's scrolling with `scroll`, where it is taller than the screen.
   final Widget Function(BuildContext context, ScrollController scroll) builder;
 
   @override
@@ -298,10 +379,21 @@ class _DragToCloseState extends State<_DragToClose> {
   /// The drag down under way on the page, rather than on its scroll view, which follows its own.
   _CloseDrag? _drag;
 
-  /// Starts a drag of the player down, if one closes it.
+  /// Starts a drag of the page down, if one closes it. As the lyrics fade out over the player, a drag of the player
+  /// waits for them to have gone: as it went on, they would go down rather than fade ([_LyricsRoute]).
   _CloseDrag? _start() {
     final route = ModalRoute.of(context);
-    return widget.enabled && route is PlayerRoute && route.isCurrent ? route._startClosing(context.size!.height) : null;
+
+    if (!widget.enabled || route == null || !route.isCurrent) {
+      return null;
+    }
+
+    final height = context.size!.height;
+    return switch (route) {
+      PlayerRoute() when route.secondaryAnimation!.isDismissed => route._startClosing(height),
+      _LyricsRoute() => route._startClosing(height),
+      _ => null,
+    };
   }
 
   void _update(DragUpdateDetails details) {
@@ -525,14 +617,14 @@ class _Player extends StatelessWidget {
                       height: max(height - withLyrics - 24, 200),
                       child: Stack(
                         children: [
-                          LyricsView(now, onTap: () => LyricsPage.open(context)),
+                          LyricsView(now, onTap: () => _LyricsRoute.open(context)),
                           Positioned(
                             top: 0,
                             right: 0,
                             child: IconButton(
                               tooltip: AppLocalizations.of(context).maximizeLyrics,
                               icon: const ThemedIcon(HugeIcons.strokeRoundedArrowExpand01),
-                              onPressed: () => LyricsPage.open(context),
+                              onPressed: () => _LyricsRoute.open(context),
                             ),
                           ),
                         ],

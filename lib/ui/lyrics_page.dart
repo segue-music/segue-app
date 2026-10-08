@@ -10,17 +10,13 @@ import 'themed_icon.dart';
 
 /// The lyrics full screen, from under the full-screen player, where they are short: the song's title and artist above
 /// them and, where the bar isn't under it (on a phone), the slider and the buttons under them. There, a line tapped
-/// goes where it starts.
+/// goes where it starts. At the top, a button takes them back to the player, and another hides them, the player
+/// back as it opened.
 class LyricsPage extends StatelessWidget {
-  const LyricsPage({super.key});
+  const LyricsPage({required this.onHide, super.key});
 
-  /// Fades it in over the full-screen player.
-  static Future<void> open(BuildContext context) => Navigator.of(context).push(
-    PageRouteBuilder<void>(
-      pageBuilder: (_, _, _) => const LyricsPage(),
-      transitionsBuilder: (_, animation, _, child) => FadeTransition(opacity: animation, child: child),
-    ),
-  );
+  /// Closes them and hides them under the player too.
+  final VoidCallback onHide;
 
   @override
   Widget build(BuildContext context) {
@@ -40,9 +36,12 @@ class LyricsPage extends StatelessWidget {
               appBar: AppBar(
                 // The background's color, always: the lyrics don't tint it as they scroll under it.
                 notificationPredicate: (_) => false,
-                automaticallyImplyLeading: false,
-                // As wide as the button at the other end, so that the song stays in the middle.
-                leading: const SizedBox(),
+                // Down, as they go.
+                leading: IconButton(
+                  tooltip: strings.hideLyrics,
+                  icon: const ThemedIcon(HugeIcons.strokeRoundedArrowDown01),
+                  onPressed: onHide,
+                ),
                 centerTitle: true,
                 title: now == null
                     ? null

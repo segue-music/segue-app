@@ -240,6 +240,16 @@ Future<void> openPlayer(WidgetTester tester) async {
 
 Finder onPage(Finder finder) => find.descendant(of: find.byType(PlayerPage), matching: finder);
 
+/// Opens the player, its lyrics under it, and from there the lyrics full screen.
+Future<void> openLyricsPage(WidgetTester tester) async {
+  await openPlayer(tester);
+  await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
+  await tester.pumpAndSettle();
+  await tester.tap(onPage(find.byTooltip('Maximizar a letra')));
+  await tester.pumpAndSettle();
+  expect(find.byType(LyricsPage), findsOneWidget);
+}
+
 /// What [matches] in the full-screen player itself, rather than in the bar it keeps under it on a wide
 /// screen.
 Finder inPlayer(bool Function(Widget widget) matches) => find.byElementPredicate((element) {
@@ -538,6 +548,128 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(LyricsPage), findsNothing);
     expect(find.byType(PlayerPage), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('at their top left, the lyrics full screen have a button that hides them: they go down, whole, over '
+      'the player, which is back as it opened, without them', (tester) async {
+    await pumpBar(tester, server: withLyrics(verse));
+    await openLyricsPage(tester);
+    final page = find.byType(LyricsPage);
+    Finder onLyrics(Finder finder) => find.descendant(of: page, matching: finder);
+    final hide = tester.getRect(onLyrics(find.byTooltip('Esconder a letra')));
+    expect(hide.right, lessThan(tester.getRect(onLyrics(find.byTooltip('Minimizar a letra'))).left));
+    expect(hide.top, lessThan(tester.getRect(onLyrics(find.byType(LyricsView))).top));
+
+    await tester.tap(onLyrics(find.byTooltip('Esconder a letra')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(tester.getRect(onLyrics(find.byType(AppBar))).top, inExclusiveRange(0, 640));
+    expect(
+      tester.widget<FadeTransition>(find.ancestor(of: page, matching: find.byType(FadeTransition)).first).opacity.value,
+      1,
+    );
+    expect(tester.getRect(onPage(find.byType(AppBar))).top, 0, reason: 'the player stays');
+    await tester.pumpAndSettle();
+    expect(page, findsNothing);
+    expect(find.byType(PlayerPage), findsOneWidget);
+    expect(onPage(find.byType(LyricsView)), findsNothing, reason: 'hidden under the player too');
+    expect(onPage(find.byTooltip('Mostrar a letra')), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a phone, a drag down on the lyrics full screen takes them down over the player, and let go past a '
+      'third of the way, or flung, hides them, as their button does; the lyrics scroll as they do', (tester) async {
+    await pumpBar(tester, server: withLyrics([for (var line = 0; line < 30; line++) (line * 5, 'Line $line')]));
+    await openLyricsPage(tester);
+    final page = find.byType(LyricsPage);
+    Finder onLyrics(Finder finder) => find.descendant(of: page, matching: finder);
+    final top = onLyrics(find.byType(AppBar));
+
+    await tester.drag(onLyrics(find.text('Line 3')), const Offset(0, 300));
+    await tester.pumpAndSettle();
+    expect(tester.getRect(top).top, 0, reason: 'the lyrics took it');
+
+    // Where nothing else takes a drag, it starts with the finger.
+    final finger = await tester.startGesture(tester.getCenter(onLyrics(find.text('Sweet Emotion'))));
+    await finger.moveBy(const Offset(0, 150));
+    await tester.pump();
+    expect(tester.getRect(top).top, 150, reason: 'with the finger');
+    expect(tester.getRect(onPage(find.byType(AppBar))).top, 0, reason: 'over the player, which stays');
+    await finger.up();
+    await tester.pumpAndSettle();
+    expect(tester.getRect(top).top, 0, reason: 'back up, short of a third');
+    expect(find.byType(PlayerPage), findsNothing, reason: 'under them, hidden');
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(page, findsNothing, reason: 'Esc takes them back to the player, the focus back in them');
+    expect(onPage(find.byType(LyricsView)), findsOneWidget, reason: 'under it, as they were');
+
+    await tester.tap(onPage(find.byTooltip('Maximizar a letra')));
+    await tester.pumpAndSettle();
+    await tester.drag(onLyrics(find.text('Sweet Emotion')), const Offset(0, 300));
+    await tester.pumpAndSettle();
+    expect(page, findsNothing);
+    expect(find.byType(PlayerPage), findsOneWidget);
+    expect(onPage(find.byType(LyricsView)), findsNothing, reason: 'hidden under the player too');
+
+    // From the buttons under them too.
+    await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
+    await tester.pumpAndSettle();
+    await tester.tap(onPage(find.byTooltip('Maximizar a letra')));
+    await tester.pumpAndSettle();
+    await tester.fling(onLyrics(find.byTooltip('Anterior')), const Offset(0, 60), 1000);
+    await tester.pumpAndSettle();
+    expect(page, findsNothing, reason: 'flung, however short');
+    expect(onPage(find.byType(LyricsView)), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('as the lyrics full screen fade out over the player, a drag down on it waits for them to have gone', (
+    tester,
+  ) async {
+    await pumpBar(tester, server: withLyrics(verse));
+    await openLyricsPage(tester);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.byType(LyricsPage), findsOneWidget);
+    final top = onPage(find.byType(AppBar));
+
+    final finger = await tester.startGesture(tester.getCenter(onPage(find.byTooltip('Fila'))));
+    await finger.moveBy(const Offset(0, 20)); // past the slop, where the drag starts
+    await finger.moveBy(const Offset(0, 50));
+    await tester.pump();
+    expect(tester.getRect(top).top, 0);
+    await tester.pumpAndSettle();
+    expect(find.byType(LyricsPage), findsNothing);
+    await finger.moveBy(const Offset(0, 100));
+    await tester.pump();
+    expect(tester.getRect(top).top, 100);
+    await finger.up();
+    await tester.pumpAndSettle();
+    expect(tester.getRect(top).top, 0);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a wide screen, where they are under the player, the lyrics full screen\'s button hides them, and a '
+      'drag down leaves them be', (tester) async {
+    await pumpBar(tester, server: withLyrics(verse), size: const Size(650, 800));
+    await tester.tap(find.byTooltip('Mostrar a letra'));
+    await tester.pumpAndSettle();
+    await tester.tap(onPage(find.byTooltip('Maximizar a letra')));
+    await tester.pumpAndSettle();
+    final page = find.byType(LyricsPage);
+    await tester.fling(find.descendant(of: page, matching: find.byType(AppBar)), const Offset(0, 300), 1000);
+    await tester.pumpAndSettle();
+    expect(page, findsOneWidget);
+    expect(tester.getRect(find.descendant(of: page, matching: find.byType(AppBar))).top, 0);
+
+    await tester.tap(find.descendant(of: page, matching: find.byTooltip('Esconder a letra')));
+    await tester.pumpAndSettle();
+    expect(page, findsNothing);
+    expect(find.byType(PlayerPage), findsOneWidget);
+    expect(onPage(find.byType(LyricsView)), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
 
