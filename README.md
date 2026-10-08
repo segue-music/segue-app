@@ -79,12 +79,13 @@ the device it runs on.
   with a note for a part with no singing, and a line tapped goes there; under the player, the cover
   smaller to make room for them, a tap on them (or the button at their corner) opens them full screen,
   with the seek bar and the buttons, where a button at the top left hides them, back to the player
-  as it opened, as on a phone a drag down does, with the finger; a wide bar's lyrics button opens the player with them. The bar stays put from page to page, and on a wide screen under the
+  as it opened, and on a phone a drag down takes them down with the finger, back under the player; a wide bar's lyrics button opens the player with them. The bar stays put from page to page, and on a wide screen under the
   full-screen player too, whose top then leaves the lyrics, the queue and the devices to it, and the
   player the seek bar and the buttons, showing the song alone; on a phone it has them all, the
   lyrics, the devices and the queue in a bar at the bottom, and the album's name at the top, and a
-  drag down takes it down with the finger and closes it (let go past a third of the way, or flung),
-  from anywhere but the lyrics, which scroll (taller than the screen, it scrolls to its top first). A swipe on
+  drag down takes it down with the finger and closes it (let go past a third of the way, or flung), or, with the
+  lyrics under it, takes them out, from anywhere but the lyrics, which scroll (taller than the screen, it scrolls to
+  its top first); a drag up brings them in with the finger, and with them in, opens them full screen. A swipe on
   its cover goes to the next song (to the left) or the previous one (to the right). In both,
   the song's title
   opens its album (as does the album's name, in the full-screen player) and each of its artists

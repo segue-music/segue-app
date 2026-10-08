@@ -22,8 +22,8 @@ import 'themed_icon.dart';
 
 /// The full-screen player: what plays, wherever it plays, big, and its lyrics beside it (on a phone, under it). On a
 /// wide screen the player bar stays under it, with the controls; on a phone, where there is none, it has every control
-/// itself, and a drag down closes it.
-class PlayerPage extends StatelessWidget {
+/// itself, and a drag down closes it, or takes its lyrics out, which a drag up brings in, and then full screen.
+class PlayerPage extends StatefulWidget {
   const PlayerPage(this._lyrics, {super.key});
 
   /// Whether the lyrics show: turned on and off at the top, or, on a wide screen, in the bar under the player.
@@ -38,6 +38,45 @@ class PlayerPage extends StatelessWidget {
       PageArea.playerNavigatorOf(context).push(PlayerRoute(lyrics: lyrics, area: PageArea.maybeOf(context)));
 
   @override
+  State<PlayerPage> createState() => _PlayerPageState();
+}
+
+class _PlayerPageState extends State<PlayerPage> with SingleTickerProviderStateMixin {
+  /// How far the lyrics have come in, from 0 (gone) to 1 (there), as they come and go, or as a drag moves them.
+  /// Opened with them, the player shows them at once.
+  late final _shown = AnimationController(
+    vsync: this,
+    duration: PlayerPage.lyricsTransition,
+    value: widget._lyrics.value ? 1 : 0,
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    widget._lyrics.addListener(_follow);
+  }
+
+  @override
+  void dispose() {
+    widget._lyrics.removeListener(_follow);
+    _shown.dispose();
+    super.dispose();
+  }
+
+  /// Brings the lyrics in, or takes them out, as they are turned on or off.
+  void _follow() => _shown.animateTo(widget._lyrics.value ? 1 : 0, curve: Curves.easeInOutCubic);
+
+  /// Starts a drag of the lyrics, on a page [height] pixels tall, if one moves them: [down], where they show under the
+  /// player, it takes them out; up, where they are hidden, it brings them in, and where they show, it opens them full
+  /// screen. They go all the way as the finger goes a quarter of the page, about as far as the buttons under the cover
+  /// go as they come in.
+  _PlayerDrag? _dragLyrics(double height, {required bool down}) => switch ((widget._lyrics.value, down)) {
+    (true, true) || (false, false) => _LyricsDrag(widget._lyrics, _shown, height / 4),
+    (true, false) => _FullScreenDrag(() => _LyricsRoute.open(context), height / 4),
+    (false, true) => null,
+  };
+
+  @override
   Widget build(BuildContext context) {
     void close() => Navigator.of(context).maybePop();
 
@@ -50,11 +89,12 @@ class PlayerPage extends StatelessWidget {
         autofocus: true,
         child: _DragToClose(
           enabled: !wide,
+          lyrics: _dragLyrics,
           builder: (context, scroll) => ListenableBuilder(
-            listenable: _lyrics,
+            listenable: widget._lyrics,
             builder: (context, _) => NowPlayingBuilder(
               builder: (context, _, now) {
-                final lyrics = _lyrics.value;
+                final lyrics = widget._lyrics.value;
                 final colors = Theme.of(context).colorScheme;
                 final device = now?.device;
                 final strings = AppLocalizations.of(context);
@@ -89,9 +129,9 @@ class PlayerPage extends StatelessWidget {
                   ),
                   body: now == null
                       ? Center(child: Text(strings.nothingPlaying))
-                      : _Player(now, lyrics: lyrics, controls: !wide, scroll: scroll),
+                      : _Player(now, lyrics: _shown, controls: !wide, scroll: scroll),
                   bottomNavigationBar: wide
-                      ? NowPlayingBar(lyrics: _lyrics)
+                      ? NowPlayingBar(lyrics: widget._lyrics)
                       : SafeArea(
                           top: false,
                           child: Padding(
@@ -105,7 +145,7 @@ class PlayerPage extends StatelessWidget {
                                     HugeIcons.strokeRoundedMicVocal,
                                     color: lyrics ? colors.primary : null,
                                   ),
-                                  onPressed: () => _lyrics.value = !lyrics,
+                                  onPressed: () => widget._lyrics.value = !lyrics,
                                 ),
                                 IconButton(
                                   tooltip: strings.devices,
@@ -187,8 +227,9 @@ class PlayerRoute extends PageRouteBuilder<void> {
 }
 
 /// The lyrics full screen ([LyricsPage]), over the full-screen player. Minimized, it fades out, back to the player with
-/// the lyrics under it. Hidden, at the button at its top or, on a phone, as a drag down takes it down, it goes down,
-/// back to the player as it opened: the lyrics hide under the player too.
+/// the lyrics under it. Hidden, at the button at its top, it goes down, back to the player as it opened: the lyrics hide
+/// under the player too. On a phone a drag down takes it down too, but a step back only, as it was minimized: to the
+/// player with the lyrics under it, which a drag down then takes out.
 class _LyricsRoute extends PageRoute<void> {
   _LyricsRoute(this.player);
 
@@ -247,10 +288,10 @@ class _LyricsRoute extends PageRoute<void> {
     navigator!.pop();
   }
 
-  /// Gone down, it hides the lyrics under the player too: the player is back as it opened.
+  /// Hidden, it hides the lyrics under the player too: the player is back as it opened.
   @override
   bool didPop(void result) {
-    if (_down) {
+    if (_hidden) {
       player.lyrics.value = false;
     }
 
@@ -261,11 +302,27 @@ class _LyricsRoute extends PageRoute<void> {
   _CloseDrag _startClosing(double height) => _CloseDrag(this, controller!, height);
 }
 
+/// A finger dragging the full-screen player, on a phone, or the lyrics full screen over it, up or down: the page down,
+/// toward closing it ([_CloseDrag]), or the lyrics under the player in or out ([_LyricsDrag]).
+abstract interface class _PlayerDrag {
+  /// Whether what it drags has moved from where it was.
+  bool get moved;
+
+  /// Moves what it drags [down] pixels down (below zero, up), as far as it goes, and returns what is left of [down].
+  double update(double down);
+
+  /// Lets go of it, the finger moving at [velocity] pixels a second down (below zero, up).
+  void end(double velocity);
+
+  /// Ends the drag, whose end won't come, as the page goes or stops being a phone's.
+  void abandon();
+}
+
 /// A finger dragging the full-screen player down, on a phone, or the lyrics full screen over it: the page follows it,
 /// and let go, closes, or goes back up ([end]). The navigator takes it as a user's gesture, as it does the iOS back
 /// swipe: until the page has settled, its route slides it with no curve ([PlayerRoute.buildTransitions]), and the page
 /// under it shows.
-class _CloseDrag {
+class _CloseDrag implements _PlayerDrag {
   _CloseDrag(this._route, this._controller, this._height) : _navigator = _route.navigator! {
     _navigator.didStartUserGesture();
   }
@@ -283,10 +340,12 @@ class _CloseDrag {
   static const _flingFrom = 700.0;
 
   /// Whether the page is down from where it opens.
+  @override
   bool get moved => _controller.value < 1;
 
   /// Moves the page [down] pixels down (below zero, up), no higher than it opens, and returns what is left of
   /// [down]: up, past where it opens.
+  @override
   double update(double down) {
     if (!_route.isCurrent) {
       return down;
@@ -299,6 +358,7 @@ class _CloseDrag {
 
   /// Lets go of the page, moving at [velocity] pixels a second down (below zero, up): flung down, or let go past a
   /// third of the way down, it closes; otherwise it goes back up.
+  @override
   void end(double velocity) {
     final close = _route.isCurrent
         ? moved && (velocity.abs() >= _flingFrom ? velocity > 0 : _controller.value < 2 / 3)
@@ -333,7 +393,8 @@ class _CloseDrag {
 
   /// Ends the drag as [end] does for a finger let go still, after this frame: for one that nothing follows any more, as
   /// its widgets go, when the navigator can't change.
-  void endLater() => WidgetsBinding.instance.addPostFrameCallback((_) => end(0));
+  @override
+  void abandon() => WidgetsBinding.instance.addPostFrameCallback((_) => end(0));
 
   /// Ends the user's gesture, the page settled. Back up, it takes back the focus, which the navigator gave the page
   /// under it for the gesture (Esc closes it again): after the frame that lets it have it.
@@ -356,15 +417,114 @@ class _CloseDrag {
   }
 }
 
+/// A finger dragging the lyrics under the full-screen player, on a phone: up, where they are hidden, it brings them in,
+/// the cover making room for them, and down, where they show, it takes them out. They follow it, and let go, go the rest
+/// of the way, or back ([end]).
+class _LyricsDrag implements _PlayerDrag {
+  _LyricsDrag(this._lyrics, this._shown, this._distance) : _hiding = _lyrics.value;
+
+  /// Whether the lyrics show, which the drag changes once let go far enough.
+  final ValueNotifier<bool> _lyrics;
+
+  /// How far they have come in: 0 gone, 1 there.
+  final AnimationController _shown;
+
+  /// How far the finger goes to bring them all the way in, or out, in pixels.
+  final double _distance;
+
+  /// Whether the drag takes them out, as they showed when it started; otherwise it brings them in.
+  final bool _hiding;
+
+  /// How fast a fling takes them the rest of the way, however short, in pixels a second.
+  static const _flingFrom = 700.0;
+
+  @override
+  bool get moved => _shown.value != (_hiding ? 1 : 0);
+
+  /// Takes them [down] pixels out (below zero, in), as far as they go either way, and returns what is left of [down]:
+  /// back past where they were. Past where they go, the finger drags nothing.
+  @override
+  double update(double down) {
+    final before = _shown.value;
+    _shown.value -= down / _distance;
+    return moved ? 0 : down - (before - _shown.value) * _distance;
+  }
+
+  /// Lets go of them, the finger moving at [velocity] pixels a second down (below zero, up): flung the way they were
+  /// going, or let go past a third of the way, they go the rest of it; otherwise they go back.
+  @override
+  void end(double velocity) {
+    final gone = _hiding ? 1 - _shown.value : _shown.value;
+    final goOn = moved && (velocity.abs() >= _flingFrom ? (velocity > 0) == _hiding : gone > 1 / 3);
+    final show = goOn != _hiding;
+    _lyrics.value = show;
+    // From where the finger left them, slowing down as the player does going back up after a drag down: in place of
+    // the way the page starts as they are turned on or off.
+    _shown.animateTo(show ? 1 : 0, curve: Curves.easeOutCubic);
+  }
+
+  /// Puts them back as they were.
+  @override
+  void abandon() => _shown.animateTo(_hiding ? 1 : 0, curve: Curves.easeOutCubic);
+}
+
+/// A finger dragging the lyrics under the full-screen player up, on a phone: let go far enough up, or flung up, it opens
+/// them full screen ([_LyricsRoute]), as a tap on them does. They don't follow it: the navigator would let go of the
+/// finger as they opened.
+class _FullScreenDrag implements _PlayerDrag {
+  _FullScreenDrag(this._open, this._distance);
+
+  /// Opens the lyrics full screen.
+  final VoidCallback _open;
+
+  /// How far up the finger goes for the lyrics to open full screen as it lets go, three times over: as far as it
+  /// brings them in under the player.
+  final double _distance;
+
+  /// How far up the finger has gone, in pixels.
+  double _up = 0;
+
+  /// How fast a fling up opens them, however short, in pixels a second.
+  static const _flingFrom = 700.0;
+
+  @override
+  bool get moved => _up > 0;
+
+  @override
+  double update(double down) {
+    final before = _up;
+    _up = max(before - down, 0);
+    return moved ? 0 : down - before;
+  }
+
+  /// Opens them, the finger moving at [velocity] pixels a second down (below zero, up), flung up, or let go past a
+  /// third of the way up.
+  @override
+  void end(double velocity) {
+    if (moved && (velocity.abs() >= _flingFrom ? velocity < 0 : _up > _distance / 3)) {
+      _open();
+    }
+  }
+
+  @override
+  void abandon() {}
+}
+
 /// On a phone, the full-screen player, or the lyrics full screen over it, which a drag down takes down with it, toward
 /// closing it ([_CloseDrag]): on the bars as on the song, and, where the player's page is taller than the screen (on a
 /// small phone, with the lyrics), once it has scrolled to its top ([_ClosingScrollPosition]). The lyrics scroll as they
-/// do.
+/// do. Under the player, a drag down takes them out instead, and where they are hidden, a drag up brings them in
+/// ([_LyricsDrag]); where they show, it opens them full screen ([_FullScreenDrag]). Where the player's page scrolls, the
+/// drag up starts at its bottom.
 class _DragToClose extends StatefulWidget {
-  const _DragToClose({required this.enabled, required this.builder});
+  const _DragToClose({required this.enabled, required this.builder, this.lyrics});
 
-  /// Whether a drag down closes the player: on a phone.
+  /// Whether a drag down closes the player, or takes its lyrics out, and one up brings them in, or full screen: on a
+  /// phone.
   final bool enabled;
+
+  /// Starts a drag of the lyrics under the player, on a page `height` pixels tall, `down` or up, if one moves them.
+  final _PlayerDrag? Function(double height, {required bool down})? lyrics;
 
   /// The page, the player's scrolling with `scroll`, where it is taller than the screen.
   final Widget Function(BuildContext context, ScrollController scroll) builder;
@@ -376,12 +536,14 @@ class _DragToClose extends StatefulWidget {
 class _DragToCloseState extends State<_DragToClose> {
   late final _scroll = _ClosingScrollController(_start);
 
-  /// The drag down under way on the page, rather than on its scroll view, which follows its own.
-  _CloseDrag? _drag;
+  /// The drag under way on the page, rather than on its scroll view, which follows its own.
+  _PlayerDrag? _drag;
 
-  /// Starts a drag of the page down, if one closes it. As the lyrics fade out over the player, a drag of the player
-  /// waits for them to have gone: as it went on, they would go down rather than fade ([_LyricsRoute]).
-  _CloseDrag? _start() {
+  /// Starts a drag of the page, [down] or up, if one moves it or the lyrics under the player: those first, out where
+  /// they show and the finger goes down, and up, in, or full screen; else down, the page. As the lyrics full screen fade
+  /// out over the player, a drag of the player waits for them to have gone: as it went on, they would go down rather
+  /// than fade ([_LyricsRoute]).
+  _PlayerDrag? _start({required bool down}) {
     final route = ModalRoute.of(context);
 
     if (!widget.enabled || route == null || !route.isCurrent) {
@@ -390,8 +552,9 @@ class _DragToCloseState extends State<_DragToClose> {
 
     final height = context.size!.height;
     return switch (route) {
-      PlayerRoute() when route.secondaryAnimation!.isDismissed => route._startClosing(height),
-      _LyricsRoute() => route._startClosing(height),
+      PlayerRoute() when !route.secondaryAnimation!.isDismissed => null,
+      PlayerRoute() => widget.lyrics?.call(height, down: down) ?? (down ? route._startClosing(height) : null),
+      _LyricsRoute() when down => route._startClosing(height),
       _ => null,
     };
   }
@@ -399,8 +562,9 @@ class _DragToCloseState extends State<_DragToClose> {
   void _update(DragUpdateDetails details) {
     final down = details.primaryDelta ?? 0;
 
-    if (_drag == null && down > 0) {
-      _drag = _start();
+    // The way the finger first goes says what the drag does.
+    if (_drag == null && down != 0) {
+      _drag = _start(down: down > 0);
     }
 
     _drag?.update(down);
@@ -413,7 +577,7 @@ class _DragToCloseState extends State<_DragToClose> {
 
   /// Ends the drag under way, whose end won't come, as the page goes or stops being a phone's.
   void _abandon() {
-    _drag?.endLater();
+    _drag?.abandon();
     _drag = null;
   }
 
@@ -441,13 +605,13 @@ class _DragToCloseState extends State<_DragToClose> {
   );
 }
 
-/// The player's scroll controller, whose page, dragged down at its top, drags the player down instead
-/// ([_ClosingScrollPosition]).
+/// The player's scroll controller, whose page, dragged down at its top, drags the player down instead, or takes its
+/// lyrics out, and dragged up at its bottom, moves its lyrics ([_ClosingScrollPosition]).
 class _ClosingScrollController extends ScrollController {
   _ClosingScrollController(this._start);
 
-  /// Starts a drag of the player down, if one closes it.
-  final _CloseDrag? Function() _start;
+  /// Starts a drag `down` or up, if one moves the player or its lyrics.
+  final _PlayerDrag? Function({required bool down}) _start;
 
   @override
   ScrollPosition createScrollPosition(ScrollPhysics physics, ScrollContext context, ScrollPosition? oldPosition) =>
@@ -455,15 +619,17 @@ class _ClosingScrollController extends ScrollController {
 }
 
 /// Where the player's page has scrolled to, when it is taller than the screen: dragged down at its top, the cover's, it
-/// drags the player down, toward closing it, as the finger goes on, and scrolls again once the player is back up.
+/// takes the lyrics out as the finger goes on, or, hidden, drags the player down, toward closing it; dragged up at its
+/// bottom, it brings them in, or shown, toward opening them full screen. It scrolls again once they, or the player, are
+/// back.
 class _ClosingScrollPosition extends ScrollPositionWithSingleContext {
   _ClosingScrollPosition(this._start, {required super.physics, required super.context, super.oldPosition});
 
-  /// Starts a drag of the player down, if one closes it.
-  final _CloseDrag? Function() _start;
+  /// Starts a drag `down` or up, if one moves the player or its lyrics.
+  final _PlayerDrag? Function({required bool down}) _start;
 
-  /// The drag of the player down under way, from when the finger went on down from the page's top.
-  _CloseDrag? _drag;
+  /// The drag under way, from when the finger went on past the page's top or bottom.
+  _PlayerDrag? _drag;
 
   /// Whether the offsets go up the screen: the player's page, which starts at its bottom, is reversed.
   bool get _reversed => axisDirectionIsReversed(axisDirection);
@@ -472,17 +638,20 @@ class _ClosingScrollPosition extends ScrollPositionWithSingleContext {
   void applyUserOffset(double delta) {
     var down = _reversed ? -delta : delta;
 
-    // Down to the page's top, the page scrolls, and from there on, the player goes down, until it is back up.
+    // Down to the page's top, or up to its bottom, the page scrolls, and from there on, the lyrics or the player go,
+    // until they are back.
     if (!(_drag?.moved ?? false)) {
-      final scrolling = min(down, max(_reversed ? maxScrollExtent - pixels : pixels - minScrollExtent, 0.0));
+      final (toEnd, toStart) = (maxScrollExtent - pixels, pixels - minScrollExtent);
+      final (toTop, toBottom) = _reversed ? (toEnd, toStart) : (toStart, toEnd);
+      final scrolling = down.clamp(-max(toBottom, 0.0), max(toTop, 0.0)).toDouble();
       _scroll(scrolling);
       down -= scrolling;
 
-      if (down <= 0) {
+      if (down == 0) {
         return;
       }
 
-      _drag ??= _start();
+      _drag ??= _start(down: down > 0);
     }
 
     _scroll(_drag?.update(down) ?? down);
@@ -495,7 +664,8 @@ class _ClosingScrollPosition extends ScrollPositionWithSingleContext {
     }
   }
 
-  /// The finger let go: the player closes or goes back up, and the page, if the player took the drag, stays.
+  /// The finger let go: the lyrics or the player go the rest of the way or back, and the page, if they took the drag,
+  /// stays.
   @override
   void goBallistic(double velocity) {
     final drag = _drag;
@@ -514,9 +684,23 @@ class _ClosingScrollPosition extends ScrollPositionWithSingleContext {
   @override
   void dispose() {
     // Gone as the page changes, with no end to come to the drag.
-    _drag?.endLater();
+    _drag?.abandon();
     super.dispose();
   }
+}
+
+/// How the player's page scrolls: as the platform's pages do, but while the finger drags the lyrics or the player from
+/// its top or bottom ([_ClosingScrollPosition]), it keeps the drag, though the lyrics going out leave it no taller than
+/// the screen: a page that fits doesn't scroll, and would let go of the finger there.
+class _ClosingScrollPhysics extends ScrollPhysics {
+  const _ClosingScrollPhysics({super.parent});
+
+  @override
+  _ClosingScrollPhysics applyTo(ScrollPhysics? ancestor) => _ClosingScrollPhysics(parent: buildParent(ancestor));
+
+  @override
+  bool shouldAcceptUserOffset(ScrollMetrics position) =>
+      (position is _ClosingScrollPosition && position._drag != null) || super.shouldAcceptUserOffset(position);
 }
 
 class _Player extends StatelessWidget {
@@ -524,8 +708,8 @@ class _Player extends StatelessWidget {
 
   final NowPlaying now;
 
-  /// Whether the lyrics show.
-  final bool lyrics;
+  /// How far the lyrics have come in, from 0 (gone) to 1 (there).
+  final Animation<double> lyrics;
 
   /// Whether the slider and the buttons show under the song: on a phone, where the bar isn't under the player.
   final bool controls;
@@ -540,16 +724,10 @@ class _Player extends StatelessWidget {
   static const _maxCover = 800.0;
 
   @override
-  Widget build(BuildContext context) {
-    // How far the lyrics have come in, from 0 (gone) to 1 (there), as they come and go. Opened with them, the player
-    // shows them at once: the tween starts where it ends.
-    return TweenAnimationBuilder<double>(
-      tween: Tween(end: lyrics ? 1 : 0),
-      duration: PlayerPage.lyricsTransition,
-      curve: Curves.easeInOutCubic,
-      builder: (context, shown, _) => LayoutBuilder(builder: (context, box) => _layout(context, box, shown)),
-    );
-  }
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: lyrics,
+    builder: (context, _) => LayoutBuilder(builder: (context, box) => _layout(context, box, lyrics.value)),
+  );
 
   /// The player and, [shown] of the way in, its lyrics, in [box].
   Widget _layout(BuildContext context, BoxConstraints box, double shown) {
@@ -643,6 +821,7 @@ class _Player extends StatelessWidget {
       // at the top rather than the bottom: the cover, rather than the controls and the lyrics' line that plays.
       return SingleChildScrollView(
         controller: scroll,
+        physics: const _ClosingScrollPhysics(),
         reverse: true,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
         child: ConstrainedBox(

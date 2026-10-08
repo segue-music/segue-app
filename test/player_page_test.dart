@@ -584,7 +584,7 @@ void main() {
   });
 
   testWidgets('on a phone, a drag down on the lyrics full screen takes them down over the player, and let go past a '
-      'third of the way, or flung, hides them, as their button does; the lyrics scroll as they do', (tester) async {
+      'third of the way, or flung, back under it, as minimized; the lyrics scroll as they do', (tester) async {
     await pumpBar(tester, server: withLyrics([for (var line = 0; line < 30; line++) (line * 5, 'Line $line')]));
     await openLyricsPage(tester);
     final page = find.byType(LyricsPage);
@@ -616,17 +616,16 @@ void main() {
     await tester.pumpAndSettle();
     expect(page, findsNothing);
     expect(find.byType(PlayerPage), findsOneWidget);
-    expect(onPage(find.byType(LyricsView)), findsNothing, reason: 'hidden under the player too');
+    expect(onPage(find.byType(LyricsView)), findsOneWidget, reason: 'under the player, a step back only');
+    expect(onPage(find.byTooltip('Esconder a letra')), findsOneWidget);
 
     // From the buttons under them too.
-    await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
-    await tester.pumpAndSettle();
     await tester.tap(onPage(find.byTooltip('Maximizar a letra')));
     await tester.pumpAndSettle();
     await tester.fling(onLyrics(find.byTooltip('Anterior')), const Offset(0, 60), 1000);
     await tester.pumpAndSettle();
     expect(page, findsNothing, reason: 'flung, however short');
-    expect(onPage(find.byType(LyricsView)), findsNothing);
+    expect(onPage(find.byType(LyricsView)), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -648,11 +647,17 @@ void main() {
     expect(tester.getRect(top).top, 0);
     await tester.pumpAndSettle();
     expect(find.byType(LyricsPage), findsNothing);
+    // Back under the player, they go out with the finger, rather than the player down.
+    final lyrics = onPage(find.byType(LyricsView));
+    double shown() => tester.widget<Opacity>(find.ancestor(of: lyrics, matching: find.byType(Opacity)).first).opacity;
+    expect(shown(), 1);
     await finger.moveBy(const Offset(0, 100));
     await tester.pump();
-    expect(tester.getRect(top).top, 100);
+    expect(shown(), inExclusiveRange(0, 1));
+    expect(tester.getRect(top).top, 0);
     await finger.up();
     await tester.pumpAndSettle();
+    expect(lyrics, findsNothing);
     expect(tester.getRect(top).top, 0);
     await tester.pumpWidget(const SizedBox());
   });
@@ -1266,7 +1271,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(PlayerPage), findsNothing, reason: 'flung, however short');
 
-    // Not up, past where it opens.
+    // Not up, past where it opens: that brings the lyrics in.
     await openPlayer(tester);
     await tester.fling(playerCover, const Offset(0, -200), 1000);
     await tester.pumpAndSettle();
@@ -1274,28 +1279,194 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('on a phone, a drag up brings the lyrics in with the finger, where they are hidden; let go past a third '
+      'of the way, or flung, they stay, and otherwise go back out', (tester) async {
+    await pumpBar(tester, server: withLyrics(verse));
+    await openPlayer(tester);
+    final top = onPage(find.byType(AppBar));
+    final lyrics = onPage(find.byType(LyricsView));
+    double shown() => tester.widget<Opacity>(find.ancestor(of: lyrics, matching: find.byType(Opacity)).first).opacity;
+    final cover = tester.getSize(playerCover).width;
+
+    final finger = await tester.startGesture(tester.getCenter(playerCover));
+    await finger.moveBy(const Offset(0, -20)); // past the slop, where the drag starts
+    await finger.moveBy(const Offset(0, -40));
+    await tester.pump();
+    final some = shown();
+    expect(some, inExclusiveRange(0, 1), reason: 'with the finger');
+    expect(tester.getSize(playerCover).width, lessThan(cover), reason: 'the cover making room for them');
+    await finger.moveBy(const Offset(0, -40));
+    await tester.pump();
+    expect(shown(), greaterThan(some));
+    await finger.moveBy(const Offset(0, 70));
+    await tester.pump();
+    expect(shown(), lessThan(some));
+    await finger.up();
+    await tester.pumpAndSettle();
+    expect(lyrics, findsNothing, reason: 'back out, short of a third');
+    expect(tester.getSize(playerCover).width, cover);
+    expect(onPage(find.byTooltip('Mostrar a letra')), findsOneWidget);
+
+    await tester.drag(playerCover, const Offset(0, -150));
+    await tester.pumpAndSettle();
+    expect(shown(), 1);
+    expect(onPage(find.byTooltip('Esconder a letra')), findsOneWidget, reason: 'turned on, as by their button');
+    expect(tester.getRect(top).top, 0, reason: 'the player where it opens');
+
+    // From the bars too.
+    await tester.tap(onPage(find.byTooltip('Esconder a letra')));
+    await tester.pumpAndSettle();
+    await tester.fling(onPage(find.byTooltip('Fila')), const Offset(0, -60), 1000);
+    await tester.pumpAndSettle();
+    expect(shown(), 1, reason: 'flung, however short');
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a phone, with the lyrics under the player, a drag down takes them out with the finger, rather than '
+      'the player down; let go past a third of the way, or flung, they hide, and otherwise come back', (tester) async {
+    await pumpBar(tester, server: withLyrics(verse), size: const Size(412, 915));
+    await openPlayer(tester);
+    await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
+    await tester.pumpAndSettle();
+    final top = onPage(find.byType(AppBar));
+    final lyrics = onPage(find.byType(LyricsView));
+    double shown() => tester.widget<Opacity>(find.ancestor(of: lyrics, matching: find.byType(Opacity)).first).opacity;
+
+    final finger = await tester.startGesture(tester.getCenter(playerCover));
+    await finger.moveBy(const Offset(0, 20)); // past the slop, where the drag starts
+    await finger.moveBy(const Offset(0, 40));
+    await tester.pump();
+    expect(shown(), inExclusiveRange(0, 1), reason: 'with the finger');
+    expect(tester.getRect(top).top, 0, reason: 'the player where it opens');
+    await finger.up();
+    await tester.pumpAndSettle();
+    expect(shown(), 1, reason: 'back, short of a third');
+
+    await tester.drag(playerCover, const Offset(0, 150));
+    await tester.pumpAndSettle();
+    expect(lyrics, findsNothing);
+    expect(onPage(find.byTooltip('Mostrar a letra')), findsOneWidget, reason: 'turned off, as by their button');
+    expect(tester.getRect(top).top, 0);
+
+    // From the bars too.
+    await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
+    await tester.pumpAndSettle();
+    await tester.fling(onPage(find.byTooltip('Fila')), const Offset(0, 60), 1000);
+    await tester.pumpAndSettle();
+    expect(lyrics, findsNothing, reason: 'flung, however short');
+
+    // Hidden, the next drag down takes the player down.
+    await tester.drag(playerCover, const Offset(0, 400));
+    await tester.pumpAndSettle();
+    expect(find.byType(PlayerPage), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a phone, with the lyrics under the player, a drag up opens them full screen, let go past a third of '
+      'the way that brings them in, or flung', (tester) async {
+    await pumpBar(tester, server: withLyrics(verse));
+    await openPlayer(tester);
+    await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
+    await tester.pumpAndSettle();
+    final title = onPage(find.text('Sweet Emotion'));
+
+    final finger = await tester.startGesture(tester.getCenter(title));
+    await finger.moveBy(const Offset(0, -20)); // past the slop, where the drag starts
+    await finger.moveBy(const Offset(0, -30));
+    await finger.up();
+    await tester.pumpAndSettle();
+    expect(find.byType(LyricsPage), findsNothing, reason: 'short of a third');
+    expect(onPage(find.byTooltip('Esconder a letra')), findsOneWidget, reason: 'still under the player');
+
+    await tester.drag(title, const Offset(0, -150));
+    await tester.pumpAndSettle();
+    expect(find.byType(LyricsPage), findsOneWidget);
+
+    // From the bars too, flung.
+    await tester.tap(find.byTooltip('Minimizar a letra'));
+    await tester.pumpAndSettle();
+    expect(find.byType(LyricsPage), findsNothing);
+    await tester.fling(onPage(find.byTooltip('Fila')), const Offset(0, -60), 1000);
+    await tester.pumpAndSettle();
+    expect(find.byType(LyricsPage), findsOneWidget, reason: 'flung, however short');
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('a drag up cut short, as the screen turns wide, leaves the lyrics hidden', (tester) async {
+    await pumpBar(tester, server: withLyrics(verse));
+    await openPlayer(tester);
+    final finger = await tester.startGesture(tester.getCenter(playerCover));
+    await finger.moveBy(const Offset(0, -20));
+    await finger.moveBy(const Offset(0, -120));
+    await tester.pump();
+    expect(onPage(find.byType(LyricsView)), findsOneWidget);
+    tester.view.physicalSize = const Size(1280, 800);
+    await tester.pumpAndSettle();
+    expect(onPage(find.byType(LyricsView)), findsNothing);
+    await finger.up();
+    await tester.pumpAndSettle();
+    expect(onPage(find.byType(LyricsView)), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('on a small phone, where the player with its lyrics is taller than the screen, a drag down scrolls it to '
-      'its top, and from there on takes it down; the lyrics scroll as they do', (tester) async {
+      'its top, and from there on takes the lyrics out; the lyrics scroll as they do', (tester) async {
     await pumpBar(tester, server: withLyrics([for (var line = 0; line < 30; line++) (line * 5, 'Line $line')]));
     await openPlayer(tester);
     await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
     await tester.pumpAndSettle();
     final top = onPage(find.byType(AppBar));
+    final lyrics = onPage(find.byType(LyricsView));
+    double shown() => tester.widget<Opacity>(find.ancestor(of: lyrics, matching: find.byType(Opacity)).first).opacity;
     // Where the cover is at the page's top, under its padding.
     final room = tester.getRect(onPage(find.byType(SingleChildScrollView)).first).top + 8;
     final hidden = room - tester.getRect(playerCover).top;
     expect(hidden, greaterThan(8), reason: 'the cover goes out at the top');
 
-    await tester.drag(onPage(find.byType(LyricsView)), const Offset(0, 300));
+    await tester.drag(lyrics, const Offset(0, 300));
     await tester.pumpAndSettle();
-    expect(tester.getRect(top).top, 0, reason: 'the lyrics took it');
+    expect(shown(), 1, reason: 'the lyrics took it');
     expect(room - tester.getRect(playerCover).top, hidden);
 
     final finger = await tester.startGesture(tester.getCenter(onPage(find.text('Sweet Emotion'))));
     await finger.moveBy(const Offset(0, 20)); // past the slop, where the drag starts
+    await finger.moveBy(Offset(0, hidden + 60));
+    await tester.pump();
+    expect(shown(), inExclusiveRange(0, 1), reason: 'on down from the top');
+    expect(tester.getRect(playerCover).top, moreOrLessEquals(room), reason: 'the page at its top');
+    expect(tester.getRect(top).top, 0, reason: 'the player where it opens');
+    await finger.moveBy(const Offset(0, -150));
+    await tester.pump();
+    expect(shown(), 1, reason: 'back first');
+    expect(tester.getRect(playerCover).top, lessThan(room), reason: 'then scrolled');
+    // All the way out, though the page, the lyrics going, comes to fit the screen.
+    await finger.moveBy(const Offset(0, 300));
+    await tester.pump();
+    expect(lyrics, findsNothing);
+    await finger.up();
+    await tester.pumpAndSettle();
+    expect(lyrics, findsNothing);
+    expect(onPage(find.byTooltip('Mostrar a letra')), findsOneWidget);
+    expect(tester.getRect(top).top, 0);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a phone so short that the player is taller than the screen, a drag down scrolls it to its top, and '
+      'from there on takes it down; a drag up, from its bottom, brings in the lyrics', (tester) async {
+    await pumpBar(tester, server: withLyrics(verse), size: const Size(360, 420));
+    await openPlayer(tester);
+    final top = onPage(find.byType(AppBar));
+    final title = onPage(find.text('Sweet Emotion'));
+    // Where the cover is at the page's top, under its padding.
+    final room = tester.getRect(onPage(find.byType(SingleChildScrollView)).first).top + 8;
+    final hidden = room - tester.getRect(playerCover).top;
+    expect(hidden, greaterThan(8), reason: 'the cover goes out at the top');
+
+    final finger = await tester.startGesture(tester.getCenter(title));
+    await finger.moveBy(const Offset(0, 20)); // past the slop, where the drag starts
     await finger.moveBy(Offset(0, hidden + 100));
     await tester.pump();
-    expect(tester.getRect(top).top, 100, reason: 'on down from the top');
+    expect(tester.getRect(top).top, moreOrLessEquals(100), reason: 'on down from the top');
     expect(tester.getRect(playerCover).top, room + 100);
     await finger.moveBy(const Offset(0, -150));
     await tester.pump();
@@ -1307,6 +1478,12 @@ void main() {
     await finger.up();
     await tester.pumpAndSettle();
     expect(find.byType(PlayerPage), findsNothing);
+
+    await openPlayer(tester);
+    await tester.drag(title, const Offset(0, -150));
+    await tester.pumpAndSettle();
+    expect(onPage(find.byType(LyricsView)), findsOneWidget);
+    expect(onPage(find.byTooltip('Esconder a letra')), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -1330,13 +1507,16 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('on a wide screen, a drag down leaves the player be', (tester) async {
+  testWidgets('on a wide screen, a drag down leaves the player be, and one up its lyrics', (tester) async {
     await pumpBar(tester, size: const Size(1280, 800));
     await openPlayer(tester);
     await tester.fling(playerCover, const Offset(0, 300), 1000);
     await tester.pumpAndSettle();
     expect(find.byType(PlayerPage), findsOneWidget);
     expect(tester.getRect(onPage(find.byType(AppBar))).top, 0);
+    await tester.fling(playerCover, const Offset(0, -300), 1000);
+    await tester.pumpAndSettle();
+    expect(onPage(find.byType(LyricsView)), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
 
