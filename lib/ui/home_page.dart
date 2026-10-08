@@ -19,12 +19,12 @@ import 'artists_view.dart';
 import 'genres_view.dart';
 import 'home_view.dart';
 import 'language_button.dart';
-import 'menu_item_label.dart';
 import 'now_playing_bar.dart';
 import 'page_area.dart';
 import 'player_page.dart';
 import 'quality_button.dart';
 import 'search_results.dart';
+import 'settings_page.dart';
 import 'shortcuts.dart';
 import 'theme_fade.dart';
 import 'themed_icon.dart';
@@ -34,16 +34,16 @@ class HomePage extends StatefulWidget {
 
   final VoidCallback onSignOut;
 
-  /// The theme picked: on a wide screen a button in the top bar switches between light and dark, and on a phone the top
-  /// bar's menu picks either or the system's; none, neither.
+  /// The theme picked: on a wide screen a button in the top bar switches between light and dark, and on a phone the
+  /// settings pick either or the system's; none, neither.
   final ThemeChoice? themeChoice;
 
-  /// The language picked, which a menu picks: the language menu in the top bar on a wide screen, and on a phone the
-  /// top bar's menu; none, neither.
+  /// The language picked: by the language menu in the top bar on a wide screen, and on a phone in the settings; none,
+  /// neither.
   final LanguageChoice? languageChoice;
 
-  /// The quality the player streams in, which a menu picks: the quality menu in the top bar on a wide screen, and on a
-  /// phone the top bar's menu; none, neither.
+  /// The quality the player streams in: picked by the quality menu in the top bar on a wide screen, and on a phone in
+  /// the settings; none, neither.
   final QualityChoice? qualityChoice;
 
   /// How long typing in the search bar has to stop before the search goes out, so that it isn't one
@@ -259,19 +259,29 @@ class _HomePageState extends State<HomePage> {
       widget.languageChoice,
       widget.qualityChoice,
     );
-    // On a phone, the theme, the language, the quality and signing out are in a menu, after the hub's status, which
-    // stays in sight.
+    // On a phone, the theme, the language, the quality and signing out are in the settings, a page of their own, whose
+    // button comes after the hub's status, which stays in sight.
     final actions = [
       if (!narrow && themeChoice != null) _ThemeButton(themeChoice),
       if (!narrow && languageChoice != null) LanguageButton(languageChoice),
       if (!narrow && qualityChoice != null) QualityButton(qualityChoice),
       _HubStatus(client: services.connect.client),
       if (narrow)
-        _PhoneMenu(
-          themeChoice: themeChoice,
-          languageChoice: languageChoice,
-          qualityChoice: qualityChoice,
-          onSignOut: widget.onSignOut,
+        IconButton(
+          tooltip: strings.settings,
+          icon: const ThemedIcon(HugeIcons.strokeRoundedSettings01),
+          // In the page area, over the section, which a section picked in the bar at the bottom shows again. From here,
+          // above the area, its navigator is the home's own.
+          onPressed: () => _pages.currentState?.push(
+            MaterialPageRoute<void>(
+              builder: (_) => SettingsPage(
+                themeChoice: themeChoice,
+                languageChoice: languageChoice,
+                qualityChoice: qualityChoice,
+                onSignOut: widget.onSignOut,
+              ),
+            ),
+          ),
         )
       else
         IconButton(
@@ -521,12 +531,6 @@ class _SideRail extends StatelessWidget {
   }
 }
 
-/// Shows [mode] from now on, the old theme fading into it (ThemeFade).
-void _pickTheme(BuildContext context, ThemeChoice choice, ThemeMode mode) {
-  ThemeFade.start(context);
-  choice.pick(mode);
-}
-
 /// Switches to the light theme from the dark one, and back: to the other of the one showing, which until then may be the
 /// system's. The old theme fades into the new one (ThemeFade).
 class _ThemeButton extends StatelessWidget {
@@ -536,7 +540,11 @@ class _ThemeButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    void pick(ThemeMode mode) => _pickTheme(context, choice, mode);
+    void pick(ThemeMode mode) {
+      ThemeFade.start(context);
+      choice.pick(mode);
+    }
+
     final strings = AppLocalizations.of(context);
     return Theme.of(context).brightness == Brightness.dark
         ? IconButton(
@@ -549,66 +557,6 @@ class _ThemeButton extends StatelessWidget {
             icon: const ThemedIcon(HugeIcons.strokeRoundedMoon02),
             onPressed: () => pick(ThemeMode.dark),
           );
-  }
-}
-
-/// On a phone, the top bar's menu, for what is picked once in a while: the theme (the system's again too), the
-/// language, the quality and, last, signing out, which in a menu is two taps away rather than one in the corner of the
-/// screen. Each kind of choice its own group, the one picked with a check.
-class _PhoneMenu extends StatelessWidget {
-  const _PhoneMenu({required this.onSignOut, this.themeChoice, this.languageChoice, this.qualityChoice});
-
-  final VoidCallback onSignOut;
-  final ThemeChoice? themeChoice;
-  final LanguageChoice? languageChoice;
-  final QualityChoice? qualityChoice;
-
-  @override
-  Widget build(BuildContext context) {
-    final strings = AppLocalizations.of(context);
-    final (themeChoice, languageChoice, qualityChoice) = (this.themeChoice, this.languageChoice, this.qualityChoice);
-    const tick = HugeIcons.strokeRoundedTick02;
-    return PopupMenuButton<void>(
-      icon: const ThemedIcon(HugeIcons.strokeRoundedMoreVertical),
-      itemBuilder: (_) => [
-        if (themeChoice != null) ...[
-          for (final (mode, name) in [
-            (ThemeMode.system, strings.systemTheme),
-            (ThemeMode.light, strings.lightTheme),
-            (ThemeMode.dark, strings.darkTheme),
-          ])
-            PopupMenuItem(
-              // The menu, as it closes, fades away with the old theme.
-              onTap: () => _pickTheme(context, themeChoice, mode),
-              child: MenuItemLabel(name, icon: mode == themeChoice.value ? tick : null),
-            ),
-          const PopupMenuDivider(),
-        ],
-        if (languageChoice != null) ...[
-          for (final (language, name) in LanguageButton.options(strings))
-            PopupMenuItem(
-              onTap: () => languageChoice.pick(language),
-              child: MenuItemLabel(
-                name,
-                icon: language?.languageCode == languageChoice.value?.languageCode ? tick : null,
-              ),
-            ),
-          const PopupMenuDivider(),
-        ],
-        if (qualityChoice != null) ...[
-          for (final (:quality, :name, :detail) in QualityButton.options(strings))
-            PopupMenuItem(
-              onTap: () => qualityChoice.pick(quality),
-              child: MenuItemLabel(name, detail: detail, icon: quality == qualityChoice.value ? tick : null),
-            ),
-          const PopupMenuDivider(),
-        ],
-        PopupMenuItem(
-          onTap: onSignOut,
-          child: MenuItemLabel(strings.signOut, icon: HugeIcons.strokeRoundedLogout01),
-        ),
-      ],
-    );
   }
 }
 

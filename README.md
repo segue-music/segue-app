@@ -20,7 +20,9 @@ the device it runs on.
   Navidrome's Jellyfin API at `/jellyfin`, experimental since Navidrome 0.64 and turned on with
   `ND_JELLYFIN_ENABLED=true`). The password isn't kept: the system's secure storage gets a Subsonic
   token, or Jellyfin's access token, which signing out ends on a Jellyfin server (Navidrome's keeps
-  it until the password changes);
+  it until the password changes). Signing out is in the top bar, and on a phone at the end of the
+  settings (a page the top bar's button opens, with the theme, the language and the quality), under
+  the user and the server it signs out of;
 - a home, where the app opens, with a row of the latest released albums (by release date, or by
   year where the server has no more), one of the albums the user plays most and one of the latest
   added to the library, 30 each, with arrows in each row's corner to go a screenful forward and
@@ -116,7 +118,7 @@ the device it runs on.
   nothing counts them there yet);
 - the quality the songs stream in: automatic (the files as they are on Wi-Fi or a cable, 160 kbps on mobile data,
   as the system says the device is online), the files as they are, or transcoded by the media server down to 320,
-  160 or 96 kbps, picked in the quality menu (in the top bar, on a phone in its menu), which the app keeps and
+  160 or 96 kbps, picked in the quality menu (in the top bar; on a phone in the settings), which the app keeps and
   which holds, as a change of connection does, from the next song on. A song a Subsonic server transcodes as it
   goes can't seek, so a seek asks for it again from that point (OpenSubsonic's transcodeOffset, which Navidrome
   has), as does opening on the last playback; a Jellyfin server sends it as HLS, which can seek;
@@ -129,13 +131,13 @@ the device it runs on.
   plays again after it, and leaving the car or unplugging the headphones pauses it;
 - the interface in Portuguese, English or Spanish: the system's language, where the app has it
   (English where it has none of the system's), until the language menu (in the top bar, on a phone
-  in its menu, and in the sign-in's corner) picks one, which the app keeps. Dates, numbers of albums and songs, and Material's own words (tooltips, the text
+  in the settings, and in the sign-in's corner) picks one, which the app keeps. Dates, numbers of albums and songs, and Material's own words (tooltips, the text
   fields' menu) follow it, and on iOS the local network permission's prompt follows the system's;
 - its icon (made by `tool/icons.dart` from `tool/icon.png`): Android's launcher icon, adaptive from
   Android 8 on, the Android TV banner, on Linux the window's icon and an entry in the application
   menu, the iOS and macOS icons, the Windows icon, and the app's own, in its top bar. The theme,
-  light or dark (as the system's, until a button in the top bar picks the other, or on a phone the top
-  bar's menu picks one or the system's again, which the app keeps, the old theme fading into the new
+  light or dark (as the system's, until a button in the top bar picks the other, or on a phone the
+  settings pick one or the system's again, which the app keeps, the old theme fading into the new
   one), takes the icon's colors: its pink,
   the deep and the light pink of the ring around the note, and in the dark the black around it, as
   the background. On Linux the window's title bar, with the close button, takes the background too.

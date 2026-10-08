@@ -15,7 +15,7 @@ class LanguageButton extends StatelessWidget {
   final LanguageChoice choice;
 
   /// The languages to pick from, each by its name: the system's (null), then those the app has, each by its own name.
-  /// The language menu's, and on a phone the home's menu's.
+  /// The language menu's, and on a phone the settings'.
   static List<(Locale?, String)> options(AppLocalizations strings) => [
     (null, strings.systemLanguage),
     for (final language in LanguageChoice.languages) (language, lookupAppLocalizations(language).languageName),

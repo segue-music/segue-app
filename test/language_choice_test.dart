@@ -53,7 +53,7 @@ Future<void> pumpHome(WidgetTester tester, LanguageChoice choice) async {
   await tester.pumpAndSettle();
 }
 
-/// A menu's item that says [name]: the language menu's, or on a phone the top bar's menu's.
+/// The language menu's item that says [name].
 Finder item(String name) =>
     find.ancestor(of: find.text(name), matching: find.byWidgetPredicate((widget) => widget is PopupMenuItem));
 
@@ -183,7 +183,7 @@ void main() {
     expect(find.byTooltip('Álbuns'), findsOneWidget);
   });
 
-  testWidgets('on a phone, the top bar\'s menu picks the language, the system\'s again too', (tester) async {
+  testWidgets('on a phone, the settings pick the language, the system\'s again too', (tester) async {
     tester.platformDispatcher.localesTestValue = const [Locale('pt', 'BR')];
     addTearDown(tester.platformDispatcher.clearLocalesTestValue);
     tester.view.physicalSize = const Size(360, 640);
@@ -193,27 +193,29 @@ void main() {
     addTearDown(choice.dispose);
     await pumpHome(tester, choice);
     expect(find.byTooltip('Idioma'), findsNothing, reason: 'no language menu of its own');
+    Finder option(String name) => find.widgetWithText(ListTile, name);
+    bool picked(String name) =>
+        find.descendant(of: option(name), matching: find.byType(ThemedIcon)).evaluate().isNotEmpty;
 
-    await tester.tap(find.byTooltip('Mostrar menu'));
+    await tester.tap(find.byTooltip('Configurações'));
     await tester.pumpAndSettle();
-    await tester.tap(item('English'));
+    await tester.tap(option('English'));
     await tester.pumpAndSettle();
     expect(choice.value, const Locale('en'));
+    expect(find.text('Settings'), findsOneWidget, reason: 'the page, in English at once');
     expect(find.text('Albums'), findsOneWidget, reason: 'the sections\' bar, in English');
-
-    await tester.tap(find.byTooltip('Show menu'));
-    await tester.pumpAndSettle();
     expect(
       [
-        for (final name in ['System language', 'English', 'Español', 'Português']) checked(tester, name),
+        for (final name in ['System language', 'English', 'Español', 'Português']) picked(name),
       ],
       [false, true, false, false],
     );
 
-    await tester.tap(item('System language'));
+    await tester.tap(option('System language'));
     await tester.pumpAndSettle();
     expect(choice.value, isNull);
     expect(find.text('Álbuns'), findsOneWidget);
+    expect(find.text('Configurações'), findsOneWidget);
   });
 
   testWidgets('the sign-in has the menu too, in its corner, which shows the page in the language picked', (

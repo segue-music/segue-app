@@ -1,0 +1,142 @@
+import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
+
+import '../l10n/app_localizations.dart';
+import '../language_choice.dart';
+import '../quality_choice.dart';
+import '../services.dart';
+import '../theme_choice.dart';
+import 'language_button.dart';
+import 'page_area.dart';
+import 'quality_button.dart';
+import 'theme_fade.dart';
+import 'themed_icon.dart';
+
+/// On a phone, what a wide screen's top bar has buttons for, but the hub's status, which stays in sight: the theme (the
+/// system's again too), the language, the quality and, last, signing out, under the account it signs out of. Each kind
+/// of choice a group of its own, under its name, the one picked with a check, as the devices' sheet has the one the app
+/// controls; a line between the groups, and between the last and signing out. In the page area, from the top bar's
+/// button; a choice missing (none given), its group too.
+class SettingsPage extends StatelessWidget {
+  const SettingsPage({required this.onSignOut, this.themeChoice, this.languageChoice, this.qualityChoice, super.key});
+
+  final VoidCallback onSignOut;
+  final ThemeChoice? themeChoice;
+  final LanguageChoice? languageChoice;
+  final QualityChoice? qualityChoice;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = AppLocalizations.of(context);
+    final session = ServicesScope.of(context).session;
+    final (themeChoice, languageChoice, qualityChoice) = (this.themeChoice, this.languageChoice, this.qualityChoice);
+    return Scaffold(
+      appBar: AppBar(
+        // Under a wide screen's top bar, whose arrow goes back: no arrow of its own.
+        automaticallyImplyLeading: !PageArea.holdsUnderTopBar(context),
+        title: Text(strings.settings),
+      ),
+      // In the page area, which has no player bar of its own: the home's bars stay under the page, the list ending clear
+      // of them, by the room MediaQuery says they take.
+      body: ListenableBuilder(
+        // The check moves to the one picked.
+        listenable: Listenable.merge([themeChoice, languageChoice, qualityChoice]),
+        builder: (context, _) {
+          final groups = [
+            if (themeChoice != null)
+              [
+                _Heading(strings.theme),
+                for (final (mode, name) in [
+                  (ThemeMode.system, strings.systemTheme),
+                  (ThemeMode.light, strings.lightTheme),
+                  (ThemeMode.dark, strings.darkTheme),
+                ])
+                  _Option(
+                    name,
+                    picked: mode == themeChoice.value,
+                    // The old theme fades into the new one.
+                    onTap: () {
+                      ThemeFade.start(context);
+                      themeChoice.pick(mode);
+                    },
+                  ),
+              ],
+            if (languageChoice != null)
+              [
+                _Heading(strings.language),
+                for (final (language, name) in LanguageButton.options(strings))
+                  _Option(
+                    name,
+                    picked: language?.languageCode == languageChoice.value?.languageCode,
+                    onTap: () => languageChoice.pick(language),
+                  ),
+              ],
+            if (qualityChoice != null)
+              [
+                _Heading(strings.audioQuality),
+                for (final (:quality, :name, :detail) in QualityButton.options(strings))
+                  _Option(
+                    name,
+                    detail: detail,
+                    picked: quality == qualityChoice.value,
+                    onTap: () => qualityChoice.pick(quality),
+                  ),
+              ],
+          ];
+          return ListView(
+            children: [
+              for (final group in groups) ...[...group, const Divider(height: 33)],
+              ListTile(
+                leading: const ThemedIcon(HugeIcons.strokeRoundedLogout01),
+                title: Text(strings.signOut),
+                subtitle: Text(strings.signedInAs(session.credentials.username, session.server.host)),
+                onTap: onSignOut,
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// The name over a group of choices.
+class _Heading extends StatelessWidget {
+  const _Heading(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+      child: Semantics(
+        header: true,
+        child: Text(text, style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary)),
+      ),
+    );
+  }
+}
+
+/// One of a group's choices, the one [picked] with a check and in the theme's color; [detail] under it, what it does.
+class _Option extends StatelessWidget {
+  const _Option(this.name, {required this.picked, required this.onTap, this.detail});
+
+  final String name;
+  final String? detail;
+  final bool picked;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final detail = this.detail;
+    return ListTile(
+      title: Text(name),
+      subtitle: detail == null ? null : Text(detail),
+      selected: picked,
+      trailing: picked ? const ThemedIcon(HugeIcons.strokeRoundedTick02) : null,
+      onTap: onTap,
+    );
+  }
+}

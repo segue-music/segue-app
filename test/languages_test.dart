@@ -17,6 +17,7 @@ import 'package:segue/theme_choice.dart';
 import 'package:segue/ui/artist_page.dart';
 import 'package:segue/ui/home_page.dart';
 import 'package:segue/ui/login_page.dart';
+import 'package:segue/ui/settings_page.dart';
 import 'package:segue/ui/theme.dart';
 
 import 'fakes.dart';
@@ -201,17 +202,23 @@ void main() {
         expect(find.text(strings.orderReleased), findsOneWidget, reason: 'the home\'s first row');
 
         if (narrow) {
-          final menu = MaterialLocalizations.of(tester.element(find.byType(HomePage))).showMenuTooltip;
-          await tap(tester, find.byTooltip(menu));
-          expect(find.text(strings.systemTheme), findsOneWidget, reason: 'the top bar\'s menu');
+          await tap(tester, find.byTooltip(strings.settings));
+          expect(find.text(strings.systemTheme), findsOneWidget, reason: 'the settings');
+          // To their end, past the qualities.
+          await tester.scrollUntilVisible(
+            find.text(strings.signedInAs('a', 'music.test')),
+            100,
+            scrollable: find.descendant(of: find.byType(SettingsPage), matching: find.byType(Scrollable)),
+          );
+          expect(find.text(strings.automaticQualityDetail(160)), findsOneWidget, reason: 'the qualities');
           expect(find.text(strings.signOut), findsOneWidget);
+          await tap(tester, find.byType(BackButton).hitTestable());
         } else {
           await tap(tester, find.byTooltip(strings.audioQuality));
+          expect(find.text(strings.automaticQualityDetail(160)), findsOneWidget, reason: 'the quality menu');
+          await tester.tapAt(const Offset(20, 600)); // out of the menu, which closes
+          await tester.pumpAndSettle();
         }
-
-        expect(find.text(strings.automaticQualityDetail(160)), findsOneWidget, reason: 'the quality menu');
-        await tester.tapAt(const Offset(20, 600)); // out of the menu, which closes
-        await tester.pumpAndSettle();
 
         await tap(tester, narrow ? find.text(strings.albums) : find.byTooltip(strings.albums));
         expect(find.widgetWithText(ChoiceChip, strings.orderLatest), findsOneWidget);

@@ -14,7 +14,7 @@ class QualityButton extends StatelessWidget {
   final QualityChoice choice;
 
   /// The qualities to pick from, each by its name, and the automatic one with what it does. The quality menu's, and on a
-  /// phone the home's menu's.
+  /// phone the settings'.
   static List<({StreamQuality quality, String name, String? detail})> options(AppLocalizations strings) => [
     for (final quality in StreamQuality.values)
       (
