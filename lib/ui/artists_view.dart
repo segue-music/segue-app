@@ -9,12 +9,13 @@ import 'cover.dart';
 import 'focus_ring.dart';
 import 'segmented_choice.dart';
 import 'spinner.dart';
+import 'themed_icon.dart';
 
 /// "1 álbum", "5 álbuns"; empty when the server didn't say.
 String albumCount(AppLocalizations strings, int? count) => count == null ? '' : strings.albumCount(count);
 
-/// Orders the library's artists come in: what the choice above them says of one, and what a list in it says when it has
-/// none.
+/// Orders the library's artists come in: what the choice above them says of one, the icon it can show instead, and what
+/// a list in it says when it has none.
 enum _ArtistOrder {
   name,
   mostPlayed;
@@ -22,6 +23,12 @@ enum _ArtistOrder {
   String label(AppLocalizations strings) => switch (this) {
     name => strings.orderName,
     mostPlayed => strings.mostPlayed,
+  };
+
+  /// From A to Z; what the user listens to, as an artist's page has it.
+  HugeIconData get icon => switch (this) {
+    name => HugeIcons.strokeRoundedSortingAZ02,
+    mostPlayed => HugeIcons.strokeRoundedHeadphones,
   };
 
   String emptyMessage(AppLocalizations strings) => switch (this) {
@@ -63,10 +70,12 @@ class _ArtistsViewState extends State<ArtistsView> {
     _artists = _load();
   });
 
-  // The choice stays at the top, also while another order's artists come, as the albums' chips do.
+  // The choice stays at the top, also while another order's artists come, as the albums' chips do. On a phone, or a
+  // window as narrow (as the home counts it), it shows icons, their names in tooltips, as an artist's page does.
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context);
+    final narrow = MediaQuery.sizeOf(context).width < 600;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -75,10 +84,11 @@ class _ArtistsViewState extends State<ArtistsView> {
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
           child: Align(
             alignment: AlignmentDirectional.centerStart,
-            child: SegmentedChoice(
+            child: SegmentedChoice<_ArtistOrder>(
               _order,
               options: _ArtistOrder.values,
               label: (order) => order.label(strings),
+              icon: narrow ? (order) => order.icon : null,
               onSelected: _reorder,
             ),
           ),

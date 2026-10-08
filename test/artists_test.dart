@@ -520,9 +520,8 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('on a phone, the sections are in a bar at the bottom, which stays under an artist\'s page', (
-    tester,
-  ) async {
+  testWidgets('on a phone, the sections are in a bar at the bottom, the artists\' orders in icons, and the bar stays '
+      'under an artist\'s page', (tester) async {
     await pumpHome(tester, const Size(360, 640));
     expect(find.byType(NavigationBar), findsOneWidget);
     expect(find.byTooltip('Artistas'), findsOneWidget, reason: 'in the bar alone, with no side rail');
@@ -530,6 +529,15 @@ void main() {
     await tester.pumpAndSettle();
     expect(title('Artistas'), findsOneWidget);
     expect(find.text('Cheap Trick'), findsOneWidget);
+    // The orders in icons, their names in tooltips, as on an artist's page: A to Z, and headphones for what the user
+    // listens to.
+    expect(find.descendant(of: orders(), matching: find.byType(Text)), findsNothing);
+    expect(find.descendant(of: find.byTooltip('Nome'), matching: icon(HugeIcons.strokeRoundedSortingAZ02)), findsOne);
+    expect(
+      find.descendant(of: find.byTooltip('Mais tocados'), matching: icon(HugeIcons.strokeRoundedHeadphones)),
+      findsOne,
+    );
+    expect(tester.getSemantics(find.byTooltip('Nome')), isSemantics(isSelected: true));
 
     await tester.tap(find.text('Cheap Trick'));
     await tester.pumpAndSettle();
