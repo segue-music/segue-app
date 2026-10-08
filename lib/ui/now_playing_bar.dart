@@ -111,7 +111,7 @@ class NowPlayingBar extends StatelessWidget {
                                             dimension: cover,
                                             child: ClipRRect(
                                               borderRadius: BorderRadius.circular(4),
-                                              child: Cover(now.coverArt, size: 96),
+                                              child: Cover(now.coverArt, size: 96, gapless: true),
                                             ),
                                           ),
                                           const SizedBox(width: 12),

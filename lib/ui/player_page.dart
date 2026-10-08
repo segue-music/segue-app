@@ -480,14 +480,7 @@ class _Player extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Center(
-            child: _SwipeToSkip(
-              child: SizedBox.square(
-                dimension: side,
-                child: ClipRRect(borderRadius: BorderRadius.circular(12), child: Cover(now.coverArt, size: 800)),
-              ),
-            ),
-          ),
+          Center(child: _SwipeToSkip(now.coverArt, side: side)),
           const SizedBox(height: 24),
           SongLink.title(
             now,
@@ -598,12 +591,17 @@ class _Player extends StatelessWidget {
 }
 
 /// The cover, which a swipe to the side goes to the next song with (to the left) or to the previous one (to the
-/// right). It follows the finger; let go past a third of its width, or flung, it goes out on that side and comes back
-/// from the other, with the song it went to, and otherwise back to its place.
+/// right). It follows the finger; let go past a third of its width, or flung, it goes out on that side, as it was, and
+/// comes back from the other, with the song it went to, and otherwise back to its place. The covers of the songs on
+/// either side load ahead, so that the one that comes back is there at once.
 class _SwipeToSkip extends StatefulWidget {
-  const _SwipeToSkip({required this.child});
+  const _SwipeToSkip(this.coverArt, {required this.side});
 
-  final Widget child;
+  /// The cover of the song that plays.
+  final String? coverArt;
+
+  /// How big the cover is, square.
+  final double side;
 
   @override
   State<_SwipeToSkip> createState() => _SwipeToSkipState();
@@ -616,13 +614,49 @@ class _SwipeToSkipState extends State<_SwipeToSkip> with SingleTickerProviderSta
   /// How wide the cover is, from when a drag starts.
   double _width = 0;
 
+  /// As a swipe goes to another song, the cover that goes out: the one of the song it leaves, though the song changes
+  /// on the way.
+  ({String? coverArt})? _leaving;
+
+  /// The covers loaded ahead.
+  ({String? next, String? previous})? _ahead;
+
   /// How fast a fling goes to another song, however short, in pixels a second.
   static const _flingFrom = 700.0;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _preload();
+  }
+
+  @override
+  void didUpdateWidget(_SwipeToSkip oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _preload();
+  }
 
   @override
   void dispose() {
     _offset.dispose();
     super.dispose();
+  }
+
+  /// Loads the covers of the songs a swipe goes to, once each, so that the one that comes back shows at once, rather
+  /// than nothing until it has loaded.
+  void _preload() {
+    final connect = ServicesScope.of(context).connect;
+    final ahead = (next: connect.coverArtBeside(1), previous: connect.coverArtBeside(-1));
+
+    if (ahead == _ahead) {
+      return;
+    }
+
+    _ahead = ahead;
+
+    for (final id in [ahead.next, ahead.previous].nonNulls) {
+      unawaited(Cover.preload(context, id, size: _Player._maxCover.toInt()));
+    }
   }
 
   /// What a swipe [toward] a side does: to the left, the next song; to the right, the previous one, wherever the song
@@ -655,6 +689,7 @@ class _SwipeToSkipState extends State<_SwipeToSkip> with SingleTickerProviderSta
       return;
     }
 
+    setState(() => _leaving = (coverArt: widget.coverArt));
     unawaited(runCommand(context, skip));
     final out = toward < 0 ? -_width : _width;
     await _offset.animateTo(out, duration: const Duration(milliseconds: 150), curve: Curves.easeIn);
@@ -663,26 +698,42 @@ class _SwipeToSkipState extends State<_SwipeToSkip> with SingleTickerProviderSta
       return;
     }
 
+    setState(() => _leaving = null);
     _offset.value = -out;
     await _offset.animateTo(0, duration: const Duration(milliseconds: 250), curve: Curves.easeOutCubic);
   }
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
-    onHorizontalDragStart: (_) {
-      _offset.stop();
-      _width = context.size?.width ?? 0;
-    },
-    onHorizontalDragUpdate: (details) => _offset.value += details.primaryDelta ?? 0,
-    onHorizontalDragEnd: _letGo,
-    child: AnimatedBuilder(
-      animation: _offset,
-      // Fading as it goes, to half at a width away.
-      builder: (context, child) => Transform.translate(
-        offset: Offset(_offset.value, 0),
-        child: Opacity(opacity: _width == 0 ? 1 : 1 - min(_offset.value.abs() / _width, 1) / 2, child: child),
+  Widget build(BuildContext context) {
+    final leaving = _leaving;
+    return GestureDetector(
+      onHorizontalDragStart: (_) {
+        _offset.stop();
+        _width = context.size?.width ?? 0;
+        // Caught on its way out, it shows the song it went to: the swipe that sent it out won't bring it back.
+        setState(() => _leaving = null);
+      },
+      onHorizontalDragUpdate: (details) => _offset.value += details.primaryDelta ?? 0,
+      onHorizontalDragEnd: _letGo,
+      child: AnimatedBuilder(
+        animation: _offset,
+        // Fading as it goes, to half at a width away.
+        builder: (context, child) => Transform.translate(
+          offset: Offset(_offset.value, 0),
+          child: Opacity(opacity: _width == 0 ? 1 : 1 - min(_offset.value.abs() / _width, 1) / 2, child: child),
+        ),
+        child: SizedBox.square(
+          dimension: widget.side,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Cover(
+              leaving == null ? widget.coverArt : leaving.coverArt,
+              size: _Player._maxCover.toInt(),
+              gapless: true,
+            ),
+          ),
+        ),
       ),
-      child: widget.child,
-    ),
-  );
+    );
+  }
 }

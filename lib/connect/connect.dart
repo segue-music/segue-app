@@ -157,6 +157,22 @@ class ConnectController extends ChangeNotifier {
     return (tracks: device.state?.queue ?? const [], index: device.state?.index ?? 0);
   }
 
+  /// The cover of the track [offset] places from the current one in [queue] (1: the next one; -1: the one before), or
+  /// null where there is none: here, its song's; on another device, its id, which the media server takes for one, as in
+  /// [nowPlaying].
+  String? coverArtBeside(int offset) {
+    final device = activeDevice;
+
+    if (device == null) {
+      final index = player.index + offset;
+      return index >= 0 && index < player.queue.length ? player.queue[index].coverArt : null;
+    }
+
+    final tracks = device.state?.queue ?? const [];
+    final index = (device.state?.index ?? 0) + offset;
+    return index >= 0 && index < tracks.length ? tracks[index].id : null;
+  }
+
   /// Plays [songs] from the one at [index]. If that is another song than the one repeating, it turns
   /// repeating one track into repeating the queue, as a skip does on the player.
   Future<Result> playSongs(List<Song> songs, int index) async {

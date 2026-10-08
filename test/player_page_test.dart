@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -260,6 +261,36 @@ final playerCover = inPlayer((widget) => widget is Cover);
 
 /// The full-screen player's own [tooltip].
 Finder playerTip(String tooltip) => inPlayer((widget) => widget is Tooltip && widget.message == tooltip);
+
+/// What the images ask for: it notes the covers, and has none of them.
+class CoverRequests extends Fake implements HttpClient {
+  final _urls = <Uri>[];
+
+  /// The ids of the covers asked for at [size] pixels.
+  Set<String?> at(int size) => {
+    for (final url in _urls)
+      if (url.queryParameters['size'] == '$size') url.queryParameters['id'],
+  };
+
+  @override
+  Future<HttpClientRequest> getUrl(Uri url) async {
+    _urls.add(url);
+    return _NoCoverRequest();
+  }
+}
+
+class _NoCoverRequest extends Fake implements HttpClientRequest {
+  @override
+  Future<HttpClientResponse> close() async => _NoCover();
+}
+
+class _NoCover extends Fake implements HttpClientResponse {
+  @override
+  int get statusCode => HttpStatus.notFound;
+
+  @override
+  Future<E> drain<E>([E? futureValue]) async => futureValue as E;
+}
 
 void main() {
   testWidgets('the bar opens the full-screen player: the song, its times and every control, even on a phone', (
@@ -963,6 +994,71 @@ void main() {
     expect(player.position, greaterThanOrEqualTo(const Duration(seconds: 30)), reason: 'not started over');
     expect(tester.getRect(playerCover), place);
     await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('a swipe sends the cover out as it was, and it comes back from the other side with the song it went to', (
+    tester,
+  ) async {
+    final player = await pumpBar(tester);
+    await player.playQueue(const [
+      Song(id: 's1', title: 'Sweet Emotion', coverArt: 'c1'),
+      Song(id: 's2', title: 'Walk This Way', coverArt: 'c2'),
+    ], play: false);
+    // The bar's cover fails to load (the tests have no images) before the player slides over it: in the middle of the
+    // slide, that trips an assertion of Flutter's semantics.
+    await tester.pumpAndSettle();
+    await openPlayer(tester);
+    final place = tester.getRect(playerCover);
+    String? cover() => tester.widget<Cover>(playerCover).id;
+
+    await tester.drag(playerCover, Offset(-place.width / 2, 0));
+    await tester.pump();
+    expect(player.index, 1);
+    expect(onPage(find.text('Walk This Way')), findsOneWidget);
+    expect(cover(), 'c1', reason: 'the song it leaves, on its way out');
+
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(cover(), 'c1');
+    expect(tester.getRect(playerCover).left, lessThan(place.left));
+
+    await tester.pump(const Duration(milliseconds: 100)); // out of sight by now
+    expect(cover(), 'c2');
+    expect(tester.getRect(playerCover).left, greaterThan(place.left), reason: 'from the other side');
+
+    await tester.pumpAndSettle();
+    expect(tester.getRect(playerCover), place);
+    expect(cover(), 'c2');
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('the covers of the songs on either side load ahead, for a swipe to bring at once', (tester) async {
+    final covers = CoverRequests();
+    debugNetworkImageHttpClientProvider = () => covers;
+
+    try {
+      final player = await pumpBar(tester);
+      await player.playQueue(
+        const [
+          Song(id: 's1', title: 'Sweet Emotion', coverArt: 'c1'),
+          Song(id: 's2', title: 'Walk This Way', coverArt: 'c2'),
+          Song(id: 's3', title: 'Dream On', coverArt: 'c3'),
+          Song(id: 's4', title: 'Back in the Saddle', coverArt: 'c4'),
+        ],
+        index: 1,
+        play: false,
+      );
+      await tester.pumpAndSettle(); // the bar's cover, which fails to load, before the player slides over it
+      await openPlayer(tester);
+      expect(covers.at(800), {'c1', 'c2', 'c3'});
+
+      await tester.drag(playerCover, Offset(-tester.getSize(playerCover).width / 2, 0));
+      await tester.pumpAndSettle();
+      expect(player.index, 2);
+      expect(covers.at(800), {'c1', 'c2', 'c3', 'c4'});
+      await tester.pumpWidget(const SizedBox());
+    } finally {
+      debugNetworkImageHttpClientProvider = null;
+    }
   });
 
   testWidgets('on a phone, a drag down takes the player down with it, over the page under it; let go past a third of '
