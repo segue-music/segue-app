@@ -210,6 +210,7 @@ void main() {
           scrollable: find.descendant(of: find.byType(SettingsPage), matching: find.byType(Scrollable)),
         );
         expect(find.text(strings.automaticQualityDetail(160)), findsOneWidget, reason: 'the qualities');
+        expect(find.text(strings.openSourceLicenses), findsOneWidget);
         expect(find.text(strings.signOut), findsOneWidget);
         // On a phone the page's arrow; on a wide screen the top bar's.
         await tap(tester, narrow ? find.byType(BackButton).hitTestable() : find.byTooltip(strings.back));

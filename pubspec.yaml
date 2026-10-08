@@ -49,3 +49,5 @@ flutter:
   assets:
     - assets/logo.png
     - assets/logo_large.png
+    # The notices and licenses of the libraries media_kit brings (lib/player/libmpv_licenses.dart).
+    - assets/licenses/

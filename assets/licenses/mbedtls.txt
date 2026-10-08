@@ -1,0 +1,5 @@
+Mbed TLS, which FFmpeg reaches HTTPS servers with: https://www.trustedfirmware.org/projects/mbed-tls/
+
+Copyright The Mbed TLS Contributors.
+
+Licensed under the Apache License, version 2.0, which follows. Its source code is at https://github.com/Mbed-TLS/mbedtls.

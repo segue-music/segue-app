@@ -1,0 +1,5 @@
+mpv (libmpv), which plays the music: https://mpv.io
+
+Copyright (C) the mpv, mplayer2 and MPlayer developers.
+
+The app brings it built without its GPL parts (-Dgpl=false), which makes it licensed under the GNU Lesser General Public License, version 2.1 or later, which follows. Its source code is at https://github.com/mpv-player/mpv; how it is built, at https://github.com/media-kit/libmpv-android-audio-build, https://github.com/media-kit/libmpv-darwin-build and https://github.com/media-kit/libmpv-win32-audio-build.

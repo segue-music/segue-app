@@ -664,6 +664,23 @@
       }
     }
   },
+  "openSourceLicenses": "Licenças de código aberto",
+  "@openSourceLicenses": {
+    "description": "The settings' item that opens the licenses: the app's and those of the software it is made with."
+  },
+  "licenses": "Licenças",
+  "@licenses": {
+    "description": "The title of the page of licenses, which lists the app and the software it is made with, a package a line."
+  },
+  "licenseCount": "{count, plural, =1{1 licença} other{{count} licenças}}",
+  "@licenseCount": {
+    "description": "Under a package, in the page of licenses: how many licenses it has.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "settings": "Configurações",
   "@settings": {
     "description": "On a phone, the tooltip of the top bar's button that opens the settings (the theme, the language, the quality, signing out), and their page's title."

@@ -1,0 +1,5 @@
+FFmpeg (libavcodec, libavfilter, libavformat, libavutil, libswresample, libswscale), which decodes the music: https://ffmpeg.org
+
+Copyright (C) the FFmpeg developers.
+
+The app brings it built without its GPL and nonfree parts, with libmpv, which makes it licensed under the GNU Lesser General Public License, version 2.1 or later, or, where it is built with Mbed TLS (--enable-version3, as on Android), version 3 or later. Both versions follow, and version 3 of the GNU General Public License, which version 3 of the Lesser one builds on. Its source code is at https://ffmpeg.org/download.html; how it is built, at the addresses in mpv's notice.

@@ -7,12 +7,13 @@ import '../quality_choice.dart';
 import '../services.dart';
 import '../theme_choice.dart';
 import 'language_button.dart';
+import 'licenses_page.dart';
 import 'page_area.dart';
 import 'theme_fade.dart';
 import 'themed_icon.dart';
 
-/// What the user picks for the app, and signing out: the theme (the system's again too), the language, the quality and,
-/// last, signing out, under the account it signs out of. Each kind
+/// What the user picks for the app, and signing out: the theme (the system's again too), the language, the quality, the
+/// licenses' page and, last, signing out, under the account it signs out of. Each kind
 /// of choice a group of its own, under its name, the one picked with a check, as the devices' sheet has the one the app
 /// controls; a line between the groups, and between the last and signing out. In the page area, from the top bar's
 /// button; a choice missing (none given), its group too.
@@ -93,6 +94,14 @@ class SettingsPage extends StatelessWidget {
                     onTap: () => qualityChoice.pick(quality),
                   ),
               ],
+            // The app's licenses and those of what it is made with, a page of their own in the page area.
+            [
+              ListTile(
+                leading: const ThemedIcon(HugeIcons.strokeRoundedLicense),
+                title: Text(strings.openSourceLicenses),
+                onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const LicensesPage())),
+              ),
+            ],
           ];
           return ListView(
             children: [

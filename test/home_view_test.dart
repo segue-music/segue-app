@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -329,7 +330,8 @@ void main() {
     final (themeChoice, languageChoice) = (ThemeChoice(), LanguageChoice());
     addTearDown(themeChoice.dispose);
     addTearDown(languageChoice.dispose);
-    await pumpHome(tester, const Size(360, 640), themeChoice: themeChoice, languageChoice: languageChoice);
+    // A phone tall enough for every item of the settings, which their list builds only near the screen.
+    await pumpHome(tester, const Size(360, 800), themeChoice: themeChoice, languageChoice: languageChoice);
 
     for (final tooltip in ['Tema escuro', 'Tema claro', 'Idioma', 'Sair']) {
       expect(find.byTooltip(tooltip), findsNothing, reason: 'no button of its own: $tooltip');
@@ -356,12 +358,13 @@ void main() {
       'English',
       'Español',
       'Português',
+      'Licenças de código aberto',
       'Sair',
     ];
     final tops = [for (final text in texts) tester.getTopLeft(find.text(text)).dy];
     expect([...tops]..sort(), tops, reason: 'in this order, top to bottom');
     final lines = find.descendant(of: find.byType(SettingsPage), matching: find.byType(Divider));
-    expect(lines, findsNWidgets(2), reason: 'a line after each group');
+    expect(lines, findsNWidgets(3), reason: 'a line after each group');
     expect(
       tester.getCenter(lines.at(0)).dy,
       inExclusiveRange(tops[texts.indexOf('Tema escuro')], tops[texts.indexOf('Idioma')]),
@@ -369,10 +372,22 @@ void main() {
     );
     expect(
       tester.getCenter(lines.at(1)).dy,
-      inExclusiveRange(tops[texts.indexOf('Português')], tops[texts.indexOf('Sair')]),
+      inExclusiveRange(tops[texts.indexOf('Português')], tops[texts.indexOf('Licenças de código aberto')]),
+      reason: 'between the languages and the licenses',
+    );
+    expect(
+      tester.getCenter(lines.at(2)).dy,
+      inExclusiveRange(tops[texts.indexOf('Licenças de código aberto')], tops[texts.indexOf('Sair')]),
       reason: 'as before signing out',
     );
-    final options = texts.where((text) => text != 'Tema' && text != 'Idioma').toList();
+    expect(
+      find.descendant(
+        of: settingsItem('Licenças de código aberto'),
+        matching: themedIcon(HugeIcons.strokeRoundedLicense),
+      ),
+      findsOneWidget,
+    );
+    final options = texts.where((text) => !{'Tema', 'Idioma', 'Licenças de código aberto'}.contains(text)).toList();
     expect(
       [for (final text in options) checked(text)],
       [true, false, false, true, false, false, false, false],
@@ -451,6 +466,36 @@ void main() {
     await tester.tap(settingsItem('Sair'));
     await tester.pumpAndSettle();
     expect(signedOut, isTrue);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a wide screen, the settings open the licenses in the page area, with no arrow of their own, nor a '
+      'package\'s: the top bar\'s goes back through them', (tester) async {
+    LicenseRegistry.reset();
+    LicenseRegistry.addLicense(() => Stream.value(const LicenseEntryWithLineBreaks(['segue'], 'MIT License')));
+    addTearDown(LicenseRegistry.reset);
+    await pumpHome(tester, const Size(1000, 700));
+    await openSettings(tester);
+    await tester.tap(settingsItem('Licenças de código aberto'));
+    await tester.pumpAndSettle();
+    expect(title('Licenças'), findsOneWidget);
+    expect(find.byType(BackButton), findsNothing, reason: 'the top bar\'s arrow goes back');
+
+    await tester.tap(find.text('segue'));
+    await tester.pumpAndSettle();
+    expect(title('segue'), findsOneWidget);
+    expect(shown('MIT License'), findsOneWidget);
+    expect(find.byType(BackButton), findsNothing);
+
+    await tester.tap(find.byTooltip('Voltar'));
+    await tester.pumpAndSettle();
+    expect(title('Licenças'), findsOneWidget);
+    await tester.tap(find.byTooltip('Voltar'));
+    await tester.pumpAndSettle();
+    expect(title('Configurações'), findsOneWidget);
+    await tester.tap(find.byTooltip('Avançar'));
+    await tester.pumpAndSettle();
+    expect(title('Licenças'), findsOneWidget, reason: 'and forward to them again');
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -567,12 +612,15 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('on a phone, the settings sign out, and with nothing else to pick have only that', (tester) async {
+  testWidgets('on a phone, the settings sign out, and with nothing else to pick have only that and the licenses', (
+    tester,
+  ) async {
     var signedOut = false;
     await pumpHome(tester, const Size(360, 640), onSignOut: () => signedOut = true);
     await openSettings(tester);
-    expect(find.descendant(of: find.byType(SettingsPage), matching: find.byType(ListTile)), findsOneWidget);
-    expect(find.byType(Divider), findsNothing);
+    expect(find.descendant(of: find.byType(SettingsPage), matching: find.byType(ListTile)), findsNWidgets(2));
+    expect(settingsItem('Licenças de código aberto'), findsOneWidget);
+    expect(find.byType(Divider), findsOneWidget, reason: 'between them');
 
     await tester.tap(settingsItem('Sair'));
     await tester.pumpAndSettle();
