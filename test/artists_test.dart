@@ -858,6 +858,16 @@ void main() {
       if (narrow) {
         await tester.tap(find.descendant(of: page, matching: find.byTooltip('Fechar')));
       } else {
+        // A tap on the picture or the text keeps it; one beside them, or Esc, closes it.
+        await tester.tap(picture);
+        await tester.tap(find.text('Aerosmith is an American rock band formed in Boston in 1970.'));
+        await tester.pumpAndSettle();
+        expect(page, findsOneWidget);
+        await tester.tapAt(tester.getTopLeft(picture) - const Offset(40, -40));
+        await tester.pumpAndSettle();
+        expect(page, findsNothing);
+        await tester.tap(find.descendant(of: find.byType(ArtistPage), matching: find.byTooltip('Ver a biografia')));
+        await tester.pumpAndSettle();
         await tester.sendKeyEvent(LogicalKeyboardKey.escape);
       }
 
