@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
@@ -118,8 +119,21 @@ class _ArtistPageState extends State<ArtistPage> {
     );
   }
 
-  /// In how many steps the artist's picture fades into the page at its bottom, on a phone.
+  /// In how many steps the artist's picture fades into the page at its bottom.
   static const _fadeSteps = 12;
+
+  /// The page's color over the artist's picture, from [opacity] of it [start] of the way down to all of it at the
+  /// bottom: eased at both ends, in steps the gradient joins, so that neither shows where the picture starts to fade
+  /// nor where the page goes on, as one.
+  static LinearGradient _fade(Color surface, {required double start, double opacity = 0}) => LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [
+      for (var step = 0; step <= _fadeSteps; step++)
+        surface.withValues(alpha: opacity + (1 - opacity) * Curves.easeInOut.transform(step / _fadeSteps)),
+    ],
+    stops: [for (var step = 0; step <= _fadeSteps; step++) start + (1 - start) * step / _fadeSteps],
+  );
 
   /// How tall the artist's picture is on a phone, under the system's bar: as tall as it's wide, as an artist's picture
   /// mostly is, but half a short window at most.
@@ -147,10 +161,11 @@ class _ArtistPageState extends State<ArtistPage> {
   }
 
   /// The top of the page, down to the artist's [songs] and the choice of their lists, or its title ([heading]). On a
-  /// wide screen the picture is round, the name beside it, with how many albums they have. On a narrow one ([narrow])
-  /// it goes across the page from the top of the screen, under the page's bar, which has the name (a [PageBar]), and
-  /// the system's; the heading is over its bottom, with how many albums they have at the end of its line, where it
-  /// fades to the page's color (darker in the dark theme, lighter in the light one).
+  /// wide screen the picture is round, the name beside it, with how many albums they have, and behind them the picture
+  /// again, blurred, across the page. On a narrow one ([narrow]) it goes across the page from the top of the screen,
+  /// under the page's bar, which has the name (a [PageBar]), and the system's; the heading is over its bottom, with how
+  /// many albums they have at the end of its line, where it fades to the page's color (darker in the dark theme,
+  /// lighter in the light one).
   Widget _header(Artist artist, List<Album> albums, Widget? heading, List<Widget> songs, {required bool narrow}) {
     final text = Theme.of(context).textTheme;
     final strings = AppLocalizations.of(context);
@@ -177,19 +192,8 @@ class _ArtistPageState extends State<ArtistPage> {
                 child: DecoratedBox(
                   position: DecorationPosition.foreground,
                   // The picture as it is down to [fade], then more and more of the page's color, to all of it at the
-                  // bottom, under the heading: eased at both ends, in steps the gradient joins, so that neither shows
-                  // where the picture starts to fade nor where the page goes on, as one.
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        for (var step = 0; step <= _fadeSteps; step++)
-                          surface.withValues(alpha: Curves.easeInOut.transform(step / _fadeSteps)),
-                      ],
-                      stops: [for (var step = 0; step <= _fadeSteps; step++) fade + (1 - fade) * step / _fadeSteps],
-                    ),
-                  ),
+                  // bottom, under the heading.
+                  decoration: BoxDecoration(gradient: _fade(surface, start: fade)),
                   // Asked of the server as many pixels across as a phone's screen has.
                   child: LargeCover(picture, size: 1200, icon: HugeIcons.strokeRoundedUser),
                 ),
@@ -214,30 +218,51 @@ class _ArtistPageState extends State<ArtistPage> {
       );
     }
 
+    final surface = Theme.of(context).colorScheme.surface;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-          child: Row(
-            children: [
-              // Asked of the server as an album's cover on its page is.
-              SizedBox.square(
-                dimension: _widePicture,
-                child: ClipOval(child: LargeCover(picture, size: 800, icon: HugeIcons.strokeRoundedUser)),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(artist.name, style: text.titleLarge),
-                    count,
-                  ],
+        Stack(
+          children: [
+            // Behind them, the picture blurred into its colors, across the page, under half of the page's color at the
+            // top and more of it lower down, all of it at the bottom of the round picture, where the page goes on.
+            if (picture != null)
+              Positioned.fill(
+                child: ClipRect(
+                  child: DecoratedBox(
+                    position: DecorationPosition.foreground,
+                    decoration: BoxDecoration(gradient: _fade(surface, start: 0, opacity: 0.5)),
+                    // As the artists' grid has asked for it, which the blur leaves nothing more to see in.
+                    child: ImageFiltered(
+                      imageFilter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+                      child: Cover(picture, icon: HugeIcons.strokeRoundedUser),
+                    ),
+                  ),
                 ),
               ),
-            ],
-          ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              child: Row(
+                children: [
+                  // Asked of the server as an album's cover on its page is.
+                  SizedBox.square(
+                    dimension: _widePicture,
+                    child: ClipOval(child: LargeCover(picture, size: 800, icon: HugeIcons.strokeRoundedUser)),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(artist.name, style: text.titleLarge),
+                        count,
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
         ?heading,
         ...songs,

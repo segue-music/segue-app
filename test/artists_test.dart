@@ -388,6 +388,36 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets(
+    'on a wide screen, the artist\'s picture is behind the top of their page too, blurred, across it, under '
+    'the page\'s color: half of it at the top, all of it at the bottom of the round picture; nothing with no picture',
+    (tester) async {
+      await pumpHome(tester, const Size(1000, 700));
+      await tester.tap(find.byTooltip('Artistas'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cheap Trick'));
+      await tester.pumpAndSettle();
+      final page = find.byType(ArtistPage);
+      final backdrop = find.descendant(of: page, matching: find.byType(ImageFiltered));
+      expect(tester.widget<Cover>(find.descendant(of: backdrop, matching: find.byType(Cover))).id, 'ar-ar2');
+      final (area, behind) = (tester.getRect(page), tester.getRect(backdrop));
+      final round = tester.getRect(find.descendant(of: page, matching: find.byType(ClipOval)));
+      expect(behind, Rect.fromLTRB(area.left, area.top, area.right, round.bottom));
+      final shade = tester.widget<DecoratedBox>(find.ancestor(of: backdrop, matching: find.byType(DecoratedBox)).first);
+      final gradient = (shade.decoration as BoxDecoration).gradient! as LinearGradient;
+      final surface = Theme.of(tester.element(page)).colorScheme.surface;
+      expect(shade.position, DecorationPosition.foreground);
+      expect((gradient.colors.first, gradient.colors.last), (surface.withValues(alpha: 0.5), surface));
+
+      await tester.tap(find.byTooltip('Voltar'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Ramones'));
+      await tester.pumpAndSettle();
+      expect(find.descendant(of: page, matching: find.byType(ImageFiltered)), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
   testWidgets('before anything has played, the most played artists say where they will be', (tester) async {
     await pumpHome(tester, const Size(1000, 700), played: false);
     await tester.tap(find.byTooltip('Artistas'));
