@@ -7,7 +7,7 @@ typedef HugeIconData = List<List<dynamic>>;
 /// A Hugeicons icon that takes its size and color from the [IconTheme], as an [Icon] does. A [HugeIcon] alone is
 /// 24 pixels wherever it is, in a button of 40 as in a label of 16.
 class ThemedIcon extends StatelessWidget {
-  const ThemedIcon(this.icon, {this.size, this.color, super.key});
+  const ThemedIcon(this.icon, {this.size, this.color, this.strokeWidth, super.key});
 
   final HugeIconData icon;
 
@@ -17,6 +17,9 @@ class ThemedIcon extends StatelessWidget {
   /// The theme's when null.
   final Color? color;
 
+  /// How thick its lines are, of the 24 it's drawn in; the icon's own when null, 1.5 for most.
+  final double? strokeWidth;
+
   @override
-  Widget build(BuildContext context) => HugeIcon(icon: icon, size: size, color: color);
+  Widget build(BuildContext context) => HugeIcon(icon: icon, size: size, color: color, strokeWidth: strokeWidth);
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'dart:ui' show ImageFilter;
 
@@ -42,6 +43,11 @@ class _ArtistPageState extends State<ArtistPage> {
   /// comes in as the picture goes ([PageBarSliver.shadeAt]).
   final _shade = ValueNotifier<double>(0);
 
+  /// On a phone, the color of the artist's picture under the page's bar, on average, with what it was found for: the
+  /// picture, how big it shows, and how far down the bar goes, with the system's above it. What the arrow and the name
+  /// stand out from; null until it's known, or where the picture can't be loaded.
+  ((String, Size, double), Color?)? _underBar;
+
   /// How big the artist's picture is on a wide screen, round, 16 from the top of the page: as big as an album's cover on
   /// its page.
   static const _widePicture = 220.0;
@@ -79,6 +85,7 @@ class _ArtistPageState extends State<ArtistPage> {
               : PageBar(
                   title: narrow ? data?.$1.name ?? widget.artist.name : null,
                   shade: narrow && data != null ? _shade : null,
+                  under: narrow && data != null ? _colorUnderBar(data.$1.coverArt ?? widget.artist.coverArt) : null,
                 ),
           // On a phone the picture goes on under the bar and the system's, to the top of the screen.
           extendBodyBehindAppBar: narrow && data != null,
@@ -140,6 +147,39 @@ class _ArtistPageState extends State<ArtistPage> {
   double get _pictureHeight {
     final screen = MediaQuery.sizeOf(context);
     return min(screen.width, screen.height / 2);
+  }
+
+  /// The color of the artist's [picture] under the page's bar on a phone, as [_underBar] has it: found out where it
+  /// hasn't been yet, for that picture and where it shows, which keeps the last one's meanwhile, as the screen turns.
+  Color? _colorUnderBar(String? picture) {
+    if (picture == null) {
+      return null;
+    }
+
+    final top = MediaQuery.paddingOf(context).top;
+    final box = Size(MediaQuery.sizeOf(context).width, top + _pictureHeight);
+    final key = (picture, box, top + kToolbarHeight);
+
+    if (_underBar case (final known, final color) when known == key) {
+      return color;
+    }
+
+    final last = _underBar?.$2;
+    _underBar = (key, last);
+    unawaited(
+      Cover.averageColor(context, picture, region: (image) => _topOf(image, box, key.$3)).then((color) {
+        if (mounted && _underBar?.$1 == key) {
+          setState(() => _underBar = (key, color));
+        }
+      }),
+    );
+    return last;
+  }
+
+  /// Where the top [height] of a picture [image] big is, as it fills [box], as a cover does ([BoxFit.cover], centered).
+  static Rect _topOf(Size image, Size box, double height) {
+    final shown = Alignment.center.inscribe(applyBoxFit(BoxFit.cover, image, box).source, Offset.zero & image);
+    return Rect.fromLTWH(shown.left, shown.top, shown.width, shown.height * height / box.height);
   }
 
   /// Follows the page as it scrolls, and as it's laid out anew (as the window narrows or widens), for its bar's color

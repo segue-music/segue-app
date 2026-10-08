@@ -1,3 +1,7 @@
+import 'dart:async';
+import 'dart:math';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
@@ -27,6 +31,36 @@ class Cover extends StatelessWidget {
   static Future<void> preload(BuildContext context, String id, {int size = 300}) =>
       precacheImage(_image(context, id, size), context, onError: (_, _) {});
 
+  /// The color of the cover [id], at [size] pixels, on average over the part of it that [region] picks by its size (as
+  /// where a bar goes over it); null where it can't be loaded.
+  static Future<Color?> averageColor(
+    BuildContext context,
+    String id, {
+    required Rect Function(Size image) region,
+    int size = 300,
+  }) async {
+    final loaded = Completer<ImageInfo?>();
+    final stream = _image(context, id, size).resolve(createLocalImageConfiguration(context));
+    final listener = ImageStreamListener(
+      (image, _) => loaded.isCompleted ? image.dispose() : loaded.complete(image),
+      onError: (_, _) => loaded.isCompleted ? null : loaded.complete(null),
+    );
+    stream.addListener(listener);
+    final info = await loaded.future;
+    stream.removeListener(listener);
+
+    if (info == null) {
+      return null;
+    }
+
+    try {
+      final image = info.image;
+      return await averageColorOf(image, region(Size(image.width.toDouble(), image.height.toDouble())));
+    } finally {
+      info.dispose();
+    }
+  }
+
   static ImageProvider _image(BuildContext context, String id, int size) =>
       NetworkImage(ServicesScope.of(context).api.coverArtUrl(id, size: size).toString());
 
@@ -49,6 +83,38 @@ class Cover extends StatelessWidget {
       errorBuilder: (_, _, _) => placeholder,
     );
   }
+}
+
+/// The color of [image] on average over [region], as see-through as the image is there, on average; null where the
+/// region has none of it.
+Future<Color?> averageColorOf(ui.Image image, Rect region) async {
+  final bytes = await image.toByteData();
+  final area = region.intersect(Offset.zero & Size(image.width.toDouble(), image.height.toDouble()));
+
+  if (bytes == null || area.isEmpty) {
+    return null;
+  }
+
+  var (red, green, blue, alpha, pixels) = (0, 0, 0, 0, 0);
+
+  for (var y = area.top.floor(); y < area.bottom.ceil(); y++) {
+    for (var x = area.left.floor(); x < area.right.ceil(); x++) {
+      final at = (y * image.width + x) * 4;
+      red += bytes.getUint8(at);
+      green += bytes.getUint8(at + 1);
+      blue += bytes.getUint8(at + 2);
+      alpha += bytes.getUint8(at + 3);
+      pixels++;
+    }
+  }
+
+  if (alpha == 0) {
+    return const Color(0x00000000);
+  }
+
+  // The bytes are premultiplied by the alpha: over the alpha's sum, each channel's sum is the color's own.
+  int channel(int sum) => min(sum * 255 ~/ alpha, 255);
+  return Color.fromARGB(alpha ~/ pixels, channel(red), channel(green), channel(blue));
 }
 
 /// A cover asked of the server at [size] pixels, more than [Cover]'s usual: the usual one, which the page that led here

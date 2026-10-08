@@ -15,6 +15,9 @@ const iconLightPink = Color(0xFFFD73AD);
 /// The black around the icon's rounded square.
 const iconBlack = Color(0xFF090909);
 
+/// The back arrow that Flutter puts in a page's top bar by itself.
+const backArrow = HugeIcons.strokeRoundedArrowLeft02;
+
 /// The app's theme, light or dark. Whatever has the focus stands out: a TV is driven with a remote
 /// from across the room, and Material's own focus highlights are faint. Buttons get a ring; lists,
 /// the side rail and the tiles a strong tint (and, where an image would hide it, a FocusRing).
@@ -39,9 +42,7 @@ ThemeData segueTheme(Brightness brightness) {
     ),
     iconButtonTheme: IconButtonThemeData(style: buttons),
     // The back arrow that Flutter puts in a page's top bar by itself, from Hugeicons as the rest.
-    actionIconTheme: ActionIconThemeData(
-      backButtonIconBuilder: (context) => const ThemedIcon(HugeIcons.strokeRoundedArrowLeft02),
-    ),
+    actionIconTheme: ActionIconThemeData(backButtonIconBuilder: (context) => const ThemedIcon(backArrow)),
     filledButtonTheme: FilledButtonThemeData(style: buttons),
     textButtonTheme: TextButtonThemeData(style: buttons),
     listTileTheme: const ListTileThemeData(mouseCursor: WidgetStateMouseCursor.clickable),
