@@ -22,18 +22,60 @@ if [ -z "$SEGUE_FLUTTER_IMAGE" ] && [ "$tool $command" = "flutter run" ] \
   image=segue-flutter-android
 fi
 
-# flutter run -d android runs on the first device of this machine's adb server (adb devices),
-# whatever its serial.
+# The first device of this machine's adb server (adb devices) that is ready, whatever its serial.
+android_device() {
+  adb devices | awk 'NR > 1 && $2 == "device" { print $1; exit }'
+}
+
+# Starts an emulator, the Android SDK's (ANDROID_HOME, or where Android Studio puts it) on SEGUE_AVD
+# or the first of its virtual devices, and waits until it has booted. It is left running out of
+# this terminal's reach (setsid), so that q or Ctrl+C in flutter run doesn't close it and the next
+# run finds it.
+start_emulator() {
+  emulator=${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Android/Sdk}}/emulator/emulator
+
+  if [ ! -x "$emulator" ] && ! emulator=$(command -v emulator); then
+    echo "tool/flutter.sh: no Android device in adb devices, and no emulator to start" >&2
+    exit 1
+  fi
+
+  avd=${SEGUE_AVD:-$("$emulator" -list-avds | head -n 1)}
+
+  if [ -z "$avd" ]; then
+    echo "tool/flutter.sh: no Android device in adb devices, and no virtual device for the emulator" >&2
+    exit 1
+  fi
+
+  echo "tool/flutter.sh: starting the emulator ($avd)" >&2
+  log=$cache/emulator.log
+  setsid "$emulator" -avd "$avd" > "$log" 2>&1 < /dev/null &
+  emulator_process=$!
+
+  # adb lists the emulator as a device before Android has booted, which flutter run can't install
+  # on yet.
+  until [ -n "$(android_device)" ] \
+    && [ "$(adb -s "$(android_device)" shell getprop sys.boot_completed 2> /dev/null | tr -d '\r')" = 1 ]; do
+    if ! kill -0 "$emulator_process" 2> /dev/null; then
+      echo "tool/flutter.sh: the emulator stopped (its output is in $log)" >&2
+      exit 1
+    fi
+
+    sleep 1
+  done
+}
+
+# flutter run -d android runs on the first device of this machine's adb server, starting an
+# emulator when there is none.
 if [ "$tool $command" = "flutter run" ]; then
   for arg do
     shift
 
     if [ "$previous" = -d ] && [ "$arg" = android ]; then
-      arg=$(adb devices | awk 'NR > 1 && $2 == "device" { print $1; exit }')
+      arg=$(android_device)
 
       if [ -z "$arg" ]; then
-        echo "tool/flutter.sh: no Android device in adb devices" >&2
-        exit 1
+        start_emulator
+        arg=$(android_device)
       fi
     fi
 
