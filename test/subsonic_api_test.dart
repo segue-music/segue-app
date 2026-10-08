@@ -611,6 +611,124 @@ void main() {
     expect(asked.last.queryParameters, containsPair('id', 'p1'));
   });
 
+  test(
+    'a playlist can be changed where OpenSubsonic doesn\'t say it\'s read-only, or else where it\'s the user\'s',
+    () async {
+      final api = SubsonicApi(
+        Uri.parse('https://music.test'),
+        credentials,
+        client: MockClient(
+          (_) async => subsonic({
+            'status': 'ok',
+            'playlists': {
+              'playlist': [
+                {'id': 'p1', 'name': 'Mine', 'owner': 'alice', 'readonly': false},
+                {'id': 'p2', 'name': 'Smart', 'owner': 'alice', 'readonly': true},
+                {'id': 'p3', 'name': 'Bob\'s', 'owner': 'bob'},
+                {'id': 'p4', 'name': 'Alice\'s', 'owner': 'alice'},
+              ],
+            },
+          }),
+        ),
+      );
+      expect([for (final playlist in await api.playlists()) playlist.editable], [true, false, false, true]);
+    },
+  );
+
+  /// An API whose server has [extensions], and answers anything else with ok; [asked] gets every request.
+  SubsonicApi changing(List<http.Request> asked, {List<String> extensions = const []}) => SubsonicApi(
+    Uri.parse('https://music.test'),
+    credentials,
+    client: MockClient((request) async {
+      asked.add(request);
+      return switch (request.url.pathSegments.last) {
+        'getOpenSubsonicExtensions.view' => subsonic({
+          'status': 'ok',
+          'openSubsonicExtensions': [
+            for (final name in extensions)
+              {
+                'name': name,
+                'versions': [1],
+              },
+          ],
+        }),
+        'getPlaylist.view' => subsonic({
+          'status': 'ok',
+          'playlist': {
+            'id': 'p1',
+            'name': 'Road trip',
+            'entry': [
+              {'id': 's1', 'title': 'Walk This Way'},
+              {'id': 's2', 'title': 'Sweet Emotion'},
+              {'id': 's3', 'title': 'Dream On'},
+            ],
+          },
+        }),
+        _ => subsonic({'status': 'ok'}),
+      };
+    }),
+  );
+
+  /// The parameters of [request], in its URL or, posted, in its body: each name with its values, in order.
+  Map<String, List<String>> params(http.Request request) =>
+      request.method == 'POST' ? Uri(query: request.body).queryParametersAll : request.url.queryParametersAll;
+
+  test('a playlist is made (createPlaylist), renamed and given songs (updatePlaylist), and deleted', () async {
+    final asked = <http.Request>[];
+    final api = changing(asked);
+    await api.createPlaylist('Road trip', songIds: ['s2', 's1']);
+    expect(asked.last.url.path, '/rest/createPlaylist.view');
+    expect(params(asked.last)['name'], ['Road trip']);
+    expect(params(asked.last)['songId'], ['s2', 's1']);
+
+    await api.renamePlaylist('p1', 'Night drive');
+    expect(asked.last.url.path, '/rest/updatePlaylist.view');
+    expect(params(asked.last), allOf(containsPair('playlistId', ['p1']), containsPair('name', ['Night drive'])));
+
+    await api.addToPlaylist('p1', ['s3', 's4']);
+    expect(asked.last.url.path, '/rest/updatePlaylist.view');
+    expect(params(asked.last)['songIdToAdd'], ['s3', 's4']);
+
+    await api.removeFromPlaylist('p1', [0, 2]);
+    expect(params(asked.last)['songIndexToRemove'], ['0', '2']);
+
+    await api.deletePlaylist('p1');
+    expect(asked.last.url.path, '/rest/deletePlaylist.view');
+    expect(params(asked.last)['id'], ['p1']);
+  });
+
+  test('a song moves in a playlist as its songs go back in their new order, all of them', () async {
+    final asked = <http.Request>[];
+    await changing(asked).moveInPlaylist('p1', from: 2, to: 0);
+    expect(asked.last.url.path, '/rest/createPlaylist.view');
+    expect(params(asked.last)['playlistId'], ['p1']);
+    expect(params(asked.last)['songId'], ['s3', 's1', 's2']);
+    expect(params(asked.last).containsKey('name'), isFalse, reason: 'it keeps its name');
+  });
+
+  test(
+    'on a server with formPost, the songs go in a form\'s body, credentials and all, rather than in the URL',
+    () async {
+      final asked = <http.Request>[];
+      final api = changing(asked, extensions: ['formPost']);
+      await api.addToPlaylist('p1', ['s3', 's4']);
+      await api.addToPlaylist('p1', ['s5']);
+      final posted = asked.where((request) => request.method == 'POST').toList();
+      expect(posted, hasLength(2));
+      expect(posted.first.url.query, isEmpty);
+      expect(posted.first.headers['content-type'], startsWith('application/x-www-form-urlencoded'));
+      expect(
+        params(posted.first),
+        allOf(containsPair('songIdToAdd', ['s3', 's4']), containsPair('t', [credentials.token])),
+      );
+      expect(
+        asked.where((request) => request.url.path.endsWith('getOpenSubsonicExtensions.view')),
+        hasLength(1),
+        reason: 'asked once',
+      );
+    },
+  );
+
   test('a playlist with no songs has none', () async {
     final api = SubsonicApi(
       Uri.parse('https://music.test'),

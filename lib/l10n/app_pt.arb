@@ -904,6 +904,93 @@
       }
     }
   },
+  "newPlaylist": "Nova playlist",
+  "@newPlaylist": {
+    "description": "The button that makes a playlist, and the title of the dialog that names it."
+  },
+  "playlistName": "Nome",
+  "@playlistName": {
+    "description": "The label of the field where a playlist's name is typed."
+  },
+  "createPlaylist": "Criar",
+  "@createPlaylist": {
+    "description": "The button that makes the playlist with the name typed."
+  },
+  "cancel": "Cancelar",
+  "@cancel": {
+    "description": "The button that closes a dialog without doing anything."
+  },
+  "renamePlaylist": "Renomear a playlist",
+  "@renamePlaylist": {
+    "description": "The menu item that renames a playlist, and the title of the dialog where its new name is typed."
+  },
+  "rename": "Renomear",
+  "@rename": {
+    "description": "The button that gives a playlist the name typed."
+  },
+  "deletePlaylist": "Excluir a playlist",
+  "@deletePlaylist": {
+    "description": "The menu item that deletes a playlist."
+  },
+  "deletePlaylistQuestion": "Excluir “{name}”?",
+  "@deletePlaylistQuestion": {
+    "description": "The title of the dialog that asks before a playlist is deleted, with its name.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deletePlaylistDetail": "As músicas dela continuam na biblioteca.",
+  "@deletePlaylistDetail": {
+    "description": "Under the question before a playlist is deleted."
+  },
+  "delete": "Excluir",
+  "@delete": {
+    "description": "The button that deletes a playlist, once asked."
+  },
+  "addToPlaylist": "Adicionar à playlist",
+  "@addToPlaylist": {
+    "description": "The menu item and the button that add a song or an album to a playlist, and the title of the dialog that picks it."
+  },
+  "removeFromPlaylist": "Remover da playlist",
+  "@removeFromPlaylist": {
+    "description": "The menu item that takes a song out of the playlist listing it."
+  },
+  "moreOptions": "Mais opções",
+  "@moreOptions": {
+    "description": "The tooltip of the button that opens a song's or a playlist's menu."
+  },
+  "addedToPlaylist": "{count, plural, =1{Adicionada a {playlist}} other{{count} faixas adicionadas a {playlist}}}",
+  "@addedToPlaylist": {
+    "description": "What says that songs went into a playlist, by how many, and the playlist's name.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "playlist": {
+        "type": "String"
+      }
+    }
+  },
+  "couldNotCreatePlaylist": "Não consegui criar a playlist: {error}",
+  "@couldNotCreatePlaylist": {
+    "description": "A playlist that couldn't be made, with the error.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "couldNotChangePlaylist": "Não consegui alterar a playlist: {error}",
+  "@couldNotChangePlaylist": {
+    "description": "A change to a playlist (adding, taking out or moving songs, renaming or deleting it) that the server didn't make, with the error.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "search": "Buscar",
   "@search": {
     "description": "The search section, on a phone."

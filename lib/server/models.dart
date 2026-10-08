@@ -333,7 +333,7 @@ class Genre {
 
 /// A playlist: songs in the order someone put them in, the user or another who shares it with them.
 class Playlist {
-  const Playlist({required this.id, required this.name, this.coverArt, this.songCount});
+  const Playlist({required this.id, required this.name, this.coverArt, this.songCount, this.editable = true});
 
   final String id;
   final String name;
@@ -343,6 +343,10 @@ class Playlist {
 
   /// How many songs it has; null when the server doesn't say.
   final int? songCount;
+
+  /// Whether the user can change it: rename it, delete it, add songs to it, remove and move them. Not another user's,
+  /// nor one the server makes itself from rules (Navidrome's smart playlists).
+  final bool editable;
 }
 
 /// What a search found.

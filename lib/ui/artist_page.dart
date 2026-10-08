@@ -23,6 +23,7 @@ import 'page_bar.dart';
 import 'release_types.dart';
 import 'segmented_choice.dart';
 import 'song_list_header.dart';
+import 'song_menu.dart';
 import 'spinner.dart';
 import 'text_link.dart';
 import 'themed_icon.dart';
@@ -643,21 +644,26 @@ class _ArtistSongsState extends State<_ArtistSongs> {
             for (final (i, song) in songs.indexed)
               CurrentSong(
                 song,
-                builder: (context, current, playing) => ListTile(
-                  selected: current,
-                  // Its place among them, then its cover.
-                  leading: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SizedBox(width: SongListHeader.numberWidth, child: SongNumber(i + 1)),
-                      const SizedBox(width: 16),
-                      Thumbnail(song.coverArt, playing: playing),
-                    ],
+                builder: (context, current, playing) => SongMenu(
+                  song,
+                  builder: (context, menu) => ListTile(
+                    selected: current,
+                    // Its place among them, then its cover.
+                    leading: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(width: SongListHeader.numberWidth, child: SongNumber(i + 1)),
+                        const SizedBox(width: 16),
+                        Thumbnail(song.coverArt, playing: playing),
+                      ],
+                    ),
+                    title: Text(song.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+                    subtitle: song.album == null
+                        ? null
+                        : Text(song.album!, maxLines: 1, overflow: TextOverflow.ellipsis),
+                    trailing: SongTrailing(SongDuration(song.duration), menu),
+                    onTap: () => _play(context, songs, i),
                   ),
-                  title: Text(song.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-                  subtitle: song.album == null ? null : Text(song.album!, maxLines: 1, overflow: TextOverflow.ellipsis),
-                  trailing: SongDuration(song.duration),
-                  onTap: () => _play(context, songs, i),
                 ),
               ),
           ],

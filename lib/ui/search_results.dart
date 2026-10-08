@@ -12,6 +12,7 @@ import 'cover.dart';
 import 'current_song.dart';
 import 'errors.dart';
 import 'song_list_header.dart';
+import 'song_menu.dart';
 import 'spinner.dart';
 
 /// What a search found: artists and albums, which open their page, and songs, which play.
@@ -69,17 +70,20 @@ class SearchResultsList extends StatelessWidget {
           for (final (i, song) in songs.indexed)
             CurrentSong(
               song,
-              builder: (context, current, playing) => ListTile(
-                selected: current,
-                leading: Thumbnail(song.coverArt, playing: playing),
-                title: Text(song.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-                subtitle: Text(
-                  [song.artist, song.album].nonNulls.join(' · '),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+              builder: (context, current, playing) => SongMenu(
+                song,
+                builder: (context, menu) => ListTile(
+                  selected: current,
+                  leading: Thumbnail(song.coverArt, playing: playing),
+                  title: Text(song.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  subtitle: Text(
+                    [song.artist, song.album].nonNulls.join(' · '),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: SongTrailing(SongDuration(song.duration), menu),
+                  onTap: () => _play(context, songs, i),
                 ),
-                trailing: SongDuration(song.duration),
-                onTap: () => _play(context, songs, i),
               ),
             ),
         ],

@@ -39,6 +39,12 @@ const album = {
   'ImageTags': {'Primary': 'tag'},
 };
 
+/// A playlist's songs, as Playlists/{id}/Items gives them, each with its entry in the playlist.
+http.Response get playlistItems => items([
+  {...song, 'Id': 's2', 'Name': 'Sweet Emotion', 'PlaylistItemId': 'e1'},
+  {...song, 'PlaylistItemId': 'e2'},
+]);
+
 const song = {
   'Id': 's1',
   'Name': 'Walk This Way',
@@ -163,15 +169,13 @@ void main() {
             'ImageTags': {'Primary': 'tag'},
           },
         ]),
-        _ => items([
-          {...song, 'Id': 's2', 'Name': 'Sweet Emotion'},
-          song,
-        ]),
+        _ => playlistItems,
       },
       asked,
     );
     final playlist = (await api.playlists()).single;
     expect((playlist.id, playlist.name, playlist.songCount, playlist.coverArt), ('p1', 'Road trip', 2, null));
+    expect(playlist.editable, isTrue, reason: 'Jellyfin doesn\'t say: the server refuses where the user can\'t');
     expect(asked.single.url.path, '/jellyfin/Items');
     expect(asked.single.url.queryParameters, containsPair('Recursive', 'true'));
 
@@ -179,13 +183,56 @@ void main() {
     final (found, songs) = await api.playlist('p1');
     expect((found.name, found.coverArt), ('Road trip', 'p1'));
     expect([for (final song in songs) song.title], ['Sweet Emotion', 'Walk This Way']);
-    final query = asked
-        .firstWhere((request) => request.url.queryParameters.containsKey('ParentId'))
-        .url
-        .queryParameters;
-    expect(query, containsPair('ParentId', 'p1'));
-    expect(query, containsPair('IncludeItemTypes', 'Audio'));
-    expect(query.containsKey('SortBy'), isFalse, reason: 'in the playlist\'s order');
+    expect(asked.map((request) => request.url.path), contains('/jellyfin/Playlists/p1/Items'));
+  });
+
+  test('a playlist is made with its songs, for the user, renamed by its id, and deleted as an item', () async {
+    final asked = <http.Request>[];
+    final api = jellyfin((_) => http.Response('', 204), asked);
+    await api.createPlaylist('Road trip', songIds: ['s2', 's1']);
+    expect((asked.last.method, asked.last.url.path), ('POST', '/jellyfin/Playlists'));
+    expect(jsonDecode(asked.last.body), {
+      'Name': 'Road trip',
+      'Ids': ['s2', 's1'],
+      'UserId': 'u1',
+      'MediaType': 'Audio',
+    });
+    expect(asked.last.headers['Authorization'], contains('Token="tok"'));
+
+    await api.renamePlaylist('p1', 'Night drive');
+    expect((asked.last.method, asked.last.url.path), ('POST', '/jellyfin/Playlists/p1'));
+    expect(jsonDecode(asked.last.body), {'Name': 'Night drive'});
+
+    await api.deletePlaylist('p1');
+    expect((asked.last.method, asked.last.url.path), ('DELETE', '/jellyfin/Items/p1'));
+  });
+
+  test('songs go at the end of a playlist, and come out and move by their entries in it', () async {
+    final asked = <http.Request>[];
+    final api = jellyfin((request) => request.method == 'GET' ? playlistItems : http.Response('', 204), asked);
+    await api.addToPlaylist('p1', ['s3', 's4']);
+    expect((asked.last.method, asked.last.url.path), ('POST', '/jellyfin/Playlists/p1/Items'));
+    expect(asked.last.url.queryParameters, containsPair('ids', 's3,s4'));
+    expect(asked.last.url.queryParameters, containsPair('userId', 'u1'));
+
+    await api.removeFromPlaylist('p1', [1]);
+    expect((asked.last.method, asked.last.url.path), ('DELETE', '/jellyfin/Playlists/p1/Items'));
+    expect(
+      asked.last.url.queryParameters,
+      containsPair('entryIds', 'e2'),
+      reason: 'the second entry\'s, not its song\'s',
+    );
+
+    await api.moveInPlaylist('p1', from: 0, to: 1);
+    expect((asked.last.method, asked.last.url.path), ('POST', '/jellyfin/Playlists/p1/Items/e1/Move/1'));
+  });
+
+  test('a change the server refuses says so', () async {
+    final api = jellyfin((_) => http.Response('', 403));
+    await expectLater(
+      api.renamePlaylist('p1', 'Mine now'),
+      throwsA(isA<ServerError>().having((error) => error.isAuth, 'isAuth', isFalse)),
+    );
   });
 
   test('a genre without its number of albums has none', () async {

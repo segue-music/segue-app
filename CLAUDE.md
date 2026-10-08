@@ -144,6 +144,13 @@ Running two app instances on one machine as different devices:
   `PlayerController` reads as each song loads, the automatic one by `MobileData`, `lib/mobile_data.dart`, from
   connectivity_plus): Subsonic's `maxBitRate`, with `timeOffset` to start later where the server has OpenSubsonic's
   transcodeOffset, or Jellyfin's `universal`, as HLS.
+- `PlaylistEditor` (`lib/server/playlist_editor.dart`, `Services.playlistEditor`) makes the changes to the user's
+  playlists (create, rename, delete, add, remove, move), one after another in the order they come, since removing and
+  moving go by the songs' places, and tells its listeners once none is left: the playlists section and a playlist's page
+  load them again then. A playlist's page shows its own changes at once and sends them through it. Subsonic moves no
+  song, so `moveInPlaylist` sends the playlist's songs back in their new order (`createPlaylist` with its id), in a
+  form's body where the server has OpenSubsonic's formPost; Jellyfin removes and moves by the entry's id
+  (`PlaylistItemId`, from `Playlists/{id}/Items`), so the API asks for the entries first.
 - `lib/lyrics/lrclib.dart`: LRCLIB, where the full-screen player's lyrics (`LyricsView`) come from
   when the media server has none, by the song's title, artist, album and length. `Services.start`
   gives it one; tests leave `Services.lrclib` null, so that none goes out to the internet.

@@ -14,6 +14,7 @@ import 'releases/musicbrainz.dart';
 import 'segue/client.dart';
 import 'segue/discovery.dart';
 import 'segue/protocol.dart';
+import 'server/playlist_editor.dart';
 import 'server/server.dart';
 import 'server/sign_in.dart';
 import 'session.dart';
@@ -81,6 +82,9 @@ class Services {
   final PlayerController player;
   final ConnectController connect;
 
+  /// What the app changes the user's playlists through.
+  late final playlistEditor = PlaylistEditor(api);
+
   /// Where lyrics come from when the media server has none; null, nowhere.
   final Lrclib? lrclib;
 
@@ -96,6 +100,7 @@ class Services {
 
   Future<void> dispose() async {
     connect.dispose();
+    playlistEditor.dispose();
     await connect.client?.close();
     playCounter?.dispose();
     mobileData?.dispose();

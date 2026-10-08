@@ -5,6 +5,7 @@ import '../l10n/app_localizations.dart';
 import '../server/models.dart';
 import 'cover.dart';
 import 'player_controls.dart';
+import 'song_menu.dart';
 import 'themed_icon.dart';
 
 /// The text of a list of songs' first and last columns, a song's number and its duration: at the size of the artist's
@@ -38,10 +39,13 @@ class SongDuration extends StatelessWidget {
 /// title, and their duration, as a clock. A list tile as they are, so that its columns line up with theirs; disabled,
 /// so that neither the pointer, the keyboard nor a remote stops at it.
 class SongListHeader extends StatelessWidget {
-  const SongListHeader({this.numbered = false, super.key});
+  const SongListHeader({this.numbered = false, this.menus = false, super.key});
 
   /// Whether the songs are numbered, as an album's are, rather than shown with their covers, as the queue's.
   final bool numbered;
+
+  /// Whether each song has its menu's button after its duration ([SongMenu]), which the header leaves room for.
+  final bool menus;
 
   /// How wide a numbered song's number is.
   static const numberWidth = 24.0;
@@ -62,9 +66,15 @@ class SongListHeader extends StatelessWidget {
             child: numbered ? Text('#', style: style, textAlign: TextAlign.end) : null,
           ),
           title: Text(strings.songTitle, style: style),
-          trailing: Tooltip(
-            message: strings.songDuration,
-            child: ThemedIcon(HugeIcons.strokeRoundedClock01, size: 18, color: muted),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Tooltip(
+                message: strings.songDuration,
+                child: ThemedIcon(HugeIcons.strokeRoundedClock01, size: 18, color: muted),
+              ),
+              if (menus) const SizedBox(width: SongTrailing.gap + SongMenu.width),
+            ],
           ),
         ),
         const Divider(height: 1, indent: 16, endIndent: 16),

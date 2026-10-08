@@ -40,8 +40,8 @@ class SubsonicApi implements MediaServer {
   final SubsonicCredentials credentials;
   final http.Client _http;
 
-  // Whether the server has OpenSubsonic's transcodeOffset, once asked.
-  Future<bool>? _transcodeOffset;
+  // The names of the OpenSubsonic extensions the server has, once asked.
+  Future<Set<String>>? _extensionNames;
 
   // The requests under way that more than one method makes ([_shared]), by their endpoint and the id they ask for.
   final _sharedRequests = <(String, String), Future<Map<String, dynamic>>>{};
@@ -182,7 +182,7 @@ class SubsonicApi implements MediaServer {
   Future<List<Playlist>> playlists() async {
     final body = await _get('getPlaylists');
     final list = (body['playlists'] as Map<String, dynamic>?)?['playlist'] as List? ?? const [];
-    return [for (final playlist in list) _playlist(playlist as Map<String, dynamic>)];
+    return [for (final playlist in list) _playlist(playlist as Map<String, dynamic>, credentials.username)];
   }
 
   /// getPlaylist, whose entries are its songs.
@@ -190,7 +190,37 @@ class SubsonicApi implements MediaServer {
   Future<(Playlist, List<Song>)> playlist(String id) async {
     final json = (await _get('getPlaylist', {'id': id}))['playlist'] as Map<String, dynamic>;
     final songs = json['entry'] as List? ?? const [];
-    return (_playlist(json), [for (final song in songs) _song(song as Map<String, dynamic>)]);
+    return (_playlist(json, credentials.username), [for (final song in songs) _song(song as Map<String, dynamic>)]);
+  }
+
+  @override
+  Future<void> createPlaylist(String name, {List<String> songIds = const []}) =>
+      _post('createPlaylist', {'name': name, 'songId': songIds});
+
+  @override
+  Future<void> renamePlaylist(String id, String name) => _get('updatePlaylist', {'playlistId': id, 'name': name});
+
+  @override
+  Future<void> deletePlaylist(String id) => _get('deletePlaylist', {'id': id});
+
+  @override
+  Future<void> addToPlaylist(String id, List<String> songIds) =>
+      _post('updatePlaylist', {'playlistId': id, 'songIdToAdd': songIds});
+
+  @override
+  Future<void> removeFromPlaylist(String id, List<int> indexes) => _post('updatePlaylist', {
+    'playlistId': id,
+    'songIndexToRemove': [for (final index in indexes) '$index'],
+  });
+
+  /// Subsonic moves no song in a playlist: its songs go back in their new order, all of them, as getPlaylist gives them
+  /// (createPlaylist, with the playlist's id, replaces them).
+  @override
+  Future<void> moveInPlaylist(String id, {required int from, required int to}) async {
+    final (_, songs) = await playlist(id);
+    final ids = [for (final song in songs) song.id];
+    ids.insert(to, ids.removeAt(from));
+    await _post('createPlaylist', {'playlistId': id, 'songId': ids});
   }
 
   /// OpenSubsonic's getLyricsBySongId (its songLyrics extension, which Navidrome has, from the file's
@@ -326,28 +356,25 @@ class SubsonicApi implements MediaServer {
   /// for a stream that can't seek, which a file can.
   @override
   Future<Uri?> transcodedStreamUrl(String songId, {required int maxBitRate, required Duration from}) async =>
-      await _startsTranscodesLater
+      await _has('transcodeOffset')
       ? _url('stream', {'id': songId, 'maxBitRate': '$maxBitRate', 'timeOffset': '${from.inSeconds}'})
       : null;
 
-  /// Whether the server has OpenSubsonic's transcodeOffset: asked once, unless it couldn't be (no network), and then
-  /// asked again the next time.
-  Future<bool> get _startsTranscodesLater => _transcodeOffset ??= _extensions().then(
-    (extensions) => extensions.contains('transcodeOffset'),
-    onError: (Object e) {
-      // A server that answers with an error has no OpenSubsonic extensions; one that doesn't answer may.
-      if (e is! ServerError) {
-        _transcodeOffset = null;
-      }
+  /// Whether the server has the OpenSubsonic extension named [name]: their names asked once, unless they couldn't be (no
+  /// network), and then asked again the next time.
+  Future<bool> _has(String name) async => (await (_extensionNames ??= _extensions().catchError((Object e) {
+    // A server that answers with an error has no OpenSubsonic extensions; one that doesn't answer may.
+    if (e is! ServerError) {
+      _extensionNames = null;
+    }
 
-      return false;
-    },
-  );
+    return const <String>{};
+  }))).contains(name);
 
   /// The names of the OpenSubsonic extensions the server has (getOpenSubsonicExtensions).
-  Future<List<String>> _extensions() async {
+  Future<Set<String>> _extensions() async {
     final extensions = (await _get('getOpenSubsonicExtensions'))['openSubsonicExtensions'] as List? ?? const [];
-    return [for (final extension in extensions) (extension as Map<String, dynamic>)['name'] as String];
+    return {for (final extension in extensions) (extension as Map<String, dynamic>)['name'] as String};
   }
 
   /// A scrobble's submission, which counts the play. What plays shows in the server's now playing
@@ -374,7 +401,9 @@ class SubsonicApi implements MediaServer {
   @override
   Future<void> signOut() async {}
 
-  Uri _url(String endpoint, [Map<String, String> params = const {}]) => server
+  /// The URL of [endpoint], with [params]: each a string, or a list of them for a parameter given once for each (a
+  /// playlist's songs).
+  Uri _url(String endpoint, [Map<String, Object> params = const {}]) => server
       .resolve('rest/$endpoint.view')
       .replace(
         queryParameters: {
@@ -388,9 +417,25 @@ class SubsonicApi implements MediaServer {
         },
       );
 
-  Future<Map<String, dynamic>> _get(String endpoint, [Map<String, String> params = const {}]) async {
-    final response = await _http.get(_url(endpoint, params));
+  Future<Map<String, dynamic>> _get(String endpoint, [Map<String, Object> params = const {}]) async =>
+      _decode(await _http.get(_url(endpoint, params)));
 
+  /// [endpoint] with [params], whose lists can be long (a playlist's songs): in a form's body where the server takes one
+  /// (OpenSubsonic's formPost, which Navidrome has), rather than in the URL, which a server or a proxy may cut short.
+  Future<Map<String, dynamic>> _post(String endpoint, Map<String, Object> params) async {
+    if (!await _has('formPost')) {
+      return _get(endpoint, params);
+    }
+
+    final response = await _http.post(
+      server.resolve('rest/$endpoint.view'),
+      headers: {'content-type': 'application/x-www-form-urlencoded'},
+      body: _url(endpoint, params).query,
+    );
+    return _decode(response);
+  }
+
+  Map<String, dynamic> _decode(http.Response response) {
     if (response.statusCode != 200) {
       throw ServerError('${server.host}: HTTP ${response.statusCode}');
     }
@@ -518,11 +563,17 @@ List<Artist> _songArtists(Map<String, dynamic> json) => switch (json['artists'])
   _ => [if (json['artistId'] case final String id) Artist(id: id, name: json['artist'] as String? ?? '')],
 };
 
-Playlist _playlist(Map<String, dynamic> json) => Playlist(
+/// A playlist the user, [username], can change where OpenSubsonic doesn't say it's read-only (Navidrome says so of
+/// another user's and of a smart playlist), or else where it is theirs.
+Playlist _playlist(Map<String, dynamic> json, String username) => Playlist(
   id: json['id'] as String,
   name: json['name'] as String? ?? '',
   coverArt: json['coverArt'] as String?,
   songCount: (json['songCount'] as num?)?.toInt(),
+  editable: switch (json['readonly']) {
+    final bool readOnly => !readOnly,
+    _ => json['owner'] == null || json['owner'] == username,
+  },
 );
 
 Genre _genre(Map<String, dynamic> json) => Genre(

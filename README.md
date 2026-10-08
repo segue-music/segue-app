@@ -124,6 +124,18 @@ the device it runs on.
   above it. A tap on a track plays it there;
 - the album's songs and the queue have a header naming their columns: the number ("#") or the
   cover, the title, and the duration as a clock; over the queue it stays as the tracks scroll;
+- making and changing playlists: a new one, from a button over the list of them, named in a dialog; a
+  song added to one, from its menu (a button after its duration, wherever songs are listed: an album's
+  page, an artist's, a playlist's, search; for the keyboard and the remote, which stop at the song
+  alone, the menu key or Shift+F10 on it), or an album, all its songs, from a button beside its play
+  button, to one of those the user can change, picked in a dialog, or to a new one named there; on the
+  page of one the user can change, a song taken out from its menu, a song moved by dragging it (on a
+  touch screen, once held a moment), and the playlist renamed or deleted (once asked) from its own
+  menu. Another user's playlist, or one the server makes from rules (Navidrome's smart playlists), as
+  OpenSubsonic says, has none of these. Each change goes to the server as it's made, one after another,
+  and what shows the playlists then loads them again as the server has them; one the server refuses
+  says so. On a Subsonic server a song moves as the playlist's songs go back in their new order, which
+  a server with OpenSubsonic's formPost (Navidrome) takes in a form's body, rather than in the URL;
 - on the album page, what kind of release it is (an album, an EP, a single or a compilation: on a
   computer above its name, on a phone before its year), which its play button, and the one on its
   cover wherever albums are listed, say too ("Tocar o EP"); under its name, its artist with their
@@ -189,7 +201,8 @@ the device it runs on.
   the background. On Linux the window's title bar, with the close button, takes the background too.
   On a computer the window opens maximized.
 
-Not yet: making and editing playlists (from the app: adding songs, removing them, reordering them), editing the queue (play next, add to it, reorder it), the media controls on the other platforms (Android's
+Not yet: moving a playlist's songs with the remote (a TV has no drag), adding the song that plays to a playlist from
+the player, editing the queue (play next, add to it, reorder it), the media controls on the other platforms (Android's
 media session), on a Jellyfin server the cover of a song that came from another device
 when its file has none of its own (Jellyfin doesn't fall back to the album's) and an artist's popular songs (Jellyfin
 knows only its users' plays), an offline cache, settings, sending the music
@@ -201,7 +214,7 @@ has been tried on a tablet and on an Android TV; the iOS build has not been trie
 
 | Folder | What |
 |---|---|
-| `lib/server/` | `MediaServer`, what the app asks of the media server in either API, and its albums, artists and songs; finding out which API a server speaks, and signing in to it |
+| `lib/server/` | `MediaServer`, what the app asks of the media server in either API, and its albums, artists and songs; finding out which API a server speaks, and signing in to it; `PlaylistEditor`, the changes to the user's playlists |
 | `lib/subsonic/` | The Subsonic API: token sign-in, albums, artists, songs, playlists, search, stream and cover URLs |
 | `lib/jellyfin/` | The Jellyfin API: sign-in by name for this device, the same library calls, and signing out |
 | `lib/segue/` | The Segue protocol in Dart (its `SPEC.md` is in the segue repository), the hub client (reconnects by itself) and hub discovery |

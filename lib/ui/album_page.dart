@@ -21,8 +21,10 @@ import 'errors.dart';
 import 'now_playing_bar.dart';
 import 'page_area.dart';
 import 'page_bar.dart';
+import 'playlist_dialogs.dart';
 import 'release_types.dart';
 import 'song_list_header.dart';
+import 'song_menu.dart';
 import 'spinner.dart';
 import 'themed_icon.dart';
 
@@ -203,7 +205,7 @@ class _AlbumPageState extends State<AlbumPage> {
                           _release!,
                           builder: (type) => _header(album, songs, type: type, narrow: narrow),
                         ),
-                        if (!narrow) const SongListHeader(numbered: true),
+                        if (!narrow) const SongListHeader(numbered: true, menus: true),
                         for (var i = 0; i < songs.length; i++)
                           if (i == songs.length - 1)
                             _LastSong(
@@ -232,11 +234,11 @@ class _AlbumPageState extends State<AlbumPage> {
     );
   }
 
-  /// The top of the page: the album's cover, its type (album, EP, ...), its name and byline, and the button that plays
-  /// it. On a wide screen the name is beside the cover, the type above it, the button under them; on a narrow one
-  /// ([narrow]) the name is in the page's bar (a [PageBar]), over the cover, which is centered, and the byline under the
-  /// cover, from the page's margin as the songs are, with the button at the end of its line, and the type before the
-  /// year.
+  /// The top of the page: the album's cover, its type (album, EP, ...), its name and byline, and the buttons that play
+  /// it and add it to a playlist. On a wide screen the name is beside the cover, the type above it, the buttons under
+  /// them; on a narrow one ([narrow]) the name is in the page's bar (a [PageBar]), over the cover, which is centered, and
+  /// the byline under the cover, from the page's margin as the songs are, with the buttons at the end of its line, the
+  /// play button last, and the type before the year.
   Widget _header(Album album, List<Song> songs, {required ReleaseType? type, required bool narrow}) {
     final text = Theme.of(context).textTheme;
     final strings = AppLocalizations.of(context);
@@ -250,6 +252,11 @@ class _AlbumPageState extends State<AlbumPage> {
       credits: _creditsButton(album, songs),
     );
     final play = _playButton(songs, type: type);
+    final add = IconButton(
+      tooltip: strings.addToPlaylist,
+      onPressed: songs.isEmpty ? null : () => addToPlaylist(context, songs),
+      icon: const ThemedIcon(HugeIcons.strokeRoundedAddCircle),
+    );
 
     if (narrow) {
       return Column(
@@ -272,6 +279,8 @@ class _AlbumPageState extends State<AlbumPage> {
               children: [
                 Expanded(child: byline),
                 const SizedBox(width: 16),
+                add,
+                const SizedBox(width: 8),
                 play,
               ],
             ),
@@ -301,7 +310,7 @@ class _AlbumPageState extends State<AlbumPage> {
                   Text(album.name, style: text.titleLarge),
                   byline,
                   const SizedBox(height: 12),
-                  play,
+                  Row(mainAxisSize: MainAxisSize.min, children: [play, const SizedBox(width: 8), add]),
                 ],
               ),
             ),
@@ -363,18 +372,21 @@ class _AlbumPageState extends State<AlbumPage> {
     final song = songs[index];
     return CurrentSong(
       song,
-      builder: (context, current, playing) => ListTile(
-        selected: current,
-        leading: SizedBox(
-          width: SongListHeader.numberWidth,
-          child: playing ? const Equalizer() : SongNumber(index + 1),
+      builder: (context, current, playing) => SongMenu(
+        song,
+        builder: (context, menu) => ListTile(
+          selected: current,
+          leading: SizedBox(
+            width: SongListHeader.numberWidth,
+            child: playing ? const Equalizer() : SongNumber(index + 1),
+          ),
+          title: Text(song.title),
+          // The artists take no focus: for the keyboard and the remote the song stays one stop, as an album in the grid
+          // is.
+          subtitle: song.artist == null ? null : ExcludeFocus(child: ArtistLinks.song(song)),
+          trailing: SongTrailing(SongDuration(song.duration), menu),
+          onTap: () => _play(songs, index),
         ),
-        title: Text(song.title),
-        // The artists take no focus: for the keyboard and the remote the song stays one stop, as an album in the grid
-        // is.
-        subtitle: song.artist == null ? null : ExcludeFocus(child: ArtistLinks.song(song)),
-        trailing: SongDuration(song.duration),
-        onTap: () => _play(songs, index),
       ),
     );
   }

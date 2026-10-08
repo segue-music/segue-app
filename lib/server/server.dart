@@ -95,6 +95,25 @@ abstract interface class MediaServer {
   /// A playlist and its songs, in its order.
   Future<(Playlist, List<Song>)> playlist(String id);
 
+  /// Makes a playlist of the user's named [name], with the songs whose ids are [songIds] in it, in that order.
+  Future<void> createPlaylist(String name, {List<String> songIds = const []});
+
+  /// Names the playlist whose id is [id] [name].
+  Future<void> renamePlaylist(String id, String name);
+
+  /// Deletes the playlist whose id is [id]; its songs stay in the library.
+  Future<void> deletePlaylist(String id);
+
+  /// Adds the songs whose ids are [songIds] at the end of the playlist whose id is [id], in that order.
+  Future<void> addToPlaylist(String id, List<String> songIds);
+
+  /// Takes out of the playlist whose id is [id] its songs at [indexes], from 0, in its order as [playlist] gives it.
+  Future<void> removeFromPlaylist(String id, List<int> indexes);
+
+  /// Moves the song at [from] in the playlist whose id is [id] to [to], the place it then has, the songs between moving
+  /// up or down to make room; both from 0, in its order as [playlist] gives it.
+  Future<void> moveInPlaylist(String id, {required int from, required int to});
+
   /// A song's lyrics, the synced ones where the server has both; null when it has none.
   Future<Lyrics?> lyrics(String songId);
 

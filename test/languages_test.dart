@@ -271,6 +271,19 @@ void main() {
         await tap(tester, find.text('Road trip'));
         expect(find.byTooltip(strings.playPlaylist), findsOneWidget);
         expect(find.textContaining(strings.trackCount(2)), findsOneWidget);
+        // Its menu, and a song's.
+        await tap(tester, find.byTooltip(strings.moreOptions).first);
+        expect(find.text(strings.renamePlaylist), findsOneWidget);
+        await tap(tester, find.text(strings.deletePlaylist));
+        expect(find.text(strings.deletePlaylistDetail), findsOneWidget);
+        await tap(tester, find.text(strings.cancel));
+        await tap(tester, find.byTooltip(strings.moreOptions).at(1)); // the first song's
+        expect(find.text(strings.removeFromPlaylist), findsOneWidget);
+        await tap(tester, find.text(strings.addToPlaylist));
+        expect(find.text(strings.newPlaylist), findsOneWidget);
+        await tap(tester, find.text(strings.newPlaylist));
+        expect(find.text(strings.playlistName), findsOneWidget);
+        await tap(tester, find.text(strings.cancel));
 
         await tap(tester, find.byTooltip(strings.home).first);
         await tap(tester, find.text('Toys in the Attic').first);

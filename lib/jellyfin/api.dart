@@ -212,14 +212,64 @@ class JellyfinApi implements MediaServer {
       if (json['MediaType'] != 'Video') _playlist(json),
   ];
 
-  /// A playlist's songs are its items, which come in its order when no other is asked for (SortBy).
   @override
   Future<(Playlist, List<Song>)> playlist(String id) async {
     final [playlists, songs] = await Future.wait([
       _items({'Ids': id, 'Fields': 'ChildCount'}),
-      _items({'ParentId': id, 'IncludeItemTypes': 'Audio'}),
+      _playlistItems(id),
     ]);
     return (_playlist(_only(playlists, id)), [for (final json in songs) _song(json)]);
+  }
+
+  /// A playlist's songs, in its order (Playlists/{id}/Items), each with the id of its entry in it (PlaylistItemId), which
+  /// taking it out and moving it go by: a song can be in a playlist more than once.
+  Future<List<Map<String, dynamic>>> _playlistItems(String id) =>
+      _list('Playlists/${Uri.encodeComponent(id)}/Items', {});
+
+  /// The id of a playlist's entry, as [_playlistItems] gives it.
+  static String _entryId(Map<String, dynamic> json) =>
+      json['PlaylistItemId'] as String? ?? (throw ServerError('no playlist entry for ${json['Id']}'));
+
+  @override
+  Future<void> createPlaylist(String name, {List<String> songIds = const []}) => _send(
+    'POST',
+    'Playlists',
+    body: {'Name': name, 'Ids': songIds, 'UserId': credentials.userId, 'MediaType': 'Audio'},
+  );
+
+  /// Playlists/{id}, which Jellyfin has from 10.9 on.
+  @override
+  Future<void> renamePlaylist(String id, String name) =>
+      _send('POST', 'Playlists/${Uri.encodeComponent(id)}', body: {'Name': name});
+
+  @override
+  Future<void> deletePlaylist(String id) => _send('DELETE', 'Items/${Uri.encodeComponent(id)}');
+
+  @override
+  Future<void> addToPlaylist(String id, List<String> songIds) => _send(
+    'POST',
+    'Playlists/${Uri.encodeComponent(id)}/Items',
+    query: {'ids': songIds.join(','), 'userId': credentials.userId},
+  );
+
+  /// By their entries' ids, as the playlist's songs come now.
+  @override
+  Future<void> removeFromPlaylist(String id, List<int> indexes) async {
+    final entries = await _playlistItems(id);
+    await _send(
+      'DELETE',
+      'Playlists/${Uri.encodeComponent(id)}/Items',
+      query: {
+        'entryIds': [for (final index in indexes) _entryId(entries[index])].join(','),
+      },
+    );
+  }
+
+  /// By its entry's id, as the playlist's songs come now.
+  @override
+  Future<void> moveInPlaylist(String id, {required int from, required int to}) async {
+    final entry = _entryId((await _playlistItems(id))[from]);
+    await _send('POST', 'Playlists/${Uri.encodeComponent(id)}/Items/${Uri.encodeComponent(entry)}/Move/$to');
   }
 
   /// Jellyfin's lyrics of a song (Audio/{id}/Lyrics), from the file's tags or a .lrc next to it: a 404
@@ -417,6 +467,29 @@ class JellyfinApi implements MediaServer {
   Future<Object?> _get(String path, Map<String, String> query) async =>
       _decode(server, await _http.get(_url(path, query), headers: _headers));
 
+  /// A request that changes something on the server, as [method] (POST, DELETE), with [query] and a JSON [body]: the
+  /// server answers it with nothing, or with what it made.
+  Future<void> _send(String method, String path, {Map<String, String>? query, Object? body}) async {
+    final request = http.Request(method, _url(path, query))..headers.addAll(_headers);
+
+    if (body != null) {
+      request
+        ..headers['Content-Type'] = 'application/json'
+        ..body = jsonEncode(body);
+    }
+
+    final response = await http.Response.fromStream(await _http.send(request));
+
+    switch (response.statusCode) {
+      case 401:
+        throw const ServerError('the server refused the sign-in', isAuth: true);
+      case 403:
+        throw const ServerError('the server doesn\'t let this user change it');
+      case < 200 || >= 300:
+        throw ServerError('${server.host}: HTTP ${response.statusCode}');
+    }
+  }
+
   Uri _url(String path, [Map<String, String>? query]) => server.resolve(path).replace(queryParameters: query);
 
   static Object? _decode(Uri server, http.Response response) {
@@ -550,6 +623,7 @@ Artist _artist(Map<String, dynamic> json) => Artist(
   },
 );
 
+/// Jellyfin doesn't say whether the user can change a playlist shared with them: the server refuses where they can't.
 Playlist _playlist(Map<String, dynamic> json) => Playlist(
   id: json['Id'] as String,
   name: json['Name'] as String? ?? '',
