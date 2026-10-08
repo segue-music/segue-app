@@ -432,7 +432,9 @@ class _ArtistPageState extends State<ArtistPage> {
   /// The genres most of [albums] are in, the one most are in first, [_genreCount] at most, each a link to its page
   /// ([GenrePage]), apart by dots: "Hard rock · Blues rock · Rock". Over the picture, on a phone ([overPicture]), with a
   /// halo of the page's color, which keeps them easy to read where the picture has yet to fade into the page, as the
-  /// page's bar does its title. None where the server gives their albums none.
+  /// page's bar does its title. On a material of their own, over the picture (blurred, on a wide screen), where the ink
+  /// of the focus, a hover and a tap shows on them: on the page's, it was under the picture. None where the server
+  /// gives their albums none.
   Widget? _genres(List<Album> albums, {bool overPicture = false}) {
     final genres = <String, Genre>{};
     final counts = <String, int>{};
@@ -454,19 +456,22 @@ class _ArtistPageState extends State<ArtistPage> {
       color: theme.colorScheme.onSurfaceVariant,
       shadows: overPicture ? [Shadow(color: theme.colorScheme.surface, blurRadius: 8)] : null,
     );
-    return Wrap(
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        for (final (i, id) in rankedByCount(counts).take(_genreCount).indexed) ...[
-          if (i > 0) Text(' · ', style: style),
-          TextLink(
-            genres[id]!.name,
-            tooltip: strings.openGenre,
-            style: style,
-            onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => GenrePage(genres[id]!))),
-          ),
+    return Material(
+      type: MaterialType.transparency,
+      child: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          for (final (i, id) in rankedByCount(counts).take(_genreCount).indexed) ...[
+            if (i > 0) Text(' · ', style: style),
+            TextLink(
+              genres[id]!.name,
+              tooltip: strings.openGenre,
+              style: style,
+              onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => GenrePage(genres[id]!))),
+            ),
+          ],
         ],
-      ],
+      ),
     );
   }
 

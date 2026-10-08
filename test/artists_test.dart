@@ -1029,6 +1029,27 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  for (final (screen, size) in [('a wide screen', const Size(1000, 700)), ('a phone', const Size(360, 640))]) {
+    testWidgets('on $screen, an artist\'s genres show the ink of the focus (a TV\'s) over their picture: on a material '
+        'of their own, not on the page\'s, under the picture', (tester) async {
+      await pumpHome(tester, size);
+      await tester.tap(size.width < 600 ? find.text('Artistas') : find.byTooltip('Artistas'));
+      await tester.pumpAndSettle();
+      await tester.tap(tile('Cheap Trick'));
+      await tester.pumpAndSettle();
+      final page = find.byType(ArtistPage);
+      // Blurred across the page on a wide screen, across it from the top on a phone.
+      final picture = size.width < 600
+          ? artistPicture()
+          : find.descendant(of: page, matching: find.byType(ImageFiltered));
+      expect(picture, findsOneWidget);
+      final genre = find.descendant(of: page, matching: find.text('Power Pop'));
+      final material = find.ancestor(of: genre, matching: find.byType(Material)).first;
+      expect(find.descendant(of: material, matching: picture), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    });
+  }
+
   testWidgets('a band\'s biography has its years beside its name, and where it comes from under it, asked of '
       'MusicBrainz as it opens', (tester) async {
     final asked = <Uri>[];
