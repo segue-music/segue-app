@@ -259,11 +259,11 @@ Finder artistPictureAt(int size) => find.descendant(
 /// The tile of the artist named [name], in the artists' grid.
 Finder tile(String name) => find.ancestor(of: find.text(name), matching: find.byType(InkWell)).first;
 
-/// The chip of the artists tab that picks the order [label] names.
-Finder order(String label) => find.widgetWithText(ChoiceChip, label);
+/// The choice of the artists tab between their orders.
+Finder orders() => find.byWidgetPredicate((widget) => widget is SegmentedChoice);
 
-/// Whether [label]'s order is the one picked.
-bool picked(WidgetTester tester, String label) => tester.widget<ChoiceChip>(order(label)).selected;
+/// The option of the artists tab that picks the order [label] names.
+Finder order(String label) => find.descendant(of: orders(), matching: find.text(label));
 
 /// The option of an artist's page that shows the list of their songs [label] names, or the list's title.
 Finder songList(String label) => find.descendant(of: find.byType(ArtistPage), matching: find.text(label));
@@ -317,24 +317,30 @@ void main() {
     await tester.pumpWidget(const SizedBox()); // stops the player bar's timers
   });
 
-  testWidgets('the artists tab lists them by name, or the most played first, as picked in chips above them', (
+  testWidgets('the artists tab lists them by name, or the most played first, as picked in a choice above them', (
     tester,
   ) async {
     await pumpHome(tester, const Size(1000, 700));
     await tester.tap(find.byTooltip('Artistas'));
     await tester.pumpAndSettle();
-    expect(picked(tester, 'Nome'), isTrue);
-    expect(picked(tester, 'Mais tocados'), isFalse);
+    expect(tester.getSemantics(order('Nome')), isSemantics(isSelected: true));
+    expect(tester.getSemantics(order('Mais tocados')), isSemantics(isSelected: false));
     expect(find.text('Aerosmith'), findsOneWidget);
     expect(find.text('Ramones'), findsOneWidget);
     final picture = tester.getRect(find.descendant(of: tile('Aerosmith'), matching: find.byType(Cover)));
-    expect(picture.left, moreOrLessEquals(tester.getRect(order('Nome')).left), reason: 'lined up with the chips');
-    expect(picture.top, greaterThan(tester.getRect(order('Nome')).bottom), reason: 'under them');
+    final choice = tester.getRect(orders());
+    expect(picture.left, moreOrLessEquals(choice.left), reason: 'lined up with the choice');
+    expect(picture.top, greaterThan(choice.bottom), reason: 'under it');
+    expect(
+      choice.width,
+      lessThan(tester.getSize(find.byType(GridView)).width / 2),
+      reason: 'as wide as its options, not the tab',
+    );
 
     await tester.tap(order('Mais tocados'));
     await tester.pumpAndSettle();
-    expect(picked(tester, 'Mais tocados'), isTrue);
-    expect(picked(tester, 'Nome'), isFalse);
+    expect(tester.getSemantics(order('Mais tocados')), isSemantics(isSelected: true));
+    expect(tester.getSemantics(order('Nome')), isSemantics(isSelected: false));
     expect(find.text('Cheap Trick'), findsOneWidget, reason: 'their songs have played');
     expect(find.text('1 álbum'), findsOneWidget, reason: 'as the tab lists them by name');
     expect(find.text('Aerosmith'), findsNothing, reason: 'none of theirs has');

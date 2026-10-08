@@ -27,14 +27,14 @@ the device it runs on.
   back, and a title that opens the albums tab in the row's order (on a Jellyfin server, which counts
   plays only by song, an album's plays are its songs', added up); albums (by name, the latest
   released, the most played or the latest added, picked in chips above them, the next ones coming
-  as the grid nears its end), artists (by name or the most played first, picked in chips above them:
-  on a Subsonic server, which counts no plays by artist, from the 500 most played albums; each with
-  their albums and then, apart, their singles and EPs, where the server says which are, under five
-  songs of theirs, numbered, which play from the one picked: the ones the user plays most, once any
-  has played (on a Subsonic server, which lists no songs by plays, those of the artist's albums,
-  from the albums that have played), or the popular ones, which a Subsonic server learns from
-  Last.fm (getTopSongs), picked over them where there are both (a thumb sliding to the one picked),
-  and these alone before any of the user's has played) and
+  as the grid nears its end), artists (by name or the most played first, picked above them, a thumb
+  sliding to the one picked: on a Subsonic server, which counts no plays by artist, from the 500
+  most played albums; each with their albums and then, apart, their singles and EPs, where the
+  server says which are, under five songs of theirs, numbered, which play from the one picked: the
+  ones the user plays most, once any has played (on a Subsonic server, which lists no songs by
+  plays, those of the artist's albums, from the albums that have played), or the popular ones, which
+  a Subsonic server learns from Last.fm (getTopSongs), picked over them where there are both (a
+  thumb sliding to the one picked), and these alone before any of the user's has played) and
   genres (by name, each with its number of albums, under the ten the user listens to
   most, and its albums by name, under a row of those the user plays most: on a Subsonic server,
   which counts no plays by genre, both come from the 500 most played albums):

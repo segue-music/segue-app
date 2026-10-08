@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 import 'focus_ring.dart';
 
 /// A choice of a few [options], side by side in a pill-shaped track, the one [selected] under a thumb that slides to
-/// another as it's picked: for a page's views of one thing, where chips would read as orders or filters. The options
-/// are as wide as the widest, so that the thumb keeps its size on the way; where the system asks for less motion, it
-/// moves at once.
+/// another as it's picked: for a page's two or three views of one thing, as an artist's songs or the library's artists.
+/// More, as the albums' orders, are chips (`OrderChips`), which scroll sideways where they don't fit. The options are
+/// as wide as the widest, so that the thumb keeps its size on the way; where the system asks for less motion, it moves
+/// at once.
 class SegmentedChoice<T> extends StatelessWidget {
   const SegmentedChoice(
     this.selected, {

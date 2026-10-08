@@ -7,13 +7,14 @@ import '../services.dart';
 import 'artist_page.dart';
 import 'cover.dart';
 import 'focus_ring.dart';
-import 'order_chips.dart';
+import 'segmented_choice.dart';
 import 'spinner.dart';
 
 /// "1 álbum", "5 álbuns"; empty when the server didn't say.
 String albumCount(AppLocalizations strings, int? count) => count == null ? '' : strings.albumCount(count);
 
-/// Orders the library's artists come in: what a chip says of one, and what a list in it says when it has none.
+/// Orders the library's artists come in: what the choice above them says of one, and what a list in it says when it has
+/// none.
 enum _ArtistOrder {
   name,
   mostPlayed;
@@ -29,7 +30,7 @@ enum _ArtistOrder {
   };
 }
 
-/// The library's artists, by name or the most played first, as picked in chips above them.
+/// The library's artists, by name or the most played first, as picked in a [SegmentedChoice] above them.
 class ArtistsView extends StatefulWidget {
   const ArtistsView({super.key});
 
@@ -62,14 +63,26 @@ class _ArtistsViewState extends State<ArtistsView> {
     _artists = _load();
   });
 
-  // The chips stay at the top, also while another order's artists come, as the albums' do.
+  // The choice stays at the top, also while another order's artists come, as the albums' chips do.
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        OrderChips(_order, orders: _ArtistOrder.values, label: (order) => order.label(strings), onOrder: _reorder),
+        // At the left, lined up with the pictures, with the room the albums' chips have around them.
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          child: Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: SegmentedChoice(
+              _order,
+              options: _ArtistOrder.values,
+              label: (order) => order.label(strings),
+              onSelected: _reorder,
+            ),
+          ),
+        ),
         Expanded(
           child: FutureBuilder(
             // Another order's starts over, with none of the last one's artists; a refresh keeps them until the new
