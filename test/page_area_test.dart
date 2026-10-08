@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:segue/player/player.dart';
 import 'package:segue/server/models.dart';
 import 'package:segue/ui/album_page.dart';
+import 'package:segue/ui/cover.dart';
 import 'package:segue/ui/home_page.dart';
 import 'package:segue/ui/player_page.dart';
 
@@ -142,6 +143,22 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     },
   );
+
+  testWidgets('on a phone, the app\'s icon lines up with the home\'s rows, their titles and their covers', (
+    tester,
+  ) async {
+    await pumpHome(tester, const Size(360, 800));
+    final logo = tester.getRect(find.descendant(of: find.byType(AppBar), matching: find.byType(Image)));
+    expect(logo.left, 16);
+    expect(tester.getRect(find.text('Adicionados recentemente')).left, logo.left);
+    expect(tester.getRect(find.byType(Cover).first).left, logo.left);
+    expect(
+      tester.getRect(find.descendant(of: find.byType(AppBar), matching: find.text('Início'))).left,
+      72,
+      reason: 'the section\'s name where a page\'s is, after its back arrow',
+    );
+    await tester.pumpWidget(const SizedBox());
+  });
 
   testWidgets('a page stays open as the window is widened or narrowed: the same page area, by its navigator', (
     tester,

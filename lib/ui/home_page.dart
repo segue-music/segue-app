@@ -359,8 +359,12 @@ class _HomePageState extends State<HomePage> {
             body: pageArea(
               Scaffold(
                 appBar: AppBar(
-                  // The app's icon, which opens the home.
+                  // The app's icon, which opens the home, 16 from the edge, lined up with what the sections show under
+                  // it: in the middle of a slot 64 wide, rather than Material's 56, which would leave it at 12.
                   leading: logo,
+                  leadingWidth: 64,
+                  // The section's name where a page's is, after its back arrow: 72 from the edge.
+                  titleSpacing: 8,
                   title: Text(_section.label(strings)),
                   bottom: _section == _Section.search
                       ? PreferredSize(
