@@ -111,7 +111,7 @@ void main() {
 
   testWidgets(
     'on a phone, a page opens over the section and its name, under the bars at the bottom, which stay; it has '
-    'its back arrow',
+    'its bar, with the back arrow and its name',
     (tester) async {
       final (player, _) = await pumpHome(tester, const Size(360, 800));
       await player.playQueue(const [Song(id: 's1', title: 'Dream On', artist: 'Aerosmith')]);
@@ -128,8 +128,8 @@ void main() {
       expect(find.byType(BackButton), findsOneWidget);
       expect(
         find.descendant(of: find.byType(AppBar), matching: album),
-        findsNothing,
-        reason: 'no title: the name is by the cover',
+        findsOneWidget,
+        reason: 'the album\'s, in it',
       );
       await tapAndSettle(tester, find.byType(BackButton));
       expect(find.byType(AlbumPage), findsNothing);

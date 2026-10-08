@@ -288,30 +288,57 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('on a phone, the back arrow is beside the cover, with no bar above them but the system\'s', (
-    tester,
-  ) async {
-    await pumpAlbum(tester, size: const Size(360, 640));
-    tester.view.padding = const FakeViewPadding(top: 24);
-    final opened = Navigator.of(tester.element(find.byType(AlbumPage))).push(
-      MaterialPageRoute<void>(
-        builder: (context) => const AlbumPage(Album(id: 'a1', name: 'Toys in the Attic')),
-      ),
-    );
-    await tester.pumpAndSettle();
-    final (arrow, cover) = (tester.getRect(find.byType(BackButton)), tester.getRect(find.byTooltip('Ver a capa')));
-    expect(cover.top, 24 + 16);
-    expect(arrow.top, greaterThanOrEqualTo(24));
-    expect(arrow.bottom, greaterThan(cover.top), reason: 'beside it, not over it');
-    expect(arrow.right, lessThanOrEqualTo(cover.left));
-    expect(tester.getRect(find.byType(ListView)).top, 24, reason: 'the songs scroll clear of the system\'s bar');
+  testWidgets(
+    'on a phone, the album\'s name is in a bar with the back arrow, centered, which stays as the page scrolls '
+    'under it and the system\'s, taking the page\'s color, and the cover is under them',
+    (tester) async {
+      await pumpAlbum(tester, more: 20, size: const Size(360, 640));
+      tester.view.padding = const FakeViewPadding(top: 24);
+      final opened = Navigator.of(tester.element(find.byType(AlbumPage))).push(
+        MaterialPageRoute<void>(
+          builder: (context) => const AlbumPage(Album(id: 'a1', name: 'Toys in the Attic')),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final page = find.byType(AlbumPage).last;
+      final title = find.descendant(of: find.byType(AppBar), matching: find.text('Toys in the Attic'));
+      final (arrow, name) = (tester.getRect(find.byType(BackButton)), tester.getRect(title));
+      final cover = tester.getRect(find.byTooltip('Ver a capa'));
+      expect(
+        find.descendant(of: page, matching: find.text('Toys in the Attic')),
+        findsOneWidget,
+        reason: 'there alone',
+      );
+      expect(arrow.center.dy, 24 + kToolbarHeight / 2, reason: 'under the system\'s bar');
+      expect(name.center.dy, moreOrLessEquals(arrow.center.dy, epsilon: 1), reason: 'on the arrow\'s line');
+      expect(name.center.dx, moreOrLessEquals(180, epsilon: 1), reason: 'centered on the page');
+      expect(name.left, greaterThanOrEqualTo(arrow.right));
+      expect(cover.top, 24 + kToolbarHeight + 8, reason: 'under them');
+      final list = find.descendant(of: page, matching: find.byType(ListView));
+      expect(tester.getRect(list).top, 0, reason: 'the page goes on under the bars, to the top of the screen');
+      // Clear at the top of the page, more of the page's color as the cover goes up under the bar, all of it once half
+      // the cover has.
+      final appBar = find.descendant(of: page, matching: find.byType(AppBar));
+      Color bar() => tester.widget<Material>(find.descendant(of: appBar, matching: find.byType(Material)).first).color!;
+      expect(bar().a, 0);
 
-    await tester.tap(find.byType(BackButton));
-    await tester.pumpAndSettle();
-    await opened;
-    expect(find.byType(BackButton), findsNothing);
-    await tester.pumpWidget(const SizedBox());
-  });
+      await tester.drag(list, const Offset(0, -80));
+      await tester.pumpAndSettle();
+      expect(bar().a, inExclusiveRange(0, 1), reason: 'some of it');
+
+      await tester.drag(list, const Offset(0, -300));
+      await tester.pumpAndSettle();
+      expect(tester.getRect(find.byTooltip('Ver a capa')).top, lessThan(0), reason: 'the cover gone up under the bars');
+      expect(bar().a, 1, reason: 'all of it');
+      expect((tester.getRect(find.byType(BackButton)), tester.getRect(title)), (arrow, name), reason: 'the bar stays');
+
+      await tester.tap(find.byType(BackButton));
+      await tester.pumpAndSettle();
+      await opened;
+      expect(find.byType(BackButton), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
 
   testWidgets('on a wide screen, the album\'s name and byline are beside its cover, the play button under them', (
     tester,
@@ -329,43 +356,38 @@ void main() {
   });
 
   testWidgets(
-    'on a phone, they are under the cover, from the page\'s margin, the play button at the end of their line',
+    'on a phone, the byline is under the cover, from the page\'s margin, the play button at the end of its line',
     (tester) async {
       await pumpAlbum(tester, size: const Size(360, 640));
       await pushAlbum(tester);
       final cover = tester.getRect(find.byTooltip('Ver a capa'));
-      final name = tester.getRect(find.text('Toys in the Attic'));
       // The artist with their picture, which the songs' have not.
       final artist = tester.getRect(find.ancestor(of: coverOf('ar-ar1'), matching: find.byTooltip('Abrir o artista')));
       final details = tester.getRect(find.text('1975 · 2 faixas, 8 min'));
       final play = tester.getRect(playButton);
-      expect(name.top, greaterThanOrEqualTo(cover.bottom));
-      expect(artist.top, greaterThanOrEqualTo(name.bottom));
+      expect(artist.top, greaterThanOrEqualTo(cover.bottom));
       expect(details.top, greaterThanOrEqualTo(artist.bottom), reason: 'the year and the songs under the artist');
-      expect((name.left, artist.left, details.left), (16, 16, 16), reason: 'from the page\'s margin, not the cover\'s');
+      expect((artist.left, details.left), (16, 16), reason: 'from the page\'s margin, not the cover\'s');
       expect(cover.left, greaterThan(16));
       expect(play.right, 360 - 16);
 
-      for (final text in [name, artist, details]) {
+      for (final text in [artist, details]) {
         expect(play.left, greaterThanOrEqualTo(text.right));
       }
 
-      expect(play.center.dy, moreOrLessEquals((name.top + details.bottom) / 2, epsilon: 1));
+      expect(play.center.dy, moreOrLessEquals((artist.top + details.bottom) / 2, epsilon: 1));
       expect(play.bottom, lessThan(tester.getRect(song('Walk This Way')).top));
       await tester.pumpWidget(const SizedBox());
     },
   );
 
-  testWidgets('on a phone, the cover is centered, in the room the back arrow leaves on both its sides, up to 280', (
-    tester,
-  ) async {
-    for (final (width, side) in [(360.0, 360 - 2 * (kToolbarHeight + 16)), (560.0, 280.0)]) {
+  testWidgets('on a phone, the cover is centered, as wide as the page less its margins, up to 280', (tester) async {
+    for (final (width, side) in [(300.0, 300.0 - 2 * 16), (360.0, 280.0)]) {
       await pumpAlbum(tester, size: Size(width, 800));
       await pushAlbum(tester);
       final cover = find.byTooltip('Ver a capa');
       expect(tester.getSize(cover), Size.square(side), reason: '$width');
       expect(tester.getCenter(cover).dx, width / 2, reason: '$width');
-      expect(tester.getRect(find.byType(BackButton)).right, lessThanOrEqualTo(tester.getRect(cover).left));
       expect(
         find.descendant(of: cover, matching: coverAt(800)),
         findsOneWidget,

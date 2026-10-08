@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:intl/intl.dart';
@@ -15,7 +17,7 @@ import 'equalizer.dart';
 import 'errors.dart';
 import 'now_playing_bar.dart';
 import 'page_area.dart';
-import 'page_header.dart';
+import 'page_bar.dart';
 import 'release_types.dart';
 import 'song_list_header.dart';
 import 'spinner.dart';
@@ -38,6 +40,10 @@ class _AlbumPageState extends State<AlbumPage> {
 
   /// The album's release date, record labels and type, with what MusicBrainz adds to the media server's.
   Future<AlbumRelease>? _release;
+
+  /// How much of the page's color its bar has, on a phone, where the page goes on under it: none at the top of the
+  /// page, and more as the cover goes up under the bar, all of it once half the cover has.
+  final _shade = ValueNotifier<double>(0);
 
   @override
   void didChangeDependencies() {
@@ -81,6 +87,23 @@ class _AlbumPageState extends State<AlbumPage> {
     }
   }
 
+  @override
+  void dispose() {
+    _shade.dispose();
+    super.dispose();
+  }
+
+  /// Follows the page as it scrolls, on a phone, for its bar's color ([_shade]).
+  bool _followScroll(ScrollNotification notification) {
+    if (notification.depth == 0) {
+      // The cover is as wide as the page less its margins, up to 280, under a gap of 8 (_header).
+      final cover = min(MediaQuery.sizeOf(context).width - 2 * 16, 280);
+      _shade.value = (notification.metrics.pixels / (8 + cover / 2)).clamp(0, 1);
+    }
+
+    return false;
+  }
+
   Future<void> _play(List<Song> songs, int index) async {
     final result = await ServicesScope.of(context).connect.playSongs(songs, index);
 
@@ -92,8 +115,8 @@ class _AlbumPageState extends State<AlbumPage> {
 
   @override
   Widget build(BuildContext context) {
-    // On a phone, or a window as narrow (as the home counts it), the album's name is under its cover, and the songs
-    // have no header naming their columns.
+    // On a phone, or a window as narrow (as the home counts it), the album's name is in the page's bar, over its cover,
+    // and the songs have no header naming their columns.
     final narrow = MediaQuery.sizeOf(context).width < 600;
     final strings = AppLocalizations.of(context);
     return FutureBuilder(
@@ -101,28 +124,40 @@ class _AlbumPageState extends State<AlbumPage> {
       builder: (context, snapshot) {
         final data = snapshot.data;
         return Scaffold(
-          // No title: the album's name is by its cover, which is beside the back arrow.
-          appBar: PageHeader.bar(context, shown: data != null),
+          // On a phone with the name, the link's until the album comes; under a wide screen's top bar, none.
+          appBar: PageArea.holdsUnderTopBar(context)
+              ? null
+              : PageBar(
+                  title: narrow ? data?.$1.name ?? widget.album.name : null,
+                  shade: narrow && data != null ? _shade : null,
+                ),
+          // On a phone the page goes on under the bar and the system's, to the top of the screen, as it scrolls: the
+          // list, with no padding of its own, starts under them, in the room MediaQuery says they take.
+          extendBodyBehindAppBar: narrow && data != null,
           body: switch (data) {
             _ when snapshot.hasError => Center(
               child: Text(strings.couldNotOpenRelease(releaseSelector(widget.album.releaseType), '${snapshot.error}')),
             ),
             null => const Center(child: Spinner()),
-            (final album, final songs) => ListView(
-              children: [
-                // The type the media server says, then the one MusicBrainz finds, as it comes.
-                FutureBuilder(
-                  future: _release,
-                  initialData: (date: album.releaseDate, labels: album.recordLabels, type: album.releaseType),
-                  builder: (context, release) => _header(album, songs, type: release.requireData.type, narrow: narrow),
-                ),
-                if (!narrow) const SongListHeader(numbered: true),
-                for (var i = 0; i < songs.length; i++)
-                  if (i == songs.length - 1)
-                    _LastSong(_song(songs, i), album: album, release: _release!)
-                  else
-                    _song(songs, i),
-              ],
+            (final album, final songs) => NotificationListener<ScrollNotification>(
+              onNotification: narrow ? _followScroll : null,
+              child: ListView(
+                children: [
+                  // The type the media server says, then the one MusicBrainz finds, as it comes.
+                  FutureBuilder(
+                    future: _release,
+                    initialData: (date: album.releaseDate, labels: album.recordLabels, type: album.releaseType),
+                    builder: (context, release) =>
+                        _header(album, songs, type: release.requireData.type, narrow: narrow),
+                  ),
+                  if (!narrow) const SongListHeader(numbered: true),
+                  for (var i = 0; i < songs.length; i++)
+                    if (i == songs.length - 1)
+                      _LastSong(_song(songs, i), album: album, release: _release!)
+                    else
+                      _song(songs, i),
+                ],
+              ),
             ),
           },
           // The songs go on behind the player bar, slightly see-through on a phone; the list, with no padding of its
@@ -138,12 +173,12 @@ class _AlbumPageState extends State<AlbumPage> {
 
   /// The top of the page: the album's cover, its type (album, EP, ...), its name and byline, and the button that plays
   /// it. On a wide screen the name is beside the cover, the type above it, the button under them; on a narrow one
-  /// ([narrow]) the cover is centered, and the name under it, from the page's margin as the songs are, with the button
-  /// at the end of its line, and the type before the year.
+  /// ([narrow]) the name is in the page's bar (a [PageBar]), over the cover, which is centered, and the byline under the
+  /// cover, from the page's margin as the songs are, with the button at the end of its line, and the type before the
+  /// year.
   Widget _header(Album album, List<Song> songs, {required ReleaseType? type, required bool narrow}) {
     final text = Theme.of(context).textTheme;
     final strings = AppLocalizations.of(context);
-    final name = Text(album.name, style: text.titleLarge);
     final byline = _Byline(
       album,
       songs,
@@ -163,12 +198,11 @@ class _AlbumPageState extends State<AlbumPage> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          PageHeader(
-            centered: true,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              // As wide as the room the header leaves it, less a margin, up to a phone's widest; asked of the server
-              // as the player's is, which a phone's pixels need.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            // As wide as the page, less its margins, up to a phone's widest; asked of the server as the player's is,
+            // which a phone's pixels need.
+            child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 280),
                 child: AspectRatio(aspectRatio: 1, child: CoverButton(album.coverArt, size: 800)),
@@ -179,9 +213,7 @@ class _AlbumPageState extends State<AlbumPage> {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                Expanded(
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [name, byline]),
-                ),
+                Expanded(child: byline),
                 const SizedBox(width: 16),
                 play,
               ],
@@ -194,33 +226,31 @@ class _AlbumPageState extends State<AlbumPage> {
     // How big the cover is, square; asked of the server as the phone's, which a screen of more than one pixel per point
     // needs at this size.
     const size = 220.0;
-    return PageHeader(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(0, 16, 16, 16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox.square(dimension: size, child: CoverButton(album.coverArt, size: 800)),
-            const SizedBox(width: 16),
-            // Centered on the cover, which stays at the top where a long name and its byline beside it are taller.
-            Expanded(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(minHeight: size),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (type != null) Text(releaseTypeName(strings, type), style: text.labelLarge),
-                    name,
-                    byline,
-                    const SizedBox(height: 12),
-                    play,
-                  ],
-                ),
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox.square(dimension: size, child: CoverButton(album.coverArt, size: 800)),
+          const SizedBox(width: 16),
+          // Centered on the cover, which stays at the top where a long name and its byline beside it are taller.
+          Expanded(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: size),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (type != null) Text(releaseTypeName(strings, type), style: text.labelLarge),
+                  Text(album.name, style: text.titleLarge),
+                  byline,
+                  const SizedBox(height: 12),
+                  play,
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

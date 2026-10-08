@@ -13,7 +13,7 @@ import 'current_song.dart';
 import 'errors.dart';
 import 'now_playing_bar.dart';
 import 'page_area.dart';
-import 'page_header.dart';
+import 'page_bar.dart';
 import 'release_types.dart';
 import 'segmented_choice.dart';
 import 'song_list_header.dart';
@@ -35,9 +35,10 @@ class _ArtistPageState extends State<ArtistPage> {
   Future<(Artist, List<Album>)>? _artist;
   Future<List<Song>>? _mostPlayed;
 
-  /// Whether the page, on a phone, has gone up past the artist's picture, which shows under the system's bar until
-  /// then: the bar then has the page's color.
-  bool _pastPicture = false;
+  /// How much of the page's color its bar has, on a phone, over the artist's picture: none at the top of the page, where
+  /// the picture's fade is under the name, and more as the page scrolls, all of it once half the picture has gone up
+  /// under the bar, so that the name stays as easy to read over what passes under it.
+  final _shade = ValueNotifier<double>(0);
 
   @override
   void didChangeDependencies() {
@@ -48,20 +49,32 @@ class _ArtistPageState extends State<ArtistPage> {
   }
 
   @override
+  void dispose() {
+    _shade.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final strings = AppLocalizations.of(context);
-    // On a phone, or a window as narrow (as the home counts it), the picture goes across the top of the page, the name
-    // over it: beside it, a picture of some size would leave the name no room.
+    // On a phone, or a window as narrow (as the home counts it), the picture goes across the top of the page, under its
+    // bar, which has the name: beside it, a picture of some size would leave the name no room.
     final narrow = MediaQuery.sizeOf(context).width < 600;
     return FutureBuilder(
       future: _artist,
       builder: (context, snapshot) {
         final data = snapshot.data;
         return Scaffold(
-          // No title: the artist's name is by their picture, or over it, beside the back arrow.
-          appBar: PageHeader.bar(context, shown: data != null, seeThrough: narrow && !_pastPicture),
-          // On a phone the picture goes on under the system's bar, to the top of the screen.
+          // On a phone with the name, the link's until the artist comes, then over their picture; under a wide
+          // screen's top bar, none.
+          appBar: PageArea.holdsUnderTopBar(context)
+              ? null
+              : PageBar(
+                  title: narrow ? data?.$1.name ?? widget.artist.name : null,
+                  shade: narrow && data != null ? _shade : null,
+                ),
+          // On a phone the picture goes on under the bar and the system's, to the top of the screen.
           extendBodyBehindAppBar: narrow && data != null,
           body: switch (data) {
             _ when snapshot.hasError => Center(child: Text(strings.couldNotOpenArtistError('${snapshot.error}'))),
@@ -108,13 +121,10 @@ class _ArtistPageState extends State<ArtistPage> {
     return min(screen.width, screen.height / 2);
   }
 
-  /// Follows the page as it scrolls, on a phone, to tell when it has gone up past the artist's picture ([_pastPicture]):
-  /// when the picture's bottom, where it has faded to the page's color, reaches the system's bar.
+  /// Follows the page as it scrolls, on a phone, for its bar's color ([_shade]).
   bool _followScroll(ScrollNotification notification) {
-    final past = notification.metrics.pixels >= _pictureHeight;
-
-    if (notification.depth == 0 && past != _pastPicture) {
-      setState(() => _pastPicture = past);
+    if (notification.depth == 0) {
+      _shade.value = (notification.metrics.pixels / (_pictureHeight / 2)).clamp(0, 1);
     }
 
     return false;
@@ -122,10 +132,10 @@ class _ArtistPageState extends State<ArtistPage> {
 
   /// The top of the page, down to the artist's [songs] and the choice of their lists, or its title ([heading]). On a
   /// wide screen the picture is round, the name beside it, with how many albums they have. On a narrow one ([narrow])
-  /// it goes across the page from the top of the screen, under the system's bar, the name centered over it on the back
-  /// arrow's line and the heading over its bottom, with how many albums they have at the end of its line, where it
-  /// fades to the page's color (darker in the dark theme, lighter in the light one), as it does a little under the bar
-  /// and the name.
+  /// it goes across the page from the top of the screen, under the page's bar, which has the name (a [PageBar]), and
+  /// the system's; the heading is over its bottom, with how many albums they have at the end of its line, where it
+  /// fades to the page's color (darker in the dark theme, lighter in the light one), as it does a little under the
+  /// bars.
   Widget _header(Artist artist, List<Album> albums, Widget? heading, List<Widget> songs, {required bool narrow}) {
     final text = Theme.of(context).textTheme;
     final strings = AppLocalizations.of(context);
@@ -133,7 +143,7 @@ class _ArtistPageState extends State<ArtistPage> {
     final count = Text(_count(strings, albums), style: text.bodyMedium);
 
     if (narrow) {
-      // The system's bar, which the picture goes on under.
+      // The system's bar, which the picture goes on under, as under the page's.
       final top = MediaQuery.paddingOf(context).top;
       final height = top + _pictureHeight;
       final surface = Theme.of(context).colorScheme.surface;
@@ -174,26 +184,8 @@ class _ArtistPageState extends State<ArtistPage> {
                   child: LargeCover(picture, size: 1200, icon: HugeIcons.strokeRoundedUser),
                 ),
               ),
-              Padding(
-                padding: EdgeInsets.only(top: top),
-                child: PageHeader(
-                  centered: true,
-                  // On the arrow's line, as a top bar's title.
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(minHeight: kToolbarHeight),
-                    child: Center(
-                      child: Text(
-                        artist.name,
-                        style: text.titleLarge,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              // With how many albums they have at the end of its line; with no heading, alone at the end.
+              // The heading over the picture's bottom, with how many albums they have at the end of its line; with no
+              // heading, that alone at the end.
               Positioned(
                 left: 0,
                 right: 0,
@@ -215,28 +207,26 @@ class _ArtistPageState extends State<ArtistPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        PageHeader(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(0, 16, 16, 0),
-            child: Row(
-              children: [
-                // As big as an album's cover on its page, and asked of the server as that one is.
-                SizedBox.square(
-                  dimension: 220,
-                  child: ClipOval(child: LargeCover(picture, size: 800, icon: HugeIcons.strokeRoundedUser)),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+          child: Row(
+            children: [
+              // As big as an album's cover on its page, and asked of the server as that one is.
+              SizedBox.square(
+                dimension: 220,
+                child: ClipOval(child: LargeCover(picture, size: 800, icon: HugeIcons.strokeRoundedUser)),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(artist.name, style: text.titleLarge),
+                    count,
+                  ],
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(artist.name, style: text.titleLarge),
-                      count,
-                    ],
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
         ?heading,
