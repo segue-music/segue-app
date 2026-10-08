@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:http/http.dart' as http;
 
@@ -12,14 +13,23 @@ typedef AlbumRelease = ({ReleaseDate? date, List<String> labels, ReleaseType? ty
 /// What MusicBrainz has of an album: dates, the one to show first first, labels and its type.
 typedef _Found = ({List<ReleaseDate> dates, List<String> labels, ReleaseType? type});
 
-/// The years a band (a group, an orchestra, a choir) has been together, as its biography shows them: the one it formed
-/// in ([begin]) and, where it has broken up ([ended]), the one it broke up in ([end]). Null where MusicBrainz doesn't
-/// know it, but never both.
+/// The years a band (a group, an orchestra, a choir) has been together, or one of its members has been in it, as its
+/// biography shows them: the one it began in ([begin]) and, where it has ended ([ended]), the one it ended in ([end]).
+/// Null where MusicBrainz doesn't know it, but never both.
 typedef BandYears = ({int? begin, int? end, bool ended});
 
+/// One of a band's members, as its biography lists them: their MusicBrainz id and name, whether they are in it now
+/// ([current]), and the years they have been in it, a span for each time, the first first (two for one who left and
+/// came back); none where MusicBrainz knows none.
+typedef BandMember = ({String id, String name, bool current, List<BandYears> years});
+
+/// What MusicBrainz knows of a band, as its biography shows it: the years it has been together (none where it knows
+/// none) and its members, in the order they came in ([_members]).
+typedef Band = ({BandYears? years, List<BandMember> members});
+
 /// MusicBrainz (musicbrainz.org), the open database of music releases: where an album's release date, record labels
-/// and type come from when the media server doesn't say them, and the years a band has been together, which it never
-/// says.
+/// and type come from when the media server doesn't say them, and the years a band has been together and its members,
+/// which it never says.
 class MusicBrainz {
   MusicBrainz({http.Client? client, Uri? base, this.spacing = const Duration(seconds: 1)})
     : _http = client ?? http.Client(),
@@ -44,8 +54,8 @@ class MusicBrainz {
   /// nothing.
   final _found = <String, Future<_Found>>{};
 
-  /// The years of each band looked up, by its MusicBrainz id, for the session.
-  final _bands = <String, Future<BandYears?>>{};
+  /// Each band looked up, by its MusicBrainz id, for the session.
+  final _bands = <String, Future<Band?>>{};
 
   /// [album]'s release date, record labels and type: the media server's, with what MusicBrainz adds where it says
   /// nothing, or less. A date where it has none, or one more precise than its own that agrees with it (the same year,
@@ -132,10 +142,11 @@ class MusicBrainz {
     );
   }
 
-  /// The years [artist] has been together, by their MusicBrainz id, where they are a band: a person's years in
+  /// What MusicBrainz knows of [artist] as a band, by their MusicBrainz id: the years they have been together, and,
+  /// for a group, their members (not an orchestra's or a choir's, which would be a crowd). A person's years in
   /// MusicBrainz are those of their life, not of their music. None for an artist without that id, a person (or one
-  /// MusicBrainz doesn't know as a band), a band MusicBrainz knows no year of, and when it fails.
-  Future<BandYears?> bandYears(Artist artist) async {
+  /// MusicBrainz doesn't know as a band), a band MusicBrainz knows neither of, and when it fails.
+  Future<Band?> band(Artist artist) async {
     final id = artist.musicBrainzId;
 
     if (id == null) {
@@ -151,16 +162,17 @@ class MusicBrainz {
     }
   }
 
-  /// The years of the band whose MusicBrainz id is [id], from its life span.
-  Future<BandYears?> _band(String id) async {
-    final found = await _get('artist/${Uri.encodeComponent(id)}', const {});
+  /// The band whose MusicBrainz id is [id]: its years, from its life span, and its members, from its relations.
+  Future<Band?> _band(String id) async {
+    final found = await _get('artist/${Uri.encodeComponent(id)}', const {'inc': 'artist-rels'});
 
-    if (found case {'type': 'Group' || 'Orchestra' || 'Choir', 'life-span': final Map<String, dynamic> span}) {
-      final begin = _date(span['begin'])?.year;
-      final end = _date(span['end'])?.year;
-      return begin == null && end == null
-          ? null
-          : (begin: begin, end: end, ended: end != null || span['ended'] == true);
+    if (found case {'type': final String type} when const {'Group', 'Orchestra', 'Choir'}.contains(type)) {
+      final years = switch (found['life-span']) {
+        final Map<String, dynamic> span => _years(span),
+        _ => null,
+      };
+      final members = type == 'Group' ? _members(found['relations']) : const <BandMember>[];
+      return years == null && members.isEmpty ? null : (years: years, members: members);
     }
 
     return null;
@@ -199,6 +211,104 @@ class MusicBrainz {
   }
 
   void close() => _http.close();
+}
+
+/// The years of a life span of MusicBrainz's, or of a relation's dates; none where it knows neither year.
+BandYears? _years(Map<String, dynamic> dates) {
+  final begin = _date(dates['begin'])?.year;
+  final end = _date(dates['end'])?.year;
+  return begin == null && end == null ? null : (begin: begin, end: end, ended: end != null || dates['ended'] == true);
+}
+
+/// A band's members, from its [relations]: whoever MusicBrainz says has been a member of it, once, with each time they
+/// have been, though it says it once for each instrument. In the order they came in: by the year they first did (those
+/// it knows no year of last), of those who came the same year the one who has stayed longest first, then by their
+/// names, as MusicBrainz sorts them (by surname).
+List<BandMember> _members(Object? relations) {
+  final names = <String, String>{};
+  final sortNames = <String, String>{};
+  final spans = <String, List<BandYears>>{};
+  final current = <String>{};
+
+  for (final relation in relations as List? ?? const []) {
+    // A band's relation to a member goes backward: the member is a member of the band.
+    if (relation case {
+      'type': 'member of band',
+      'direction': 'backward',
+      'artist': {'id': final String id, 'name': final String name},
+    }) {
+      final dates = relation as Map<String, dynamic>;
+      names[id] = name;
+      sortNames[id] = (dates['artist'] as Map<String, dynamic>)['sort-name'] as String? ?? name;
+      (spans[id] ??= []).addAll([?_years(dates)]);
+
+      if (dates['ended'] != true && dates['end'] == null) {
+        current.add(id);
+      }
+    }
+  }
+
+  final members = [
+    for (final MapEntry(key: id, value: name) in names.entries)
+      (id: id, name: name, current: current.contains(id), years: _merged(spans[id]!)),
+  ];
+  // The year they first came in, or one past any.
+  int arrival(BandMember member) => member.years.map((span) => span.begin).nonNulls.firstOrNull ?? 1 << 30;
+
+  return members..sort((a, b) {
+    final earlier = arrival(a).compareTo(arrival(b));
+    final longer = _length(b.years).compareTo(_length(a.years));
+    return earlier != 0 ? earlier : (longer != 0 ? longer : sortNames[a.id]!.compareTo(sortNames[b.id]!));
+  });
+}
+
+/// [spans] in order, those that overlap one: a member's are one for each instrument they have played, and a span
+/// that hasn't ended takes in any after it.
+List<BandYears> _merged(List<BandYears> spans) {
+  // Those whose start isn't known first.
+  final sorted = [...spans]..sort((a, b) => (a.begin ?? -1).compareTo(b.begin ?? -1));
+  final merged = <BandYears>[];
+
+  for (final span in sorted) {
+    final last = merged.lastOrNull;
+    final overlaps =
+        last != null && (!last.ended || (last.end != null && span.begin != null && span.begin! <= last.end!));
+
+    if (!overlaps) {
+      merged.add(span);
+      continue;
+    }
+
+    final ended = last.ended && span.ended;
+    merged.last = (
+      begin: last.begin ?? span.begin,
+      end: switch ((last.end, span.end)) {
+        _ when !ended => null,
+        (final int one, final int other) => max(one, other),
+        (final one, final other) => one ?? other,
+      },
+      ended: ended,
+    );
+  }
+
+  return merged;
+}
+
+/// How many years [spans] add up to: forever with one that hasn't ended, none for one with a year not known.
+int _length(List<BandYears> spans) {
+  var years = 0;
+
+  for (final span in spans) {
+    switch (span) {
+      case (begin: _, end: _, ended: false):
+        return 1 << 30;
+      case (begin: final int begin, end: final int end, ended: _):
+        years += end - begin;
+      default:
+    }
+  }
+
+  return years;
 }
 
 /// Whether [name] is one of MusicBrainz's labels that stand for none, as "[no label]".

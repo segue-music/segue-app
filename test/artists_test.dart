@@ -38,8 +38,9 @@ http.Response subsonic(Map<String, Object?> body) => http.Response(
   headers: {'content-type': 'application/json'},
 );
 
-/// A server with three artists: Aerosmith, with two albums, none of them played, and a single and an EP, Cheap Trick,
-/// with one album, six of whose songs have played, and Ramones, with none. A search for "toys" finds an album; any other, the artist Aerosmith.
+/// A server with four artists: Aerosmith, with two albums, none of them played, and a single and an EP, Cheap Trick,
+/// with one album, six of whose songs have played, Joe Perry, a member of Aerosmith by their MusicBrainz id, whose
+/// albums it doesn't give, and Ramones, with none. A search for "toys" finds an album; any other, the artist Aerosmith.
 /// Unless [played], nothing has played: not even Cheap Trick's songs. Cheap Trick's popular songs are three of that
 /// album's, Big Eyes first; the others' fail, as on a server that has none to give. Aerosmith has a biography, Last.fm's,
 /// a MusicBrainz id, and Cheap Trick and Ramones as the artists like them; the others have neither, which fails too.
@@ -90,6 +91,12 @@ http.Response server(http.Request request, {bool played = true}) {
             ],
           },
           {
+            'name': 'J',
+            'artist': [
+              {'id': 'ar4', 'name': 'Joe Perry', 'albumCount': 3, 'musicBrainzId': 'mb-perry'},
+            ],
+          },
+          {
             'name': 'R',
             'artist': [
               {'id': 'ar3', 'name': 'Ramones', 'albumCount': 0},
@@ -125,6 +132,12 @@ http.Response server(http.Request request, {bool played = true}) {
           {'id': 'a3', 'name': 'In Color', 'artist': 'Cheap Trick', 'year': 1977, 'playCount': ?(played ? 7 : null)},
         ],
       },
+    });
+  }
+
+  if (path.endsWith('getArtist.view') && id == 'ar4') {
+    return subsonic({
+      'artist': {'id': 'ar4', 'name': 'Joe Perry', 'albumCount': 0, 'musicBrainzId': 'mb-perry'},
     });
   }
 
@@ -970,6 +983,131 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  for (final (screen, size) in [('a wide screen', const Size(1000, 700)), ('a phone', const Size(360, 640))]) {
+    testWidgets('on $screen, a band\'s members, under its biography, are links to the pages of those in the library '
+        'too, which open as the biography closes', (tester) async {
+      final brainz = MusicBrainz(
+        spacing: Duration.zero,
+        client: MockClient(
+          (request) async => http.Response(
+            jsonEncode({
+              'id': 'mb1',
+              'type': 'Group',
+              'life-span': {'begin': '1970', 'end': null, 'ended': false},
+              'relations': [
+                for (final (id, name, begin, end) in [
+                  ('mb-perry', 'Joe Perry', '1970-10', '1979-07'),
+                  ('mb-tyler', 'Steven Tyler', '1970-10', null),
+                  ('mb-tabano', 'Ray Tabano', '1970-10', '1971-04'),
+                  ('mb-perry', 'Joe Perry', '1984-04', null),
+                ])
+                  {
+                    'type': 'member of band',
+                    'direction': 'backward',
+                    'begin': begin,
+                    'end': end,
+                    'ended': end != null,
+                    'artist': {'id': id, 'name': name, 'sort-name': name},
+                  },
+              ],
+            }),
+            200,
+          ),
+        ),
+      );
+      await pumpHome(tester, size, musicBrainz: brainz);
+      await tester.tap(size.width < 600 ? find.text('Artistas') : find.byTooltip('Artistas'));
+      await tester.pumpAndSettle();
+      await tester.tap(tile('Aerosmith'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.descendant(of: find.byType(ArtistPage), matching: find.byTooltip('Ver a biografia')));
+      await tester.pumpAndSettle();
+
+      final page = find.byType(BiographyPage);
+      Finder inPage(String text) => find.descendant(of: page, matching: find.text(text));
+      await tester.scrollUntilVisible(
+        inPage('Ray Tabano'),
+        100,
+        scrollable: find.descendant(of: page, matching: find.byType(Scrollable)),
+      );
+      expect(inPage('Integrantes'), findsOneWidget);
+      expect(inPage('Ex-integrantes'), findsOneWidget);
+      expect(inPage('1970\u00a0–\u00a01979, desde\u00a01984'), findsOneWidget);
+      expect(
+        find.descendant(of: page, matching: find.byTooltip('Abrir o artista')),
+        findsOneWidget,
+        reason: 'Joe Perry alone is in the library',
+      );
+
+      await tester.tap(inPage('Joe Perry'));
+      await tester.pumpAndSettle();
+      expect(page, findsNothing);
+      expect(artistName('Joe Perry'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
+  }
+
+  testWidgets('a band\'s members, one a line, their years beside them, lined up: those it has now, then those it had; '
+      'where it has broken up, all of them under one title', (tester) async {
+    BandMember member(String name, List<BandYears> years, {bool current = false}) =>
+        (id: name, name: name, current: current, years: years);
+
+    Future<void> pump(Band band) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: const [Locale('pt')],
+          home: BiographyPage(
+            const Biography(['Aerosmith is an American rock band.']),
+            name: 'Aerosmith',
+            band: Future.value(band),
+          ),
+        ),
+      );
+      await tester.pump();
+    }
+
+    await pump((
+      years: (begin: 1970, end: null, ended: false),
+      members: [
+        member('Steven Tyler', [(begin: 1970, end: null, ended: false)], current: true),
+        member('Joe Perry', [
+          (begin: 1970, end: 1979, ended: true),
+          (begin: 1984, end: null, ended: false),
+        ], current: true),
+        member('Ray Tabano', [(begin: 1970, end: 1971, ended: true)]),
+        member('Tommy Moore', [(begin: 1960, end: 1960, ended: true)]),
+      ],
+    ));
+    final perry = find.text('1970\u00a0–\u00a01979, desde\u00a01984');
+    final tyler = find.text('desde\u00a01970');
+    expect(find.text('1970\u00a0–\u00a01971'), findsOneWidget);
+    expect(find.text('1960'), findsOneWidget, reason: 'in one year alone');
+    final lines = ['Integrantes', 'Steven Tyler', 'Joe Perry', 'Ex-integrantes', 'Ray Tabano', 'Tommy Moore'];
+
+    // Those it has now, then those it had, each in the order they came.
+    for (final (i, text) in lines.indexed.skip(1)) {
+      expect(tester.getTopLeft(find.text(text)).dy, greaterThan(tester.getTopLeft(find.text(lines[i - 1])).dy));
+    }
+
+    // Their first line, where they wrap (as here, in the tests' wide letters).
+    expect(tester.getTopLeft(perry).dy, tester.getTopLeft(find.text('Joe Perry')).dy, reason: 'beside the name');
+    expect(tester.getTopLeft(perry).dx, tester.getTopLeft(tyler).dx, reason: 'lined up');
+    expect(tester.getTopLeft(tyler).dx, greaterThan(tester.getTopRight(find.text('Steven Tyler')).dx));
+    expect(find.byTooltip('Abrir o artista'), findsNothing, reason: 'none in the library');
+
+    await pump((
+      years: (begin: 1960, end: 1970, ended: true),
+      members: [
+        member('Paul McCartney', [(begin: 1960, end: 1970, ended: true)]),
+        member('Pete Best', [(begin: 1960, end: 1962, ended: true)]),
+      ],
+    ));
+    expect(find.text('Integrantes'), findsOneWidget);
+    expect(find.text('Ex-integrantes'), findsNothing);
+    expect(find.text('Pete Best'), findsOneWidget);
+  });
+
   testWidgets('a band\'s years: since it formed, from one to the other, until it broke up, or to a year not known; '
       'an artist without them, their name alone', (tester) async {
     for (final (BandYears? years, text) in [
@@ -987,7 +1125,7 @@ void main() {
           home: BiographyPage(
             const Biography(['Os Mutantes are a Brazilian rock band.']),
             name: 'Os Mutantes',
-            years: Future.value(years),
+            band: Future.value(years == null ? null : (years: years, members: const <BandMember>[])),
           ),
         ),
       );

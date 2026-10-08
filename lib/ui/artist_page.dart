@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../l10n/app_localizations.dart';
+import '../releases/musicbrainz.dart';
 import '../server/models.dart';
 import '../services.dart';
 import 'albums_view.dart';
@@ -341,13 +342,20 @@ class _ArtistPageState extends State<ArtistPage> {
               tooltip: strings.showBiography,
               icon: const ThemedIcon(HugeIcons.strokeRoundedBookUser),
               visualDensity: VisualDensity.compact,
-              onPressed: () => BiographyPage.open(
-                context,
-                biography,
-                name: artist.name,
-                picture: artist.coverArt ?? widget.artist.coverArt,
-                years: ServicesScope.of(context).musicBrainz?.bandYears(artist),
-              ),
+              onPressed: () {
+                final band = ServicesScope.of(context).musicBrainz?.band(artist);
+                BiographyPage.open(
+                  context,
+                  biography,
+                  name: artist.name,
+                  picture: artist.coverArt ?? widget.artist.coverArt,
+                  band: band,
+                  inLibrary: band == null ? null : _membersInLibrary(band),
+                  // Over this page, as the biography closes.
+                  onOpenArtist: (member) =>
+                      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ArtistPage(member))),
+                );
+              },
             ),
           ],
         ),
@@ -383,6 +391,26 @@ class _ArtistPageState extends State<ArtistPage> {
       };
     },
   );
+
+  /// The library's artists among [band]'s members, by their MusicBrainz ids: all the library's are asked of the server
+  /// only once the band has members. None where the server can't say, or doesn't give their ids.
+  Future<Map<String, Artist>> _membersInLibrary(Future<Band?> band) async {
+    final api = ServicesScope.of(context).api;
+    final members = {for (final member in (await band)?.members ?? const <BandMember>[]) member.id};
+
+    if (members.isEmpty) {
+      return const {};
+    }
+
+    try {
+      return {
+        for (final artist in await api.artists())
+          if (artist.musicBrainzId case final id? when members.contains(id)) id: artist,
+      };
+    } on Object {
+      return const {};
+    }
+  }
 
   /// How many of [albums] are albums, and singles and EPs, as the sections under part them: "8 álbuns · 4 singles e
   /// EPs", "8 álbuns · 1 EP", "2 singles"; "0 álbuns" with none.

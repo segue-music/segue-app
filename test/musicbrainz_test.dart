@@ -79,6 +79,28 @@ Map<String, Object?> lifeSpan({String type = 'Group', String? begin, String? end
   'life-span': {'begin': begin, 'end': end, 'ended': ended},
 };
 
+/// A relation of a band's to one of its members, [name], whose MusicBrainz id is [id] (and sort name [sortName]), from
+/// [begin] to [end], in which they played [attributes]: as MusicBrainz gives it, one for each time and instrument.
+Map<String, Object?> membership(
+  String id,
+  String name, {
+  String? sortName,
+  String? begin,
+  String? end,
+  bool? ended,
+  List<String> attributes = const [],
+  String type = 'member of band',
+  String direction = 'backward',
+}) => {
+  'type': type,
+  'direction': direction,
+  'begin': begin,
+  'end': end,
+  'ended': ended ?? end != null,
+  'attributes': attributes,
+  'artist': {'id': id, 'name': name, 'sort-name': sortName ?? name, 'type': 'Person'},
+};
+
 /// Os Mutantes, as the media server gives them, with their MusicBrainz id.
 const mutantes = Artist(id: 'ar1', name: 'Os Mutantes', musicBrainzId: 'mb1');
 
@@ -289,11 +311,11 @@ void main() {
         artist: lifeSpan(begin: '1966-05', end: '1978', ended: true),
         asked: asked,
       );
-      expect(await brainz.bandYears(mutantes), (begin: 1966, end: 1978, ended: true));
+      expect((await brainz.band(mutantes))?.years, (begin: 1966, end: 1978, ended: true));
       final url = asked.single.url;
       expect(url.path, '/ws/2/artist/mb1');
-      expect(url.queryParameters, {'fmt': 'json'});
-      await brainz.bandYears(mutantes);
+      expect(url.queryParameters, {'inc': 'artist-rels', 'fmt': 'json'}, reason: 'its members too');
+      await brainz.band(mutantes);
       expect(asked, hasLength(1), reason: 'what it found, it asks no more');
     },
   );
@@ -306,7 +328,7 @@ void main() {
       (lifeSpan(type: 'Orchestra', begin: '1842'), (begin: 1842, end: null, ended: false)),
       (lifeSpan(type: 'Choir', begin: '1498'), (begin: 1498, end: null, ended: false)),
     ]) {
-      expect(await musicBrainz(artist: span).bandYears(mutantes), years, reason: '$span');
+      expect((await musicBrainz(artist: span).band(mutantes))?.years, years, reason: '$span');
     }
   });
 
@@ -321,18 +343,157 @@ void main() {
         lifeSpan(ended: true),
         {'id': 'mb1', 'name': 'Os Mutantes', 'type': null},
       ]) {
-        expect(await musicBrainz(artist: span).bandYears(mutantes), isNull, reason: '$span');
+        expect(await musicBrainz(artist: span).band(mutantes), isNull, reason: '$span');
       }
 
       final brainz = musicBrainz(
         artist: lifeSpan(begin: '1966'),
         asked: asked,
       );
-      expect(await brainz.bandYears(const Artist(id: 'ar1', name: 'Os Mutantes')), isNull);
+      expect(await brainz.band(const Artist(id: 'ar1', name: 'Os Mutantes')), isNull);
       expect(asked, isEmpty);
-      expect(await musicBrainz().bandYears(mutantes), isNull, reason: 'an id MusicBrainz no longer has');
+      expect(await musicBrainz().band(mutantes), isNull, reason: 'an id MusicBrainz no longer has');
     },
   );
+
+  test('a group\'s members, from its relations: each once, with each time they have been in it, the first first, and '
+      'whether they are in it now; in the order they came in, those who came together by name', () async {
+    final band = await musicBrainz(
+      artist: {
+        ...lifeSpan(begin: '1970'),
+        'relations': [
+          membership('tabano', 'Ray Tabano', sortName: 'Tabano, Ray', begin: '1970-10', end: '1971-04'),
+          membership('perry', 'Joe Perry', sortName: 'Perry, Joe', begin: '1970-10', end: '1979-07'),
+          // One for each instrument, the same years.
+          membership('hamilton', 'Tom Hamilton', sortName: 'Hamilton, Tom', begin: '1970-10', attributes: ['bass']),
+          membership('hamilton', 'Tom Hamilton', sortName: 'Hamilton, Tom', begin: '1970-10', attributes: ['vocals']),
+          membership('tyler', 'Steven Tyler', sortName: 'Tyler, Steven', begin: '1970-10'),
+          membership('whitford', 'Brad Whitford', sortName: 'Whitford, Brad', begin: '1971-04', end: '1981-07'),
+          membership('crespo', 'Jimmy Crespo', sortName: 'Crespo, Jimmy', begin: '1979-07', end: '1984-04'),
+          // Who left and came back.
+          membership('perry', 'Joe Perry', sortName: 'Perry, Joe', begin: '1984-04'),
+          membership('whitford', 'Brad Whitford', sortName: 'Whitford, Brad', begin: '1984-04'),
+          // Not members of it: a band it is a member of, and musicians who have played with it.
+          membership('supergroup', 'A Supergroup', begin: '1990', direction: 'forward'),
+          membership('session', 'Richie Supa', begin: '1974', type: 'instrumental supporting musician'),
+        ],
+      },
+    ).band(mutantes);
+    expect(band?.years, (begin: 1970, end: null, ended: false));
+    // As lists: a record's list equals only itself.
+    expect(
+      [
+        for (final member in band!.members) [member.id, member.name, member.current, member.years],
+      ],
+      [
+        [
+          'hamilton',
+          'Tom Hamilton',
+          true,
+          [(begin: 1970, end: null, ended: false)],
+        ],
+        [
+          'perry',
+          'Joe Perry',
+          true,
+          [(begin: 1970, end: 1979, ended: true), (begin: 1984, end: null, ended: false)],
+        ],
+        [
+          'tyler',
+          'Steven Tyler',
+          true,
+          [(begin: 1970, end: null, ended: false)],
+        ],
+        // Of those who came in 1970, the one who left the next year last.
+        [
+          'tabano',
+          'Ray Tabano',
+          false,
+          [(begin: 1970, end: 1971, ended: true)],
+        ],
+        [
+          'whitford',
+          'Brad Whitford',
+          true,
+          [(begin: 1971, end: 1981, ended: true), (begin: 1984, end: null, ended: false)],
+        ],
+        [
+          'crespo',
+          'Jimmy Crespo',
+          false,
+          [(begin: 1979, end: 1984, ended: true)],
+        ],
+      ],
+    );
+  });
+
+  test('a band that has broken up: of its members who came in together, the one who stayed longest first; times that '
+      'overlap, one; a member it knows no year of, last', () async {
+    final band = await musicBrainz(
+      artist: {
+        ...lifeSpan(begin: '1960-03-27', end: '1970-04-10', ended: true),
+        'relations': [
+          membership('sutcliffe', 'Stuart Sutcliffe', begin: '1960-01', end: '1961'),
+          membership('nobody', 'Someone', ended: true),
+          membership('lennon', 'John Lennon', begin: '1960', end: '1969-09'),
+          membership('mccartney', 'Paul McCartney', begin: '1960', end: '1965'),
+          membership('mccartney', 'Paul McCartney', begin: '1963', end: '1970-04-10'),
+          membership('starr', 'Ringo Starr', begin: '1962-08', end: '1970-04-10'),
+          membership('moore', 'Tommy Moore', begin: '1960-05', end: '1960-06'),
+        ],
+      },
+    ).band(mutantes);
+    expect(band?.years, (begin: 1960, end: 1970, ended: true));
+    expect(
+      [
+        for (final member in band!.members) [member.name, member.years],
+      ],
+      [
+        [
+          'Paul McCartney',
+          [(begin: 1960, end: 1970, ended: true)],
+        ],
+        [
+          'John Lennon',
+          [(begin: 1960, end: 1969, ended: true)],
+        ],
+        [
+          'Stuart Sutcliffe',
+          [(begin: 1960, end: 1961, ended: true)],
+        ],
+        [
+          'Tommy Moore',
+          [(begin: 1960, end: 1960, ended: true)],
+        ],
+        [
+          'Ringo Starr',
+          [(begin: 1962, end: 1970, ended: true)],
+        ],
+        ['Someone', isEmpty],
+      ],
+    );
+    expect(band.members.where((member) => member.current), isEmpty);
+  });
+
+  test('an orchestra\'s and a choir\'s years, but not their members, who would be a crowd; a group\'s members, with '
+      'no years', () async {
+    final relations = [membership('m1', 'Someone', begin: '1990')];
+
+    for (final type in ['Orchestra', 'Choir']) {
+      final band = await musicBrainz(
+        artist: {
+          ...lifeSpan(type: type, begin: '1882'),
+          'relations': relations,
+        },
+      ).band(mutantes);
+      expect(band?.years, (begin: 1882, end: null, ended: false), reason: type);
+      expect(band?.members, isEmpty, reason: type);
+    }
+
+    final group = await musicBrainz(artist: {...lifeSpan(), 'relations': relations}).band(mutantes);
+    expect(group?.years, isNull);
+    expect([for (final member in group!.members) member.name], ['Someone']);
+  });
 
   test('a band\'s years that fail are none, and asked again the next time', () async {
     var status = 500;
@@ -344,9 +505,9 @@ void main() {
         return status == 200 ? json(lifeSpan(begin: '1966')) : http.Response('', status);
       }),
     );
-    expect(await brainz.bandYears(mutantes), isNull);
+    expect(await brainz.band(mutantes), isNull);
     status = 200;
-    expect(await brainz.bandYears(mutantes), (begin: 1966, end: null, ended: false));
+    expect((await brainz.band(mutantes))?.years, (begin: 1966, end: null, ended: false));
     expect(asked, hasLength(2));
   });
 

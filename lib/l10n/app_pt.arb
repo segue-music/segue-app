@@ -184,6 +184,29 @@
       }
     }
   },
+  "bandMembers": "Integrantes",
+  "@bandMembers": {
+    "description": "In a band's biography, the title over its members: those it has now, or, where it has broken up, all it had."
+  },
+  "formerBandMembers": "Ex-integrantes",
+  "@formerBandMembers": {
+    "description": "In a band's biography, the title over the members it had, who have left it."
+  },
+  "memberYears": "{kind, select, since{desde {begin}} until{até {end}} endUnknown{{begin} – ?} same{{begin}} other{{begin} – {end}}}",
+  "@memberYears": {
+    "description": "In a band's biography, beside a member's name, one of the times they have been in the band, as MusicBrainz knows it, by kind: since the year they came in (begin), while they are in it; until the year they left (end), where the one they came in isn't known; from the year they came in to one that isn't known; in one year alone (begin); from one year to the other. A member who left and came back has two, apart by commas.",
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      },
+      "begin": {
+        "type": "int"
+      },
+      "end": {
+        "type": "int"
+      }
+    }
+  },
   "turnShuffleOff": "Desativar aleatório",
   "@turnShuffleOff": {
     "description": "The tooltip of the shuffle button while it shuffles."

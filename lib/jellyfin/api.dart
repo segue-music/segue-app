@@ -236,10 +236,11 @@ class JellyfinApi implements MediaServer {
     );
   }
 
-  /// Every album artist, by name, as Subsonic's getArtists lists them.
+  /// Every album artist, by name, as Subsonic's getArtists lists them, with their MusicBrainz ids, which a band's
+  /// biography finds its members in the library by (ProviderIds, which come only when asked for).
   @override
   Future<List<Artist>> artists() async => [
-    for (final json in await _albumArtists({'SortBy': 'SortName'})) _artist(json),
+    for (final json in await _albumArtists({'SortBy': 'SortName', 'Fields': 'ProviderIds'})) _artist(json),
   ];
 
   /// An artist's plays are those of the songs they are an album artist of, added up, among the user's most played
@@ -292,8 +293,8 @@ class JellyfinApi implements MediaServer {
     return Biography.fromHtml(artist['Overview'] as String?);
   }
 
-  /// Artists/{id}/Similar, which Jellyfin finds by what their metadata shares (genres, tags), but the artist themselves,
-  /// should it count them.
+  /// Artists/{id}/Similar, which Jellyfin finds by what their metadata shares (genres, tags), but the artist
+  /// themselves, should it count them.
   @override
   Future<List<Artist>> similarArtists(String artistId) async => [
     for (final json in await _list('Artists/${Uri.encodeComponent(artistId)}/Similar', {'Limit': '20'}))

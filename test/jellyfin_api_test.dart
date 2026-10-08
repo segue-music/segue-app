@@ -456,12 +456,24 @@ void main() {
     expect(songs.single.title, 'Walk This Way');
   });
 
-  test('artists: the album artists, by name', () async {
+  test('artists: the album artists, by name, with their MusicBrainz ids', () async {
     final asked = <http.Request>[];
-    final artists = await jellyfin((_) => items([artist]), asked).artists();
+    final artists = await jellyfin(
+      (_) => items([
+        {
+          ...artist,
+          'ProviderIds': {'MusicBrainzArtist': 'mb1'},
+        },
+      ]),
+      asked,
+    ).artists();
     expect(asked.single.url.path, '/jellyfin/Artists/AlbumArtists');
-    expect(asked.single.url.queryParameters, containsPair('SortBy', 'SortName'));
+    expect(
+      asked.single.url.queryParameters,
+      allOf(containsPair('SortBy', 'SortName'), containsPair('Fields', 'ProviderIds')),
+    );
     expect(artists.single.id, 'ar1');
+    expect(artists.single.musicBrainzId, 'mb1');
   });
 
   test('the most played artists add up the plays of the most played songs, by each of their album artists, and come as '

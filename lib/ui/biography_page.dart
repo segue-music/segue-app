@@ -9,14 +9,23 @@ import '../releases/musicbrainz.dart';
 import '../server/models.dart';
 import 'arrow_scroll.dart';
 import 'cover.dart';
+import 'text_link.dart';
 import 'themed_icon.dart';
 
 /// An artist's biography, on black as a cover full screen is ([CoverPage]): their picture at the top, square, as wide
 /// as the screen but no taller than most of it, and their name, with a band's years beside it, and the biography under
-/// it, a column of reading width on a wide screen. Esc, its close button or a tap beside the picture and the text
-/// closes it.
+/// it, then a band's members, a column of reading width on a wide screen. Esc, its close button or a tap beside the
+/// picture and the text closes it.
 class BiographyPage extends StatefulWidget {
-  const BiographyPage(this.biography, {required this.name, this.picture, this.years, super.key});
+  const BiographyPage(
+    this.biography, {
+    required this.name,
+    this.picture,
+    this.band,
+    this.inLibrary,
+    this.onOpenArtist,
+    super.key,
+  });
 
   final Biography biography;
 
@@ -26,8 +35,16 @@ class BiographyPage extends StatefulWidget {
   /// The artist's picture, by its id on the server; none: a placeholder.
   final String? picture;
 
-  /// The years the artist has been together, where they are a band ([MusicBrainz.bandYears]); none: none shown.
-  final Future<BandYears?>? years;
+  /// What MusicBrainz knows of the artist, where they are a band ([MusicBrainz.band]): the years they have been
+  /// together, beside their name, and their members, under the biography; none: neither shown.
+  final Future<Band?>? band;
+
+  /// The library's artists among the band's members, by their MusicBrainz ids, whose names are links to their pages
+  /// ([onOpenArtist]); none: no links.
+  final Future<Map<String, Artist>>? inLibrary;
+
+  /// Opens a member's page, from the link of their name, as the biography closes.
+  final void Function(Artist artist)? onOpenArtist;
 
   /// Fades it in over the current page: over the whole window, also from a page of the home's page area.
   static Future<void> open(
@@ -35,10 +52,19 @@ class BiographyPage extends StatefulWidget {
     Biography biography, {
     required String name,
     String? picture,
-    Future<BandYears?>? years,
+    Future<Band?>? band,
+    Future<Map<String, Artist>>? inLibrary,
+    void Function(Artist artist)? onOpenArtist,
   }) => Navigator.of(context, rootNavigator: true).push(
     PageRouteBuilder<void>(
-      pageBuilder: (_, _, _) => BiographyPage(biography, name: name, picture: picture, years: years),
+      pageBuilder: (_, _, _) => BiographyPage(
+        biography,
+        name: name,
+        picture: picture,
+        band: band,
+        inLibrary: inLibrary,
+        onOpenArtist: onOpenArtist,
+      ),
       transitionsBuilder: (_, animation, _, child) => FadeTransition(opacity: animation, child: child),
     ),
   );
@@ -83,7 +109,7 @@ class _BiographyPageState extends State<BiographyPage> {
               bottom: false,
               child: Stack(
                 children: [
-                  // Nothing in it takes the focus: up and down scroll it.
+                  // Up and down scroll it, also while a member's link has the focus (from Tab: the arrows only scroll).
                   ArrowScroll(
                     controller: _scroll,
                     child: SingleChildScrollView(
@@ -116,12 +142,12 @@ class _BiographyPageState extends State<BiographyPage> {
                                     children: [
                                       // A band's years after the name, as they come, under it where they don't fit.
                                       FutureBuilder(
-                                        future: widget.years,
+                                        future: widget.band,
                                         builder: (context, snapshot) => Text.rich(
                                           TextSpan(
                                             text: widget.name,
                                             children: [
-                                              if (snapshot.data case final years?) ...[
+                                              if (snapshot.data?.years case final years?) ...[
                                                 const TextSpan(text: ' '),
                                                 TextSpan(
                                                   text: _yearsText(strings, years),
@@ -151,6 +177,25 @@ class _BiographyPageState extends State<BiographyPage> {
                                             style: text.bodyMedium?.copyWith(color: Colors.white54),
                                           ),
                                         ),
+                                      // Once both have come: the members, then which of them are links.
+                                      FutureBuilder(
+                                        future: widget.band,
+                                        builder: (context, band) => FutureBuilder(
+                                          future: widget.inLibrary,
+                                          builder: (context, inLibrary) => switch ((band.data, inLibrary)) {
+                                            (
+                                              final band?,
+                                              AsyncSnapshot(
+                                                connectionState: ConnectionState.none || ConnectionState.done,
+                                                :final data,
+                                              ),
+                                            )
+                                                when band.members.isNotEmpty =>
+                                              _members(band, data ?? const {}),
+                                            _ => const SizedBox.shrink(),
+                                          },
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -181,19 +226,97 @@ class _BiographyPageState extends State<BiographyPage> {
     );
   }
 
+  /// [band]'s members, one a line, their years beside them, under titles: those it has now, then those it had; where it
+  /// has broken up, all of them under the first. Those in the library ([inLibrary], by their MusicBrainz ids) are links
+  /// to their pages. The years line up, after the longest name or most of the column, where a longer one wraps.
+  Widget _members(Band band, Map<String, Artist> inLibrary) {
+    final text = Theme.of(context).textTheme;
+    final strings = AppLocalizations.of(context);
+    final ended = band.years?.ended ?? false;
+    final groups = [
+      (
+        strings.bandMembers,
+        [
+          for (final member in band.members)
+            if (ended || member.current) member,
+        ],
+      ),
+      if (!ended)
+        (
+          strings.formerBandMembers,
+          [
+            for (final member in band.members)
+              if (!member.current) member,
+          ],
+        ),
+    ];
+    final name = text.bodyLarge?.copyWith(color: Colors.white.withValues(alpha: 0.87));
+    final years = text.bodyLarge?.copyWith(color: Colors.white54);
+    return Table(
+      columnWidths: const {0: MinColumnWidth(IntrinsicColumnWidth(), FractionColumnWidth(0.6))},
+      defaultVerticalAlignment: TableCellVerticalAlignment.baseline,
+      textBaseline: TextBaseline.alphabetic,
+      children: [
+        for (final (title, members) in groups)
+          if (members.isNotEmpty) ...[
+            TableRow(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 24, bottom: 4),
+                  child: Text(title, style: text.titleMedium?.copyWith(color: Colors.white)),
+                ),
+                const SizedBox.shrink(),
+              ],
+            ),
+            for (final member in members)
+              TableRow(
+                children: [
+                  Padding(
+                    padding: const EdgeInsetsDirectional.only(top: 4, end: 16),
+                    child: switch (inLibrary[member.id]) {
+                      final artist? => TextLink(
+                        member.name,
+                        tooltip: strings.openArtist,
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          widget.onOpenArtist?.call(artist);
+                        },
+                        style: name,
+                        maxLines: 2,
+                      ),
+                      null => Text(member.name, style: name),
+                    },
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(_memberYearsText(strings, member.years), style: years),
+                  ),
+                ],
+              ),
+          ],
+      ],
+    );
+  }
+
   /// [years] as they show beside the name, on one line: "(desde 1991)", "(1966 – 1978)", "(até 1978)", "(1966 – ?)".
-  static String _yearsText(AppLocalizations strings, BandYears years) => strings
-      .bandYears(
-        switch (years) {
-          (begin: _, end: _, ended: false) => 'since',
-          (begin: null, end: _, ended: true) => 'until',
-          (begin: _, end: null, ended: true) => 'endUnknown',
-          _ => 'other',
-        },
-        years.begin ?? 0,
-        years.end ?? 0,
-      )
-      .replaceAll(' ', '\u00a0');
+  static String _yearsText(AppLocalizations strings, BandYears years) =>
+      strings.bandYears(_kind(years), years.begin ?? 0, years.end ?? 0).replaceAll(' ', '\u00a0');
+
+  /// A member's [years] as they show beside their name, each time on one line: "desde 1970", "1970 – 1979, desde
+  /// 1984", "1960".
+  static String _memberYearsText(AppLocalizations strings, List<BandYears> years) => [
+    for (final span in years)
+      strings.memberYears(_kind(span), span.begin ?? 0, span.end ?? 0).replaceAll(' ', '\u00a0'),
+  ].join(', ');
+
+  /// What kind of span [years] are, as the messages that show them choose by.
+  static String _kind(BandYears years) => switch (years) {
+    (begin: _, end: _, ended: false) => 'since',
+    (begin: null, end: _, ended: true) => 'until',
+    (begin: _, end: null, ended: true) => 'endUnknown',
+    (begin: final int begin, end: final int end, ended: true) when begin == end => 'same',
+    _ => 'other',
+  };
 
   /// [child], whose taps stay in it: only those beside it close the page.
   static Widget _keepingTaps(Widget child) =>
