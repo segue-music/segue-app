@@ -5,9 +5,11 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:segue/connect/connect.dart';
 import 'package:segue/jellyfin/api.dart';
+import 'package:segue/l10n/app_localizations.dart';
 import 'package:segue/player/media_controls.dart';
 import 'package:segue/player/player.dart';
 import 'package:segue/segue/client.dart';
@@ -364,7 +366,10 @@ void main() {
     final user = newUser();
     final laptop = await App(user, 'laptop').start();
     final phone = await App(user, 'phone').start();
-    final controls = MediaControls()..attach(phone.connect, null);
+    // In Portuguese, as the app's widget under MaterialApp gives them.
+    final controls = MediaControls()
+      ..strings = lookupAppLocalizations(const Locale('pt'))
+      ..attach(phone.connect, null);
     addTearDown(() => controls.attach(null, null));
     await laptop.player.playQueue(songs);
     await until(() => controls.mediaItem.value?.artist == 'Aerosmith (em laptop)', 'the phone to show the laptop');
