@@ -150,7 +150,10 @@ Running two app instances on one machine as different devices:
 - `lib/releases/musicbrainz.dart`: MusicBrainz, where the album page's release date, record labels and
   type (album, EP, single, compilation) come from when the media server doesn't say them: by the
   album's MusicBrainz id (its release), or, for the date and the type only, by its name, artist and
-  year (its release group). It sends a request a second at
+  year (its release group). Also the years a band (a group, an orchestra, a choir) has been
+  together, beside its name in its biography, by the artist's MusicBrainz id (OpenSubsonic's, or
+  Jellyfin's `ProviderIds`), and only by it: a name can be another artist's. A person's years in
+  MusicBrainz are their life's, not their music's, so a person has none. It sends a request a second at
   most, as MusicBrainz asks, and remembers what it found for the session. `Services.start` gives it
   one; tests leave `Services.musicBrainz` null, so that none goes out to the internet.
 - `lib/segue/`: protocol types, the client (reconnects with backoff; stops on final close codes

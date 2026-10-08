@@ -152,12 +152,16 @@ class LyricLine {
 }
 
 class Artist {
-  const Artist({required this.id, required this.name, this.coverArt, this.albumCount});
+  const Artist({required this.id, required this.name, this.coverArt, this.albumCount, this.musicBrainzId});
 
   final String id;
   final String name;
   final String? coverArt;
   final int? albumCount;
+
+  /// Their id in MusicBrainz; null when the server doesn't know it, or doesn't say it where it is asked for them with
+  /// others.
+  final String? musicBrainzId;
 }
 
 /// What the media server says of an artist's life and work, a paragraph at a time.

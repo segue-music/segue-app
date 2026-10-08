@@ -512,12 +512,17 @@ void main() {
     expect(asked, hasLength(1));
   });
 
-  test('an artist and their albums', () async {
+  test('an artist and their albums, and their MusicBrainz id among their other ids, asked for', () async {
     final (found, albums) = await jellyfin((request) {
       final query = request.url.queryParameters;
 
-      if (query['Ids'] == 'ar1') {
-        return items([artist]);
+      if (query['Ids'] == 'ar1' && query['Fields'] == 'ProviderIds') {
+        return items([
+          {
+            ...artist,
+            'ProviderIds': {'MusicBrainzArtist': 'mb1'},
+          },
+        ]);
       }
 
       if (query['AlbumArtistIds'] == 'ar1' && query['IncludeItemTypes'] == 'MusicAlbum') {
@@ -528,6 +533,7 @@ void main() {
     }).artist('ar1');
     expect(found.name, 'Aerosmith');
     expect(found.albumCount, 1);
+    expect(found.musicBrainzId, 'mb1');
     expect(albums.single.id, 'a1');
   });
 

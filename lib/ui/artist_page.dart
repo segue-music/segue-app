@@ -339,6 +339,7 @@ class _ArtistPageState extends State<ArtistPage> {
                 biography,
                 name: artist.name,
                 picture: artist.coverArt ?? widget.artist.coverArt,
+                years: ServicesScope.of(context).musicBrainz?.bandYears(artist),
               ),
             ),
           ],

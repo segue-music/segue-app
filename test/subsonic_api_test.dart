@@ -975,7 +975,7 @@ void main() {
     expect(asked.single.path, '/rest/getAlbumList2.view');
   });
 
-  test('an artist comes with their albums', () async {
+  test('an artist comes with their albums, and their MusicBrainz id', () async {
     late Uri asked;
     final api = SubsonicApi(
       Uri.parse('https://music.test'),
@@ -988,6 +988,7 @@ void main() {
             'id': 'ar1',
             'name': 'Aerosmith',
             'albumCount': 2,
+            'musicBrainzId': 'mb1',
             'album': [
               {'id': 'a1', 'name': 'Aerosmith', 'artist': 'Aerosmith', 'year': 1973},
               {'id': 'a2', 'name': 'Toys in the Attic', 'artist': 'Aerosmith', 'year': 1975},
@@ -1000,6 +1001,7 @@ void main() {
     expect(asked.path, '/rest/getArtist.view');
     expect(asked.queryParameters, containsPair('id', 'ar1'));
     expect(artist.name, 'Aerosmith');
+    expect(artist.musicBrainzId, 'mb1', reason: 'OpenSubsonic\'s');
     expect(albums.map((album) => album.name), ['Aerosmith', 'Toys in the Attic']);
   });
 

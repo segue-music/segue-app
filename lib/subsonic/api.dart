@@ -468,9 +468,14 @@ Genre _genre(Map<String, dynamic> json) => Genre(
   albumCount: (json['albumCount'] as num?)?.toInt(),
 );
 
+/// An artist's MusicBrainz id is OpenSubsonic's.
 Artist _artist(Map<String, dynamic> json) => Artist(
   id: json['id'] as String,
   name: json['name'] as String? ?? '',
   coverArt: json['coverArt'] as String?,
   albumCount: (json['albumCount'] as num?)?.toInt(),
+  musicBrainzId: switch (json['musicBrainzId']) {
+    final String id when id.isNotEmpty => id,
+    _ => null,
+  },
 );

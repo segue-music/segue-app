@@ -264,16 +264,23 @@ class JellyfinApi implements MediaServer {
     return [for (final id in rankedByCount(plays)) ?artists[id]].take(size).toList();
   }
 
-  /// An artist and the albums they are the album artist of.
+  /// An artist and the albums they are the album artist of. Their MusicBrainz id, among their other ids (ProviderIds),
+  /// comes only when asked for (Fields).
   @override
   Future<(Artist, List<Album>)> artist(String id) async {
     final [artists, albums] = await Future.wait([
-      _items({'Ids': id}),
+      _items({'Ids': id, 'Fields': 'ProviderIds'}),
       _items({'AlbumArtistIds': id, 'IncludeItemTypes': 'MusicAlbum', 'SortBy': 'ProductionYear,SortName'}),
     ]);
     final found = _artist(_only(artists, id));
     return (
-      Artist(id: found.id, name: found.name, coverArt: found.coverArt, albumCount: albums.length),
+      Artist(
+        id: found.id,
+        name: found.name,
+        coverArt: found.coverArt,
+        albumCount: albums.length,
+        musicBrainzId: found.musicBrainzId,
+      ),
       [for (final json in albums) _album(json)],
     );
   }
@@ -483,6 +490,10 @@ Artist _artist(Map<String, dynamic> json) => Artist(
   name: json['Name'] as String? ?? '',
   coverArt: _primaryImage(json),
   albumCount: (json['AlbumCount'] as num?)?.toInt(),
+  musicBrainzId: switch ((json['ProviderIds'] as Map<String, dynamic>?)?['MusicBrainzArtist']) {
+    final String id when id.isNotEmpty => id,
+    _ => null,
+  },
 );
 
 Genre _genre(Map<String, dynamic> json) => Genre(

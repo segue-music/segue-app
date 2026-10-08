@@ -5,16 +5,18 @@ import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../l10n/app_localizations.dart';
+import '../releases/musicbrainz.dart';
 import '../server/models.dart';
 import 'arrow_scroll.dart';
 import 'cover.dart';
 import 'themed_icon.dart';
 
 /// An artist's biography, on black as a cover full screen is ([CoverPage]): their picture at the top, square, as wide
-/// as the screen but no taller than most of it, and their name and the biography under it, a column of reading width
-/// on a wide screen. Esc, its close button or a tap beside the picture and the text closes it.
+/// as the screen but no taller than most of it, and their name, with a band's years beside it, and the biography under
+/// it, a column of reading width on a wide screen. Esc, its close button or a tap beside the picture and the text
+/// closes it.
 class BiographyPage extends StatefulWidget {
-  const BiographyPage(this.biography, {required this.name, this.picture, super.key});
+  const BiographyPage(this.biography, {required this.name, this.picture, this.years, super.key});
 
   final Biography biography;
 
@@ -24,14 +26,22 @@ class BiographyPage extends StatefulWidget {
   /// The artist's picture, by its id on the server; none: a placeholder.
   final String? picture;
 
+  /// The years the artist has been together, where they are a band ([MusicBrainz.bandYears]); none: none shown.
+  final Future<BandYears?>? years;
+
   /// Fades it in over the current page: over the whole window, also from a page of the home's page area.
-  static Future<void> open(BuildContext context, Biography biography, {required String name, String? picture}) =>
-      Navigator.of(context, rootNavigator: true).push(
-        PageRouteBuilder<void>(
-          pageBuilder: (_, _, _) => BiographyPage(biography, name: name, picture: picture),
-          transitionsBuilder: (_, animation, _, child) => FadeTransition(opacity: animation, child: child),
-        ),
-      );
+  static Future<void> open(
+    BuildContext context,
+    Biography biography, {
+    required String name,
+    String? picture,
+    Future<BandYears?>? years,
+  }) => Navigator.of(context, rootNavigator: true).push(
+    PageRouteBuilder<void>(
+      pageBuilder: (_, _, _) => BiographyPage(biography, name: name, picture: picture, years: years),
+      transitionsBuilder: (_, animation, _, child) => FadeTransition(opacity: animation, child: child),
+    ),
+  );
 
   @override
   State<BiographyPage> createState() => _BiographyPageState();
@@ -104,7 +114,25 @@ class _BiographyPageState extends State<BiographyPage> {
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text(widget.name, style: text.headlineSmall?.copyWith(color: Colors.white)),
+                                      // A band's years after the name, as they come, under it where they don't fit.
+                                      FutureBuilder(
+                                        future: widget.years,
+                                        builder: (context, snapshot) => Text.rich(
+                                          TextSpan(
+                                            text: widget.name,
+                                            children: [
+                                              if (snapshot.data case final years?) ...[
+                                                const TextSpan(text: ' '),
+                                                TextSpan(
+                                                  text: _yearsText(strings, years),
+                                                  style: text.bodyLarge?.copyWith(color: Colors.white54),
+                                                ),
+                                              ],
+                                            ],
+                                          ),
+                                          style: text.headlineSmall?.copyWith(color: Colors.white),
+                                        ),
+                                      ),
                                       for (final paragraph in widget.biography.paragraphs)
                                         Padding(
                                           padding: const EdgeInsets.only(top: 12),
@@ -152,6 +180,20 @@ class _BiographyPageState extends State<BiographyPage> {
       ),
     );
   }
+
+  /// [years] as they show beside the name, on one line: "(desde 1991)", "(1966 – 1978)", "(até 1978)", "(1966 – ?)".
+  static String _yearsText(AppLocalizations strings, BandYears years) => strings
+      .bandYears(
+        switch (years) {
+          (begin: _, end: _, ended: false) => 'since',
+          (begin: null, end: _, ended: true) => 'until',
+          (begin: _, end: null, ended: true) => 'endUnknown',
+          _ => 'other',
+        },
+        years.begin ?? 0,
+        years.end ?? 0,
+      )
+      .replaceAll(' ', '\u00a0');
 
   /// [child], whose taps stay in it: only those beside it close the page.
   static Widget _keepingTaps(Widget child) =>

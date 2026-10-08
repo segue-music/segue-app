@@ -12,8 +12,14 @@ typedef AlbumRelease = ({ReleaseDate? date, List<String> labels, ReleaseType? ty
 /// What MusicBrainz has of an album: dates, the one to show first first, labels and its type.
 typedef _Found = ({List<ReleaseDate> dates, List<String> labels, ReleaseType? type});
 
+/// The years a band (a group, an orchestra, a choir) has been together, as its biography shows them: the one it formed
+/// in ([begin]) and, where it has broken up ([ended]), the one it broke up in ([end]). Null where MusicBrainz doesn't
+/// know it, but never both.
+typedef BandYears = ({int? begin, int? end, bool ended});
+
 /// MusicBrainz (musicbrainz.org), the open database of music releases: where an album's release date, record labels
-/// and type come from when the media server doesn't say them.
+/// and type come from when the media server doesn't say them, and the years a band has been together, which it never
+/// says.
 class MusicBrainz {
   MusicBrainz({http.Client? client, Uri? base, this.spacing = const Duration(seconds: 1)})
     : _http = client ?? http.Client(),
@@ -37,6 +43,9 @@ class MusicBrainz {
   /// What MusicBrainz has of each album looked up, by the album's id, for the session: an album opened again asks
   /// nothing.
   final _found = <String, Future<_Found>>{};
+
+  /// The years of each band looked up, by its MusicBrainz id, for the session.
+  final _bands = <String, Future<BandYears?>>{};
 
   /// [album]'s release date, record labels and type: the media server's, with what MusicBrainz adds where it says
   /// nothing, or less. A date where it has none, or one more precise than its own that agrees with it (the same year,
@@ -121,6 +130,40 @@ class MusicBrainz {
       labels: const <String>[],
       type: types.length == 1 ? types.single : null,
     );
+  }
+
+  /// The years [artist] has been together, by their MusicBrainz id, where they are a band: a person's years in
+  /// MusicBrainz are those of their life, not of their music. None for an artist without that id, a person (or one
+  /// MusicBrainz doesn't know as a band), a band MusicBrainz knows no year of, and when it fails.
+  Future<BandYears?> bandYears(Artist artist) async {
+    final id = artist.musicBrainzId;
+
+    if (id == null) {
+      return null;
+    }
+
+    try {
+      return await (_bands[id] ??= _band(id));
+    } on Object {
+      // To try again the next time.
+      _bands.remove(id);
+      return null;
+    }
+  }
+
+  /// The years of the band whose MusicBrainz id is [id], from its life span.
+  Future<BandYears?> _band(String id) async {
+    final found = await _get('artist/${Uri.encodeComponent(id)}', const {});
+
+    if (found case {'type': 'Group' || 'Orchestra' || 'Choir', 'life-span': final Map<String, dynamic> span}) {
+      final begin = _date(span['begin'])?.year;
+      final end = _date(span['end'])?.year;
+      return begin == null && end == null
+          ? null
+          : (begin: begin, end: end, ended: end != null || span['ended'] == true);
+    }
+
+    return null;
   }
 
   /// The JSON at [path], or null for a 404: none there. One request at a time, [spacing] apart.

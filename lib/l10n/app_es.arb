@@ -32,6 +32,7 @@
   "showCover": "Ver portada",
   "showBiography": "Ver biografía",
   "biographyProvidedBy": "Biografía proporcionada por {source}",
+  "bandYears": "{kind, select, since{(desde {begin})} until{(hasta {end})} endUnknown{({begin} – ?)} other{({begin} – {end})}}",
   "turnShuffleOff": "Desactivar aleatorio",
   "turnShuffleOn": "Activar aleatorio",
   "repeatAll": "Repetir todo",

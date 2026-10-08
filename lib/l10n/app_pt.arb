@@ -169,6 +169,21 @@
       }
     }
   },
+  "bandYears": "{kind, select, since{(desde {begin})} until{(até {end})} endUnknown{({begin} – ?)} other{({begin} – {end})}}",
+  "@bandYears": {
+    "description": "Beside a band's name, over its biography, in parentheses, the years it has been together, as MusicBrainz knows them, by kind: since the year it formed (begin), while it hasn't broken up; until the year it broke up (end), where the one it formed in isn't known; from the year it formed to one that isn't known; from one year to the other.",
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      },
+      "begin": {
+        "type": "int"
+      },
+      "end": {
+        "type": "int"
+      }
+    }
+  },
   "turnShuffleOff": "Desativar aleatório",
   "@turnShuffleOff": {
     "description": "The tooltip of the shuffle button while it shuffles."

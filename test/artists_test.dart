@@ -10,6 +10,7 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:segue/connect/connect.dart';
 import 'package:segue/l10n/app_localizations.dart';
 import 'package:segue/player/player.dart';
+import 'package:segue/releases/musicbrainz.dart';
 import 'package:segue/server/models.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
@@ -38,8 +39,8 @@ http.Response subsonic(Map<String, Object?> body) => http.Response(
 /// A server with three artists: Aerosmith, with two albums, none of them played, and a single and an EP, Cheap Trick,
 /// with one album, six of whose songs have played, and Ramones, with none. A search for "toys" finds an album; any other, the artist Aerosmith.
 /// Unless [played], nothing has played: not even Cheap Trick's songs. Cheap Trick's popular songs are three of that
-/// album's, Big Eyes first; the others' fail, as on a server that has none to give. Aerosmith has a biography, Last.fm's;
-/// the others have none, which fails too.
+/// album's, Big Eyes first; the others' fail, as on a server that has none to give. Aerosmith has a biography, Last.fm's,
+/// and a MusicBrainz id; the others have none, which fails too.
 http.Response server(http.Request request, {bool played = true}) {
   final path = request.url.path;
   final id = request.url.queryParameters['id'];
@@ -134,6 +135,7 @@ http.Response server(http.Request request, {bool played = true}) {
         'name': 'Aerosmith',
         'coverArt': 'ar-ar1',
         'albumCount': 2,
+        'musicBrainzId': 'mb1',
         'album': [
           {'id': 'a1', 'name': 'Aerosmith', 'artist': 'Aerosmith', 'year': 1973},
           {
@@ -221,8 +223,9 @@ http.Response server(http.Request request, {bool played = true}) {
   return http.Response('', 404);
 }
 
-/// Opens the home, over a [server] where songs have [played]; what the player plays goes to the engine it returns.
-Future<FakeEngine> pumpHome(WidgetTester tester, Size size, {bool played = true}) async {
+/// Opens the home, over a [server] where songs have [played], with [musicBrainz] (none: no band's years); what the
+/// player plays goes to the engine it returns.
+Future<FakeEngine> pumpHome(WidgetTester tester, Size size, {bool played = true, MusicBrainz? musicBrainz}) async {
   const credentials = SubsonicCredentials(username: 'a', token: 't', salt: 's');
   final api = SubsonicApi(
     Uri.parse('https://music.test'),
@@ -236,6 +239,7 @@ Future<FakeEngine> pumpHome(WidgetTester tester, Size size, {bool played = true}
     api,
     player,
     ConnectController(player: player),
+    musicBrainz: musicBrainz,
   );
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -885,4 +889,60 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     });
   }
+
+  testWidgets('a band\'s biography has its years beside its name, asked of MusicBrainz as it opens', (tester) async {
+    final asked = <Uri>[];
+    final brainz = MusicBrainz(
+      spacing: Duration.zero,
+      client: MockClient((request) async {
+        asked.add(request.url);
+        return http.Response(
+          jsonEncode({
+            'id': 'mb1',
+            'type': 'Group',
+            'life-span': {'begin': '1970', 'end': null, 'ended': false},
+          }),
+          200,
+        );
+      }),
+    );
+    await pumpHome(tester, const Size(1000, 700), musicBrainz: brainz);
+    await tester.tap(find.byTooltip('Artistas'));
+    await tester.pumpAndSettle();
+    await tester.tap(tile('Aerosmith'));
+    await tester.pumpAndSettle();
+    expect(asked, isEmpty, reason: 'only the biography shows them');
+    await tester.tap(find.descendant(of: find.byType(ArtistPage), matching: find.byTooltip('Ver a biografia')));
+    await tester.pumpAndSettle();
+    expect(asked.single.path, '/ws/2/artist/mb1');
+    final page = find.byType(BiographyPage);
+    expect(find.descendant(of: page, matching: find.text('Aerosmith (desde 1970)')), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('a band\'s years: since it formed, from one to the other, until it broke up, or to a year not known; '
+      'an artist without them, their name alone', (tester) async {
+    for (final (BandYears? years, text) in [
+      // On one line: no space in the years that the line could break at.
+      ((begin: 1985, end: null, ended: false), 'Os Mutantes (desde 1985)'),
+      ((begin: 1966, end: 1978, ended: true), 'Os Mutantes (1966 – 1978)'),
+      ((begin: null, end: 1978, ended: true), 'Os Mutantes (até 1978)'),
+      ((begin: 1966, end: null, ended: true), 'Os Mutantes (1966 – ?)'),
+      (null, 'Os Mutantes'),
+    ]) {
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: const [Locale('pt')],
+          home: BiographyPage(
+            const Biography(['Os Mutantes are a Brazilian rock band.']),
+            name: 'Os Mutantes',
+            years: Future.value(years),
+          ),
+        ),
+      );
+      await tester.pump();
+      expect(find.text(text), findsOneWidget, reason: '$years');
+    }
+  });
 }

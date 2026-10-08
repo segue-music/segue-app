@@ -28,11 +28,12 @@ Map<String, Object?> group({
   ],
 };
 
-/// MusicBrainz, answering a release's lookup with [release] (null: none) and a search of release groups with [groups];
-/// [asked] gets every request.
+/// MusicBrainz, answering a release's lookup with [release] (null: none), a search of release groups with [groups] and
+/// an artist's lookup with [artist] (null: none); [asked] gets every request.
 MusicBrainz musicBrainz({
   Map<String, Object?>? release,
   List<Map<String, Object?>> groups = const [],
+  Map<String, Object?>? artist,
   List<http.Request>? asked,
   Duration spacing = Duration.zero,
 }) => MusicBrainz(
@@ -41,6 +42,7 @@ MusicBrainz musicBrainz({
     asked?.add(request);
     return switch (request.url.pathSegments) {
       [..., 'release', _] when release != null => json(release),
+      [..., 'artist', _] when artist != null => json(artist),
       [..., 'release-group'] => json({'release-groups': groups}),
       _ => json({'error': 'Not Found'}, 404),
     };
@@ -68,6 +70,17 @@ Album album({
 );
 
 (int?, int?, int?) parts(ReleaseDate? date) => (date?.year, date?.month, date?.day);
+
+/// An artist of MusicBrainz's, of [type], with the life span of [begin], [end] and [ended].
+Map<String, Object?> lifeSpan({String type = 'Group', String? begin, String? end, bool ended = false}) => {
+  'id': 'mb1',
+  'name': 'Os Mutantes',
+  'type': type,
+  'life-span': {'begin': begin, 'end': end, 'ended': ended},
+};
+
+/// Os Mutantes, as the media server gives them, with their MusicBrainz id.
+const mutantes = Artist(id: 'ar1', name: 'Os Mutantes', musicBrainzId: 'mb1');
 
 /// A release of Toys in the Attic: a reissue of 2012, under Columbia (twice, for two catalog numbers), with a catalog
 /// number of no label and MusicBrainz's "[no label]".
@@ -266,6 +279,75 @@ void main() {
       expect(asked, hasLength(4));
       expect(second?.labels, ['Columbia']);
     });
+  });
+
+  test(
+    'a band\'s years, by the artist\'s MusicBrainz id: from the one it formed in to the one it broke up in',
+    () async {
+      final asked = <http.Request>[];
+      final brainz = musicBrainz(
+        artist: lifeSpan(begin: '1966-05', end: '1978', ended: true),
+        asked: asked,
+      );
+      expect(await brainz.bandYears(mutantes), (begin: 1966, end: 1978, ended: true));
+      final url = asked.single.url;
+      expect(url.path, '/ws/2/artist/mb1');
+      expect(url.queryParameters, {'fmt': 'json'});
+      await brainz.bandYears(mutantes);
+      expect(asked, hasLength(1), reason: 'what it found, it asks no more');
+    },
+  );
+
+  test('a band that hasn\'t broken up, or whose years MusicBrainz knows only one of', () async {
+    for (final (span, years) in [
+      (lifeSpan(begin: '1985'), (begin: 1985, end: null, ended: false)),
+      (lifeSpan(end: '1978', ended: true), (begin: null, end: 1978, ended: true)),
+      (lifeSpan(begin: '1966', ended: true), (begin: 1966, end: null, ended: true)),
+      (lifeSpan(type: 'Orchestra', begin: '1842'), (begin: 1842, end: null, ended: false)),
+      (lifeSpan(type: 'Choir', begin: '1498'), (begin: 1498, end: null, ended: false)),
+    ]) {
+      expect(await musicBrainz(artist: span).bandYears(mutantes), years, reason: '$span');
+    }
+  });
+
+  test(
+    'no years of a person, whose are their life\'s, of a band of none, or of an artist without a MusicBrainz id',
+    () async {
+      final asked = <http.Request>[];
+
+      for (final span in [
+        lifeSpan(type: 'Person', begin: '1947', end: '2016', ended: true),
+        lifeSpan(type: 'Character', begin: '1978'),
+        lifeSpan(ended: true),
+        {'id': 'mb1', 'name': 'Os Mutantes', 'type': null},
+      ]) {
+        expect(await musicBrainz(artist: span).bandYears(mutantes), isNull, reason: '$span');
+      }
+
+      final brainz = musicBrainz(
+        artist: lifeSpan(begin: '1966'),
+        asked: asked,
+      );
+      expect(await brainz.bandYears(const Artist(id: 'ar1', name: 'Os Mutantes')), isNull);
+      expect(asked, isEmpty);
+      expect(await musicBrainz().bandYears(mutantes), isNull, reason: 'an id MusicBrainz no longer has');
+    },
+  );
+
+  test('a band\'s years that fail are none, and asked again the next time', () async {
+    var status = 500;
+    final asked = <http.Request>[];
+    final brainz = MusicBrainz(
+      spacing: Duration.zero,
+      client: MockClient((request) async {
+        asked.add(request);
+        return status == 200 ? json(lifeSpan(begin: '1966')) : http.Response('', status);
+      }),
+    );
+    expect(await brainz.bandYears(mutantes), isNull);
+    status = 200;
+    expect(await brainz.bandYears(mutantes), (begin: 1966, end: null, ended: false));
+    expect(asked, hasLength(2));
   });
 
   test('requests go one at a time, a second apart, as MusicBrainz asks', () {

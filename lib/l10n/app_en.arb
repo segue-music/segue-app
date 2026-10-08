@@ -32,6 +32,7 @@
   "showCover": "View cover",
   "showBiography": "View biography",
   "biographyProvidedBy": "Biography provided by {source}",
+  "bandYears": "{kind, select, since{(since {begin})} until{(until {end})} endUnknown{({begin} – ?)} other{({begin} – {end})}}",
   "turnShuffleOff": "Turn shuffle off",
   "turnShuffleOn": "Turn shuffle on",
   "repeatAll": "Repeat all",
