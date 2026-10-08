@@ -11,6 +11,7 @@ import 'package:segue/connect/connect.dart';
 import 'package:segue/l10n/app_localizations.dart';
 import 'package:segue/language_choice.dart';
 import 'package:segue/player/player.dart';
+import 'package:segue/quality_choice.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
@@ -59,6 +60,7 @@ Future<List<Map<String, String>>> pumpHome(
   bool television = false,
   ThemeChoice? themeChoice,
   LanguageChoice? languageChoice,
+  QualityChoice? qualityChoice,
   VoidCallback? onSignOut,
 }) async {
   const credentials = SubsonicCredentials(username: 'a', token: 't', salt: 's');
@@ -117,7 +119,12 @@ Future<List<Map<String, String>>> pumpHome(
         child: DirectionalNavigation(enabled: television, child: child!),
       ),
     ),
-    home: HomePage(onSignOut: onSignOut ?? () {}, themeChoice: themeChoice, languageChoice: languageChoice),
+    home: HomePage(
+      onSignOut: onSignOut ?? () {},
+      themeChoice: themeChoice,
+      languageChoice: languageChoice,
+      qualityChoice: qualityChoice,
+    ),
   );
 
   await tester.pumpWidget(
@@ -434,6 +441,76 @@ void main() {
     await tester.pumpAndSettle();
     expect(shown(), Brightness.light, reason: 'the system\'s again');
     expect((await ThemeChoice.load()).value, ThemeMode.system);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a wide screen, a menu in the top bar picks the quality the player streams in, which stays picked', (
+    tester,
+  ) async {
+    final choice = QualityChoice();
+    addTearDown(choice.dispose);
+    await pumpHome(tester, const Size(1000, 700), qualityChoice: choice);
+    Finder item(String text) => find.widgetWithText(PopupMenuItem<StreamQuality>, text);
+    bool picked(String text) =>
+        find.descendant(of: item(text), matching: themedIcon(HugeIcons.strokeRoundedTick02)).evaluate().isNotEmpty;
+    final button = find.descendant(of: find.byType(AppBar), matching: find.byTooltip('Qualidade do áudio'));
+    expect(
+      tester.getRect(button).right,
+      lessThanOrEqualTo(tester.getRect(find.byTooltip('Sem hub: só toca neste aparelho')).left),
+      reason: 'before the hub\'s status and signing out',
+    );
+
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+    final names = [
+      'Qualidade original',
+      'Qualidade alta · 320 kbps',
+      'Qualidade normal · 160 kbps',
+      'Qualidade baixa · 96 kbps',
+    ];
+    final tops = [for (final name in names) tester.getTopLeft(item(name)).dy];
+    expect([...tops]..sort(), tops, reason: 'in this order, top to bottom');
+    expect([for (final name in names) picked(name)], [true, false, false, false], reason: 'the original, until a pick');
+
+    await tester.tap(item('Qualidade baixa · 96 kbps'));
+    await tester.pumpAndSettle();
+    expect(choice.value, StreamQuality.low);
+    expect((await QualityChoice.load()).value, StreamQuality.low, reason: 'kept for the next launch');
+
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+    expect([for (final name in names) picked(name)], [false, false, false, true]);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a phone, the quality is in the top bar\'s menu, after the languages, before signing out', (
+    tester,
+  ) async {
+    final (themeChoice, languageChoice, qualityChoice) = (ThemeChoice(), LanguageChoice(), QualityChoice());
+    addTearDown(themeChoice.dispose);
+    addTearDown(languageChoice.dispose);
+    addTearDown(qualityChoice.dispose);
+    await pumpHome(
+      tester,
+      const Size(360, 640),
+      themeChoice: themeChoice,
+      languageChoice: languageChoice,
+      qualityChoice: qualityChoice,
+    );
+    expect(find.byTooltip('Qualidade do áudio'), findsNothing, reason: 'no button of its own');
+
+    await tester.tap(phoneMenu);
+    await tester.pumpAndSettle();
+    final texts = ['Português', 'Qualidade original', 'Qualidade normal · 160 kbps', 'Qualidade baixa · 96 kbps'];
+    final tops = [for (final text in texts) tester.getTopLeft(menuItem(text)).dy];
+    expect([...tops]..sort(), tops, reason: 'in this order, top to bottom');
+    expect(checked('Qualidade original'), isTrue);
+    expect(find.byType(PopupMenuDivider), findsNWidgets(3), reason: 'a group of its own');
+
+    await tester.tap(menuItem('Qualidade normal · 160 kbps'));
+    await tester.pumpAndSettle();
+    expect(qualityChoice.value, StreamQuality.normal);
+    expect((await QualityChoice.load()).value, StreamQuality.normal);
     await tester.pumpWidget(const SizedBox());
   });
 

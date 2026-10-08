@@ -539,6 +539,22 @@ void main() {
     expect(cover.queryParameters, containsPair('maxWidth', '96'));
   });
 
+  test('within a bitrate, a song comes through universal: as it is where it fits, otherwise as HLS', () async {
+    final api = jellyfin((_) => http.Response('', 404));
+    final stream = api.streamUrl('s1', maxBitRate: 160);
+    expect(stream.path, '/jellyfin/Audio/s1/universal');
+    expect(stream.queryParameters, containsPair('MaxStreamingBitrate', '160000'));
+    expect(stream.queryParameters, containsPair('TranscodingProtocol', 'hls'));
+    expect(stream.queryParameters, containsPair('UserId', 'u1'));
+    expect(stream.queryParameters, containsPair('DeviceId', 'd1'));
+    expect(stream.queryParameters, containsPair('ApiKey', 'tok'));
+    expect(
+      await api.transcodedStreamUrl('s1', maxBitRate: 160, from: const Duration(seconds: 42)),
+      isNull,
+      reason: 'HLS can seek',
+    );
+  });
+
   test('a sign-in the server forgot is an auth error, also from pages that ask for two things at once', () async {
     final forgot = jellyfin((_) => http.Response('', 401));
 

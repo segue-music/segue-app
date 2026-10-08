@@ -105,8 +105,15 @@ abstract interface class MediaServer {
   /// An artist and their albums.
   Future<(Artist, List<Album>)> artist(String id);
 
-  /// Where a song's audio is, for the player: the URL carries the credentials.
-  Uri streamUrl(String songId);
+  /// Where a song's audio is, for the player: the URL carries the credentials. With [maxBitRate], in kbps, the server
+  /// transcodes a song whose bitrate is higher, as it goes: on Subsonic a stream that can't seek ([transcodedStreamUrl]
+  /// stands in), and on Jellyfin HLS, which can.
+  Uri streamUrl(String songId, {int? maxBitRate});
+
+  /// The stream that [streamUrl] gives with [maxBitRate] where the server transcodes the song, from [from] on, in whole
+  /// seconds: to seek in a stream that can't, the player starts it there instead. Null where the server can't start
+  /// it later: a Subsonic server without OpenSubsonic's transcodeOffset, and Jellyfin, whose HLS needn't.
+  Future<Uri?> transcodedStreamUrl(String songId, {required int maxBitRate, required Duration from});
 
   /// Counts a play of the song whose id is [songId], which started playing at [time], toward the
   /// user's most played.

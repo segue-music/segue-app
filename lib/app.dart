@@ -4,6 +4,7 @@ import 'l10n/app_localizations.dart';
 import 'language_choice.dart';
 import 'player/audio_interruptions.dart';
 import 'player/media_controls.dart';
+import 'quality_choice.dart';
 import 'services.dart';
 import 'session.dart';
 import 'theme_choice.dart';
@@ -21,6 +22,7 @@ class SegueApp extends StatefulWidget {
     required this.session,
     this.themeChoice,
     this.languageChoice,
+    this.qualityChoice,
     this.mediaControls,
     this.interruptions,
     this.television = false,
@@ -35,6 +37,9 @@ class SegueApp extends StatefulWidget {
 
   /// The language picked; with none, the app follows the system's.
   final LanguageChoice? languageChoice;
+
+  /// The quality the player streams in; with none, the original, until a pick.
+  final QualityChoice? qualityChoice;
 
   /// The system's media controls, where the platform has them.
   final MediaControls? mediaControls;
@@ -60,6 +65,9 @@ class _SegueAppState extends State<SegueApp> {
   /// [SegueApp.languageChoice], or one of its own, which follows the system's until a pick.
   late final _languageChoice = widget.languageChoice ?? LanguageChoice();
 
+  /// [SegueApp.qualityChoice], or one of its own, the original until a pick.
+  late final _qualityChoice = widget.qualityChoice ?? QualityChoice();
+
   @override
   void initState() {
     super.initState();
@@ -77,7 +85,7 @@ class _SegueAppState extends State<SegueApp> {
     });
 
     try {
-      final services = await Services.start(session);
+      final services = await Services.start(session, quality: _qualityChoice);
 
       if (!mounted) {
         await services.dispose();
@@ -119,6 +127,10 @@ class _SegueAppState extends State<SegueApp> {
 
     if (widget.languageChoice == null) {
       _languageChoice.dispose();
+    }
+
+    if (widget.qualityChoice == null) {
+      _qualityChoice.dispose();
     }
 
     super.dispose();
@@ -172,7 +184,12 @@ class _SegueAppState extends State<SegueApp> {
         return mediaControls == null ? app : _MediaControlsStrings(controls: mediaControls, child: app);
       },
       home: services != null
-          ? HomePage(onSignOut: _signOut, themeChoice: _themeChoice, languageChoice: _languageChoice)
+          ? HomePage(
+              onSignOut: _signOut,
+              themeChoice: _themeChoice,
+              languageChoice: _languageChoice,
+              qualityChoice: _qualityChoice,
+            )
           : _starting
           ? const Scaffold(body: Center(child: Spinner()))
           : _error != null

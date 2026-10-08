@@ -102,7 +102,13 @@ Running two app instances on one machine as different devices:
   right after the failure mpv may still be on it, in its youtube-dl hook, and ignores a write of
   `playlist-pos` to it. Until a track it opened paused, or at a position, has
   loaded, it holds a seek, play and pause for when it has, since mpv can't seek before. The play order
-  (`order`) maps the shuffled playlist back to the songs.
+  (`order`) maps the shuffled playlist back to the songs. mpv's playlist names the tracks
+  (`segue://track/<open>/<track>`) rather than holding their streams: as mpv loads one, its on_load hook asks the
+  track for its stream (`TrackSource`), so that a new quality holds from the next song, and a stream that can't seek
+  (one a Subsonic server transcodes as it goes) seeks by loading its track again from that point (`timeOffset`), the
+  engine adding where the stream starts to mpv's positions. That a track has loaded it learns by asking mpv for its
+  duration after each "Playing:" in the log: mpv's own notice says nothing for a track as long as the one before.
+  Until then the position stays where the track is to start, and a seek waits for it.
 - `ConnectController` (`lib/connect/`) follows the Connect model: the app controls one device at a
   time (`activeId`, null meaning this device). UI actions go through it (`playSongs`, `toggle`,
   `seek`, ...): it either runs them on the local player or sends them as hub commands. The UI should
@@ -132,7 +138,10 @@ Running two app instances on one machine as different devices:
   (`lib/jellyfin/`). The user types only the address: `signIn` (`lib/server/sign_in.dart`) asks it
   which API it speaks (`detectApi`: a Subsonic ping, else Jellyfin's `System/Info/Public`), and
   `openServer` reopens a saved sign-in by its credentials. The API also gives the hub's hello its
-  `api` and `auth`, so a Jellyfin sign-in is a Jellyfin device, with ids in Jellyfin's API.
+  `api` and `auth`, so a Jellyfin sign-in is a Jellyfin device, with ids in Jellyfin's API. A song
+  streams as its file, or within a bitrate (`QualityChoice`, `lib/quality_choice.dart`, which
+  `PlayerController` reads as each song loads): Subsonic's `maxBitRate`, with `timeOffset` to start
+  later where the server has OpenSubsonic's transcodeOffset, or Jellyfin's `universal`, as HLS.
 - `lib/lyrics/lrclib.dart`: LRCLIB, where the full-screen player's lyrics (`LyricsView`) come from
   when the media server has none, by the song's title, artist, album and length. `Services.start`
   gives it one; tests leave `Services.lrclib` null, so that none goes out to the internet.

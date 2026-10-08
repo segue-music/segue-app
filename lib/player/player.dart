@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../quality_choice.dart';
 import '../segue/client.dart';
 import '../segue/protocol.dart';
 import '../server/models.dart';
@@ -10,12 +11,14 @@ import 'engine.dart';
 
 /// This device's player: the queue, playback, and the commands other devices send it.
 class PlayerController extends ChangeNotifier {
-  PlayerController(this._engine, this._api) {
+  /// Streams the songs in [quality] as each loads; with none, the files as they are.
+  PlayerController(this._engine, this._api, {this._quality}) {
     _subscription = _engine.changes.listen((_) => _changed());
   }
 
   final AudioEngine _engine;
   final MediaServer _api;
+  final ValueListenable<StreamQuality>? _quality;
   late final StreamSubscription<void> _subscription;
   // The songs as playQueue got them, and _queue: them in the engine's play order (shuffled, or not).
   List<Song> _opened = const [];
@@ -49,12 +52,25 @@ class PlayerController extends ChangeNotifier {
     _order = const []; // so that the engine's order, shuffled or not, is taken up
     _queueChanged = true;
     await _engine.open(
-      [for (final song in songs) _api.streamUrl(song.id)],
+      [for (final song in songs) TrackSource.resolved((from) => _stream(song.id, from))],
       index: index,
       position: position,
       play: play,
     );
     _changed();
+  }
+
+  /// Where the song whose id is [songId] streams from, from [from] on ([TrackSource.resolved]), in the quality picked as it
+  /// loads.
+  Future<Uri?> _stream(String songId, Duration from) async {
+    final maxBitRate = _quality?.value.maxBitRate;
+
+    if (from == Duration.zero) {
+      return _api.streamUrl(songId, maxBitRate: maxBitRate);
+    }
+
+    // The files as they are can seek.
+    return maxBitRate == null ? null : _api.transcodedStreamUrl(songId, maxBitRate: maxBitRate, from: from);
   }
 
   Future<void> play() => _engine.play();

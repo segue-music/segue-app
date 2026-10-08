@@ -53,13 +53,15 @@ Uint8List wav(int n, {double seconds = 4}) {
 }
 
 /// A short tone as a WAV file.
-Uri tone(Directory dir, int n, {double seconds = 4}) =>
-    (File('${dir.path}/t$n.wav')..writeAsBytesSync(wav(n, seconds: seconds))).uri;
+TrackSource tone(Directory dir, int n, {double seconds = 4}) =>
+    TrackSource((File('${dir.path}/t$n.wav')..writeAsBytesSync(wav(n, seconds: seconds))).uri);
 
 /// Tracks over HTTP, as a media server gives them: `ok<n>` a tone of 4 s, `short<n>` one of 1 s and
 /// `slow<n>` the tone of 4 s half a second late; `fail<n>` an error 500, as for a file the server
 /// can't read; `json<n>` an error in JSON, which isn't audio; and `flaky<n>` the error while
-/// [flakyFails], the tone after. It keeps the paths asked of it in [requests].
+/// [flakyFails], the tone after. `long<n>` is a tone of 20 s from its query's timeOffset on, in seconds, as a song the
+/// server transcodes. Each comes as the server sends a song it transcodes as it goes, of no length told, which mpv
+/// can't seek in. It keeps the paths asked of it in [requests], and their timeOffset in [offsets] (0 for none).
 class TrackServer {
   TrackServer._(this._server) {
     _server.listen(_answer);
@@ -69,16 +71,23 @@ class TrackServer {
 
   final HttpServer _server;
   final requests = <String>[];
+  final offsets = <int>[];
   bool flakyFails = true;
 
-  /// With a query, as the media server's stream URLs have, which mpv's log must give back as is.
-  Uri track(String name) => Uri.parse('http://127.0.0.1:${_server.port}/$name?id=$name&u=a%20b&t=c%2Fd');
+  TrackSource track(String name) => TrackSource(url(name));
+
+  /// With a query, as the media server's stream URLs have; from [from] on, a timeOffset too.
+  Uri url(String name, {Duration from = Duration.zero}) => Uri.parse(
+    'http://127.0.0.1:${_server.port}/$name?id=$name&u=a%20b&t=c%2Fd${from > Duration.zero ? '&timeOffset=${from.inSeconds}' : ''}',
+  );
 
   Future<void> _answer(HttpRequest request) async {
     final path = request.uri.path;
     final response = request.response;
     final n = int.parse(path.replaceAll(RegExp('[^0-9]'), ''));
+    final offset = int.parse(request.uri.queryParameters['timeOffset'] ?? '0');
     requests.add(path);
+    offsets.add(offset);
 
     if (path.startsWith('/slow')) {
       await Future<void>.delayed(const Duration(milliseconds: 500));
@@ -91,7 +100,7 @@ class TrackServer {
       response.write('{"error": "not found"}');
     } else {
       response.headers.contentType = ContentType('audio', 'wav');
-      response.add(wav(n, seconds: path.startsWith('/short') ? 1 : 4));
+      response.add(wav(n, seconds: path.startsWith('/short') ? 1 : (path.startsWith('/long') ? 20.0 - offset : 4)));
     }
 
     await response.close();
@@ -270,6 +279,99 @@ void main() {
       expect(engine.playing, isTrue);
       expect(engine.position, lessThan(const Duration(milliseconds: 1500)));
     });
+  }, skip: hasLibmpv ? false : 'needs libmpv');
+
+  // A song the media server transcodes as it goes comes with no length told, and mpv can't seek in it: the engine loads
+  // it again, asking for it from the point sought (timeOffset).
+  group('a stream that can\'t seek', () {
+    late TrackServer server;
+
+    setUp(() async => server = await TrackServer.start());
+    tearDown(() => server.close());
+
+    /// `long<n>`, which starts later when asked.
+    TrackSource long(int n) => TrackSource.resolved((from) async => server.url('long$n', from: from));
+
+    test('a seek loads it again from there, and the position counts from the track\'s start', () async {
+      await engine.open([long(0), long(1)], index: 0, position: Duration.zero, play: true);
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      await engine.seek(const Duration(seconds: 10, milliseconds: 600));
+      expect(server.offsets, [0, 10], reason: 'the track again, from the second sought');
+      await Future<void>.delayed(const Duration(milliseconds: 800));
+      expect((engine.index, engine.playing), (0, true));
+      expect(engine.position, greaterThan(const Duration(seconds: 10)));
+      expect(engine.position, lessThan(const Duration(seconds: 12)));
+    });
+
+    test('opened paused at a point, it loads it again to start there, and plays from there', () async {
+      await engine.open([long(0)], index: 0, position: const Duration(seconds: 12), play: false);
+      expect(server.offsets, [0, 12], reason: 'from its start, which can\'t seek, then from there');
+      expect(engine.playing, isFalse);
+      expect(engine.position.inMilliseconds, closeTo(12000, 300));
+      await engine.play();
+      await Future<void>.delayed(const Duration(milliseconds: 800));
+      expect(engine.playing, isTrue);
+      expect(engine.position, greaterThan(const Duration(seconds: 12)));
+      expect(engine.position, lessThan(const Duration(seconds: 14)));
+    });
+
+    test('before where its stream starts, it loads it again from there, or from its start', () async {
+      await engine.open([long(0)], index: 0, position: const Duration(seconds: 12), play: true);
+      await engine.seek(const Duration(seconds: 3));
+      await engine.seek(Duration.zero);
+      expect(server.offsets, [0, 12, 3, 0]);
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      expect(engine.playing, isTrue);
+      expect(engine.position, lessThan(const Duration(seconds: 2)));
+    });
+
+    test('repeating it, a stream that starts later starts over from the track\'s start', () async {
+      await engine.setRepeat(Repeat.one);
+      await engine.open([long(0)], index: 0, position: const Duration(seconds: 17), play: true);
+      await Future<void>.delayed(const Duration(seconds: 3)); // through the 3 s left
+      expect(server.offsets, [0, 17, 0]);
+      expect(engine.index, 0);
+      expect(engine.position, lessThan(const Duration(seconds: 2)));
+    });
+
+    test('a track that can\'t start later seeks in what mpv has of it', () async {
+      await engine.open([server.track('long0')], index: 0, position: Duration.zero, play: true);
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      await engine.seek(const Duration(seconds: 2));
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      expect(server.requests, ['/long0'], reason: 'asked once');
+      expect(engine.position, greaterThan(const Duration(seconds: 2)));
+      expect(engine.position, lessThan(const Duration(seconds: 4)));
+    });
+
+    test('each load asks the track where its stream is: an address that changes holds from the next load', () async {
+      var loads = 0;
+      TrackSource counted() => TrackSource.resolved((from) async => server.url('ok${loads++}'));
+      await engine.open([counted(), counted()], index: 0, position: Duration.zero, play: true);
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      await engine.jump(1);
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      await engine.jump(0);
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      expect(server.requests, ['/ok0', '/ok1', '/ok2']);
+      expect((engine.index, engine.playing), (0, true));
+    });
+  }, skip: hasLibmpv ? false : 'needs libmpv');
+
+  test('after a jump, a seek while the track loads goes there once it has', () async {
+    final server = await TrackServer.start();
+    addTearDown(server.close);
+    await engine.open([server.track('ok0'), server.track('slow1')], index: 0, position: Duration.zero, play: true);
+    await Future<void>.delayed(const Duration(milliseconds: 800));
+    await engine.jump(1);
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    expect(engine.position, Duration.zero, reason: 'the start of the track loading, not the one before\'s place');
+    await engine.seek(const Duration(seconds: 2));
+    expect(engine.position, const Duration(seconds: 2));
+    await Future<void>.delayed(const Duration(milliseconds: 1000)); // it loads after half a second
+    expect((engine.index, engine.playing), (1, true));
+    expect(engine.position, greaterThan(const Duration(seconds: 2)));
+    expect(engine.position, lessThan(const Duration(milliseconds: 3500)));
   }, skip: hasLibmpv ? false : 'needs libmpv');
 
   test('a new track, by a jump or moving on by itself, announces itself at its start', () async {

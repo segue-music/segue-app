@@ -112,6 +112,11 @@ the device it runs on.
   playing time added up across pauses and seeks, so that a song moved to another device halfway
   doesn't count on both; on a Jellyfin server the hub counts them, as a song starts (with no hub,
   nothing counts them there yet);
+- the quality the songs stream in: the files as they are, or transcoded by the media server down to 320, 160 or
+  96 kbps, picked in the quality menu (in the top bar, on a phone in its menu), which the app keeps and which holds
+  from the next song on. A song a Subsonic server transcodes as it goes can't seek, so a seek asks for it again from
+  that point (OpenSubsonic's transcodeOffset, which Navidrome has), as does opening on the last playback; a Jellyfin
+  server sends it as HLS, which can seek;
 
 - the system's media controls (through `audio_service`) show and command what the now-playing bar
   shows, the device it follows included: on Linux (MPRIS) the media keys, the desktop's player
@@ -136,7 +141,7 @@ the device it runs on.
 Not yet: playlists, editing the queue (play next, add to it, reorder it), the media controls on the other platforms (Android's
 media session), on a Jellyfin server the cover of a song that came from another device
 when its file has none of its own (Jellyfin doesn't fall back to the album's) and an artist's popular songs (Jellyfin
-knows only its users' plays), an offline cache, settings, sending the music
+knows only its users' plays), an offline cache, settings, a quality that follows the connection (Wi-Fi or mobile data), sending the music
 to speakers and TVs that don't run the app (Google Cast, UPnP/DLNA), and CarPlay as an app of its own (browsing the library
 on the car's screen, which needs Apple's CarPlay entitlement and native code). The Android build
 has been tried on a tablet and on an Android TV; the iOS build has not been tried on a device yet.

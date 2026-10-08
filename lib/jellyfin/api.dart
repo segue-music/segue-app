@@ -278,9 +278,27 @@ class JellyfinApi implements MediaServer {
     );
   }
 
-  /// The file as it is (static), with the token in the URL: the player can't send headers.
+  /// The file as it is (static), with the token in the URL: the player can't send headers. With [maxBitRate],
+  /// Audio/{id}/universal, which sends the file as it is where its bitrate is within it, and otherwise transcodes it into
+  /// AAC over HLS, which the player can seek in, unlike a stream transcoded as it goes.
   @override
-  Uri streamUrl(String songId) => _url('Audio/$songId/stream', {'static': 'true', 'ApiKey': credentials.token});
+  Uri streamUrl(String songId, {int? maxBitRate}) => maxBitRate == null
+      ? _url('Audio/$songId/stream', {'static': 'true', 'ApiKey': credentials.token})
+      : _url('Audio/$songId/universal', {
+          'MaxStreamingBitrate': '${maxBitRate * 1000}',
+          // What the player plays as it is: any of these, within the bitrate.
+          'Container': 'opus,webm|opus,ogg,mp3,aac,m4a|aac,m4a|alac,m4b|aac,flac,webma,webm|webma,wav',
+          'TranscodingContainer': 'ts',
+          'TranscodingProtocol': 'hls',
+          'AudioCodec': 'aac',
+          'UserId': credentials.userId,
+          'DeviceId': deviceId,
+          'ApiKey': credentials.token,
+        });
+
+  /// Never: a transcoded song comes as HLS, which can seek.
+  @override
+  Future<Uri?> transcodedStreamUrl(String songId, {required int maxBitRate, required Duration from}) async => null;
 
   /// Nothing: Jellyfin counts a play as a playback starts (Sessions/Playing), which the hub reports for
   /// the device (SPEC.md, section 12), and counting it here too would count it twice.

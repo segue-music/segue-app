@@ -6,6 +6,20 @@ import 'package:media_kit/media_kit.dart';
 
 import '../segue/protocol.dart';
 
+/// Where a track's stream is, for [AudioEngine.open]: the engine asks for it as the track loads.
+class TrackSource {
+  /// At [url], whenever it loads.
+  TrackSource(Uri url) : address = ((from) async => from == Duration.zero ? url : null);
+
+  /// At the address that [address] gives as the track loads, so that what it asks the media server for (its quality)
+  /// can change from one track to the next: the stream from its start ([Duration.zero]), or, to seek in a stream that
+  /// can't (one the media server transcodes as it goes), from that point, in whole seconds, where null says the stream
+  /// can't start there.
+  TrackSource.resolved(this.address);
+
+  final Future<Uri?> Function(Duration from) address;
+}
+
 /// What [PlayerController] needs from an audio backend. [MediaKitEngine] is the real one; the tests
 /// use a fake.
 abstract class AudioEngine {
@@ -35,7 +49,7 @@ abstract class AudioEngine {
   /// Opened paused, the current track loads all the same, so that [play] starts it at once. Should it
   /// fail then, the engine stops on it without telling ([failed] stays false), since nothing asked it
   /// to play: [play] tries it again, and tells if it fails again.
-  Future<void> open(List<Uri> tracks, {required int index, required Duration position, required bool play});
+  Future<void> open(List<TrackSource> tracks, {required int index, required Duration position, required bool play});
   Future<void> play();
   Future<void> pause();
   Future<void> stop();
@@ -56,10 +70,17 @@ abstract class AudioEngine {
 }
 
 /// Plays through media_kit (libmpv), on every platform.
+///
+/// mpv's playlist has a name for each track (`segue://track/<open>/<track>`), not its stream: as mpv is about to load
+/// one, its on_load hook asks the track where its stream is ([TrackSource.address]) and points mpv there
+/// (stream-open-filename). So the stream can change between two loads of a track, and a stream that can't seek, one the
+/// media server transcodes as it goes, seeks by loading its track again, from the point sought ([_startOver]).
 class MediaKitEngine implements AudioEngine {
   /// [silent] sends the audio nowhere: for tests on a machine without sound.
   MediaKitEngine({@visibleForTesting bool silent = false}) {
-    _ready = silent ? (_player.platform as NativePlayer).setProperty('ao', 'null') : Future.value();
+    final native = _player.platform as NativePlayer;
+    _ready = silent ? native.setProperty('ao', 'null') : Future.value();
+    native.onLoadHooks.add(_pointAtStream);
     final stream = _player.stream;
     _subscriptions = [
       stream.playing.listen((_) => _changes.add(null)),
@@ -86,6 +107,7 @@ class MediaKitEngine implements AudioEngine {
         // Another track, by itself: from its start. A shuffle keeps the same one current.
         if (_at(inOrder, playlist.index) != _at(_inOrder, _index)) {
           _moved(Duration.zero);
+          _seekOnLoad = null;
         }
 
         _inOrder = inOrder;
@@ -95,13 +117,20 @@ class MediaKitEngine implements AudioEngine {
       stream.playlistMode.listen((_) => _changes.add(null)),
       stream.volume.listen((_) => _changes.add(null)),
       stream.completed.listen((_) => _changes.add(null)),
-      stream.position.listen((reported) {
+      stream.position.listen((inStream) {
+        final reported = inStream + _offset;
+
         if (_moving) {
           if ((reported - position).abs() < const Duration(seconds: 1)) {
             _movedTo = null;
           }
         } else if (reported < _lastPosition - const Duration(milliseconds: 500)) {
           _changes.add(null); // went back by itself: the track started over, repeating it
+
+          // A stream that starts later goes back to where it starts, not to the track's start.
+          if (_offset > Duration.zero && !_waiting && !_failed) {
+            unawaited(_seek(Duration.zero, play: _player.state.playing));
+          }
         }
 
         _lastPosition = reported;
@@ -115,15 +144,28 @@ class MediaKitEngine implements AudioEngine {
   final _changes = StreamController<void>.broadcast();
   late final List<StreamSubscription<Object?>> _subscriptions;
   late final Future<void> _ready;
+  bool _disposed = false;
 
   // The current track, from the playlist events and our own calls. media_kit's
   // state.playlist.index can't be trusted: on every open it drops to 0 for a moment, unannounced,
   // and comes back silently (its playlist stream skips a repeat of what it already announced).
   int _index = 0;
 
-  // The tracks as open got them, and in play order (shuffled, or not), as media_kit's URIs.
+  // The tracks as open got them, and their names in mpv's playlist, as open got them and in play order (shuffled, or
+  // not). Each open names them anew, so that what mpv says late of the tracks before isn't taken for these.
+  List<TrackSource> _tracks = const [];
+  int _opens = 0;
   List<String> _opened = const [];
   List<String> _inOrder = const [];
+
+  // Where in the track the current track's stream starts: zero, unless it was loaded again to start later.
+  Duration _offset = Duration.zero;
+
+  // The stream [_startOver] got for the track it loads again, which the on_load hook points mpv at.
+  ({String track, Uri address})? _restart;
+
+  // Counts the seeks: one that waits for a stream to start later leaves it to a seek after it.
+  int _seeks = 0;
 
   // media_kit turns shuffle off with every open; this is the mode, which stays.
   bool _shuffle = false;
@@ -131,8 +173,18 @@ class MediaKitEngine implements AudioEngine {
   Duration _lastPosition = Duration.zero;
 
   // The track mpv last started to load, by its log: what a failure that follows in the log is about.
-  // mpv's events can't tell: they can announce the next track before the log says this one failed.
+  // mpv's events can't tell: they can announce the next track before the log says this one failed. And how many loads
+  // the log has told of.
   String? _loading;
+  int _loadsLogged = 0;
+
+  // Whether the track mpv last started to load ([_loading]) has loaded, as its duration announces; and each load, for
+  // a load waiting for its track, by the track and the count of loads the log had told of then.
+  bool _loaded = false;
+  final _loadsDone = StreamController<({String track, int logged})>.broadcast();
+
+  // A seek while the current track loads, after a jump or moving on by itself: where it goes once loaded.
+  Duration? _seekOnLoad;
 
   // Stopped on a track that failed to load; completed once stopped there, for a load waiting for it.
   bool _failed = false;
@@ -173,6 +225,29 @@ class MediaKitEngine implements AudioEngine {
 
   bool get _moving => _movedTo != null && DateTime.now().difference(_movedAt) <= _trustMoveFor;
 
+  /// Whether the current track has loaded, so that mpv can seek in it, and plays from where it was taken. Should mpv's
+  /// log never tell of a load, as it always has, whether it has can't be known: then it has.
+  bool get _currentLoaded => (_loaded && _loading == _at(_inOrder, _index)) || _loadsLogged == 0;
+
+  /// A track has just loaded. If it is the current one, it plays from where it was taken only now, and a seek made
+  /// while it loaded goes there.
+  void _whenLoaded() {
+    if (!_currentLoaded) {
+      return;
+    }
+
+    if (_movedTo != null) {
+      _movedAt = DateTime.now();
+    }
+
+    final seekOnLoad = _seekOnLoad;
+    _seekOnLoad = null;
+
+    if (seekOnLoad != null && !_waiting && !_failed) {
+      unawaited(_seek(seekOnLoad, play: _player.state.playing));
+    }
+  }
+
   @override
   Stream<void> get changes => _changes.stream;
 
@@ -188,8 +263,13 @@ class MediaKitEngine implements AudioEngine {
       return _held;
     }
 
+    // Until it has loaded, media_kit's position is the track before's.
+    if (!_currentLoaded) {
+      return _seekOnLoad ?? _movedTo ?? Duration.zero;
+    }
+
     if (!_moving) {
-      return _player.state.position;
+      return _player.state.position + _offset;
     }
 
     final since = DateTime.now().difference(_movedAt);
@@ -258,17 +338,59 @@ class MediaKitEngine implements AudioEngine {
   }
 
   @override
-  Future<void> open(List<Uri> tracks, {required int index, required Duration position, required bool play}) async {
+  Future<void> open(
+    List<TrackSource> tracks, {
+    required int index,
+    required Duration position,
+    required bool play,
+  }) async {
     await _ready;
     _failed = false;
     _quiet = !play;
-    _opened = _inOrder = [for (final track in tracks) Media(track.toString()).uri];
+    _tracks = tracks;
+    _opens++;
+    _opened = _inOrder = [for (var i = 0; i < tracks.length; i++) Media('segue://track/$_opens/$i').uri];
     _index = index;
+    _offset = Duration.zero;
+    _restart = null;
     final playlist = Playlist([for (final track in _opened) Media(track)], index: index);
     await _playFrom(position, () => _player.open(playlist, play: false), play: play);
 
     if (_shuffle) {
       await _player.setShuffle(true);
+    }
+  }
+
+  /// mpv's on_load hook: points mpv, about to load one of the tracks, at its stream. The one the track gives now, or,
+  /// loading it again to start later, the one [_startOver] got. A track of another open is left as it is, which mpv
+  /// fails to open, and a failure the engine ignores, as it does of a track it no longer has.
+  Future<void> _pointAtStream() async {
+    final native = _player.platform as NativePlayer;
+    final track = await native.getProperty('path');
+    final i = _opened.indexOf(track);
+
+    if (i < 0 || _disposed) {
+      return;
+    }
+
+    final restart = _restart;
+    Uri? address;
+
+    if (restart != null && restart.track == track) {
+      _restart = null;
+      address = restart.address;
+    } else {
+      _offset = Duration.zero;
+
+      try {
+        address = await _tracks[i].address(Duration.zero);
+      } on Object catch (e) {
+        debugPrint('no stream for $track: $e'); // which mpv then fails to open
+      }
+    }
+
+    if (address != null && !_disposed) {
+      await native.setProperty('stream-open-filename', '$address');
     }
   }
 
@@ -279,22 +401,31 @@ class MediaKitEngine implements AudioEngine {
   Future<void> _resume(int index, Duration position) {
     _failed = false;
     _index = index;
+    _offset = Duration.zero;
+    _restart = null;
     return _playFrom(position, () => (_player.platform as NativePlayer).command(['playlist-play-index', '$index']));
   }
 
   /// Plays from [position] the track that [load] loads paused, or, unless [play], only takes it there.
   /// Seeking only works once it has loaded, which the duration announces: until then, a seek moves
   /// where it goes, and play and pause say whether it plays. If it fails instead, it stays there.
-  Future<void> _playFrom(Duration position, Future<void> Function() load, {bool play = true}) async {
+  /// [hold] waits for it to load even where it plays from where its stream starts: a track loaded again to start later,
+  /// which a seek may follow right away.
+  Future<void> _playFrom(Duration position, Future<void> Function() load, {bool play = true, bool hold = false}) async {
     final loads = ++_loads;
     _moved(position);
-    _starting = _at(_inOrder, _index);
+    _seekOnLoad = null;
+    final track = _starting = _at(_inOrder, _index);
     _held = position;
     _playOnLoad = play;
     final failure = _failure = Completer<void>();
-    // From its start, a track that plays needn't wait; one that stays paused does, for a seek first.
-    _waiting = position != Duration.zero || !play;
-    final loaded = _waiting ? _player.stream.duration.firstWhere((d) => d > Duration.zero) : null;
+    // From where its stream starts, a track that plays needn't wait; one that stays paused does, for a seek first.
+    _waiting = position != _offset || !play || hold;
+    // Once the log has told of its load, and it has loaded; or any load, once another load or a jump took over.
+    final logged = _loadsLogged;
+    final loaded = _waiting
+        ? _loadsDone.stream.firstWhere((load) => loads != _loads || (load.logged > logged && load.track == track))
+        : null;
     await load();
 
     if (loaded != null) {
@@ -306,8 +437,12 @@ class MediaKitEngine implements AudioEngine {
 
       _waiting = false;
 
-      if (!_failed && _held != Duration.zero) {
-        await seek(_held);
+      if (!_failed && _held != _offset) {
+        await _seek(_held, play: _playOnLoad);
+
+        if (loads != _loads) {
+          return; // loaded again, to start there
+        }
       }
     }
 
@@ -345,7 +480,11 @@ class MediaKitEngine implements AudioEngine {
     _loads++;
     _failed = _quiet = _waiting = false;
     _index = 0;
+    _tracks = const [];
     _opened = _inOrder = const [];
+    _offset = Duration.zero;
+    _restart = null;
+    _seekOnLoad = null;
     _moved(Duration.zero);
     return _player.stop();
   }
@@ -361,6 +500,8 @@ class MediaKitEngine implements AudioEngine {
     // A load still waiting for its track leaves it to the jump.
     _loads++;
     _waiting = false;
+    _restart = null;
+    _seekOnLoad = null;
     final again = index == _index && !_player.state.completed;
     _index = index;
     _moved(Duration.zero);
@@ -368,21 +509,56 @@ class MediaKitEngine implements AudioEngine {
     _held = Duration.zero;
 
     if (!again) {
+      _offset = Duration.zero;
       return _player.jump(index); // which plays too
     }
 
     // mpv ignores a jump to the track it is on. Once the queue has ended, media_kit's jump is the one
-    // that works, since its play would go back to the first track.
-    await _player.seek(Duration.zero);
+    // that works, since its play would go back to the first track. A stream that starts later, or can't seek, loads
+    // again from the start.
+    await _seek(Duration.zero, play: true);
     await _player.play();
   }
 
   void _logged(PlayerLog log) {
     if (log.prefix == 'cplayer' && log.text.startsWith('Playing: ')) {
-      _loading = log.text.substring('Playing: '.length);
+      final track = _loading = log.text.substring('Playing: '.length);
+      _loaded = false;
+      unawaited(_watchLoad(track, ++_loadsLogged));
     } else if (log.level == 'error' &&
         (log.text.startsWith('Failed to open ') || log.text == 'Failed to recognize file format.')) {
       unawaited(_fail(_loading));
+    }
+  }
+
+  /// Waits for mpv to have loaded [track], the load the log told of as the [logged]th, which it has once it has a
+  /// duration. A track the server transcodes as it goes has one too, as long as what came of it. mpv's notice of the
+  /// duration can't tell: it may say nothing for a track whose duration is the track before's.
+  Future<void> _watchLoad(String track, int logged) async {
+    final native = _player.platform as NativePlayer;
+
+    // For 15 s at most, or until another load.
+    for (var i = 0; i < 300 && logged == _loadsLogged && !_disposed; i++) {
+      final String duration;
+
+      try {
+        duration = await native.getProperty('duration');
+      } on Object {
+        return; // disposed meanwhile
+      }
+
+      if (logged != _loadsLogged || _disposed) {
+        return;
+      }
+
+      if ((double.tryParse(duration) ?? 0) > 0) {
+        _loaded = true;
+        _loadsDone.add((track: track, logged: logged));
+        _whenLoaded();
+        return;
+      }
+
+      await Future<void>.delayed(const Duration(milliseconds: 50));
     }
   }
 
@@ -419,15 +595,82 @@ class MediaKitEngine implements AudioEngine {
   }
 
   @override
-  Future<void> seek(Duration position) async {
+  Future<void> seek(Duration position) => _seek(position, play: _player.state.playing);
+
+  /// Seeks to [position], where a track loaded again to start there plays or not as [play] says.
+  Future<void> _seek(Duration position, {required bool play}) async {
     // Where it goes once loaded, or tried again.
     if (_waiting || _failed) {
       _held = position;
       return;
     }
 
+    final seeks = ++_seeks;
     _moved(position);
-    await _player.seek(position);
+
+    // mpv can't seek in a track still loading.
+    if (!_currentLoaded) {
+      _seekOnLoad = position;
+      return;
+    }
+
+    // Before where the stream starts, or, in a stream that can't seek (one the media server transcodes as it goes),
+    // past its start, the track loads again to start there; mpv's cache still has the start.
+    if (position < _offset || (position > Duration.zero && !await _seekable)) {
+      if (await _startOver(position, play: play, seeks: seeks)) {
+        return;
+      }
+    }
+
+    if (seeks == _seeks) {
+      await _player.seek(position > _offset ? position - _offset : Duration.zero);
+    }
+  }
+
+  /// Whether mpv can seek in the current track's stream: a file can, as can HLS, but not a stream that the media
+  /// server transcodes as it goes, unless it has the whole of it already. Until the log says the track loads, mpv's
+  /// answer is the track before's, so it may: as it always could.
+  Future<bool> get _seekable async =>
+      _loading != _at(_inOrder, _index) || await (_player.platform as NativePlayer).getProperty('seekable') != 'no';
+
+  /// Loads the current track again, its stream starting at [position], in whole seconds, and plays it there or not as
+  /// [play] says. False where its stream can't start there. Gives up on it for the seek after [seeks], or a load.
+  Future<bool> _startOver(Duration position, {required bool play, required int seeks}) async {
+    final track = _at(_inOrder, _index);
+    final i = track == null ? -1 : _opened.indexOf(track);
+
+    if (i < 0) {
+      return false;
+    }
+
+    final loads = _loads;
+    final from = Duration(seconds: position.inSeconds);
+    final Uri? address;
+
+    try {
+      address = await _tracks[i].address(from);
+    } on Object catch (e) {
+      debugPrint('no stream for $track from $from: $e');
+      return false;
+    }
+
+    if (seeks != _seeks || loads != _loads) {
+      return true; // nothing to do: the seek, or the load, after it does it
+    }
+
+    if (address == null) {
+      return false;
+    }
+
+    _restart = (track: track!, address: address);
+    _offset = from;
+    await _playFrom(
+      from,
+      () => (_player.platform as NativePlayer).command(['playlist-play-index', '$_index']),
+      play: play,
+      hold: true,
+    );
+    return true;
   }
 
   @override
@@ -435,11 +678,14 @@ class MediaKitEngine implements AudioEngine {
 
   @override
   Future<void> dispose() async {
+    _disposed = true;
+
     for (final subscription in _subscriptions) {
       await subscription.cancel();
     }
 
     await _changes.close();
+    await _loadsDone.close();
     await _player.dispose();
   }
 }

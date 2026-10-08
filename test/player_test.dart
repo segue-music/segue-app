@@ -1,5 +1,11 @@
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:segue/player/player.dart';
+import 'package:segue/quality_choice.dart';
 import 'package:segue/segue/client.dart';
 import 'package:segue/segue/protocol.dart';
 import 'package:segue/server/models.dart';
@@ -40,6 +46,53 @@ void main() {
     expect(reports.last.status, PlaybackStatus.paused);
     expect(reports.last.queue, isNull, reason: 'the queue goes only when it changes');
     expect(player.report(full: true).queue, hasLength(2));
+  });
+
+  test('streams in the quality picked as each song loads: a pick holds from the next song on', () async {
+    final quality = ValueNotifier(StreamQuality.normal);
+    addTearDown(quality.dispose);
+    player = PlayerController(engine, api, quality: quality);
+    await player.playQueue(songs);
+    expect(engine.tracks.first.queryParameters, containsPair('maxBitRate', '160'));
+
+    quality.value = StreamQuality.original;
+    final next = await engine.opened.last.address(Duration.zero);
+    expect(next?.queryParameters['id'], 's2');
+    expect(next?.queryParameters.containsKey('maxBitRate'), isFalse);
+  });
+
+  test('a song the server transcodes starts later where it can; the file as it is never needs to', () async {
+    final offsets = SubsonicApi(
+      Uri.parse('https://music.test'),
+      const SubsonicCredentials(username: 'a', token: 't', salt: 's'),
+      client: MockClient(
+        (_) async => http.Response(
+          jsonEncode({
+            'subsonic-response': {
+              'status': 'ok',
+              'openSubsonicExtensions': [
+                {
+                  'name': 'transcodeOffset',
+                  'versions': [1],
+                },
+              ],
+            },
+          }),
+          200,
+        ),
+      ),
+    );
+    final quality = ValueNotifier(StreamQuality.low);
+    addTearDown(quality.dispose);
+    player = PlayerController(engine, offsets, quality: quality);
+    await player.playQueue(songs);
+
+    final later = await engine.opened.first.address(const Duration(seconds: 42));
+    expect(later?.queryParameters, containsPair('maxBitRate', '96'));
+    expect(later?.queryParameters, containsPair('timeOffset', '42'));
+
+    quality.value = StreamQuality.original;
+    expect(await engine.opened.first.address(const Duration(seconds: 42)), isNull);
   });
 
   test('a seek is reported, though the engine says nothing', () async {

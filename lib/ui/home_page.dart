@@ -7,6 +7,7 @@ import 'package:hugeicons/hugeicons.dart';
 
 import '../l10n/app_localizations.dart';
 import '../language_choice.dart';
+import '../quality_choice.dart';
 import '../segue/client.dart';
 import '../segue/protocol.dart';
 import '../server/models.dart';
@@ -22,13 +23,14 @@ import 'menu_item_label.dart';
 import 'now_playing_bar.dart';
 import 'page_area.dart';
 import 'player_page.dart';
+import 'quality_button.dart';
 import 'search_results.dart';
 import 'shortcuts.dart';
 import 'theme_fade.dart';
 import 'themed_icon.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({required this.onSignOut, this.themeChoice, this.languageChoice, super.key});
+  const HomePage({required this.onSignOut, this.themeChoice, this.languageChoice, this.qualityChoice, super.key});
 
   final VoidCallback onSignOut;
 
@@ -39,6 +41,10 @@ class HomePage extends StatefulWidget {
   /// The language picked, which a menu picks: the language menu in the top bar on a wide screen, and on a phone the
   /// top bar's menu; none, neither.
   final LanguageChoice? languageChoice;
+
+  /// The quality the player streams in, which a menu picks: the quality menu in the top bar on a wide screen, and on a
+  /// phone the top bar's menu; none, neither.
+  final QualityChoice? qualityChoice;
 
   /// How long typing in the search bar has to stop before the search goes out, so that it isn't one
   /// per key.
@@ -248,14 +254,25 @@ class _HomePageState extends State<HomePage> {
       icon: Image.asset('assets/logo.png', width: 32, height: 32),
       onPressed: () => _select(_Section.home),
     );
-    final (themeChoice, languageChoice) = (widget.themeChoice, widget.languageChoice);
-    // On a phone, the theme, the language and signing out are in a menu, after the hub's status, which stays in sight.
+    final (themeChoice, languageChoice, qualityChoice) = (
+      widget.themeChoice,
+      widget.languageChoice,
+      widget.qualityChoice,
+    );
+    // On a phone, the theme, the language, the quality and signing out are in a menu, after the hub's status, which
+    // stays in sight.
     final actions = [
       if (!narrow && themeChoice != null) _ThemeButton(themeChoice),
       if (!narrow && languageChoice != null) LanguageButton(languageChoice),
+      if (!narrow && qualityChoice != null) QualityButton(qualityChoice),
       _HubStatus(client: services.connect.client),
       if (narrow)
-        _PhoneMenu(themeChoice: themeChoice, languageChoice: languageChoice, onSignOut: widget.onSignOut)
+        _PhoneMenu(
+          themeChoice: themeChoice,
+          languageChoice: languageChoice,
+          qualityChoice: qualityChoice,
+          onSignOut: widget.onSignOut,
+        )
       else
         IconButton(
           tooltip: strings.signOut,
@@ -535,20 +552,21 @@ class _ThemeButton extends StatelessWidget {
   }
 }
 
-/// On a phone, the top bar's menu, for what is picked once in a while: the theme (the system's again too), the language
-/// and, last, signing out, which in a menu is two taps away rather than one in the corner of the screen. Each kind of
-/// choice its own group, the one picked with a check.
+/// On a phone, the top bar's menu, for what is picked once in a while: the theme (the system's again too), the
+/// language, the quality and, last, signing out, which in a menu is two taps away rather than one in the corner of the
+/// screen. Each kind of choice its own group, the one picked with a check.
 class _PhoneMenu extends StatelessWidget {
-  const _PhoneMenu({required this.onSignOut, this.themeChoice, this.languageChoice});
+  const _PhoneMenu({required this.onSignOut, this.themeChoice, this.languageChoice, this.qualityChoice});
 
   final VoidCallback onSignOut;
   final ThemeChoice? themeChoice;
   final LanguageChoice? languageChoice;
+  final QualityChoice? qualityChoice;
 
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context);
-    final (themeChoice, languageChoice) = (this.themeChoice, this.languageChoice);
+    final (themeChoice, languageChoice, qualityChoice) = (this.themeChoice, this.languageChoice, this.qualityChoice);
     const tick = HugeIcons.strokeRoundedTick02;
     return PopupMenuButton<void>(
       icon: const ThemedIcon(HugeIcons.strokeRoundedMoreVertical),
@@ -574,6 +592,14 @@ class _PhoneMenu extends StatelessWidget {
                 name,
                 icon: language?.languageCode == languageChoice.value?.languageCode ? tick : null,
               ),
+            ),
+          const PopupMenuDivider(),
+        ],
+        if (qualityChoice != null) ...[
+          for (final (quality, name) in QualityButton.options(strings))
+            PopupMenuItem(
+              onTap: () => qualityChoice.pick(quality),
+              child: MenuItemLabel(name, icon: quality == qualityChoice.value ? tick : null),
             ),
           const PopupMenuDivider(),
         ],

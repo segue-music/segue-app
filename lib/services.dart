@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import 'connect/connect.dart';
@@ -7,6 +8,7 @@ import 'lyrics/lrclib.dart';
 import 'player/engine.dart';
 import 'player/play_counter.dart';
 import 'player/player.dart';
+import 'quality_choice.dart';
 import 'releases/musicbrainz.dart';
 import 'segue/client.dart';
 import 'segue/discovery.dart';
@@ -19,15 +21,16 @@ import 'session.dart';
 class Services {
   Services(this.session, this.api, this.player, this.connect, {this.lrclib, this.musicBrainz, this.playCounter});
 
-  /// Starts a session: the API, this device's player and, if a hub is found, the connection to it.
-  static Future<Services> start(Session session, {AudioEngine? engine}) async {
+  /// Starts a session: the API, this device's player, which streams in [quality], and, if a hub is found, the
+  /// connection to it.
+  static Future<Services> start(Session session, {AudioEngine? engine, ValueListenable<StreamQuality>? quality}) async {
     final api = openServer(
       session.server,
       session.credentials,
       deviceId: session.deviceId,
       deviceName: session.deviceName,
     );
-    final player = PlayerController(engine ?? MediaKitEngine(), api);
+    final player = PlayerController(engine ?? MediaKitEngine(), api, quality: quality);
     final hubUrl = await discoverHub(session.server, hub: session.hub);
     final client = hubUrl == null
         ? null

@@ -40,6 +40,9 @@ class SubsonicApi implements MediaServer {
   final SubsonicCredentials credentials;
   final http.Client _http;
 
+  // Whether the server has OpenSubsonic's transcodeOffset, once asked.
+  Future<bool>? _transcodeOffset;
+
   @override
   Api get api => Api.subsonic;
 
@@ -262,8 +265,40 @@ class SubsonicApi implements MediaServer {
     return (_artist(json), [for (final album in albums) _album(album as Map<String, dynamic>)]);
   }
 
+  /// The format of a transcoded song is the server's pick (Navidrome's is Opus).
   @override
-  Uri streamUrl(String songId) => _url('stream', {'id': songId});
+  Uri streamUrl(String songId, {int? maxBitRate}) =>
+      _url('stream', {'id': songId, 'maxBitRate': ?maxBitRate?.toString()});
+
+  /// stream's timeOffset, on a server that has OpenSubsonic's transcodeOffset. Without it, a server may leave
+  /// timeOffset out (the Subsonic API has it for videos only), and the player would take the start for that point.
+  /// Navidrome starts a transcoded song there, but sends a song it doesn't transcode from its start: the player asks only
+  /// for a stream that can't seek, which a file can.
+  @override
+  Future<Uri?> transcodedStreamUrl(String songId, {required int maxBitRate, required Duration from}) async =>
+      await _startsTranscodesLater
+      ? _url('stream', {'id': songId, 'maxBitRate': '$maxBitRate', 'timeOffset': '${from.inSeconds}'})
+      : null;
+
+  /// Whether the server has OpenSubsonic's transcodeOffset: asked once, unless it couldn't be (no network), and then
+  /// asked again the next time.
+  Future<bool> get _startsTranscodesLater => _transcodeOffset ??= _extensions().then(
+    (extensions) => extensions.contains('transcodeOffset'),
+    onError: (Object e) {
+      // A server that answers with an error has no OpenSubsonic extensions; one that doesn't answer may.
+      if (e is! ServerError) {
+        _transcodeOffset = null;
+      }
+
+      return false;
+    },
+  );
+
+  /// The names of the OpenSubsonic extensions the server has (getOpenSubsonicExtensions).
+  Future<List<String>> _extensions() async {
+    final extensions = (await _get('getOpenSubsonicExtensions'))['openSubsonicExtensions'] as List? ?? const [];
+    return [for (final extension in extensions) (extension as Map<String, dynamic>)['name'] as String];
+  }
 
   /// A scrobble's submission, which counts the play. What plays shows in the server's now playing
   /// through the hub instead, which counts nothing (SPEC.md, section 12).

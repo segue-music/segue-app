@@ -8,6 +8,9 @@ import 'package:segue/segue/protocol.dart';
 /// in fake time (fake_async) plays in it.
 class FakeEngine implements AudioEngine {
   final _changes = StreamController<void>.broadcast(sync: true);
+
+  /// The tracks open got, and their streams as they were then, from the start: those once open returns.
+  List<TrackSource> opened = [];
   List<Uri> tracks = [];
   int _index = 0;
   bool _playing = false;
@@ -55,9 +58,14 @@ class FakeEngine implements AudioEngine {
   }
 
   @override
-  Future<void> open(List<Uri> tracks, {required int index, required Duration position, required bool play}) async {
+  Future<void> open(
+    List<TrackSource> tracks, {
+    required int index,
+    required Duration position,
+    required bool play,
+  }) async {
     _failed = false;
-    this.tracks = tracks;
+    opened = tracks;
     _order = [for (var i = 0; i < tracks.length; i++) i];
     _index = index;
 
@@ -68,6 +76,8 @@ class FakeEngine implements AudioEngine {
     _seek(position);
     _playing = play;
     _changes.add(null);
+    // Last, so that the rest changes at once, as before the tracks' streams were asked for.
+    this.tracks = [for (final track in tracks) (await track.address(Duration.zero))!];
   }
 
   @override
@@ -114,6 +124,7 @@ class FakeEngine implements AudioEngine {
   @override
   Future<void> stop() async {
     _failed = false;
+    opened = [];
     tracks = [];
     _order = [];
     _index = 0;

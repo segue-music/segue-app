@@ -728,6 +728,22 @@
   "@languageName": {
     "description": "This language's own name, as the language menu lists it, in every language."
   },
+  "audioQuality": "Qualidade do áudio",
+  "@audioQuality": {
+    "description": "The tooltip of the button that opens the menu of the quality the player streams songs in."
+  },
+  "streamQuality": "{quality, select, high{Qualidade alta · {bitRate} kbps} normal{Qualidade normal · {bitRate} kbps} low{Qualidade baixa · {bitRate} kbps} other{Qualidade original}}",
+  "@streamQuality": {
+    "description": "A choice in the quality menu, by its kind: the original (the files as they are), or a high, normal or low one, at most bitRate kbps, which the media server transcodes the songs down to.",
+    "placeholders": {
+      "quality": {
+        "type": "String"
+      },
+      "bitRate": {
+        "type": "int"
+      }
+    }
+  },
   "artistOnDevice": "{artist} (em {device})",
   "@artistOnDevice": {
     "description": "The artist line of the system's media controls for a song playing on another device, with the artist and the device's name.",

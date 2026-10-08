@@ -131,5 +131,7 @@
   "language": "Language",
   "systemLanguage": "System language",
   "languageName": "English",
+  "audioQuality": "Audio quality",
+  "streamQuality": "{quality, select, high{High quality · {bitRate} kbps} normal{Normal quality · {bitRate} kbps} low{Low quality · {bitRate} kbps} other{Original quality}}",
   "artistOnDevice": "{artist} (on {device})"
 }

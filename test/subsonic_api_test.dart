@@ -43,6 +43,70 @@ void main() {
     expect(api.streamUrl('s1').path, '/music/rest/stream.view');
   });
 
+  test('a stream within a bitrate, and from a point on where the server has transcodeOffset, asked once', () async {
+    var asked = 0;
+    final api = SubsonicApi(
+      Uri.parse('https://music.test'),
+      credentials,
+      client: MockClient((request) async {
+        asked++;
+        expect(request.url.path, '/rest/getOpenSubsonicExtensions.view');
+        return subsonic({
+          'status': 'ok',
+          'openSubsonicExtensions': [
+            {
+              'name': 'transcodeOffset',
+              'versions': [1],
+            },
+          ],
+        });
+      }),
+    );
+    expect(api.streamUrl('s1', maxBitRate: 160).queryParameters, containsPair('maxBitRate', '160'));
+    expect(api.streamUrl('s1').queryParameters.containsKey('maxBitRate'), isFalse, reason: 'the file as it is');
+
+    final later = await api.transcodedStreamUrl(
+      's1',
+      maxBitRate: 160,
+      from: const Duration(seconds: 42, milliseconds: 900),
+    );
+    expect(later?.path, '/rest/stream.view');
+    expect(later?.queryParameters, containsPair('id', 's1'));
+    expect(later?.queryParameters, containsPair('maxBitRate', '160'));
+    expect(later?.queryParameters, containsPair('timeOffset', '42'));
+    await api.transcodedStreamUrl('s1', maxBitRate: 160, from: const Duration(seconds: 50));
+    expect(asked, 1);
+  });
+
+  test('a server without transcodeOffset starts no stream later; one that couldn\'t be asked is asked again', () async {
+    var online = false;
+    var asked = 0;
+    final api = SubsonicApi(
+      Uri.parse('https://music.test'),
+      credentials,
+      client: MockClient((request) async {
+        asked++;
+
+        if (!online) {
+          throw http.ClientException('no network');
+        }
+
+        // A server with no OpenSubsonic extensions.
+        return subsonic({
+          'status': 'failed',
+          'error': {'code': 70, 'message': 'not found'},
+        });
+      }),
+    );
+    Future<Uri?> later() => api.transcodedStreamUrl('s1', maxBitRate: 96, from: const Duration(seconds: 42));
+
+    expect(await later(), isNull);
+    online = true;
+    expect(await later(), isNull);
+    expect(await later(), isNull);
+    expect(asked, 2, reason: 'again after no network, not after the server answered');
+  });
+
   test('wrong credentials are an auth error', () async {
     final api = SubsonicApi(
       Uri.parse('https://music.test'),

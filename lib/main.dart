@@ -7,6 +7,7 @@ import 'player/media_controls.dart';
 import 'session.dart';
 import 'device.dart';
 import 'language_choice.dart';
+import 'quality_choice.dart';
 import 'theme_choice.dart';
 
 Future<void> main() async {
@@ -20,6 +21,7 @@ Future<void> main() async {
       session: await Session.load(),
       themeChoice: await ThemeChoice.load(),
       languageChoice: await LanguageChoice.load(),
+      qualityChoice: await QualityChoice.load(),
       mediaControls: controls,
       interruptions: interruptions,
       television: television,
