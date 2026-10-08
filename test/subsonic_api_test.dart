@@ -690,6 +690,50 @@ void main() {
     expect(asked.single.path, '/rest/getArtist.view');
   });
 
+  test('an artist and their most played songs, asked at once, share one getArtist', () async {
+    final asked = <String>[];
+    final api = SubsonicApi(
+      Uri.parse('https://music.test'),
+      credentials,
+      client: MockClient((request) async {
+        asked.add(request.url.path);
+
+        if (request.url.path.endsWith('getArtist.view')) {
+          return subsonic({
+            'status': 'ok',
+            'artist': {
+              'id': 'ar1',
+              'name': 'Aerosmith',
+              'album': [
+                {'id': 'a1', 'name': 'Toys in the Attic', 'playCount': 9},
+              ],
+            },
+          });
+        }
+
+        return subsonic({
+          'status': 'ok',
+          'album': {
+            'id': 'a1',
+            'name': 'Toys in the Attic',
+            'song': [
+              {'id': 's1', 'title': 'Walk This Way', 'playCount': 5},
+            ],
+          },
+        });
+      }),
+    );
+    final ((artist, albums), songs) = await (api.artist('ar1'), api.mostPlayedSongs('ar1')).wait;
+    expect(artist.name, 'Aerosmith');
+    expect([for (final album in albums) album.name], ['Toys in the Attic']);
+    expect([for (final song in songs) song.title], ['Walk This Way']);
+    expect(asked, ['/rest/getArtist.view', '/rest/getAlbum.view']);
+
+    // One that has answered isn't kept: the plays may have changed since.
+    await api.artist('ar1');
+    expect(asked.where((path) => path.endsWith('getArtist.view')), hasLength(2));
+  });
+
   test('an artist\'s popular songs are getTopSongs\', asked by their name', () async {
     final asked = <Uri>[];
     final api = SubsonicApi(

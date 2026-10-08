@@ -43,6 +43,9 @@ class SubsonicApi implements MediaServer {
   // Whether the server has OpenSubsonic's transcodeOffset, once asked.
   Future<bool>? _transcodeOffset;
 
+  // The getArtist requests under way, by the artist's id.
+  final _artistRequests = <String, Future<Map<String, dynamic>>>{};
+
   @override
   Api get api => Api.subsonic;
 
@@ -132,7 +135,7 @@ class SubsonicApi implements MediaServer {
   /// theirs on another artist's album isn't among them.
   @override
   Future<List<Song>> mostPlayedSongs(String artistId, {int size = 10}) async {
-    final artist = (await _get('getArtist', {'id': artistId}))['artist'] as Map<String, dynamic>;
+    final artist = await _artistJson(artistId);
     final played = [
       for (final album in artist['album'] as List? ?? const [])
         if (_playCount(album as Map<String, dynamic>) > 0) album['id'] as String,
@@ -260,10 +263,20 @@ class SubsonicApi implements MediaServer {
   /// An artist and their albums (getArtist).
   @override
   Future<(Artist, List<Album>)> artist(String id) async {
-    final json = (await _get('getArtist', {'id': id}))['artist'] as Map<String, dynamic>;
+    final json = await _artistJson(id);
     final albums = json['album'] as List? ?? const [];
     return (_artist(json), [for (final album in albums) _album(album as Map<String, dynamic>)]);
   }
+
+  /// The artist whose id is [id] and their albums, as getArtist gives them. The artist page asks for the artist and for
+  /// their most played songs at once, which both start here, so a request under way for them answers both; one that
+  /// has answered isn't kept, since the plays change.
+  Future<Map<String, dynamic>> _artistJson(String id) => _artistRequests[id] ??= _get('getArtist', {'id': id})
+      .then((body) => body['artist'] as Map<String, dynamic>)
+      .whenComplete(() {
+        // In braces: whenComplete waits for what this returns, and remove returns the request itself.
+        _artistRequests.remove(id);
+      });
 
   /// The format of a transcoded song is the server's pick (Navidrome's is Opus).
   @override
