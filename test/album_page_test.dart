@@ -405,24 +405,27 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('a song by several artists links each of them, on a phone too', (tester) async {
-    await pumpAlbum(
-      tester,
-      others: [
-        {
-          'id': 's3',
-          'title': 'Walk This Way (Run-DMC)',
-          'artist': 'Run-DMC; Aerosmith',
-          'artistId': 'ar2',
-          'artists': [
-            {'id': 'ar2', 'name': 'Run-DMC'},
-            {'id': 'ar1', 'name': 'Aerosmith'},
-          ],
-          'duration': 311,
-        },
-      ],
-      size: const Size(360, 640),
-    );
+  /// The album, with a song by Run-DMC and Aerosmith after its own, on a screen of [size].
+  Future<FakeEngine> pumpDuet(WidgetTester tester, {Size size = const Size(1000, 700)}) => pumpAlbum(
+    tester,
+    others: [
+      {
+        'id': 's3',
+        'title': 'Walk This Way (Run-DMC)',
+        'artist': 'Run-DMC; Aerosmith',
+        'artistId': 'ar2',
+        'artists': [
+          {'id': 'ar2', 'name': 'Run-DMC'},
+          {'id': 'ar1', 'name': 'Aerosmith'},
+        ],
+        'duration': 311,
+      },
+    ],
+    size: size,
+  );
+
+  testWidgets('a song by several artists links each of them', (tester) async {
+    await pumpDuet(tester);
     final duet = song('Walk This Way (Run-DMC)');
     expect(find.descendant(of: duet, matching: find.byTooltip('Abrir o artista')), findsNWidgets(2));
     expect(find.descendant(of: duet, matching: find.text(' · ')), findsOneWidget);
@@ -434,6 +437,24 @@ void main() {
     expect(tester.widget<ArtistPage>(find.byType(ArtistPage)).artist.id, 'ar2');
     await tester.pumpWidget(const SizedBox());
   });
+
+  testWidgets(
+    'on a phone, a song\'s artists are plain text, which a tap on plays the song: only the player links them',
+    (tester) async {
+      final engine = await pumpDuet(tester, size: const Size(360, 640));
+      final duet = song('Walk This Way (Run-DMC)');
+      expect(find.descendant(of: duet, matching: find.byTooltip('Abrir o artista')), findsNothing);
+      final artists = find.descendant(of: duet, matching: find.text('Run-DMC · Aerosmith'));
+      await tester.ensureVisible(artists);
+      await tester.pumpAndSettle();
+      await tester.tap(artists);
+      await tester.pumpAndSettle();
+      expect(find.byType(ArtistPage), findsNothing);
+      expect(engine.tracks, hasLength(3));
+      expect(engine.index, 2);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
 
   testWidgets(
     'under the album\'s name, its artist, with their picture, then its year, its songs and how long they last',

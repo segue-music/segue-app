@@ -38,6 +38,13 @@ class ArtistLink extends StatelessWidget {
   }
 }
 
+/// What goes between a song's artists, as between an album's artist, year and songs.
+const _between = ' · ';
+
+/// A song's artists, as [ArtistLinks.song] writes them, in plain text: "Run-DMC · Aerosmith".
+String artistNames(Song song) =>
+    song.artists.isEmpty ? song.artist ?? '' : song.artists.map((artist) => artist.name).join(_between);
+
 /// A song's artists, each a link to their page, apart as an album's artist, year and songs are: "Run-DMC · Aerosmith",
 /// whatever the media server puts between them in the song's artist ("Run-DMC; Aerosmith", "Santana feat. Rob
 /// Thomas"). What goes between them belongs to what holds them, as the rest of a [TextLink]'s line does. In one line:
@@ -84,7 +91,7 @@ class ArtistLinks extends StatelessWidget {
         onOpen ?? (artist) => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ArtistPage(artist)));
     final pieces = <(String, Artist?)>[
       if (artists.isEmpty) (text, null),
-      for (final (i, artist) in artists.indexed) ...[if (i > 0) (' · ', null), (artist.name, artist)],
+      for (final (i, artist) in artists.indexed) ...[if (i > 0) (_between, null), (artist.name, artist)],
     ];
 
     // Every piece a TextLink, also what has nowhere to go: from one song to the next, a link keeps its place, and with

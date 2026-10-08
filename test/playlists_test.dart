@@ -522,6 +522,21 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('a song\'s artist is a link', (tester) async {
+    await pumpHome(tester, const Size(1000, 700));
+    await openPlaylist(tester, 'Road trip');
+    expect(find.descendant(of: tile('Dream Police'), matching: find.byTooltip('Abrir o artista')), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a phone, a song\'s artist is plain text: only the player links them', (tester) async {
+    await pumpHome(tester, const Size(360, 640));
+    await openPlaylist(tester, 'Road trip', size: const Size(360, 640));
+    expect(find.descendant(of: tile('Dream Police'), matching: find.text('Cheap Trick')), findsOneWidget);
+    expect(find.descendant(of: tile('Dream Police'), matching: find.byTooltip('Abrir o artista')), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('the playlist\'s menu renames it, in a dialog with its name', (tester) async {
     final library = Library();
     await pumpHome(tester, const Size(1000, 700), library: library);

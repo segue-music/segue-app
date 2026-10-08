@@ -209,13 +209,13 @@ class _AlbumPageState extends State<AlbumPage> {
                         for (var i = 0; i < songs.length; i++)
                           if (i == songs.length - 1)
                             _LastSong(
-                              _song(songs, i),
+                              _song(songs, i, narrow: narrow),
                               album: album,
                               release: _release!,
                               length: narrow ? songsLength(strings, songs) : null,
                             )
                           else
-                            _song(songs, i),
+                            _song(songs, i, narrow: narrow),
                       ],
                     ),
                   ),
@@ -367,8 +367,9 @@ class _AlbumPageState extends State<AlbumPage> {
     icon: const ThemedIcon(HugeIcons.strokeRoundedPlay),
   );
 
-  /// The album's song at [index] in its list, which plays the album from it.
-  Widget _song(List<Song> songs, int index) {
+  /// The album's song at [index] in its list, which plays the album from it; on a [narrow] screen, its artists plain
+  /// text.
+  Widget _song(List<Song> songs, int index, {required bool narrow}) {
     final song = songs[index];
     return CurrentSong(
       song,
@@ -381,9 +382,14 @@ class _AlbumPageState extends State<AlbumPage> {
             child: playing ? const Equalizer() : SongNumber(index + 1),
           ),
           title: Text(song.title),
-          // The artists take no focus: for the keyboard and the remote the song stays one stop, as an album in the grid
-          // is.
-          subtitle: song.artist == null ? null : ExcludeFocus(child: ArtistLinks.song(song)),
+          // On a phone, where a finger on the song would often land on them, the artists are plain text: a tap plays the
+          // song, and they open from the player. Elsewhere they link, taking no focus: for the keyboard and the remote
+          // the song stays one stop, as an album in the grid is.
+          subtitle: song.artist == null
+              ? null
+              : narrow
+              ? Text(artistNames(song), maxLines: 1, overflow: TextOverflow.ellipsis)
+              : ExcludeFocus(child: ArtistLinks.song(song)),
           trailing: SongTrailing(song.duration, menu),
           onTap: () => _play(songs, index),
         ),

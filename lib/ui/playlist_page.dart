@@ -205,7 +205,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
 
     Widget song(BuildContext context, int index) {
       final entry = entries[index];
-      final tile = _song(songs, index, editable: playlist.editable);
+      final tile = _song(songs, index, editable: playlist.editable, narrow: narrow);
 
       if (!playlist.editable) {
         return KeyedSubtree(key: ObjectKey(entry), child: tile);
@@ -355,8 +355,9 @@ class _PlaylistPageState extends State<PlaylistPage> {
     );
   }
 
-  /// The playlist's song at [index], which plays the playlist from it; its menu takes it out of an [editable] one.
-  Widget _song(List<Song> songs, int index, {required bool editable}) {
+  /// The playlist's song at [index], which plays the playlist from it; its menu takes it out of an [editable] one. On a
+  /// [narrow] screen, its artists are plain text.
+  Widget _song(List<Song> songs, int index, {required bool editable, required bool narrow}) {
     final song = songs[index];
     return CurrentSong(
       song,
@@ -367,8 +368,12 @@ class _PlaylistPageState extends State<PlaylistPage> {
           selected: current,
           leading: Thumbnail(song.coverArt, playing: playing),
           title: Text(song.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-          // The artists take no focus: for the keyboard and the remote the song stays one stop, as on an album's page.
-          subtitle: song.artist == null ? null : ExcludeFocus(child: ArtistLinks.song(song)),
+          // On a phone plain text, and elsewhere links that take no focus, as on an album's page.
+          subtitle: song.artist == null
+              ? null
+              : narrow
+              ? Text(artistNames(song), maxLines: 1, overflow: TextOverflow.ellipsis)
+              : ExcludeFocus(child: ArtistLinks.song(song)),
           trailing: SongTrailing(song.duration, menu),
           onTap: () => _play(songs, index),
         ),
