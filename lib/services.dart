@@ -8,6 +8,7 @@ import 'lyrics/lrclib.dart';
 import 'mobile_data.dart';
 import 'player/engine.dart';
 import 'player/play_counter.dart';
+import 'pictures/fanart_tv.dart';
 import 'player/player.dart';
 import 'quality_choice.dart';
 import 'releases/musicbrainz.dart';
@@ -28,6 +29,7 @@ class Services {
     this.connect, {
     this.lrclib,
     this.musicBrainz,
+    this.fanartTv,
     this.playCounter,
     this.mobileData,
   });
@@ -70,6 +72,7 @@ class Services {
       ConnectController(player: player, client: client),
       lrclib: Lrclib(),
       musicBrainz: MusicBrainz(remembersCountries: true),
+      fanartTv: fanartTvKey.isEmpty ? null : FanartTv(apiKey: fanartTvKey),
       playCounter: PlayCounter(player, api),
       mobileData: mobileData,
     );
@@ -92,6 +95,10 @@ class Services {
   /// nowhere.
   final MusicBrainz? musicBrainz;
 
+  /// Where more pictures of an artist than the media server's one come from, for their biography; null, nowhere, as
+  /// in a build without the app's key.
+  final FanartTv? fanartTv;
+
   /// What counts the player's plays on the media server; null, nothing.
   final PlayCounter? playCounter;
 
@@ -108,6 +115,7 @@ class Services {
     api.close();
     lrclib?.close();
     musicBrainz?.close();
+    fanartTv?.close();
   }
 }
 

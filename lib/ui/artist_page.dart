@@ -65,6 +65,9 @@ class _ArtistPageState extends State<ArtistPage> {
   /// its page.
   static const _widePicture = 220.0;
 
+  /// How many pictures of the artist their biography shows at most after the media server's: a few to look at.
+  static const _morePictures = 3;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -356,13 +359,17 @@ class _ArtistPageState extends State<ArtistPage> {
               icon: const ThemedIcon(HugeIcons.strokeRoundedBookUser),
               visualDensity: VisualDensity.compact,
               onPressed: () {
-                final musicBrainz = ServicesScope.of(context).musicBrainz;
+                final services = ServicesScope.of(context);
+                final musicBrainz = services.musicBrainz;
                 final band = musicBrainz?.band(artist);
                 BiographyPage.open(
                   context,
                   biography,
                   name: artist.name,
                   picture: artist.coverArt ?? widget.artist.coverArt,
+                  morePictures: services.fanartTv
+                      ?.artistPictures(artist)
+                      .then((pictures) => pictures.take(_morePictures).toList()),
                   band: band,
                   origin: musicBrainz?.origin(artist),
                   inLibrary: band == null ? null : _membersInLibrary(band),

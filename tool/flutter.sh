@@ -84,6 +84,12 @@ if [ "$tool $command" = "flutter run" ]; then
   done
 fi
 
+# What flutter run and build make gets the keys of the services the app asks, which aren't in git:
+# keys.json, at the top of the app (beside tool/), where there is one (README.md, "Keys").
+if [ "$tool" = flutter ] && { [ "$command" = run ] || [ "$command" = build ]; } && [ -f "$app/keys.json" ]; then
+  set -- "$@" --dart-define-from-file=keys.json
+fi
+
 set -- "$image" "$tool" "$@"
 # The tests against the hub run its binary: SEGUE_HUB_BIN, or the one built in a clone of the segue
 # repository next to this one.

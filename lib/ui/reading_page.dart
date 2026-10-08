@@ -8,20 +8,39 @@ import '../l10n/app_localizations.dart';
 import '../server/models.dart';
 import 'arrow_scroll.dart';
 import 'cover.dart';
+import 'picture_gallery.dart';
 import 'text_link.dart';
 import 'themed_icon.dart';
 
 /// A page to read about an artist or an album, on black as a cover full screen is ([CoverPage]): a picture at the top,
-/// square, as wide as the screen but no taller than most of it, and [children] under it, a column of reading width on a
-/// wide screen. Esc, its close button or a tap beside the picture and the text closes it.
+/// square, as wide as the screen but no taller than most of it, or a gallery of pictures ([ReadingPage.gallery]), and
+/// [children] under it, a column of reading width on a wide screen. Esc, its close button or a tap beside the picture
+/// and the text closes it.
 class ReadingPage extends StatefulWidget {
-  const ReadingPage({required this.picture, required this.icon, required this.children, super.key});
+  const ReadingPage({required this.picture, required this.icon, required this.children, super.key})
+    : morePictures = null,
+      _hasGallery = false;
+
+  /// A page whose pictures are a gallery ([PictureGallery]): [picture], then [morePictures], as they come, which the
+  /// arrows left and right go through too, while it shows.
+  const ReadingPage.gallery({
+    required this.picture,
+    required this.icon,
+    required this.children,
+    this.morePictures,
+    super.key,
+  }) : _hasGallery = true;
 
   /// The picture, by its cover id on the server; none: a placeholder.
   final String? picture;
 
   /// What the placeholder shows.
   final HugeIconData icon;
+
+  /// The gallery's pictures after [picture], by their URLs, as they come; none: [picture] alone.
+  final Future<List<Uri>>? morePictures;
+
+  final bool _hasGallery;
 
   final List<Widget> children;
 
@@ -39,11 +58,30 @@ class ReadingPage extends StatefulWidget {
 
 class _ReadingPageState extends State<ReadingPage> {
   final _scroll = ScrollController();
+  final _gallery = GlobalKey<PictureGalleryState>();
 
   @override
   void dispose() {
     _scroll.dispose();
     super.dispose();
+  }
+
+  /// The arrows left and right go from one of the gallery's pictures to the next, while some of it shows (at the top of
+  /// the page); otherwise, and at its ends, they go on, to move the focus.
+  KeyEventResult _turnByArrow(FocusNode _, KeyEvent event) {
+    final by = switch (event.logicalKey) {
+      LogicalKeyboardKey.arrowLeft => -1,
+      LogicalKeyboardKey.arrowRight => 1,
+      _ => 0,
+    };
+    final gallery = _gallery.currentState;
+
+    if (by == 0 || event is KeyUpEvent || gallery == null || !_scroll.hasClients) {
+      return KeyEventResult.ignored;
+    }
+
+    final shows = _scroll.offset < (_gallery.currentContext?.size?.height ?? 0);
+    return shows && gallery.turn(by) ? KeyEventResult.handled : KeyEventResult.ignored;
   }
 
   @override
@@ -52,77 +90,82 @@ class _ReadingPageState extends State<ReadingPage> {
     final strings = AppLocalizations.of(context);
     // Most of the screen's height at most, so that the text starts above its bottom.
     final side = min(screen.width, screen.height * 0.6);
+    final picture = widget._hasGallery
+        ? PictureGallery(widget.picture, icon: widget.icon, more: widget.morePictures, key: _gallery)
+        : SizedBox.square(
+            dimension: side,
+            // Asked of the server at that size.
+            child: LargeCover(
+              widget.picture,
+              size: (side * MediaQuery.devicePixelRatioOf(context)).ceil(),
+              icon: widget.icon,
+            ),
+          );
 
     void close() => Navigator.of(context).maybePop();
 
     return CallbackShortcuts(
       bindings: {const SingleActivator(LogicalKeyboardKey.escape): close},
-      // The system's icons light, over the black above the picture.
-      child: AnnotatedRegion(
-        value: SystemUiOverlayStyle.light,
-        child: Scaffold(
-          backgroundColor: Colors.black,
-          // A tap beside the picture and the text closes it (on a wide screen, the black on either side), as a tap
-          // anywhere closes a cover's.
-          body: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: close,
-            child: SafeArea(
-              bottom: false,
-              child: Stack(
-                children: [
-                  // Up and down scroll it, also while a link has the focus (from Tab: the arrows only scroll).
-                  ArrowScroll(
-                    controller: _scroll,
-                    child: SingleChildScrollView(
+      // Wherever the focus is in the page, which it never takes itself.
+      child: Focus(
+        canRequestFocus: false,
+        skipTraversal: true,
+        onKeyEvent: widget._hasGallery ? _turnByArrow : null,
+        // The system's icons light, over the black above the picture.
+        child: AnnotatedRegion(
+          value: SystemUiOverlayStyle.light,
+          child: Scaffold(
+            backgroundColor: Colors.black,
+            // A tap beside the picture and the text closes it (on a wide screen, the black on either side), as a tap
+            // anywhere closes a cover's.
+            body: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: close,
+              child: SafeArea(
+                bottom: false,
+                child: Stack(
+                  children: [
+                    // Up and down scroll it, also while a link has the focus (from Tab: the arrows only scroll).
+                    ArrowScroll(
                       controller: _scroll,
-                      padding: EdgeInsets.only(bottom: 24 + MediaQuery.paddingOf(context).bottom),
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 600),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Center(
-                                child: _keepingTaps(
-                                  SizedBox.square(
-                                    dimension: side,
-                                    // Asked of the server at that size.
-                                    child: LargeCover(
-                                      widget.picture,
-                                      size: (side * MediaQuery.devicePixelRatioOf(context)).ceil(),
-                                      icon: widget.icon,
+                      child: SingleChildScrollView(
+                        controller: _scroll,
+                        padding: EdgeInsets.only(bottom: 24 + MediaQuery.paddingOf(context).bottom),
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 600),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Center(child: _keepingTaps(picture)),
+                                _keepingTaps(
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: widget.children,
                                     ),
                                   ),
                                 ),
-                              ),
-                              _keepingTaps(
-                                Padding(
-                                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: widget.children,
-                                  ),
-                                ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  // On a dark round, to stand out from the picture, and from the text going up under it.
-                  Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: IconButton(
-                      tooltip: strings.close,
-                      icon: const ThemedIcon(HugeIcons.strokeRoundedCancel01),
-                      color: Colors.white,
-                      style: IconButton.styleFrom(backgroundColor: Colors.black54),
-                      onPressed: close,
+                    // On a dark round, to stand out from the picture, and from the text going up under it.
+                    Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: IconButton(
+                        tooltip: strings.close,
+                        icon: const ThemedIcon(HugeIcons.strokeRoundedCancel01),
+                        color: Colors.white,
+                        style: IconButton.styleFrom(backgroundColor: Colors.black54),
+                        onPressed: close,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

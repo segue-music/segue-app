@@ -16,6 +16,10 @@ workflows:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: io.github.mateusguilherme.segue
+      # The keys of the services the app asks, which aren't in git: FANART_TV_KEY, in this group of the
+      # app's environment variables (README.md, "Running on iOS").
+      groups:
+        - keys
     triggering:
       events:
         - tag
@@ -33,6 +37,7 @@ workflows:
           if [ "$(git rev-parse --is-shallow-repository)" = true ]; then git fetch --unshallow; fi
           flutter build ipa --release \
             --build-number="$(tool/build-number.sh)" \
+            --dart-define=FANART_TV_KEY="$FANART_TV_KEY" \
             --export-options-plist=/Users/builder/export_options.plist
     artifacts:
       - $CM_BUILD_DIR/build/ios/ipa/*.ipa

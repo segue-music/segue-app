@@ -2,18 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../l10n/app_localizations.dart';
+import '../pictures/fanart_tv.dart';
 import '../releases/musicbrainz.dart';
 import '../server/models.dart';
 import 'reading_page.dart';
 import 'themed_icon.dart';
 
-/// An artist's biography, a [ReadingPage]: their picture at the top, and their name, with a band's years beside it,
-/// and the biography under it, then a band's members.
+/// An artist's biography, a [ReadingPage]: their pictures at the top, in a gallery, and their name, with a band's years
+/// beside it, and the biography under it, then a band's members.
 class BiographyPage extends StatelessWidget {
   const BiographyPage(
     this.biography, {
     required this.name,
     this.picture,
+    this.morePictures,
     this.band,
     this.origin,
     this.inLibrary,
@@ -28,6 +30,10 @@ class BiographyPage extends StatelessWidget {
 
   /// The artist's picture, by its id on the server; none: a placeholder.
   final String? picture;
+
+  /// More pictures of the artist, after [picture], by their URLs, as they come ([FanartTv.artistPictures]); none:
+  /// [picture] alone.
+  final Future<List<Uri>>? morePictures;
 
   /// What MusicBrainz knows of the artist, where they are a band ([MusicBrainz.band]): the years they have been
   /// together, beside their name, and their members, under the biography; none: neither shown.
@@ -49,6 +55,7 @@ class BiographyPage extends StatelessWidget {
     Biography biography, {
     required String name,
     String? picture,
+    Future<List<Uri>>? morePictures,
     Future<Band?>? band,
     Stream<Origin>? origin,
     Future<Map<String, Artist>>? inLibrary,
@@ -59,6 +66,7 @@ class BiographyPage extends StatelessWidget {
       biography,
       name: name,
       picture: picture,
+      morePictures: morePictures,
       band: band,
       origin: origin,
       inLibrary: inLibrary,
@@ -71,8 +79,9 @@ class BiographyPage extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final strings = AppLocalizations.of(context);
     final source = biography.source;
-    return ReadingPage(
+    return ReadingPage.gallery(
       picture: picture,
+      morePictures: morePictures,
       icon: HugeIcons.strokeRoundedUser,
       children: [
         // A band's years after the name, as they come, under it where they don't fit.

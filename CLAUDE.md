@@ -59,6 +59,11 @@ With Flutter installed locally, the same commands work as `flutter ...` (`flutte
 The container keeps its own `.dart_tool` (in `~/.cache/segue-flutter/dart_tool`), whose paths are
 the container's, so it doesn't break the analyzer of an editor that uses the local Flutter.
 
+The keys of the services the app asks (fanart.tv's, `FANART_TV_KEY`) aren't in git: `tool/flutter.sh`
+gives `run` and `build` the `keys.json` at the top of this folder (`--dart-define-from-file`), which
+git ignores, and Codemagic its environment variables' group `keys`. A build without them runs without
+those services (README.md, "Keys").
+
 Test prerequisites:
 - `test/hub_test.dart` runs the app's client and `ConnectController` against the real Go hub
   binary: `SEGUE_HUB_BIN`, or `../segue/hub/segue-hub` (a clone of segue next to this one). Build
@@ -163,6 +168,11 @@ Running two app instances on one machine as different devices:
   MusicBrainz are their life's, not their music's, so a person has none. It sends a request a second at
   most, as MusicBrainz asks, and remembers what it found for the session. `Services.start` gives it
   one; tests leave `Services.musicBrainz` null, so that none goes out to the internet.
+- `lib/pictures/fanart_tv.dart`: fanart.tv, where more pictures of an artist than the media server's one come from,
+  for their biography's gallery (`PictureGallery`, `lib/ui/picture_gallery.dart`): its square ones (artist thumbs),
+  the most liked first, by the artist's MusicBrainz id, and only by it. It asks with the app's own key (a project's),
+  `fanartTvKey`, given as the app is built, and remembers what it found for the session. `Services.start` gives it one
+  where the build has the key; tests leave `Services.fanartTv` null, so that none goes out to the internet.
 - `lib/releases/album_credits.dart`: an album's credits (`CreditsPage`, from the button after its
   byline), by section (performing, writing, producing) and by person: in each section the media
   server's (`Song.credits`: OpenSubsonic's contributors, Jellyfin's people), or, where it has none

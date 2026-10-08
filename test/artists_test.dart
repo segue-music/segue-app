@@ -10,6 +10,7 @@ import 'package:http/testing.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:segue/connect/connect.dart';
 import 'package:segue/l10n/app_localizations.dart';
+import 'package:segue/pictures/fanart_tv.dart';
 import 'package:segue/player/player.dart';
 import 'package:segue/releases/musicbrainz.dart';
 import 'package:segue/server/models.dart';
@@ -25,6 +26,7 @@ import 'package:segue/ui/genre_page.dart';
 import 'package:segue/ui/home_page.dart';
 import 'package:segue/ui/now_playing_bar.dart';
 import 'package:segue/ui/page_bar.dart';
+import 'package:segue/ui/picture_gallery.dart';
 import 'package:segue/ui/segmented_choice.dart';
 import 'package:segue/ui/text_link.dart';
 import 'package:segue/ui/themed_icon.dart';
@@ -263,9 +265,15 @@ http.Response server(http.Request request, {bool played = true}) {
   return http.Response('', 404);
 }
 
-/// Opens the home, over a [server] where songs have [played], with [musicBrainz] (none: no band's years); what the
-/// player plays goes to the engine it returns.
-Future<FakeEngine> pumpHome(WidgetTester tester, Size size, {bool played = true, MusicBrainz? musicBrainz}) async {
+/// Opens the home, over a [server] where songs have [played], with [musicBrainz] (none: no band's years) and [fanartTv]
+/// (none: no more pictures of an artist); what the player plays goes to the engine it returns.
+Future<FakeEngine> pumpHome(
+  WidgetTester tester,
+  Size size, {
+  bool played = true,
+  MusicBrainz? musicBrainz,
+  FanartTv? fanartTv,
+}) async {
   const credentials = SubsonicCredentials(username: 'a', token: 't', salt: 's');
   final api = SubsonicApi(
     Uri.parse('https://music.test'),
@@ -280,6 +288,7 @@ Future<FakeEngine> pumpHome(WidgetTester tester, Size size, {bool played = true,
     player,
     ConnectController(player: player),
     musicBrainz: musicBrainz,
+    fanartTv: fanartTv,
   );
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -314,6 +323,37 @@ Finder artistPictureAt(int size) => find.descendant(
         widget.image is NetworkImage &&
         Uri.parse((widget.image as NetworkImage).url).queryParameters['size'] == '$size',
   ),
+);
+
+/// The URL of the [n]th picture of Aerosmith that fanart.tv has.
+Uri fanartUrl(int n) => Uri.parse('https://assets.fanart.tv/fanart/aerosmith-$n.jpg');
+
+/// fanart.tv, with five pictures of Aerosmith (by their MusicBrainz id, mb1), the first the most liked, and none of
+/// anyone else; [asked] gets every request.
+FanartTv fanartTv({List<http.Request>? asked}) => FanartTv(
+  apiKey: 'key',
+  client: MockClient((request) async {
+    asked?.add(request);
+    return http.Response(
+      jsonEncode({
+        if (request.url.path.endsWith('/mb1'))
+          'artistthumb': [
+            for (var n = 1; n <= 5; n++) {'id': '$n', 'url': '${fanartUrl(n)}', 'likes': '${5 - n}'},
+          ],
+      }),
+      200,
+    );
+  }),
+);
+
+/// The [n]th picture of Aerosmith that fanart.tv has, in their biography's gallery.
+Finder morePicture(int n) => find.byWidgetPredicate(
+  (widget) =>
+      widget is Image &&
+      switch (widget.image) {
+        ResizeImage(imageProvider: NetworkImage(:final url)) => url == '${fanartUrl(n)}',
+        _ => false,
+      },
 );
 
 /// The icon [data] draws.
@@ -896,8 +936,12 @@ void main() {
       expect(find.descendant(of: page, matching: find.text('Biografia provida por Last.fm')), findsOneWidget);
       final picture = find.descendant(of: page, matching: find.byType(LargeCover));
       expect(tester.widget<LargeCover>(picture).id, 'ar-ar1');
-      // As wide as the screen, but no taller than most of it.
-      expect(tester.getSize(picture), Size.square(narrow ? 360 : 420));
+      // As wide as the text under it, in the middle, but no taller than most of the screen.
+      final side = narrow ? 328.0 : 420.0;
+      expect(
+        tester.getRect(picture),
+        rectMoreOrLessEquals(Rect.fromCenter(center: Offset(size.width / 2, side / 2), width: side, height: side)),
+      );
 
       if (narrow) {
         await tester.tap(find.descendant(of: page, matching: find.byTooltip('Fechar')));
@@ -907,7 +951,7 @@ void main() {
         await tester.tap(find.text('Aerosmith is an American rock band formed in Boston in 1970.'));
         await tester.pumpAndSettle();
         expect(page, findsOneWidget);
-        await tester.tapAt(tester.getTopLeft(picture) - const Offset(40, -40));
+        await tester.tapAt(tester.getTopLeft(picture) - const Offset(80, -40));
         await tester.pumpAndSettle();
         expect(page, findsNothing);
         await tester.tap(find.descendant(of: find.byType(ArtistPage), matching: find.byTooltip('Ver a biografia')));
@@ -929,6 +973,108 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     });
   }
+
+  for (final (screen, size) in [('a wide screen', const Size(1000, 700)), ('a phone', const Size(360, 640))]) {
+    testWidgets('on $screen, an artist\'s biography has their pictures at the top, in a gallery: the server\'s in the '
+        'middle, then three of fanart.tv\'s at most, the next showing a little beside it; a swipe, a tap on the one '
+        'beside and the arrows go from one to the next', (tester) async {
+      final narrow = size.width < 600;
+      final asked = <http.Request>[];
+      await pumpHome(tester, size, fanartTv: fanartTv(asked: asked));
+      await tester.tap(narrow ? find.text('Artistas') : find.byTooltip('Artistas'));
+      await tester.pumpAndSettle();
+      await tester.tap(tile('Aerosmith'));
+      await tester.pumpAndSettle();
+      expect(asked, isEmpty, reason: 'only the biography shows them');
+      await tester.tap(find.descendant(of: find.byType(ArtistPage), matching: find.byTooltip('Ver a biografia')));
+      await tester.pumpAndSettle();
+      expect(asked.single.url.path, '/v3/music/mb1', reason: 'by their MusicBrainz id');
+
+      final page = find.byType(BiographyPage);
+      final picture = find.descendant(of: page, matching: find.byType(LargeCover));
+      final middle = size.width / 2;
+      expect(tester.getCenter(picture).dx, middle);
+      expect(tester.getRect(morePicture(1)).left, tester.getRect(picture).right + 8, reason: 'beside it');
+      expect(tester.getRect(morePicture(1)).left, lessThanOrEqualTo(size.width - 8), reason: 'showing');
+      expect(morePicture(2), findsNothing, reason: 'nor one past it');
+
+      // A swipe past half of it brings the next one to the middle.
+      await tester.drag(find.byType(PictureGallery), Offset(-tester.getSize(picture).width * 0.75, 0));
+      await tester.pumpAndSettle();
+      expect(tester.getCenter(morePicture(1)).dx, middle);
+      expect(tester.getRect(picture).right, tester.getRect(morePicture(1)).left - 8, reason: 'the one before');
+
+      // A tap on the one before brings it back.
+      await tester.tapAt(tester.getRect(picture).centerRight - const Offset(4, 0));
+      await tester.pumpAndSettle();
+      expect(page, findsOneWidget);
+      expect(tester.getCenter(picture).dx, middle);
+
+      // The arrows right and left, as far as there are pictures: three more.
+      for (final n in [1, 2, 3, 3]) {
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+        await tester.pumpAndSettle();
+        expect(tester.getCenter(morePicture(n)).dx, middle);
+      }
+
+      expect(morePicture(4), findsNothing);
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+      await tester.pumpAndSettle();
+      expect(tester.getCenter(morePicture(2)).dx, middle);
+
+      // With a mouse, arrows at the gallery's edges, as the pointer is over it: over the ones beside on a wide screen,
+      // over the middle one's edges on a phone, where so little of them shows.
+      double opacity(String tooltip) => tester
+          .widget<AnimatedOpacity>(find.ancestor(of: find.byTooltip(tooltip), matching: find.byType(AnimatedOpacity)))
+          .opacity;
+      expect(opacity('Próxima foto'), 0);
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await mouse.addPointer(location: tester.getCenter(find.byType(PictureGallery)));
+      addTearDown(mouse.removePointer);
+      await tester.pumpAndSettle();
+      expect(opacity('Foto anterior'), 1);
+      expect(opacity('Próxima foto'), 1);
+      final next = tester.getCenter(find.byTooltip('Próxima foto')).dx;
+      expect(tester.getRect(find.byType(PictureGallery)).right - next, lessThan(32));
+
+      if (!narrow) {
+        expect(next, greaterThan(tester.getRect(morePicture(2)).right));
+      }
+
+      await tester.tap(find.byTooltip('Próxima foto'));
+      await tester.pumpAndSettle();
+      expect(tester.getCenter(morePicture(3)).dx, middle);
+      expect(opacity('Próxima foto'), 0, reason: 'the last one');
+      await tester.pumpWidget(const SizedBox());
+    });
+  }
+
+  testWidgets('a gallery takes fanart.tv\'s pictures as they come; the first is in the middle where the server has no '
+      'picture of the artist, and a placeholder where neither has any', (tester) async {
+    final more = Completer<List<Uri>>();
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: const [Locale('pt')],
+        home: BiographyPage(
+          const Biography(['Aerosmith is an American rock band.']),
+          name: 'Aerosmith',
+          morePictures: more.future,
+        ),
+      ),
+    );
+    await tester.pump();
+    final placeholder = find.descendant(of: find.byType(PictureGallery), matching: find.byType(LargeCover));
+    expect(tester.widget<LargeCover>(placeholder).id, isNull);
+    final text = tester.getTopLeft(find.text('Aerosmith is an American rock band.'));
+
+    more.complete([fanartUrl(1), fanartUrl(2)]);
+    await tester.pumpAndSettle();
+    expect(placeholder, findsNothing);
+    expect(tester.getCenter(morePicture(1)).dx, 400);
+    expect(tester.getRect(morePicture(2)).left, tester.getRect(morePicture(1)).right + 8);
+    expect(tester.getTopLeft(find.text('Aerosmith is an American rock band.')), text, reason: 'where it was');
+  });
 
   for (final (screen, size) in [('a wide screen', const Size(1000, 700)), ('a phone', const Size(360, 640))]) {
     testWidgets(
@@ -1197,7 +1343,8 @@ void main() {
       await tester.scrollUntilVisible(
         inPage('Ray Tabano'),
         100,
-        scrollable: find.descendant(of: page, matching: find.byType(Scrollable)),
+        // The page's own, the first: the gallery's scrolls sideways.
+        scrollable: find.descendant(of: page, matching: find.byType(Scrollable)).first,
       );
       expect(inPage('Integrantes'), findsOneWidget);
       expect(inPage('Ex-integrantes'), findsOneWidget);

@@ -42,8 +42,11 @@ the device it runs on.
   most of their albums are in, each a link to its page (under how many albums they have; on a phone, over the
   bottom of their picture),
   a button after how many they have that opens their biography, where the
-  server has one (Navidrome's comes from Last.fm), on black under their picture, as a cover full
-  screen is, and for a band, beside its name, in parentheses, the years it has been together, which
+  server has one (Navidrome's comes from Last.fm), on black under their pictures, as a cover full
+  screen is, in a gallery: the server's, as wide as the text under it, then up to three more from
+  fanart.tv, by the artist's MusicBrainz id, as they come, the next showing a little beside the one in
+  the middle, which a swipe, a tap on the one beside, the arrows left and right (a TV remote's too) and, with a
+  mouse, arrows over them go through, and for a band, beside its name, in parentheses, the years it has been together, which
   MusicBrainz knows by the artist's MusicBrainz id, where the server has it ("desde 1991", "1966 – 1978"),
   under it, by a pin, where the artist comes from: the place a band formed in, or a person was born in, as
   MusicBrainz names it, and its country, in the app's language ("Boston, Estados Unidos"): at once the one
@@ -223,6 +226,7 @@ has been tried on a tablet and on an Android TV; the iOS build has not been trie
 | `lib/player/` | `PlayerController` (queue, commands, state reports) over an `AudioEngine`; `MediaKitEngine` is the real one. `MediaControls`: the system's media controls. `AudioInterruptions`: calls and the like pausing the music, on iOS |
 | `lib/connect/` | `ConnectController`: which device the app controls, and moving the music between devices |
 | `lib/lyrics/` | LRCLIB (lrclib.net), where lyrics come from when the media server has none, and LRC |
+| `lib/pictures/` | fanart.tv, where more pictures of an artist than the media server's one come from, for their biography |
 | `lib/releases/` | MusicBrainz (musicbrainz.org), where an album's release date and record labels come from when the media server doesn't say them, its credits where the server has none, where it was recorded, mixed and mastered, who made its cover, a band's years and members, and where an artist comes from; `AlbumCredits`, the server's credits and MusicBrainz's together, by person |
 | `lib/ui/` | The pages: sign-in, home, albums, artists, genres, playlists, album, artist, playlist, search, player bar and full-screen player, queue, device picker |
 | `lib/l10n/` | The app's words in each language, as ARB files (Portuguese's, the template, says what each is); the Dart code comes from them on `pub get` and on every build |
@@ -345,6 +349,9 @@ Once, on the web, with nothing to install:
 5. In Codemagic's code signing identities, generate an Apple Distribution certificate with that
    key. Then, in the Apple Developer site, make an App Store Connect provisioning profile for the
    App ID with that certificate, and fetch it in Codemagic.
+6. In the app's environment variables in Codemagic, add `FANART_TV_KEY`, the fanart.tv key (see
+   "Keys"), marked secret, in a group named `keys` (the name `codemagic.yaml` asks for: a build
+   fails without that group, though the variable may be empty).
 
 Then each build starts from Codemagic's page (workflow "iOS to TestFlight") or by pushing a tag
 starting with `ios-`:
@@ -412,6 +419,24 @@ after `adb connect`. `-d android` stands for the first of them; with several, `-
 `adb devices` names. With none, `-d android` starts an emulator: the Android SDK's (`ANDROID_HOME`,
 or `~/Android/Sdk`, where Android Studio puts it) on the first of its virtual devices, or the one
 `SEGUE_AVD` names. It stays open after `flutter run` ends, for the next one.
+
+## Keys
+
+The app asks fanart.tv with a key of its own, which isn't in git: a build gets it as it's made, and
+one without it shows an artist's biography with the media server's picture alone. `tool/flutter.sh`
+gives `run` and `build` (and so `tool/package-linux.sh` and `tool/package-android.sh`) the
+`keys.json` at the top of this folder, where there is one, which git ignores:
+
+```json
+{
+  "FANART_TV_KEY": "..."
+}
+```
+
+With Flutter installed, the same file goes in by hand: `flutter run -d linux
+--dart-define-from-file=keys.json`. Codemagic takes the key from its environment variables
+("Running on iOS"). A key comes from fanart.tv's page for one (fanart.tv/get-an-api-key), as a
+project's.
 
 ## License
 
