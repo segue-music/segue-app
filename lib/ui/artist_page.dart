@@ -343,13 +343,15 @@ class _ArtistPageState extends State<ArtistPage> {
               icon: const ThemedIcon(HugeIcons.strokeRoundedBookUser),
               visualDensity: VisualDensity.compact,
               onPressed: () {
-                final band = ServicesScope.of(context).musicBrainz?.band(artist);
+                final musicBrainz = ServicesScope.of(context).musicBrainz;
+                final band = musicBrainz?.band(artist);
                 BiographyPage.open(
                   context,
                   biography,
                   name: artist.name,
                   picture: artist.coverArt ?? widget.artist.coverArt,
                   band: band,
+                  origin: musicBrainz?.origin(artist),
                   inLibrary: band == null ? null : _membersInLibrary(band),
                   // Over this page, as the biography closes.
                   onOpenArtist: (member) =>

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../server/models.dart';
 import '../server/server.dart';
@@ -23,23 +24,42 @@ typedef BandYears = ({int? begin, int? end, bool ended});
 /// came back); none where MusicBrainz knows none.
 typedef BandMember = ({String id, String name, bool current, List<BandYears> years});
 
+/// Where an artist comes from, as their biography shows it: the place a band formed in, or a person was born in, where
+/// it's smaller than a country (a city, a state), as MusicBrainz names it, in English mostly ([place]), and the country
+/// it's in, by its ISO 3166-1 code, or MusicBrainz's for one that has gone, as SU ([country]). Null where MusicBrainz
+/// doesn't know it, but never both.
+typedef Origin = ({String? place, String? country});
+
 /// What MusicBrainz knows of a band, as its biography shows it: the years it has been together (none where it knows
 /// none) and its members, in the order they came in ([_members]).
 typedef Band = ({BandYears? years, List<BandMember> members});
 
 /// MusicBrainz (musicbrainz.org), the open database of music releases: where an album's release date, record labels
-/// and type come from when the media server doesn't say them, and the years a band has been together and its members,
-/// which it never says.
+/// and type come from when the media server doesn't say them, and the years a band has been together, its members and
+/// where an artist comes from, which it never says.
 class MusicBrainz {
-  MusicBrainz({http.Client? client, Uri? base, this.spacing = const Duration(seconds: 1)})
-    : _http = client ?? http.Client(),
-      _base = base ?? Uri.parse('https://musicbrainz.org/ws/2/');
+  MusicBrainz({
+    http.Client? client,
+    Uri? base,
+    this.spacing = const Duration(seconds: 1),
+    this.remembersCountries = false,
+  }) : _http = client ?? http.Client(),
+       _base = base ?? Uri.parse('https://musicbrainz.org/ws/2/');
 
   final http.Client _http;
   final Uri _base;
 
   /// How far apart requests go: MusicBrainz takes about one a second from an app.
   final Duration spacing;
+
+  /// Whether the countries of the places artists come from ([origin]) are kept across launches, in the preferences;
+  /// otherwise for the session only, in the requests kept.
+  final bool remembersCountries;
+
+  static final _prefs = SharedPreferencesAsync();
+
+  /// The preferences' key of the country of a place, by the place's MusicBrainz id after it.
+  static const _countryKey = 'musicBrainzCountry.';
 
   /// MusicBrainz asks apps to say who they are, and where to reach whoever makes them.
   static const _userAgent = '$clientName/$appVersion ( https://github.com/segue-music/segue-app )';
@@ -54,8 +74,12 @@ class MusicBrainz {
   /// nothing.
   final _found = <String, Future<_Found>>{};
 
-  /// Each band looked up, by its MusicBrainz id, for the session.
-  final _bands = <String, Future<Band?>>{};
+  /// Each artist looked up, with their relations (null: one MusicBrainz doesn't have), by their MusicBrainz id, for the
+  /// session: their biography asks for them as a band ([band]) and for where they come from ([origin]) at once.
+  final _artists = <String, Future<Object?>>{};
+
+  /// Each area looked up, with what it's part of, by its MusicBrainz id, for the session.
+  final _areas = <String, Future<Object?>>{};
 
   /// [album]'s release date, record labels and type: the media server's, with what MusicBrainz adds where it says
   /// nothing, or less. A date where it has none, or one more precise than its own that agrees with it (the same year,
@@ -153,18 +177,13 @@ class MusicBrainz {
       return null;
     }
 
+    final Object? found;
+
     try {
-      return await (_bands[id] ??= _band(id));
+      found = await _lookUpOnce(_artists, 'artist', id, const {'inc': 'artist-rels'});
     } on Object {
-      // To try again the next time.
-      _bands.remove(id);
       return null;
     }
-  }
-
-  /// The band whose MusicBrainz id is [id]: its years, from its life span, and its members, from its relations.
-  Future<Band?> _band(String id) async {
-    final found = await _get('artist/${Uri.encodeComponent(id)}', const {'inc': 'artist-rels'});
 
     if (found case {'type': final String type} when const {'Group', 'Orchestra', 'Choir'}.contains(type)) {
       final years = switch (found['life-span']) {
@@ -176,6 +195,146 @@ class MusicBrainz {
     }
 
     return null;
+  }
+
+  /// Where [artist] comes from, by their MusicBrainz id, as it comes: the place a band formed in, or a person was born
+  /// in, and the country it's in. MusicBrainz says that country by what the place is part of (a city of a county of a
+  /// state), one area, and a request, at a time, which takes a while: meanwhile, the country MusicBrainz gives the
+  /// artist, which is the place's mostly, and then, where the place's turns out to be another (one born abroad's), that
+  /// one. Where the place's is already known (also from an earlier launch: [remembersCountries]), that one alone. Where it
+  /// can't be found, the artist's country stays; where MusicBrainz knows no place, it's the artist's country alone.
+  /// Nothing for an artist without that id, one MusicBrainz knows neither of, and when it fails.
+  Stream<Origin> origin(Artist artist) async* {
+    final id = artist.musicBrainzId;
+
+    if (id == null) {
+      return;
+    }
+
+    final Object? found;
+
+    try {
+      found = await _lookUpOnce(_artists, 'artist', id, const {'inc': 'artist-rels'});
+    } on Object {
+      return;
+    }
+
+    if (found is! Map<String, dynamic>) {
+      return;
+    }
+
+    final own = switch (found['country'] ?? _countryCode(found['area'])) {
+      final String country => country,
+      _ => null,
+    };
+
+    switch (found['begin-area']) {
+      // A country itself, which has no place in it to show.
+      case {'iso-3166-1-codes': [final String country, ...]}:
+        yield (place: null, country: country);
+
+      // A state, which says its country by its code.
+      case {'name': final String place} && final area when _countryCode(area) != null:
+        yield (place: place, country: _countryCode(area));
+
+      case {'name': final String place, 'id': final String area}:
+        final known = await _rememberedCountry(area);
+        yield (place: place, country: known ?? own);
+
+        if (known == null) {
+          final String? country;
+
+          try {
+            country = await _countryOf(area);
+          } on Object {
+            return;
+          }
+
+          if (country != null && country != own) {
+            yield (place: place, country: country);
+          }
+        }
+
+      case {'name': final String place}:
+        yield (place: place, country: own);
+
+      case _ when own != null:
+        yield (place: null, country: own);
+    }
+  }
+
+  /// The country, by its code, that the area whose MusicBrainz id is [id] is part of, the area it's part of looked up
+  /// in turn while that doesn't say (a county), [levels] at most; none where MusicBrainz doesn't say. Each found is
+  /// remembered ([_rememberedCountry]), the areas' between too.
+  Future<String?> _countryOf(String id, {int levels = 4}) async {
+    if (await _rememberedCountry(id) case final country?) {
+      return country;
+    }
+
+    final found = await _lookUpOnce(_areas, 'area', id, const {'inc': 'area-rels'});
+
+    for (final relation in (found as Map<String, dynamic>?)?['relations'] as List? ?? const []) {
+      // An area's relation to the one it's part of goes backward.
+      if (relation case {'type': 'part of', 'direction': 'backward', 'area': final Map<String, dynamic> whole}) {
+        final country = switch ((_countryCode(whole), whole['id'])) {
+          (final String country, _) => country,
+          (null, final String id) when levels > 1 => await _countryOf(id, levels: levels - 1),
+          _ => null,
+        };
+
+        if (country != null) {
+          await _remember(id, country);
+        }
+
+        return country;
+      }
+    }
+
+    return null;
+  }
+
+  /// The country, by its code, that the area whose MusicBrainz id is [id] has been found to be in, here or on an earlier
+  /// launch; none where it hasn't, or the preferences fail.
+  Future<String?> _rememberedCountry(String id) async {
+    if (!remembersCountries) {
+      return null;
+    }
+
+    try {
+      return await _prefs.getString('$_countryKey$id');
+    } on Object {
+      return null;
+    }
+  }
+
+  /// Remembers [country] as the one the area whose MusicBrainz id is [id] is in, for the next launches too: an area
+  /// stays where it is.
+  Future<void> _remember(String id, String country) async {
+    if (!remembersCountries) {
+      return;
+    }
+
+    try {
+      await _prefs.setString('$_countryKey$id', country);
+    } on Object {
+      // It's found again the next time.
+    }
+  }
+
+  /// What MusicBrainz has at [path] for the id [id], with [query], as [lookedUp] keeps it: asked only the first time,
+  /// but again after it fails.
+  Future<Object?> _lookUpOnce(
+    Map<String, Future<Object?>> lookedUp,
+    String path,
+    String id,
+    Map<String, String> query,
+  ) async {
+    try {
+      return await (lookedUp[id] ??= _get('$path/${Uri.encodeComponent(id)}', query));
+    } on Object {
+      lookedUp.remove(id);
+      rethrow;
+    }
   }
 
   /// The JSON at [path], or null for a 404: none there. One request at a time, [spacing] apart.
@@ -310,6 +469,14 @@ int _length(List<BandYears> spans) {
 
   return years;
 }
+
+/// The country [area], an area of MusicBrainz's, is, or is in, by its codes: a country's own (ISO 3166-1), or the one
+/// its subdivision's starts with (ISO 3166-2, "US-MA"); none for one without them, as a city or a county.
+String? _countryCode(Object? area) => switch (area) {
+  {'iso-3166-1-codes': [final String code, ...]} => code,
+  {'iso-3166-2-codes': [final String code, ...]} => code.split('-').first,
+  _ => null,
+};
 
 /// Whether [name] is one of MusicBrainz's labels that stand for none, as "[no label]".
 bool _special(String name) => name.startsWith('[') && name.endsWith(']');

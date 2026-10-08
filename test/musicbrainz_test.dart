@@ -6,6 +6,8 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:segue/releases/musicbrainz.dart';
 import 'package:segue/server/models.dart';
+import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 http.Response json(Object body, [int status = 200]) =>
     http.Response(jsonEncode(body), status, headers: {'content-type': 'application/json'});
@@ -28,21 +30,26 @@ Map<String, Object?> group({
   ],
 };
 
-/// MusicBrainz, answering a release's lookup with [release] (null: none), a search of release groups with [groups] and
-/// an artist's lookup with [artist] (null: none); [asked] gets every request.
+/// MusicBrainz, answering a release's lookup with [release] (null: none), a search of release groups with [groups], an
+/// artist's lookup with [artist] (null: none) and an area's with [areas]' by its id (none for another); [asked] gets
+/// every request.
 MusicBrainz musicBrainz({
   Map<String, Object?>? release,
   List<Map<String, Object?>> groups = const [],
   Map<String, Object?>? artist,
+  Map<String, Map<String, Object?>> areas = const {},
   List<http.Request>? asked,
   Duration spacing = Duration.zero,
+  bool remembersCountries = false,
 }) => MusicBrainz(
   spacing: spacing,
+  remembersCountries: remembersCountries,
   client: MockClient((request) async {
     asked?.add(request);
     return switch (request.url.pathSegments) {
       [..., 'release', _] when release != null => json(release),
       [..., 'artist', _] when artist != null => json(artist),
+      [..., 'area', final id] when areas.containsKey(id) => json(areas[id]!),
       [..., 'release-group'] => json({'release-groups': groups}),
       _ => json({'error': 'Not Found'}, 404),
     };
@@ -99,6 +106,25 @@ Map<String, Object?> membership(
   'ended': ended ?? end != null,
   'attributes': attributes,
   'artist': {'id': id, 'name': name, 'sort-name': sortName ?? name, 'type': 'Person'},
+};
+
+/// An area of MusicBrainz's, [name], whose id is [id], with its [codes] (ISO 3166-1's for a country, 3166-2's for a
+/// subdivision), part of [partOf] (none: of none), as a lookup of it with its relations gives it. A relation's area has
+/// its codes too.
+Map<String, Object?> area(String id, String name, {List<String>? codes, Map<String, Object?>? partOf}) => {
+  'id': id,
+  'name': name,
+  if (codes case final codes? when codes.first.contains('-')) 'iso-3166-2-codes': codes,
+  if (codes case final codes? when !codes.first.contains('-')) 'iso-3166-1-codes': codes,
+  'relations': [
+    if (partOf != null) {'type': 'part of', 'direction': 'backward', 'area': partOf},
+  ],
+};
+
+/// Boston's areas: Boston, part of Suffolk County, which doesn't say its country, part of Massachusetts, which does.
+final boston = {
+  'boston': area('boston', 'Boston', partOf: area('suffolk', 'Suffolk County')),
+  'suffolk': area('suffolk', 'Suffolk County', partOf: area('ma', 'Massachusetts', codes: ['US-MA'])),
 };
 
 /// Os Mutantes, as the media server gives them, with their MusicBrainz id.
@@ -493,6 +519,167 @@ void main() {
     final group = await musicBrainz(artist: {...lifeSpan(), 'relations': relations}).band(mutantes);
     expect(group?.years, isNull);
     expect([for (final member in group!.members) member.name], ['Someone']);
+  });
+
+  test('where an artist comes from: the place they formed or were born in, and, at once, the artist\'s country, which '
+      'the place\'s turns out to be, by what it\'s part of, one area at a time; each asked once, the artist\'s with '
+      'their years', () async {
+    final asked = <http.Request>[];
+    final brainz = musicBrainz(
+      artist: {
+        ...lifeSpan(begin: '1970'),
+        'country': 'US',
+        'begin-area': {'id': 'boston', 'name': 'Boston'},
+      },
+      areas: boston,
+      asked: asked,
+    );
+    expect(await brainz.origin(mutantes).toList(), [(place: 'Boston', country: 'US')], reason: 'nothing to correct');
+    expect(
+      [for (final request in asked) request.url.path],
+      ['/ws/2/artist/mb1', '/ws/2/area/boston', '/ws/2/area/suffolk'],
+    );
+    expect(asked[1].url.queryParameters, {'inc': 'area-rels', 'fmt': 'json'});
+
+    expect((await brainz.band(mutantes))?.years, (begin: 1970, end: null, ended: false));
+    expect(await brainz.origin(mutantes).toList(), [(place: 'Boston', country: 'US')]);
+    expect(asked, hasLength(3), reason: 'what it found, it asks no more');
+  });
+
+  test('a person born abroad: their country at once, then the place\'s', () async {
+    final brainz = musicBrainz(
+      artist: {
+        ...lifeSpan(type: 'Person', begin: '1952'),
+        'country': 'US',
+        'area': {
+          'id': 'us',
+          'name': 'United States',
+          'iso-3166-1-codes': ['US'],
+        },
+        'begin-area': {'id': 'dumbarton', 'name': 'Dumbarton'},
+      },
+      areas: {
+        'dumbarton': area('dumbarton', 'Dumbarton', partOf: area('sct', 'Scotland', codes: ['GB-SCT'])),
+      },
+    );
+    expect(await brainz.origin(mutantes).toList(), [
+      (place: 'Dumbarton', country: 'US'),
+      (place: 'Dumbarton', country: 'GB'),
+    ]);
+  });
+
+  test('the places\' countries found are kept for the next launches, the areas\' between too: then each comes at once, '
+      'and right', () async {
+    SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
+    Map<String, Object?> bornIn(String id, String name) => {
+      ...lifeSpan(type: 'Person'),
+      'country': 'GB',
+      'begin-area': {'id': id, 'name': name},
+    };
+    final first = musicBrainz(artist: bornIn('boston', 'Boston'), areas: boston, remembersCountries: true);
+    expect(await first.origin(mutantes).toList(), [(place: 'Boston', country: 'GB'), (place: 'Boston', country: 'US')]);
+
+    final asked = <http.Request>[];
+    final next = musicBrainz(artist: bornIn('boston', 'Boston'), areas: boston, asked: asked, remembersCountries: true);
+    expect(await next.origin(mutantes).toList(), [(place: 'Boston', country: 'US')]);
+    expect([for (final request in asked) request.url.path], ['/ws/2/artist/mb1']);
+
+    // Another place in the county that one was in asks for itself alone.
+    asked.clear();
+    final another = musicBrainz(
+      artist: bornIn('chelsea', 'Chelsea'),
+      areas: {'chelsea': area('chelsea', 'Chelsea', partOf: area('suffolk', 'Suffolk County'))},
+      asked: asked,
+      remembersCountries: true,
+    );
+    expect(await another.origin(mutantes).toList(), [
+      (place: 'Chelsea', country: 'GB'),
+      (place: 'Chelsea', country: 'US'),
+    ]);
+    expect([for (final request in asked) request.url.path], ['/ws/2/artist/mb1', '/ws/2/area/chelsea']);
+  });
+
+  test('a place that is a country: that country alone; a state: with its own; no place: the artist\'s country, or '
+      'their area\'s, alone; neither: nothing', () async {
+    final asked = <http.Request>[];
+
+    for (final (artist, origins) in <(Map<String, Object?>, List<Origin>)>[
+      (
+        {
+          'country': 'US',
+          'begin-area': {
+            'id': 'gb',
+            'name': 'United Kingdom',
+            'iso-3166-1-codes': ['GB'],
+          },
+        },
+        [(place: null, country: 'GB')],
+      ),
+      (
+        {
+          'begin-area': {
+            'id': 'ca',
+            'name': 'California',
+            'iso-3166-2-codes': ['US-CA'],
+          },
+        },
+        [(place: 'California', country: 'US')],
+      ),
+      ({'country': 'BR'}, [(place: null, country: 'BR')]),
+      (
+        {
+          'area': {
+            'id': 'su',
+            'name': 'Soviet Union',
+            'iso-3166-1-codes': ['SU'],
+          },
+        },
+        [(place: null, country: 'SU')],
+      ),
+      (<String, Object?>{}, []),
+    ]) {
+      final found = await musicBrainz(artist: {...lifeSpan(), ...artist}, asked: asked).origin(mutantes).toList();
+      expect(found, origins, reason: '$artist');
+    }
+
+    expect(asked.where((request) => request.url.path.contains('/area/')), isEmpty, reason: 'no area to look up');
+    expect(await musicBrainz().origin(mutantes).toList(), isEmpty, reason: 'an id MusicBrainz no longer has');
+    expect(await musicBrainz().origin(const Artist(id: 'ar1', name: 'Os Mutantes')).toList(), isEmpty);
+  });
+
+  test('a place whose country MusicBrainz doesn\'t say, or fails to: with the artist\'s, or alone; one that failed, '
+      'asked again the next time', () async {
+    Map<String, Object?> from(String? country) => {
+      ...lifeSpan(),
+      'country': ?country,
+      'begin-area': {'id': 'somewhere', 'name': 'Somewhere'},
+    };
+    expect(await musicBrainz(artist: from('US')).origin(mutantes).toList(), [(place: 'Somewhere', country: 'US')]);
+    expect(await musicBrainz(artist: from(null)).origin(mutantes).toList(), [(place: 'Somewhere', country: null)]);
+
+    var status = 500;
+    final asked = <http.Request>[];
+    final brainz = MusicBrainz(
+      spacing: Duration.zero,
+      client: MockClient((request) async {
+        asked.add(request);
+        return switch (request.url.pathSegments.last) {
+          'mb1' => json({
+            ...lifeSpan(),
+            'begin-area': {'id': 'boston', 'name': 'Boston'},
+          }),
+          _ when status != 200 => http.Response('', status),
+          _ => json(area('boston', 'Boston', partOf: area('ma', 'Massachusetts', codes: ['US-MA']))),
+        };
+      }),
+    );
+    expect(await brainz.origin(mutantes).toList(), [(place: 'Boston', country: null)]);
+    status = 200;
+    expect(await brainz.origin(mutantes).toList(), [
+      (place: 'Boston', country: null),
+      (place: 'Boston', country: 'US'),
+    ]);
+    expect([for (final request in asked) request.url.pathSegments.last], ['mb1', 'boston', 'boston']);
   });
 
   test('a band\'s years that fail are none, and asked again the next time', () async {

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/gestures.dart';
@@ -953,7 +954,8 @@ void main() {
     );
   }
 
-  testWidgets('a band\'s biography has its years beside its name, asked of MusicBrainz as it opens', (tester) async {
+  testWidgets('a band\'s biography has its years beside its name, and where it comes from under it, asked of '
+      'MusicBrainz as it opens', (tester) async {
     final asked = <Uri>[];
     final brainz = MusicBrainz(
       spacing: Duration.zero,
@@ -964,6 +966,13 @@ void main() {
             'id': 'mb1',
             'type': 'Group',
             'life-span': {'begin': '1970', 'end': null, 'ended': false},
+            'country': 'US',
+            // A state, which says its country by its code: no more to ask.
+            'begin-area': {
+              'id': 'ma',
+              'name': 'Massachusetts',
+              'iso-3166-2-codes': ['US-MA'],
+            },
           }),
           200,
         );
@@ -977,10 +986,74 @@ void main() {
     expect(asked, isEmpty, reason: 'only the biography shows them');
     await tester.tap(find.descendant(of: find.byType(ArtistPage), matching: find.byTooltip('Ver a biografia')));
     await tester.pumpAndSettle();
-    expect(asked.single.path, '/ws/2/artist/mb1');
+    expect(asked.single.path, '/ws/2/artist/mb1', reason: 'once for the years and where it comes from');
     final page = find.byType(BiographyPage);
     expect(find.descendant(of: page, matching: find.text('Aerosmith (desde 1970)')), findsOneWidget);
+    expect(find.descendant(of: page, matching: find.text('Massachusetts, Estados Unidos')), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('where an artist comes from, under their name, by a pin: the place and its country, or either alone; '
+      'nothing for a country the app has no name for', (tester) async {
+    for (final (Origin? origin, String? text) in [
+      ((place: 'Boston', country: 'US'), 'Boston, Estados Unidos'),
+      ((place: null, country: 'GB'), 'Reino Unido'),
+      ((place: 'Seattle', country: null), 'Seattle'),
+      ((place: null, country: 'SU'), 'União Soviética'),
+      ((place: 'Somewhere', country: 'XW'), 'Somewhere'),
+      ((place: null, country: 'XW'), null),
+      (null, null),
+    ]) {
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: const [Locale('pt')],
+          home: BiographyPage(
+            const Biography(['Aerosmith is an American rock band.']),
+            name: 'Aerosmith',
+            origin: Stream.fromIterable([?origin]),
+          ),
+        ),
+      );
+      await tester.pump();
+      final pin = icon(HugeIcons.strokeRoundedLocation01);
+
+      if (text == null) {
+        expect(pin, findsNothing, reason: '$origin');
+        continue;
+      }
+
+      final line = find.text(text);
+      expect(line, findsOneWidget, reason: '$origin');
+      expect(tester.getCenter(pin).dy, moreOrLessEquals(tester.getCenter(line).dy, epsilon: 1));
+      expect(tester.getTopLeft(line).dy, greaterThan(tester.getBottomLeft(find.text('Aerosmith')).dy));
+      expect(
+        tester.getBottomLeft(line).dy,
+        lessThan(tester.getTopLeft(find.text('Aerosmith is an American rock band.')).dy),
+      );
+    }
+
+    // The country again, where it turns out to be another.
+    final origins = StreamController<Origin>();
+    addTearDown(origins.close);
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: const [Locale('pt')],
+        home: BiographyPage(
+          const Biography(['David Byrne is a Scottish-American musician.']),
+          name: 'David Byrne',
+          origin: origins.stream,
+        ),
+      ),
+    );
+    origins.add((place: 'Dumbarton', country: 'US'));
+    await tester.pumpAndSettle();
+    expect(find.text('Dumbarton, Estados Unidos'), findsOneWidget);
+    origins.add((place: 'Dumbarton', country: 'GB'));
+    await tester.pumpAndSettle();
+    expect(find.text('Dumbarton, Reino Unido'), findsOneWidget);
+    expect(find.text('Dumbarton, Estados Unidos'), findsNothing);
   });
 
   for (final (screen, size) in [('a wide screen', const Size(1000, 700)), ('a phone', const Size(360, 640))]) {

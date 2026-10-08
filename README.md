@@ -43,6 +43,10 @@ the device it runs on.
   server has one (Navidrome's comes from Last.fm), on black under their picture, as a cover full
   screen is, and for a band, beside its name, in parentheses, the years it has been together, which
   MusicBrainz knows by the artist's MusicBrainz id, where the server has it ("desde 1991", "1966 – 1978"),
+  under it, by a pin, where the artist comes from: the place a band formed in, or a person was born in, as
+  MusicBrainz names it, and its country, in the app's language ("Boston, Estados Unidos"): at once the one
+  MusicBrainz gives the artist, then, where it turns out to be another (one born abroad's), the place's, which
+  MusicBrainz says by what the place is part of, a request a level up, and the app keeps for the next launches,
   and, under the biography, a group's members, one a line, with the years they have been in it ("1970 – 1979,
   desde 1984"), those it has now apart from those who have left (all together where it has broken up), the ones
   in the library too, by their MusicBrainz ids, links to their pages,
@@ -185,7 +189,7 @@ has been tried on a tablet and on an Android TV; the iOS build has not been trie
 | `lib/player/` | `PlayerController` (queue, commands, state reports) over an `AudioEngine`; `MediaKitEngine` is the real one. `MediaControls`: the system's media controls. `AudioInterruptions`: calls and the like pausing the music, on iOS |
 | `lib/connect/` | `ConnectController`: which device the app controls, and moving the music between devices |
 | `lib/lyrics/` | LRCLIB (lrclib.net), where lyrics come from when the media server has none, and LRC |
-| `lib/releases/` | MusicBrainz (musicbrainz.org), where an album's release date and record labels come from when the media server doesn't say them, and a band's years and members |
+| `lib/releases/` | MusicBrainz (musicbrainz.org), where an album's release date and record labels come from when the media server doesn't say them, a band's years and members, and where an artist comes from |
 | `lib/ui/` | The pages: sign-in, home, albums, artists, album, artist, search, player bar and full-screen player, queue, device picker |
 | `lib/l10n/` | The app's words in each language, as ARB files (Portuguese's, the template, says what each is); the Dart code comes from them on `pub get` and on every build |
 | `test/` | Unit and widget tests, and tests against the real Go hub (`hub_test.dart`) |

@@ -22,6 +22,7 @@ class BiographyPage extends StatefulWidget {
     required this.name,
     this.picture,
     this.band,
+    this.origin,
     this.inLibrary,
     this.onOpenArtist,
     super.key,
@@ -39,6 +40,9 @@ class BiographyPage extends StatefulWidget {
   /// together, beside their name, and their members, under the biography; none: neither shown.
   final Future<Band?>? band;
 
+  /// Where the artist comes from ([MusicBrainz.origin]), under their name, as it comes; none: not shown.
+  final Stream<Origin>? origin;
+
   /// The library's artists among the band's members, by their MusicBrainz ids, whose names are links to their pages
   /// ([onOpenArtist]); none: no links.
   final Future<Map<String, Artist>>? inLibrary;
@@ -53,6 +57,7 @@ class BiographyPage extends StatefulWidget {
     required String name,
     String? picture,
     Future<Band?>? band,
+    Stream<Origin>? origin,
     Future<Map<String, Artist>>? inLibrary,
     void Function(Artist artist)? onOpenArtist,
   }) => Navigator.of(context, rootNavigator: true).push(
@@ -62,6 +67,7 @@ class BiographyPage extends StatefulWidget {
         name: name,
         picture: picture,
         band: band,
+        origin: origin,
         inLibrary: inLibrary,
         onOpenArtist: onOpenArtist,
       ),
@@ -158,6 +164,33 @@ class _BiographyPageState extends State<BiographyPage> {
                                           ),
                                           style: text.headlineSmall?.copyWith(color: Colors.white),
                                         ),
+                                      ),
+                                      // Where they come from, under it, as it comes: the country again where it turns out
+                                      // to be another.
+                                      StreamBuilder(
+                                        stream: widget.origin,
+                                        builder: (context, snapshot) => switch (snapshot.data) {
+                                          final origin? when _originText(strings, origin).isNotEmpty => Padding(
+                                            padding: const EdgeInsets.only(top: 4),
+                                            child: Row(
+                                              children: [
+                                                const ThemedIcon(
+                                                  HugeIcons.strokeRoundedLocation01,
+                                                  size: 18,
+                                                  color: Colors.white54,
+                                                ),
+                                                const SizedBox(width: 6),
+                                                Expanded(
+                                                  child: Text(
+                                                    _originText(strings, origin),
+                                                    style: text.bodyLarge?.copyWith(color: Colors.white70),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          _ => const SizedBox.shrink(),
+                                        },
                                       ),
                                       for (final paragraph in widget.biography.paragraphs)
                                         Padding(
@@ -296,6 +329,20 @@ class _BiographyPageState extends State<BiographyPage> {
           ],
       ],
     );
+  }
+
+  /// [origin] as it shows under the name: "Boston, Estados Unidos", "Reino Unido", "Seattle"; empty where it has
+  /// neither a place nor a country the app has a name for.
+  static String _originText(AppLocalizations strings, Origin origin) {
+    final country = switch (origin.country) {
+      final code? => strings.countryName(code),
+      null => '',
+    };
+    return switch ((origin.place, country)) {
+      (final place?, '') => place,
+      (final place?, _) => strings.placeInCountry(place, country),
+      (null, _) => country,
+    };
   }
 
   /// [years] as they show beside the name, on one line: "(desde 1991)", "(1966 – 1978)", "(até 1978)", "(1966 – ?)".

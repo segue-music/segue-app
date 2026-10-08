@@ -68,7 +68,7 @@ class Services {
       player,
       ConnectController(player: player, client: client),
       lrclib: Lrclib(),
-      musicBrainz: MusicBrainz(),
+      musicBrainz: MusicBrainz(remembersCountries: true),
       playCounter: PlayCounter(player, api),
       mobileData: mobileData,
     );
