@@ -38,7 +38,9 @@ the device it runs on.
   sliding to the one picked: on a Subsonic server, which counts no plays by artist, from the 500
   most played albums; each with their albums and then, apart, their singles and EPs, where the
   server says which are, and at the end a row of the library's artists like them, each opening their page,
-  where the server knows them (Navidrome from Last.fm, Jellyfin by their metadata),
+  where the server knows them (Navidrome from Last.fm, Jellyfin by their metadata), their genres, the three
+  most of their albums are in, each a link to its page (under how many albums they have; on a phone, over the
+  bottom of their picture),
   a button after how many they have that opens their biography, where the
   server has one (Navidrome's comes from Last.fm), on black under their picture, as a cover full
   screen is, and for a band, beside its name, in parentheses, the years it has been together, which

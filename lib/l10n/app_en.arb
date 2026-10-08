@@ -20,6 +20,7 @@
   "errorUnknown": "Something went wrong.",
   "openArtist": "Open artist",
   "openAlbum": "Open album",
+  "openGenre": "Open genre",
   "couldNotOpenAlbum": "Couldn't open the album.",
   "couldNotOpenAlbumError": "Couldn't open the album: {error}",
   "couldNotOpenArtist": "Couldn't open the artist.",

@@ -21,10 +21,12 @@ import 'package:segue/ui/artist_page.dart';
 import 'package:segue/ui/artists_view.dart';
 import 'package:segue/ui/biography_page.dart';
 import 'package:segue/ui/cover.dart';
+import 'package:segue/ui/genre_page.dart';
 import 'package:segue/ui/home_page.dart';
 import 'package:segue/ui/now_playing_bar.dart';
 import 'package:segue/ui/page_bar.dart';
 import 'package:segue/ui/segmented_choice.dart';
+import 'package:segue/ui/text_link.dart';
 import 'package:segue/ui/themed_icon.dart';
 import 'package:segue/ui/tile_row.dart';
 
@@ -41,7 +43,8 @@ http.Response subsonic(Map<String, Object?> body) => http.Response(
 
 /// A server with four artists: Aerosmith, with two albums, none of them played, and a single and an EP, Cheap Trick,
 /// with one album, six of whose songs have played, Joe Perry, a member of Aerosmith by their MusicBrainz id, whose
-/// albums it doesn't give, and Ramones, with none. A search for "toys" finds an album; any other, the artist Aerosmith.
+/// albums it doesn't give, and Ramones, with none. Aerosmith's albums are in four genres: Hard Rock (three of them),
+/// Blues Rock (two), Rock and Pop (one each, Rock first); Cheap Trick's in Power Pop. A search for "toys" finds an album; any other, the artist Aerosmith.
 /// Unless [played], nothing has played: not even Cheap Trick's songs. Cheap Trick's popular songs are three of that
 /// album's, Big Eyes first; the others' fail, as on a server that has none to give. Aerosmith has a biography, Last.fm's,
 /// a MusicBrainz id, and Cheap Trick and Ramones as the artists like them; the others have neither, which fails too.
@@ -130,7 +133,14 @@ http.Response server(http.Request request, {bool played = true}) {
         'coverArt': 'ar-ar2',
         'albumCount': 1,
         'album': [
-          {'id': 'a3', 'name': 'In Color', 'artist': 'Cheap Trick', 'year': 1977, 'playCount': ?(played ? 7 : null)},
+          {
+            'id': 'a3',
+            'name': 'In Color',
+            'artist': 'Cheap Trick',
+            'year': 1977,
+            'playCount': ?(played ? 7 : null),
+            'genre': 'Power Pop',
+          },
         ],
       },
     });
@@ -157,13 +167,14 @@ http.Response server(http.Request request, {bool played = true}) {
         'albumCount': 2,
         'musicBrainzId': 'mb1',
         'album': [
-          {'id': 'a1', 'name': 'Aerosmith', 'artist': 'Aerosmith', 'year': 1973},
+          {'id': 'a1', 'name': 'Aerosmith', 'artist': 'Aerosmith', 'year': 1973, 'genre': 'Hard Rock'},
           {
             'id': 'a4',
             'name': 'Dream On',
             'artist': 'Aerosmith',
             'year': 1973,
             'releaseTypes': ['single'],
+            'genre': 'Hard Rock',
           },
           {
             'id': 'a2',
@@ -171,6 +182,11 @@ http.Response server(http.Request request, {bool played = true}) {
             'artist': 'Aerosmith',
             'year': 1975,
             'releaseTypes': ['album'],
+            'genres': [
+              {'name': 'Hard Rock'},
+              {'name': 'Blues Rock'},
+              {'name': 'Rock'},
+            ],
           },
           {
             'id': 'a5',
@@ -178,6 +194,10 @@ http.Response server(http.Request request, {bool played = true}) {
             'artist': 'Aerosmith',
             'year': 1997,
             'releaseTypes': ['EP'],
+            'genres': [
+              {'name': 'Blues Rock'},
+              {'name': 'Pop'},
+            ],
           },
         ],
       },
@@ -953,6 +973,61 @@ void main() {
       },
     );
   }
+
+  testWidgets(
+    'on a wide screen, an artist\'s genres, the three most of their albums are in, the one most are in first, '
+    'come under how many albums they have, each a link to its page; an artist with none has none',
+    (tester) async {
+      await pumpHome(tester, const Size(1000, 700));
+      await tester.tap(find.byTooltip('Artistas'));
+      await tester.pumpAndSettle();
+      await tester.tap(tile('Aerosmith'));
+      await tester.pumpAndSettle();
+      final page = find.byType(ArtistPage);
+      Finder inPage(String text) => find.descendant(of: page, matching: find.text(text));
+      expect(find.descendant(of: page, matching: find.byTooltip('Abrir o gênero')), findsNWidgets(3));
+      expect(inPage('Pop'), findsNothing, reason: 'in as many albums as Rock, which came first');
+      final genres = [
+        for (final name in ['Hard Rock', 'Blues Rock', 'Rock']) tester.getRect(inPage(name)),
+      ];
+      expect(genres[0].left, tester.getTopLeft(artistName('Aerosmith')).dx, reason: 'lined up with the name');
+      expect(genres[0].top, greaterThan(tester.getBottomLeft(inPage('2 álbuns · 2 singles e EPs')).dy));
+      expect(genres[1].left, greaterThan(genres[0].right));
+      expect(genres[2].left, greaterThan(genres[1].right));
+      final link = tester.widget<TextLink>(find.ancestor(of: inPage('Hard Rock'), matching: find.byType(TextLink)));
+      expect(link.style?.shadows, isNull, reason: 'no halo off the picture');
+
+      await tester.tap(inPage('Blues Rock'));
+      await tester.pumpAndSettle();
+      expect(find.byType(GenrePage), findsOneWidget);
+      expect(tester.widget<GenrePage>(find.byType(GenrePage)).genre.name, 'Blues Rock');
+
+      await tester.tap(find.byTooltip('Artistas'));
+      await tester.pumpAndSettle();
+      await tester.tap(tile('Ramones'));
+      await tester.pumpAndSettle();
+      expect(find.byTooltip('Abrir o gênero'), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets('on a phone, an artist\'s genres are over the bottom of their picture, over the choice of their songs, '
+      'with a halo', (tester) async {
+    await pumpHome(tester, const Size(360, 640));
+    await tester.tap(find.text('Artistas'));
+    await tester.pumpAndSettle();
+    await tester.tap(tile('Cheap Trick'));
+    await tester.pumpAndSettle();
+    final page = find.byType(ArtistPage);
+    final genre = find.descendant(of: page, matching: find.text('Power Pop'));
+    final choice = find.descendant(of: page, matching: orders());
+    expect(tester.getTopLeft(genre).dx, 16);
+    expect(tester.getBottomLeft(genre).dy, lessThanOrEqualTo(tester.getTopLeft(choice).dy));
+    expect(tester.getBottomLeft(genre).dy, lessThan(tester.getBottomLeft(artistPicture()).dy));
+    final link = tester.widget<TextLink>(find.ancestor(of: genre, matching: find.byType(TextLink)));
+    expect(link.style?.shadows, isNotEmpty);
+    await tester.pumpWidget(const SizedBox());
+  });
 
   testWidgets('a band\'s biography has its years beside its name, and where it comes from under it, asked of '
       'MusicBrainz as it opens', (tester) async {

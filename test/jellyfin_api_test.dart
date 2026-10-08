@@ -524,30 +524,43 @@ void main() {
     expect(asked, hasLength(1));
   });
 
-  test('an artist and their albums, and their MusicBrainz id among their other ids, asked for', () async {
-    final (found, albums) = await jellyfin((request) {
-      final query = request.url.queryParameters;
+  test(
+    'an artist and their albums, with their genres, and their MusicBrainz id among their other ids, asked for',
+    () async {
+      final (found, albums) = await jellyfin((request) {
+        final query = request.url.queryParameters;
 
-      if (query['Ids'] == 'ar1' && query['Fields'] == 'ProviderIds') {
-        return items([
-          {
-            ...artist,
-            'ProviderIds': {'MusicBrainzArtist': 'mb1'},
-          },
-        ]);
-      }
+        if (query['Ids'] == 'ar1' && query['Fields'] == 'ProviderIds') {
+          return items([
+            {
+              ...artist,
+              'ProviderIds': {'MusicBrainzArtist': 'mb1'},
+            },
+          ]);
+        }
 
-      if (query['AlbumArtistIds'] == 'ar1' && query['IncludeItemTypes'] == 'MusicAlbum') {
-        return items([album]);
-      }
+        if (query['AlbumArtistIds'] == 'ar1' &&
+            query['IncludeItemTypes'] == 'MusicAlbum' &&
+            query['Fields'] == 'Genres') {
+          return items([
+            {
+              ...album,
+              'GenreItems': [
+                {'Name': 'Hard Rock', 'Id': 'g1'},
+              ],
+            },
+          ]);
+        }
 
-      return http.Response('', 404);
-    }).artist('ar1');
-    expect(found.name, 'Aerosmith');
-    expect(found.albumCount, 1);
-    expect(found.musicBrainzId, 'mb1');
-    expect(albums.single.id, 'a1');
-  });
+        return http.Response('', 404);
+      }).artist('ar1');
+      expect(found.name, 'Aerosmith');
+      expect(found.albumCount, 1);
+      expect(found.musicBrainzId, 'mb1');
+      expect(albums.single.id, 'a1');
+      expect([for (final genre in albums.single.genres) (genre.id, genre.name)], [('g1', 'Hard Rock')]);
+    },
+  );
 
   test('an artist\'s biography is their Overview, asked for, a paragraph a line; one without it has none', () async {
     final asked = <http.Request>[];

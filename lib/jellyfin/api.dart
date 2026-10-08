@@ -266,12 +266,17 @@ class JellyfinApi implements MediaServer {
   }
 
   /// An artist and the albums they are the album artist of. Their MusicBrainz id, among their other ids (ProviderIds),
-  /// comes only when asked for (Fields).
+  /// and their albums' genres, which their page shows, come only when asked for (Fields).
   @override
   Future<(Artist, List<Album>)> artist(String id) async {
     final [artists, albums] = await Future.wait([
       _items({'Ids': id, 'Fields': 'ProviderIds'}),
-      _items({'AlbumArtistIds': id, 'IncludeItemTypes': 'MusicAlbum', 'SortBy': 'ProductionYear,SortName'}),
+      _items({
+        'AlbumArtistIds': id,
+        'IncludeItemTypes': 'MusicAlbum',
+        'SortBy': 'ProductionYear,SortName',
+        'Fields': 'Genres',
+      }),
     ]);
     final found = _artist(_only(artists, id));
     return (
@@ -476,6 +481,11 @@ Album _album(Map<String, dynamic> json) => Album(
     final String id when id.isNotEmpty => id,
     _ => null,
   },
+  // Only where asked for (Fields: Genres).
+  genres: [
+    for (final genre in json['GenreItems'] as List? ?? const [])
+      if (genre case {'Id': final String id, 'Name': final String name}) Genre(id: id, name: name),
+  ],
 );
 
 /// A song's cover is its own image or else its album's, as Jellyfin's apps show it. Its artists are

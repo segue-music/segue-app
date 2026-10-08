@@ -8,6 +8,7 @@ import 'package:hugeicons/hugeicons.dart';
 import '../l10n/app_localizations.dart';
 import '../releases/musicbrainz.dart';
 import '../server/models.dart';
+import '../server/server.dart';
 import '../services.dart';
 import 'albums_view.dart';
 import 'artists_view.dart';
@@ -15,6 +16,7 @@ import 'biography_page.dart';
 import 'cover.dart';
 import 'current_song.dart';
 import 'errors.dart';
+import 'genre_page.dart';
 import 'now_playing_bar.dart';
 import 'page_area.dart';
 import 'page_bar.dart';
@@ -22,6 +24,7 @@ import 'release_types.dart';
 import 'segmented_choice.dart';
 import 'song_list_header.dart';
 import 'spinner.dart';
+import 'text_link.dart';
 import 'themed_icon.dart';
 import 'tile_row.dart';
 
@@ -212,15 +215,16 @@ class _ArtistPageState extends State<ArtistPage> {
   }
 
   /// The top of the page, down to the artist's [songs] and the choice of their lists, or its title ([heading]). On a
-  /// wide screen the picture is round, the name beside it, with how many albums they have, and behind them the picture
-  /// again, blurred, across the page. On a narrow one ([narrow]) it goes across the page from the top of the screen,
-  /// under the page's bar, which has the name (a [PageBar]), and the system's; the heading is over its bottom, with how
-  /// many albums they have at the end of its line, where it fades to the page's color (darker in the dark theme,
-  /// lighter in the light one).
+  /// wide screen the picture is round, the name beside it, with how many albums they have and their genres, and behind
+  /// them the picture again, blurred, across the page. On a narrow one ([narrow]) it goes across the page from the top
+  /// of the screen, under the page's bar, which has the name (a [PageBar]), and the system's; the heading is over its
+  /// bottom, with how many albums they have at the end of its line, where it fades to the page's color (darker in the
+  /// dark theme, lighter in the light one), and their genres over it.
   Widget _header(Artist artist, List<Album> albums, Widget? heading, List<Widget> songs, {required bool narrow}) {
     final text = Theme.of(context).textTheme;
     final picture = artist.coverArt ?? widget.artist.coverArt;
     final count = _counts(artist, albums, end: narrow);
+    final genres = _genres(albums, overPicture: narrow);
 
     if (narrow) {
       // The system's bar, which the picture goes on under, as under the page's.
@@ -249,17 +253,24 @@ class _ArtistPageState extends State<ArtistPage> {
                 ),
               ),
               // The heading over the picture's bottom, with how many albums they have at the end of its line; with no
-              // heading, that alone at the end.
+              // heading, that alone at the end. Their genres over it.
               Positioned(
                 left: 0,
                 right: 0,
                 bottom: 0,
-                child:
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (genres != null)
+                      Padding(padding: EdgeInsets.fromLTRB(16, 0, 16, heading == null ? 4 : 0), child: genres),
                     heading ??
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                      child: Align(alignment: AlignmentDirectional.centerEnd, child: count),
-                    ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                          child: Align(alignment: AlignmentDirectional.centerEnd, child: count),
+                        ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -306,6 +317,7 @@ class _ArtistPageState extends State<ArtistPage> {
                       children: [
                         Text(artist.name, style: text.titleLarge),
                         count,
+                        ?genres,
                       ],
                     ),
                   ),
@@ -412,6 +424,50 @@ class _ArtistPageState extends State<ArtistPage> {
     } on Object {
       return const {};
     }
+  }
+
+  /// How many genres the artist's page shows at most.
+  static const _genreCount = 3;
+
+  /// The genres most of [albums] are in, the one most are in first, [_genreCount] at most, each a link to its page
+  /// ([GenrePage]), apart by dots: "Hard rock · Blues rock · Rock". Over the picture, on a phone ([overPicture]), with a
+  /// halo of the page's color, which keeps them easy to read where the picture has yet to fade into the page, as the
+  /// page's bar does its title. None where the server gives their albums none.
+  Widget? _genres(List<Album> albums, {bool overPicture = false}) {
+    final genres = <String, Genre>{};
+    final counts = <String, int>{};
+
+    for (final album in albums) {
+      for (final genre in album.genres) {
+        genres.putIfAbsent(genre.id, () => genre);
+        counts[genre.id] = (counts[genre.id] ?? 0) + 1;
+      }
+    }
+
+    if (counts.isEmpty) {
+      return null;
+    }
+
+    final theme = Theme.of(context);
+    final strings = AppLocalizations.of(context);
+    final style = theme.textTheme.bodyMedium?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+      shadows: overPicture ? [Shadow(color: theme.colorScheme.surface, blurRadius: 8)] : null,
+    );
+    return Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        for (final (i, id) in rankedByCount(counts).take(_genreCount).indexed) ...[
+          if (i > 0) Text(' · ', style: style),
+          TextLink(
+            genres[id]!.name,
+            tooltip: strings.openGenre,
+            style: style,
+            onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => GenrePage(genres[id]!))),
+          ),
+        ],
+      ],
+    );
   }
 
   /// How many of [albums] are albums, and singles and EPs, as the sections under part them: "8 álbuns · 4 singles e

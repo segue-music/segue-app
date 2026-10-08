@@ -153,6 +153,12 @@ void main() {
               {'name': 'Columbia'},
             ],
             'musicBrainzId': 'r1',
+            // Subsonic's first, and OpenSubsonic's all.
+            'genre': 'Hard Rock',
+            'genres': [
+              {'name': 'Hard Rock'},
+              {'name': 'Blues Rock'},
+            ],
             'song': [
               {'id': 's1', 'title': 'Dream On', 'artist': 'Aerosmith', 'duration': 268},
             ],
@@ -168,6 +174,12 @@ void main() {
     expect(album.recordLabels, ['Columbia'], reason: 'OpenSubsonic\'s recordLabels');
     expect(album.musicBrainzId, 'r1');
     expect(albums.single.musicBrainzId, isNull);
+    expect(
+      [for (final genre in album.genres) (genre.id, genre.name)],
+      [('Hard Rock', 'Hard Rock'), ('Blues Rock', 'Blues Rock')],
+      reason: 'by name, Subsonic\'s id of a genre',
+    );
+    expect(albums.single.genres, isEmpty);
     expect(songs.single.title, 'Dream On');
     expect(songs.single.duration, const Duration(seconds: 268));
     expect(songs.single.toQueueItem().durationMs, 268000);

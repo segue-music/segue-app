@@ -101,6 +101,10 @@
   "@openAlbum": {
     "description": "The tooltip of a song's title or album, which opens the album's page."
   },
+  "openGenre": "Abrir o gênero",
+  "@openGenre": {
+    "description": "The tooltip of a genre's name, a link to its page, as on an artist's page."
+  },
   "couldNotOpenAlbum": "Não consegui abrir o álbum.",
   "@couldNotOpenAlbum": {
     "description": "A song's album that couldn't open, the media server not knowing it."

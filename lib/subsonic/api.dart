@@ -427,6 +427,7 @@ Album _album(Map<String, dynamic> json) => Album(
           for (final type in json['releaseTypes'] as List? ?? const [])
             if (type is String) type,
         ]),
+  genres: [for (final name in _albumGenres(json)) Genre(id: name, name: name)],
 );
 
 /// An OpenSubsonic ItemDate, as much of a date as the server knows; none without a year.

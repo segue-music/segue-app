@@ -15,6 +15,7 @@ class Album {
     this.recordLabels = const [],
     this.musicBrainzId,
     this.releaseType,
+    this.genres = const [],
   });
 
   final String id;
@@ -41,6 +42,9 @@ class Album {
   /// What kind of release it is: an album proper, an EP, a single, a compilation; null when the server doesn't say,
   /// as Jellyfin never does.
   final ReleaseType? releaseType;
+
+  /// Its genres; none when the server doesn't say, as Jellyfin doesn't unless asked.
+  final List<Genre> genres;
 }
 
 /// What kind of release an album is, as MusicBrainz sorts them: by its primary type (an album, an EP, a single), or
