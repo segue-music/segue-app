@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 
 import 'connect/connect.dart';
 import 'lyrics/lrclib.dart';
+import 'mobile_data.dart';
 import 'player/engine.dart';
 import 'player/play_counter.dart';
 import 'player/player.dart';
@@ -19,10 +20,19 @@ import 'session.dart';
 
 /// Everything a signed-in session runs on.
 class Services {
-  Services(this.session, this.api, this.player, this.connect, {this.lrclib, this.musicBrainz, this.playCounter});
+  Services(
+    this.session,
+    this.api,
+    this.player,
+    this.connect, {
+    this.lrclib,
+    this.musicBrainz,
+    this.playCounter,
+    this.mobileData,
+  });
 
-  /// Starts a session: the API, this device's player, which streams in [quality], and, if a hub is found, the
-  /// connection to it.
+  /// Starts a session: the API, this device's player, which streams in the quality picked ([quality]; the automatic one,
+  /// with none) and, if a hub is found, the connection to it.
   static Future<Services> start(Session session, {AudioEngine? engine, ValueListenable<StreamQuality>? quality}) async {
     final api = openServer(
       session.server,
@@ -30,7 +40,12 @@ class Services {
       deviceId: session.deviceId,
       deviceName: session.deviceName,
     );
-    final player = PlayerController(engine ?? MediaKitEngine(), api, quality: quality);
+    final mobileData = await MobileData.watch();
+    final player = PlayerController(
+      engine ?? MediaKitEngine(),
+      api,
+      quality: () => (quality?.value ?? StreamQuality.automatic).inUse(onMobileData: mobileData.value),
+    );
     final hubUrl = await discoverHub(session.server, hub: session.hub);
     final client = hubUrl == null
         ? null
@@ -55,6 +70,7 @@ class Services {
       lrclib: Lrclib(),
       musicBrainz: MusicBrainz(),
       playCounter: PlayCounter(player, api),
+      mobileData: mobileData,
     );
     unawaited(client?.start());
     return services;
@@ -75,10 +91,14 @@ class Services {
   /// What counts the player's plays on the media server; null, nothing.
   final PlayCounter? playCounter;
 
+  /// Whether the device is on mobile data, for the automatic quality; null, never.
+  final MobileData? mobileData;
+
   Future<void> dispose() async {
     connect.dispose();
     await connect.client?.close();
     playCounter?.dispose();
+    mobileData?.dispose();
     await player.dispose();
     api.close();
     lrclib?.close();

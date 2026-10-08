@@ -463,6 +463,7 @@ void main() {
     await tester.tap(button);
     await tester.pumpAndSettle();
     final names = [
+      'Qualidade automática',
       'Qualidade original',
       'Qualidade alta · 320 kbps',
       'Qualidade normal · 160 kbps',
@@ -470,7 +471,19 @@ void main() {
     ];
     final tops = [for (final name in names) tester.getTopLeft(item(name)).dy];
     expect([...tops]..sort(), tops, reason: 'in this order, top to bottom');
-    expect([for (final name in names) picked(name)], [true, false, false, false], reason: 'the original, until a pick');
+    expect(
+      [for (final name in names) picked(name)],
+      [true, false, false, false, false],
+      reason: 'the automatic one, until a pick',
+    );
+    expect(
+      find.descendant(
+        of: item('Qualidade automática'),
+        matching: find.text('Original no Wi-Fi, 160 kbps nos dados móveis'),
+      ),
+      findsOneWidget,
+      reason: 'what it does, under it',
+    );
 
     await tester.tap(item('Qualidade baixa · 96 kbps'));
     await tester.pumpAndSettle();
@@ -479,7 +492,7 @@ void main() {
 
     await tester.tap(button);
     await tester.pumpAndSettle();
-    expect([for (final name in names) picked(name)], [false, false, false, true]);
+    expect([for (final name in names) picked(name)], [false, false, false, false, true]);
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -501,12 +514,22 @@ void main() {
 
     await tester.tap(phoneMenu);
     await tester.pumpAndSettle();
-    final texts = ['Português', 'Qualidade original', 'Qualidade normal · 160 kbps', 'Qualidade baixa · 96 kbps'];
+    final texts = [
+      'Português',
+      'Qualidade automática',
+      'Qualidade original',
+      'Qualidade normal · 160 kbps',
+      'Qualidade baixa · 96 kbps',
+      'Sair',
+    ];
     final tops = [for (final text in texts) tester.getTopLeft(menuItem(text)).dy];
     expect([...tops]..sort(), tops, reason: 'in this order, top to bottom');
-    expect(checked('Qualidade original'), isTrue);
+    expect(checked('Qualidade automática'), isTrue);
+    expect(find.text('Original no Wi-Fi, 160 kbps nos dados móveis'), findsOneWidget);
     expect(find.byType(PopupMenuDivider), findsNWidgets(3), reason: 'a group of its own');
 
+    await tester.ensureVisible(menuItem('Qualidade normal · 160 kbps'));
+    await tester.pumpAndSettle();
     await tester.tap(menuItem('Qualidade normal · 160 kbps'));
     await tester.pumpAndSettle();
     expect(qualityChoice.value, StreamQuality.normal);

@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -48,14 +47,13 @@ void main() {
     expect(player.report(full: true).queue, hasLength(2));
   });
 
-  test('streams in the quality picked as each song loads: a pick holds from the next song on', () async {
-    final quality = ValueNotifier(StreamQuality.normal);
-    addTearDown(quality.dispose);
-    player = PlayerController(engine, api, quality: quality);
+  test('streams in the quality in use as each song loads: a new one holds from the next song on', () async {
+    var quality = StreamQuality.normal;
+    player = PlayerController(engine, api, quality: () => quality);
     await player.playQueue(songs);
     expect(engine.tracks.first.queryParameters, containsPair('maxBitRate', '160'));
 
-    quality.value = StreamQuality.original;
+    quality = StreamQuality.original;
     final next = await engine.opened.last.address(Duration.zero);
     expect(next?.queryParameters['id'], 's2');
     expect(next?.queryParameters.containsKey('maxBitRate'), isFalse);
@@ -82,16 +80,15 @@ void main() {
         ),
       ),
     );
-    final quality = ValueNotifier(StreamQuality.low);
-    addTearDown(quality.dispose);
-    player = PlayerController(engine, offsets, quality: quality);
+    var quality = StreamQuality.low;
+    player = PlayerController(engine, offsets, quality: () => quality);
     await player.playQueue(songs);
 
     final later = await engine.opened.first.address(const Duration(seconds: 42));
     expect(later?.queryParameters, containsPair('maxBitRate', '96'));
     expect(later?.queryParameters, containsPair('timeOffset', '42'));
 
-    quality.value = StreamQuality.original;
+    quality = StreamQuality.original;
     expect(await engine.opened.first.address(const Duration(seconds: 42)), isNull);
   });
 

@@ -140,8 +140,9 @@ Running two app instances on one machine as different devices:
   `openServer` reopens a saved sign-in by its credentials. The API also gives the hub's hello its
   `api` and `auth`, so a Jellyfin sign-in is a Jellyfin device, with ids in Jellyfin's API. A song
   streams as its file, or within a bitrate (`QualityChoice`, `lib/quality_choice.dart`, which
-  `PlayerController` reads as each song loads): Subsonic's `maxBitRate`, with `timeOffset` to start
-  later where the server has OpenSubsonic's transcodeOffset, or Jellyfin's `universal`, as HLS.
+  `PlayerController` reads as each song loads, the automatic one by `MobileData`, `lib/mobile_data.dart`, from
+  connectivity_plus): Subsonic's `maxBitRate`, with `timeOffset` to start later where the server has OpenSubsonic's
+  transcodeOffset, or Jellyfin's `universal`, as HLS.
 - `lib/lyrics/lrclib.dart`: LRCLIB, where the full-screen player's lyrics (`LyricsView`) come from
   when the media server has none, by the song's title, artist, album and length. `Services.start`
   gives it one; tests leave `Services.lrclib` null, so that none goes out to the internet.

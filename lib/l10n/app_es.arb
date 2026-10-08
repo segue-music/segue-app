@@ -132,6 +132,7 @@
   "systemLanguage": "Idioma del sistema",
   "languageName": "Español",
   "audioQuality": "Calidad del audio",
-  "streamQuality": "{quality, select, high{Calidad alta · {bitRate} kbps} normal{Calidad normal · {bitRate} kbps} low{Calidad baja · {bitRate} kbps} other{Calidad original}}",
+  "streamQuality": "{quality, select, automatic{Calidad automática} high{Calidad alta · {bitRate} kbps} normal{Calidad normal · {bitRate} kbps} low{Calidad baja · {bitRate} kbps} other{Calidad original}}",
+  "automaticQualityDetail": "Original con Wi-Fi, {bitRate} kbps con datos móviles",
   "artistOnDevice": "{artist} (en {device})"
 }

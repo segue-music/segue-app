@@ -13,8 +13,8 @@ void main() {
     FlutterSecureStorage.setMockInitialValues({});
   });
 
-  test('the files as they are until a pick, which the next launch, and a sign-out, keep', () async {
-    expect((await QualityChoice.load()).value, StreamQuality.original);
+  test('the automatic quality until a pick, which the next launch, and a sign-out, keep', () async {
+    expect((await QualityChoice.load()).value, StreamQuality.automatic);
 
     await QualityChoice().pick(StreamQuality.low);
     await Session.clear();
@@ -24,14 +24,21 @@ void main() {
     expect((await QualityChoice.load()).value, StreamQuality.high);
   });
 
-  test('a quality saved that the app doesn\'t know is the original', () async {
+  test('a quality saved that the app doesn\'t know is the automatic one', () async {
     await SharedPreferencesAsync().setString('quality', 'lossless');
-    expect((await QualityChoice.load()).value, StreamQuality.original);
+    expect((await QualityChoice.load()).value, StreamQuality.automatic);
   });
 
-  test('each quality but the original has a bitrate, lower down the list', () {
-    final bitRates = [for (final quality in StreamQuality.values.skip(1)) quality.maxBitRate!];
+  test('each quality after the original has a bitrate, lower down the list', () {
+    final bitRates = [for (final quality in StreamQuality.values.skip(2)) quality.maxBitRate!];
     expect(StreamQuality.original.maxBitRate, isNull);
     expect(bitRates, [...bitRates]..sort((a, b) => b.compareTo(a)));
+  });
+
+  test('the automatic quality is the original on Wi-Fi or a cable, and the normal one on mobile data', () {
+    expect(StreamQuality.automatic.inUse(onMobileData: false), StreamQuality.original);
+    expect(StreamQuality.automatic.inUse(onMobileData: true), StreamQuality.normal);
+    expect(StreamQuality.low.inUse(onMobileData: false), StreamQuality.low, reason: 'a pick holds anywhere');
+    expect(StreamQuality.original.inUse(onMobileData: true), StreamQuality.original);
   });
 }

@@ -132,6 +132,7 @@
   "systemLanguage": "System language",
   "languageName": "English",
   "audioQuality": "Audio quality",
-  "streamQuality": "{quality, select, high{High quality · {bitRate} kbps} normal{Normal quality · {bitRate} kbps} low{Low quality · {bitRate} kbps} other{Original quality}}",
+  "streamQuality": "{quality, select, automatic{Automatic quality} high{High quality · {bitRate} kbps} normal{Normal quality · {bitRate} kbps} low{Low quality · {bitRate} kbps} other{Original quality}}",
+  "automaticQualityDetail": "Original on Wi-Fi, {bitRate} kbps on mobile data",
   "artistOnDevice": "{artist} (on {device})"
 }

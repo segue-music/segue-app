@@ -11,14 +11,14 @@ import 'engine.dart';
 
 /// This device's player: the queue, playback, and the commands other devices send it.
 class PlayerController extends ChangeNotifier {
-  /// Streams the songs in [quality] as each loads; with none, the files as they are.
+  /// Streams each song in the quality that [quality] gives as it loads; with none, the files as they are.
   PlayerController(this._engine, this._api, {this._quality}) {
     _subscription = _engine.changes.listen((_) => _changed());
   }
 
   final AudioEngine _engine;
   final MediaServer _api;
-  final ValueListenable<StreamQuality>? _quality;
+  final StreamQuality Function()? _quality;
   late final StreamSubscription<void> _subscription;
   // The songs as playQueue got them, and _queue: them in the engine's play order (shuffled, or not).
   List<Song> _opened = const [];
@@ -63,7 +63,7 @@ class PlayerController extends ChangeNotifier {
   /// Where the song whose id is [songId] streams from, from [from] on ([TrackSource.resolved]), in the quality picked as it
   /// loads.
   Future<Uri?> _stream(String songId, Duration from) async {
-    final maxBitRate = _quality?.value.maxBitRate;
+    final maxBitRate = _quality?.call().maxBitRate;
 
     if (from == Duration.zero) {
       return _api.streamUrl(songId, maxBitRate: maxBitRate);

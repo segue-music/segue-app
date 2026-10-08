@@ -732,13 +732,22 @@
   "@audioQuality": {
     "description": "The tooltip of the button that opens the menu of the quality the player streams songs in."
   },
-  "streamQuality": "{quality, select, high{Qualidade alta · {bitRate} kbps} normal{Qualidade normal · {bitRate} kbps} low{Qualidade baixa · {bitRate} kbps} other{Qualidade original}}",
+  "streamQuality": "{quality, select, automatic{Qualidade automática} high{Qualidade alta · {bitRate} kbps} normal{Qualidade normal · {bitRate} kbps} low{Qualidade baixa · {bitRate} kbps} other{Qualidade original}}",
   "@streamQuality": {
-    "description": "A choice in the quality menu, by its kind: the original (the files as they are), or a high, normal or low one, at most bitRate kbps, which the media server transcodes the songs down to.",
+    "description": "A choice in the quality menu, by its kind: the automatic one (as the connection is), the original (the files as they are), or a high, normal or low one, at most bitRate kbps, which the media server transcodes the songs down to.",
     "placeholders": {
       "quality": {
         "type": "String"
       },
+      "bitRate": {
+        "type": "int"
+      }
+    }
+  },
+  "automaticQualityDetail": "Original no Wi-Fi, {bitRate} kbps nos dados móveis",
+  "@automaticQualityDetail": {
+    "description": "Under the automatic quality, in the quality menu: what it streams in, the original on Wi-Fi (or a cable) and at most bitRate kbps on mobile data.",
+    "placeholders": {
       "bitRate": {
         "type": "int"
       }

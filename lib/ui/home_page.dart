@@ -596,10 +596,10 @@ class _PhoneMenu extends StatelessWidget {
           const PopupMenuDivider(),
         ],
         if (qualityChoice != null) ...[
-          for (final (quality, name) in QualityButton.options(strings))
+          for (final (:quality, :name, :detail) in QualityButton.options(strings))
             PopupMenuItem(
               onTap: () => qualityChoice.pick(quality),
-              child: MenuItemLabel(name, icon: quality == qualityChoice.value ? tick : null),
+              child: MenuItemLabel(name, detail: detail, icon: quality == qualityChoice.value ? tick : null),
             ),
           const PopupMenuDivider(),
         ],

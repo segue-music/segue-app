@@ -8,6 +8,7 @@ import 'package:segue/connect/connect.dart';
 import 'package:segue/l10n/app_localizations.dart';
 import 'package:segue/language_choice.dart';
 import 'package:segue/player/player.dart';
+import 'package:segue/quality_choice.dart';
 import 'package:segue/server/models.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
@@ -157,6 +158,8 @@ Future<void> pumpHome(WidgetTester tester, Locale language, Size size) async {
   addTearDown(themeChoice.dispose);
   final languageChoice = LanguageChoice(language);
   addTearDown(languageChoice.dispose);
+  final qualityChoice = QualityChoice();
+  addTearDown(qualityChoice.dispose);
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -167,7 +170,12 @@ Future<void> pumpHome(WidgetTester tester, Locale language, Size size) async {
       supportedLocales: AppLocalizations.supportedLocales,
       theme: segueTheme(Brightness.light),
       builder: (context, child) => ServicesScope(services: services, child: child!),
-      home: HomePage(onSignOut: () {}, themeChoice: themeChoice, languageChoice: languageChoice),
+      home: HomePage(
+        onSignOut: () {},
+        themeChoice: themeChoice,
+        languageChoice: languageChoice,
+        qualityChoice: qualityChoice,
+      ),
     ),
   );
   await tester.pumpAndSettle();
@@ -197,9 +205,13 @@ void main() {
           await tap(tester, find.byTooltip(menu));
           expect(find.text(strings.systemTheme), findsOneWidget, reason: 'the top bar\'s menu');
           expect(find.text(strings.signOut), findsOneWidget);
-          await tester.tapAt(const Offset(20, 600)); // out of the menu, which closes
-          await tester.pumpAndSettle();
+        } else {
+          await tap(tester, find.byTooltip(strings.audioQuality));
         }
+
+        expect(find.text(strings.automaticQualityDetail(160)), findsOneWidget, reason: 'the quality menu');
+        await tester.tapAt(const Offset(20, 600)); // out of the menu, which closes
+        await tester.pumpAndSettle();
 
         await tap(tester, narrow ? find.text(strings.albums) : find.byTooltip(strings.albums));
         expect(find.widgetWithText(ChoiceChip, strings.orderLatest), findsOneWidget);
