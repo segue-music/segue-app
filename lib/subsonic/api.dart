@@ -145,6 +145,21 @@ class SubsonicApi implements MediaServer {
     return rankedByCount(plays).take(size).toList();
   }
 
+  /// getTopSongs, which asks by the artist's name: Navidrome learns the artist's top tracks from its agents (Last.fm's,
+  /// where it's on) and gives those it has; none where no agent knows them.
+  @override
+  Future<List<Song>> popularSongs(Artist artist, {int size = 10}) async {
+    if (artist.name.isEmpty) {
+      return const [];
+    }
+
+    final body = await _get('getTopSongs', {'artist': artist.name, 'count': '$size'});
+    return [
+      for (final song in (body['topSongs'] as Map<String, dynamic>?)?['song'] as List? ?? const [])
+        _song(song as Map<String, dynamic>),
+    ];
+  }
+
   @override
   Future<(Album, List<Song>)> album(String id) async {
     final json = (await _get('getAlbum', {'id': id}))['album'] as Map<String, dynamic>;

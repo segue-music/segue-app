@@ -31,9 +31,30 @@ http.Response subsonic(Map<String, Object?> body) => http.Response(
 
 const album = {'id': 'a1', 'name': 'Toys in the Attic', 'artist': 'Aerosmith', 'artistId': 'ar1', 'coverArt': 'a1'};
 
-/// A library of one album, with one song, and its lyrics.
+/// A library of one album, with one song, which has played and is its artist's popular one, and its lyrics.
 http.Response server(http.Request request) {
   final path = request.url.path;
+  const song = {'id': 's1', 'title': 'Walk This Way', 'artist': 'Aerosmith', 'albumId': 'a1', 'artistId': 'ar1'};
+
+  if (path.endsWith('getArtist.view')) {
+    return subsonic({
+      'artist': {
+        'id': 'ar1',
+        'name': 'Aerosmith',
+        'album': [
+          {...album, 'playCount': 1},
+        ],
+      },
+    });
+  }
+
+  if (path.endsWith('getTopSongs.view')) {
+    return subsonic({
+      'topSongs': {
+        'song': [song],
+      },
+    });
+  }
 
   if (path.endsWith('getLyricsBySongId.view')) {
     return subsonic({
@@ -63,7 +84,7 @@ http.Response server(http.Request request) {
       'album': {
         ...album,
         'song': [
-          {'id': 's1', 'title': 'Walk This Way', 'artist': 'Aerosmith', 'albumId': 'a1', 'artistId': 'ar1'},
+          {...song, 'playCount': 1},
         ],
       },
     });
@@ -173,6 +194,14 @@ void main() {
       'its artist',
       find.descendant(of: find.widgetWithText(ListTile, 'Walk This Way'), matching: find.text('Aerosmith')),
     );
+
+    // Its artist's page.
+    await tester.tap(
+      find.descendant(of: find.widgetWithText(ListTile, 'Walk This Way'), matching: find.text('Aerosmith')),
+    );
+    await tester.pumpAndSettle();
+    await expectHand('a list of their songs to pick', find.text('Populares'));
+    await expectHand('the one picked', find.text('Suas mais tocadas'));
 
     // The full-screen player's lyrics.
     await tester.tap(find.byTooltip('Abrir o player'));

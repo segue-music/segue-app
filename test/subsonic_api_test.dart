@@ -594,6 +594,47 @@ void main() {
     expect(asked.single.path, '/rest/getArtist.view');
   });
 
+  test('an artist\'s popular songs are getTopSongs\', asked by their name', () async {
+    final asked = <Uri>[];
+    final api = SubsonicApi(
+      Uri.parse('https://music.test'),
+      credentials,
+      client: MockClient((request) async {
+        asked.add(request.url);
+        return subsonic({
+          'status': 'ok',
+          'topSongs': {
+            'song': [
+              {'id': 's3', 'title': 'Dream On', 'album': 'Aerosmith', 'artistId': 'ar1'},
+              {'id': 's1', 'title': 'Walk This Way', 'album': 'Toys in the Attic', 'artistId': 'ar1'},
+            ],
+          },
+        });
+      }),
+    );
+    final songs = await api.popularSongs(const Artist(id: 'ar1', name: 'Aerosmith'), size: 5);
+    expect([for (final song in songs) song.title], ['Dream On', 'Walk This Way'], reason: 'in the server\'s order');
+    expect(songs.first.album, 'Aerosmith');
+    expect(asked.single.path, '/rest/getTopSongs.view');
+    expect(asked.single.queryParameters, containsPair('artist', 'Aerosmith'));
+    expect(asked.single.queryParameters, containsPair('count', '5'));
+  });
+
+  test('an artist the server knows no popular songs of has none; one without a name isn\'t asked about', () async {
+    final asked = <Uri>[];
+    final api = SubsonicApi(
+      Uri.parse('https://music.test'),
+      credentials,
+      client: MockClient((request) async {
+        asked.add(request.url);
+        return subsonic({'status': 'ok', 'topSongs': <String, Object?>{}});
+      }),
+    );
+    expect(await api.popularSongs(const Artist(id: 'ar1', name: 'Aerosmith')), isEmpty);
+    expect(await api.popularSongs(const Artist(id: 'ar2', name: '')), isEmpty);
+    expect(asked, hasLength(1));
+  });
+
   test('search asks for artists, albums and songs', () async {
     late Uri asked;
     final api = SubsonicApi(

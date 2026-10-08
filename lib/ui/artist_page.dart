@@ -13,11 +13,12 @@ import 'now_playing_bar.dart';
 import 'page_area.dart';
 import 'page_header.dart';
 import 'release_types.dart';
+import 'segmented_choice.dart';
 import 'song_list_header.dart';
 import 'spinner.dart';
 
-/// An artist and their albums, newest first, under the songs of theirs the user plays most (once any has played): their
-/// albums, then their singles and EPs, each under a title.
+/// An artist and their albums, newest first, under a few songs of theirs (the ones the user plays most, or the popular
+/// ones: [_ArtistSongs]): their albums, then their singles and EPs, each under a title.
 class ArtistPage extends StatefulWidget {
   const ArtistPage(this.artist, {super.key});
 
@@ -36,7 +37,7 @@ class _ArtistPageState extends State<ArtistPage> {
     super.didChangeDependencies();
     final api = ServicesScope.of(context).api;
     _artist ??= api.artist(widget.artist.id);
-    _mostPlayed ??= api.mostPlayedSongs(widget.artist.id, size: _MostPlayedSongs.count);
+    _mostPlayed ??= api.mostPlayedSongs(widget.artist.id, size: _ArtistSongs.count);
   }
 
   @override
@@ -99,7 +100,7 @@ class _ArtistPageState extends State<ArtistPage> {
                       ),
                     ),
                   ),
-                  _MostPlayedSongs(_mostPlayed!),
+                  _ArtistSongs(artist, mostPlayed: _mostPlayed!),
                 ],
               ),
             ),
@@ -149,15 +150,53 @@ class _ArtistPageState extends State<ArtistPage> {
   }
 }
 
-/// The artist's songs the user plays most, the first few ([count]), numbered. Each plays the list from it, as an album's
-/// songs do. Nothing while they come, nor before any has played.
-class _MostPlayedSongs extends StatelessWidget {
-  const _MostPlayedSongs(this.songs);
+/// The lists of an artist's songs their page shows: what each says of itself, as an option to pick or the title of the
+/// one alone.
+enum _SongRanking {
+  /// The songs the user plays most.
+  mostPlayed,
 
-  final Future<List<Song>> songs;
+  /// The songs everyone plays most.
+  popular;
+
+  String label(AppLocalizations strings) => switch (this) {
+    mostPlayed => strings.mostPlayedSongs,
+    popular => strings.popularSongs,
+  };
+}
+
+/// The artist's songs the user plays most, or the popular ones (those everyone plays most, as the server learns them),
+/// the first few ([count]), numbered, picked over them where both have songs: the user's, until the others are. Each
+/// plays the list from it, as an album's songs do. A list with none isn't there, nor its option, and with neither,
+/// nothing is. Nothing until the user's have come, so that the popular ones, should they come first, don't give way to
+/// them as they come; the popular ones that fail aren't there either, as a server that has none to give.
+class _ArtistSongs extends StatefulWidget {
+  const _ArtistSongs(this.artist, {required this.mostPlayed});
+
+  /// The artist as the server gives them, whose name is the one the popular songs are asked by: a link's may be an
+  /// album's artists together ("A & B").
+  final Artist artist;
+
+  final Future<List<Song>> mostPlayed;
 
   /// How many there are at most.
   static const count = 5;
+
+  @override
+  State<_ArtistSongs> createState() => _ArtistSongsState();
+}
+
+class _ArtistSongsState extends State<_ArtistSongs> {
+  Future<List<Song>>? _popular;
+
+  /// The list picked; none before the user picks one.
+  _SongRanking? _picked;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _popular ??= ServicesScope.of(context).api.popularSongs(widget.artist, size: _ArtistSongs.count);
+  }
 
   static Future<void> _play(BuildContext context, List<Song> songs, int index) async {
     final messenger = ScaffoldMessenger.of(context);
@@ -171,50 +210,75 @@ class _MostPlayedSongs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => FutureBuilder(
-    future: songs,
-    builder: (context, snapshot) {
-      final text = Theme.of(context).textTheme;
-      final strings = AppLocalizations.of(context);
-      final songs = snapshot.data ?? const <Song>[];
+    future: widget.mostPlayed,
+    builder: (context, mostPlayed) => FutureBuilder(
+      future: _popular,
+      builder: (context, popular) {
+        final text = Theme.of(context).textTheme;
+        final strings = AppLocalizations.of(context);
 
-      if (songs.isEmpty && !snapshot.hasError) {
-        return const SizedBox.shrink();
-      }
+        if (mostPlayed.connectionState != ConnectionState.done) {
+          return const SizedBox.shrink();
+        }
 
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-            child: Text(strings.mostPlayedSongs, style: text.titleLarge),
-          ),
-          if (snapshot.hasError)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(strings.couldNotListSongs('${snapshot.error}'), style: text.bodyMedium),
-            ),
-          for (final (i, song) in songs.indexed)
-            CurrentSong(
-              song,
-              builder: (context, current, playing) => ListTile(
-                selected: current,
-                // Its place among them, then its cover.
-                leading: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox(width: SongListHeader.numberWidth, child: SongNumber(i + 1)),
-                    const SizedBox(width: 16),
-                    Thumbnail(song.coverArt, playing: playing),
-                  ],
+        final lists = {
+          if (mostPlayed.hasError || mostPlayed.requireData.isNotEmpty) _SongRanking.mostPlayed: mostPlayed,
+          if (popular.data?.isNotEmpty ?? false) _SongRanking.popular: popular,
+        };
+
+        if (lists.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        final shown = lists.containsKey(_picked) ? _picked! : lists.keys.first;
+        final snapshot = lists[shown]!;
+        final songs = snapshot.data ?? const <Song>[];
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (lists.length > 1)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+                child: SegmentedChoice(
+                  shown,
+                  options: [...lists.keys],
+                  label: (list) => list.label(strings),
+                  onSelected: (list) => setState(() => _picked = list),
                 ),
-                title: Text(song.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-                subtitle: song.album == null ? null : Text(song.album!, maxLines: 1, overflow: TextOverflow.ellipsis),
-                trailing: SongDuration(song.duration),
-                onTap: () => _play(context, songs, i),
+              )
+            else
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+                child: Text(shown.label(strings), style: text.titleLarge),
               ),
-            ),
-        ],
-      );
-    },
+            if (snapshot.hasError)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(strings.couldNotListSongs('${snapshot.error}'), style: text.bodyMedium),
+              ),
+            for (final (i, song) in songs.indexed)
+              CurrentSong(
+                song,
+                builder: (context, current, playing) => ListTile(
+                  selected: current,
+                  // Its place among them, then its cover.
+                  leading: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(width: SongListHeader.numberWidth, child: SongNumber(i + 1)),
+                      const SizedBox(width: 16),
+                      Thumbnail(song.coverArt, playing: playing),
+                    ],
+                  ),
+                  title: Text(song.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  subtitle: song.album == null ? null : Text(song.album!, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  trailing: SongDuration(song.duration),
+                  onTap: () => _play(context, songs, i),
+                ),
+              ),
+          ],
+        );
+      },
+    ),
   );
 }

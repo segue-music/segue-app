@@ -29,10 +29,12 @@ the device it runs on.
   released, the most played or the latest added, picked in chips above them, the next ones coming
   as the grid nears its end), artists (by name or the most played first, picked in chips above them:
   on a Subsonic server, which counts no plays by artist, from the 500 most played albums; each with
-  their albums and then, apart, their singles and EPs, where the server says which are, under the
-  five songs of theirs the user plays most, numbered, once any has played, which play from the one
-  picked: on a Subsonic server, which lists no songs by plays, those of the artist's albums, from
-  the albums that have played) and
+  their albums and then, apart, their singles and EPs, where the server says which are, under five
+  songs of theirs, numbered, which play from the one picked: the ones the user plays most, once any
+  has played (on a Subsonic server, which lists no songs by plays, those of the artist's albums,
+  from the albums that have played), or the popular ones, which a Subsonic server learns from
+  Last.fm (getTopSongs), picked over them where there are both (a thumb sliding to the one picked),
+  and these alone before any of the user's has played) and
   genres (by name, each with its number of albums, under the ten the user listens to
   most, and its albums by name, under a row of those the user plays most: on a Subsonic server,
   which counts no plays by genre, both come from the 500 most played albums):
@@ -133,7 +135,8 @@ the device it runs on.
 
 Not yet: playlists, editing the queue (play next, add to it, reorder it), the media controls on the other platforms (Android's
 media session), on a Jellyfin server the cover of a song that came from another device
-when its file has none of its own (Jellyfin doesn't fall back to the album's), an offline cache, settings, sending the music
+when its file has none of its own (Jellyfin doesn't fall back to the album's) and an artist's popular songs (Jellyfin
+knows only its users' plays), an offline cache, settings, sending the music
 to speakers and TVs that don't run the app (Google Cast, UPnP/DLNA), and CarPlay as an app of its own (browsing the library
 on the car's screen, which needs Apple's CarPlay entitlement and native code). The Android build
 has been tried on a tablet and on an Android TV; the iOS build has not been tried on a device yet.

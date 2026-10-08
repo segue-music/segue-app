@@ -501,9 +501,13 @@
   "@singlesAndEps": {
     "description": "The heading of an artist's singles and EPs, under their albums."
   },
-  "mostPlayedSongs": "Mais tocadas",
+  "mostPlayedSongs": "Suas mais tocadas",
   "@mostPlayedSongs": {
-    "description": "The heading of an artist's songs the user plays most (feminine in Portuguese and Spanish, as songs are)."
+    "description": "The heading of an artist's songs the user plays most, or its chip beside the popular ones (feminine in Portuguese and Spanish, as songs are)."
+  },
+  "popularSongs": "Populares",
+  "@popularSongs": {
+    "description": "The heading of an artist's songs everyone plays most (as Last.fm counts them), or its chip beside the user's most played (feminine in Portuguese and Spanish, as songs are)."
   },
   "couldNotListSongs": "Não consegui listar as músicas: {error}",
   "@couldNotListSongs": {

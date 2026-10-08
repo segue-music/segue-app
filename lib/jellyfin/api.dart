@@ -159,6 +159,10 @@ class JellyfinApi implements MediaServer {
     for (final json in await _mostPlayedSongs({'ArtistIds': artistId, 'Limit': '$size'})) _song(json),
   ];
 
+  /// Jellyfin knows no one's plays but its users'.
+  @override
+  Future<List<Song>> popularSongs(Artist artist, {int size = 10}) async => const [];
+
   /// Every music genre, with how many albums it has. MusicGenres, which Jellyfin keeps next to Genres:
   /// that one lists the music genres only under a music library's id.
   @override

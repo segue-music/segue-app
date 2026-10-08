@@ -18,6 +18,7 @@ import 'package:segue/ui/artist_page.dart';
 import 'package:segue/ui/cover.dart';
 import 'package:segue/ui/home_page.dart';
 import 'package:segue/ui/now_playing_bar.dart';
+import 'package:segue/ui/segmented_choice.dart';
 
 import 'fakes.dart';
 import 'side_rail.dart';
@@ -32,10 +33,23 @@ http.Response subsonic(Map<String, Object?> body) => http.Response(
 
 /// A server with three artists: Aerosmith, with two albums, none of them played, and a single and an EP, Cheap Trick,
 /// with one album, six of whose songs have played, and Ramones, with none. A search for "toys" finds an album; any other, the artist Aerosmith.
-/// Unless [played], nothing has played: not even Cheap Trick's songs, among the most played albums.
+/// Unless [played], nothing has played: not even Cheap Trick's songs. Cheap Trick's popular songs are three of that
+/// album's, Big Eyes first; the others' fail, as on a server that has none to give.
 http.Response server(http.Request request, {bool played = true}) {
   final path = request.url.path;
   final id = request.url.queryParameters['id'];
+
+  if (path.endsWith('getTopSongs.view') && request.url.queryParameters['artist'] == 'Cheap Trick') {
+    return subsonic({
+      'topSongs': {
+        'song': [
+          {'id': 's3', 'title': 'Big Eyes', 'album': 'In Color', 'duration': 187},
+          {'id': 's4', 'title': 'I Want You to Want Me', 'album': 'In Color', 'duration': 191},
+          {'id': 's8', 'title': 'So Good to See You', 'album': 'In Color', 'duration': 214},
+        ],
+      },
+    });
+  }
 
   if (path.endsWith('getAlbumList2.view') && played && request.url.queryParameters['type'] == 'frequent') {
     return subsonic({
@@ -85,7 +99,7 @@ http.Response server(http.Request request, {bool played = true}) {
         'name': 'Cheap Trick',
         'albumCount': 1,
         'album': [
-          {'id': 'a3', 'name': 'In Color', 'artist': 'Cheap Trick', 'year': 1977, 'playCount': 7},
+          {'id': 'a3', 'name': 'In Color', 'artist': 'Cheap Trick', 'year': 1977, 'playCount': ?(played ? 7 : null)},
         ],
       },
     });
@@ -251,6 +265,9 @@ Finder order(String label) => find.widgetWithText(ChoiceChip, label);
 /// Whether [label]'s order is the one picked.
 bool picked(WidgetTester tester, String label) => tester.widget<ChoiceChip>(order(label)).selected;
 
+/// The option of an artist's page that shows the list of their songs [label] names, or the list's title.
+Finder songList(String label) => find.descendant(of: find.byType(ArtistPage), matching: find.text(label));
+
 /// What darkens the picture of the artist named [name]: black, a little.
 Finder shade(String name) => find.descendant(
   of: tile(name),
@@ -288,7 +305,8 @@ void main() {
     final newer = tester.getTopLeft(find.text('Toys in the Attic'));
     final older = tester.getTopLeft(find.text('1973'));
     expect(newer.dx < older.dx || newer.dy < older.dy, isTrue, reason: 'the 1975 album comes first');
-    expect(find.text('Mais tocadas'), findsNothing, reason: 'none of their songs has played');
+    expect(find.text('Suas mais tocadas'), findsNothing, reason: 'none of their songs has played');
+    expect(find.text('Populares'), findsNothing, reason: 'nor are there popular ones');
     final albums = find.descendant(of: find.byType(ArtistPage), matching: find.text('Álbuns'));
     expect(albums, findsOneWidget, reason: 'their albums have a title all the same');
     expect(tester.getTopLeft(albums).dy, lessThan(tester.getTopLeft(find.text('Toys in the Attic')).dy));
@@ -340,8 +358,8 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('an artist\'s five songs the user plays most, numbered, come over their albums, and play from the one '
-      'picked', (tester) async {
+  testWidgets('an artist\'s five songs the user plays most, numbered, come over their albums, picked over them, and '
+      'play from the one picked', (tester) async {
     // Tall enough for the songs and the album under them.
     final engine = await pumpHome(tester, const Size(1000, 900));
     await tester.tap(find.byTooltip('Artistas'));
@@ -349,9 +367,11 @@ void main() {
     await tester.tap(find.text('Cheap Trick'));
     await tester.pumpAndSettle();
     expect(artistName('Cheap Trick'), findsOneWidget);
-    final heading = find.descendant(of: find.byType(ArtistPage), matching: find.text('Mais tocadas'));
+    final heading = songList('Suas mais tocadas');
     final albums = find.descendant(of: find.byType(ArtistPage), matching: find.text('Álbuns'));
     expect(heading, findsOneWidget);
+    expect(tester.getSemantics(heading), isSemantics(isSelected: true), reason: 'the user\'s first');
+    expect(tester.getSemantics(songList('Populares')), isSemantics(isSelected: false));
     expect(find.text('Big Eyes'), findsNothing, reason: 'it hasn\'t played');
     final top = find.text('I Want You to Want Me');
     final second = find.text('Hello There');
@@ -383,6 +403,50 @@ void main() {
       reason: 'the songs listed',
     );
     expect(engine.index, 1, reason: 'from the one picked');
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('picking the popular ones shows the artist\'s songs everyone plays most, as the server gives them, which '
+      'play from the one picked', (tester) async {
+    final engine = await pumpHome(tester, const Size(1000, 900));
+    await tester.tap(find.byTooltip('Artistas'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cheap Trick'));
+    await tester.pumpAndSettle();
+    await tester.tap(songList('Populares'));
+    await tester.pumpAndSettle();
+    expect(tester.getSemantics(songList('Populares')), isSemantics(isSelected: true));
+    expect(tester.getSemantics(songList('Suas mais tocadas')), isSemantics(isSelected: false));
+    final first = find.widgetWithText(ListTile, 'Big Eyes');
+    final last = find.widgetWithText(ListTile, 'So Good to See You');
+    expect(find.descendant(of: first, matching: find.text('1')), findsOneWidget);
+    expect(find.descendant(of: last, matching: find.text('3')), findsOneWidget);
+    expect(find.text('Hello There'), findsNothing, reason: 'the user\'s, not among the popular ones');
+
+    await tester.tap(last);
+    await tester.pumpAndSettle();
+    expect([for (final track in engine.tracks) track.queryParameters['id']], ['s3', 's4', 's8']);
+    expect(engine.index, 2);
+
+    await tester.tap(songList('Suas mais tocadas'));
+    await tester.pumpAndSettle();
+    expect(find.text('Hello There'), findsOneWidget, reason: 'the user\'s again');
+    expect(find.text('Big Eyes'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('an artist none of whose songs has played has their popular ones, under a title', (tester) async {
+    await pumpHome(tester, const Size(1000, 900), played: false);
+    await tester.tap(find.byTooltip('Artistas'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cheap Trick'));
+    await tester.pumpAndSettle();
+    final heading = songList('Populares');
+    expect(heading, findsOneWidget);
+    expect(find.byWidgetPredicate((widget) => widget is SegmentedChoice), findsNothing, reason: 'nothing else to pick');
+    expect(find.text('Suas mais tocadas'), findsNothing);
+    expect(tester.getTopLeft(heading).dy, lessThan(tester.getTopLeft(find.text('Big Eyes')).dy));
+    expect(find.text('So Good to See You'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 

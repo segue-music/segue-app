@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:segue/jellyfin/api.dart';
+import 'package:segue/server/models.dart';
 import 'package:segue/server/server.dart';
 
 const credentials = JellyfinCredentials(username: 'alice', userId: 'u1', token: 'tok');
@@ -328,6 +329,12 @@ void main() {
     expect(query, containsPair('SortBy', 'PlayCount'));
     expect(query, containsPair('SortOrder', 'Descending'));
     expect(query, containsPair('Limit', '10'));
+  });
+
+  test('an artist has no popular songs: Jellyfin knows no one\'s plays but its users\'', () async {
+    final asked = <http.Request>[];
+    expect(await jellyfin((_) => items([]), asked).popularSongs(const Artist(id: 'ar1', name: 'Aerosmith')), isEmpty);
+    expect(asked, isEmpty);
   });
 
   test('a scrobble asks nothing of the server: the hub\'s Sessions/Playing counts the play', () async {

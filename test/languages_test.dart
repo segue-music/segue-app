@@ -13,6 +13,7 @@ import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
 import 'package:segue/theme_choice.dart';
+import 'package:segue/ui/artist_page.dart';
 import 'package:segue/ui/home_page.dart';
 import 'package:segue/ui/login_page.dart';
 import 'package:segue/ui/theme.dart';
@@ -39,6 +40,7 @@ const album = {
   'recordLabels': [
     {'name': 'Columbia'},
   ],
+  'playCount': 1,
 };
 
 const songs = [
@@ -50,10 +52,19 @@ const songs = [
     'artistId': 'ar1',
     'duration': 185,
   },
-  {'id': 's2', 'title': 'Sweet Emotion', 'artist': 'Aerosmith', 'albumId': 'a1', 'artistId': 'ar1', 'duration': 274},
+  {
+    'id': 's2',
+    'title': 'Sweet Emotion',
+    'artist': 'Aerosmith',
+    'albumId': 'a1',
+    'artistId': 'ar1',
+    'duration': 274,
+    'playCount': 1,
+  },
 ];
 
-/// A library of an album and an EP by one artist, in one genre, whose songs have lyrics.
+/// A library of an album and an EP by one artist, in one genre, whose songs have lyrics, one of them played, and are
+/// the artist's popular ones.
 http.Response server(http.Request request) {
   final path = request.url.path;
 
@@ -93,6 +104,9 @@ http.Response server(http.Request request) {
           },
         ],
       },
+    }),
+    'getTopSongs.view' => subsonic({
+      'topSongs': {'song': songs},
     }),
     'getGenres.view' => subsonic({
       'genres': {
@@ -204,8 +218,12 @@ void main() {
         expect(find.text(strings.releaseDay(8, language.languageCode == 'en' ? 'April' : 'abril', '1975')), findsOne);
 
         await tap(tester, find.text('Aerosmith').first);
-        expect(find.text(strings.singlesAndEps), findsOneWidget);
         expect(find.text('${strings.albumCount(1)} · ${strings.epCount(1)}'), findsOneWidget);
+        expect(find.text(strings.mostPlayedSongs), findsOneWidget);
+        expect(find.text(strings.popularSongs), findsOneWidget);
+        // Under the songs, the page scrolls to them.
+        final page = find.descendant(of: find.byType(ArtistPage), matching: find.byType(Scrollable)).first;
+        await tester.scrollUntilVisible(find.text(strings.singlesAndEps), 100, scrollable: page);
 
         await tap(tester, find.byTooltip(strings.openPlayer));
         await tap(tester, find.byTooltip(strings.showLyrics));
