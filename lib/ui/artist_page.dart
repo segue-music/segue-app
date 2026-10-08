@@ -36,8 +36,8 @@ class _ArtistPageState extends State<ArtistPage> {
   Future<List<Song>>? _mostPlayed;
 
   /// How much of the page's color its bar has, on a phone, over the artist's picture: none at the top of the page, where
-  /// the picture's fade is under the name, and more as the page scrolls, all of it once half the picture has gone up
-  /// under the bar, so that the name stays as easy to read over what passes under it.
+  /// the name has its halo, and more as the page scrolls, all of it once half the picture has gone up under the bar, so
+  /// that the name stays as easy to read over what passes under it.
   final _shade = ValueNotifier<double>(0);
 
   @override
@@ -134,8 +134,7 @@ class _ArtistPageState extends State<ArtistPage> {
   /// wide screen the picture is round, the name beside it, with how many albums they have. On a narrow one ([narrow])
   /// it goes across the page from the top of the screen, under the page's bar, which has the name (a [PageBar]), and
   /// the system's; the heading is over its bottom, with how many albums they have at the end of its line, where it
-  /// fades to the page's color (darker in the dark theme, lighter in the light one), as it does a little under the
-  /// bars.
+  /// fades to the page's color (darker in the dark theme, lighter in the light one).
   Widget _header(Artist artist, List<Album> albums, Widget? heading, List<Widget> songs, {required bool narrow}) {
     final text = Theme.of(context).textTheme;
     final strings = AppLocalizations.of(context);
@@ -146,7 +145,11 @@ class _ArtistPageState extends State<ArtistPage> {
       // The system's bar, which the picture goes on under, as under the page's.
       final top = MediaQuery.paddingOf(context).top;
       final height = top + _pictureHeight;
-      final surface = Theme.of(context).colorScheme.surface;
+      final theme = Theme.of(context);
+      final surface = theme.colorScheme.surface;
+      // Where the picture starts fading into the page: lower down in the light theme, whose color would wash it out,
+      // than in the dark one, whose color only darkens it.
+      final fade = theme.brightness == Brightness.light ? 0.65 : 0.5;
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -157,27 +160,18 @@ class _ArtistPageState extends State<ArtistPage> {
                 height: height,
                 child: DecoratedBox(
                   position: DecorationPosition.foreground,
-                  // Some of the page's color under the system's icons and the name, enough to read them over any
-                  // picture, then less, to the picture as it is; and from the middle down, more and more of it, to all
-                  // of it at the bottom, under the heading: eased at both ends, in steps the gradient joins, so that
-                  // neither shows where the picture starts to fade nor where the page goes on, as one.
+                  // The picture as it is down to [fade], then more and more of the page's color, to all of it at the
+                  // bottom, under the heading: eased at both ends, in steps the gradient joins, so that neither shows
+                  // where the picture starts to fade nor where the page goes on, as one.
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        surface.withValues(alpha: 0.6),
-                        surface.withValues(alpha: 0.5),
-                        surface.withValues(alpha: 0),
                         for (var step = 0; step <= _fadeSteps; step++)
                           surface.withValues(alpha: Curves.easeInOut.transform(step / _fadeSteps)),
                       ],
-                      stops: [
-                        0,
-                        min((top + kToolbarHeight) / height, 0.4),
-                        0.4,
-                        for (var step = 0; step <= _fadeSteps; step++) 0.5 + 0.5 * step / _fadeSteps,
-                      ],
+                      stops: [for (var step = 0; step <= _fadeSteps; step++) fade + (1 - fade) * step / _fadeSteps],
                     ),
                   ),
                   // Asked of the server as many pixels across as a phone's screen has.

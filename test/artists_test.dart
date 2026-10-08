@@ -595,7 +595,7 @@ void main() {
     );
     expect(find.descendant(of: find.byTooltip('Populares'), matching: icon(HugeIcons.strokeRoundedFire)), findsOne);
     expect(tester.getSemantics(find.byTooltip('Suas mais tocadas')), isSemantics(isSelected: true));
-    // The picture fades to the page's color: some of it at the top, under the system's bar and the name, and all of it
+    // The picture is as it is at the top, under the system's bar and the name, and fades to the page's color, all of it
     // at the bottom.
     final surface = Theme.of(tester.element(find.byType(ArtistPage))).colorScheme.surface;
     final fade = find.descendant(
@@ -603,10 +603,7 @@ void main() {
       matching: find.byWidgetPredicate(
         (widget) => switch (widget) {
           DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(:final colors))) =>
-            colors.first.a > 0 &&
-                colors.first.a < 1 &&
-                colors.first.withValues(alpha: 1) == surface &&
-                colors.last == surface,
+            colors.first == surface.withValues(alpha: 0) && colors.last == surface,
           _ => false,
         },
       ),
