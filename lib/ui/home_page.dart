@@ -134,6 +134,15 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  /// Goes to the search bar, as the key '/' does: on a phone, to the search, a section of its own, where the bar is.
+  void _focusSearch() {
+    if (_narrow && _section != _Section.search) {
+      _select(_Section.search);
+    }
+
+    _searchFocus.requestFocus();
+  }
+
   /// Shows [section], closing the pages over it.
   void _select(_Section section) {
     _history.closeAll();
@@ -333,59 +342,62 @@ class _HomePageState extends State<HomePage> {
     // area, each with its own top bar and back arrow: over the section, under its name, and in the search the search
     // bar, on a line of its own. The full-screen player and the queue cover everything.
     if (narrow) {
-      return PageArea(
-        navigator: _pages,
-        history: _history,
-        underTopBar: false,
-        child: Scaffold(
-          // The pages go on behind the bars, showing through the gap between them; their lists end clear of them, by
-          // the room MediaQuery says they take.
-          extendBody: true,
-          body: pageArea(
-            Scaffold(
-              appBar: AppBar(
-                // The app's icon, which opens the home.
-                leading: logo,
-                title: Text(_section.label(strings)),
-                bottom: _section == _Section.search
-                    ? PreferredSize(
-                        preferredSize: const Size.fromHeight(56),
-                        child: Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 12), child: searchBar),
-                      )
-                    : null,
-                actions: actions,
-              ),
-              body: sections,
-            ),
-          ),
-          bottomNavigationBar: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Above the sections' bar, which keeps clear of the system's at the bottom of the screen: the player's
-              // needn't, and a small gap sets the two apart, alike in color. Nothing playing, there is no player to set
-              // apart.
-              MediaQuery.removePadding(context: context, removeBottom: true, child: const NowPlayingBar()),
-              ListenableBuilder(
-                listenable: services.connect,
-                builder: (context, _) => SizedBox(height: services.connect.nowPlaying == null ? 0 : 2),
-              ),
-              // Its top corners rounded as the player's, the section showing around them.
-              ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: NowPlayingBar.phoneCorner),
-                child: NavigationBar(
-                  // A bit lower than Material's 80, with less room above and below the icons and their names.
-                  height: 68,
-                  backgroundColor: Theme.of(context).colorScheme.surfaceContainer
-                      .withValues(alpha: NowPlayingBar.phoneOpacity),
-                  selectedIndex: _section.index,
-                  onDestinationSelected: (index) => _select(_Section.values[index]),
-                  destinations: [
-                    for (final section in _Section.values)
-                      NavigationDestination(icon: ThemedIcon(section.icon), label: section.label(strings)),
-                  ],
+      return SearchShortcut(
+        onSearch: _focusSearch,
+        child: PageArea(
+          navigator: _pages,
+          history: _history,
+          underTopBar: false,
+          child: Scaffold(
+            // The pages go on behind the bars, showing through the gap between them; their lists end clear of them, by
+            // the room MediaQuery says they take.
+            extendBody: true,
+            body: pageArea(
+              Scaffold(
+                appBar: AppBar(
+                  // The app's icon, which opens the home.
+                  leading: logo,
+                  title: Text(_section.label(strings)),
+                  bottom: _section == _Section.search
+                      ? PreferredSize(
+                          preferredSize: const Size.fromHeight(56),
+                          child: Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 12), child: searchBar),
+                        )
+                      : null,
+                  actions: actions,
                 ),
+                body: sections,
               ),
-            ],
+            ),
+            bottomNavigationBar: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Above the sections' bar, which keeps clear of the system's at the bottom of the screen: the player's
+                // needn't, and a small gap sets the two apart, alike in color. Nothing playing, there is no player to set
+                // apart.
+                MediaQuery.removePadding(context: context, removeBottom: true, child: const NowPlayingBar()),
+                ListenableBuilder(
+                  listenable: services.connect,
+                  builder: (context, _) => SizedBox(height: services.connect.nowPlaying == null ? 0 : 2),
+                ),
+                // Its top corners rounded as the player's, the section showing around them.
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: NowPlayingBar.phoneCorner),
+                  child: NavigationBar(
+                    // A bit lower than Material's 80, with less room above and below the icons and their names.
+                    height: 68,
+                    backgroundColor: Theme.of(context).colorScheme.surfaceContainer
+                        .withValues(alpha: NowPlayingBar.phoneOpacity),
+                    selectedIndex: _section.index,
+                    onDestinationSelected: (index) => _select(_Section.values[index]),
+                    destinations: [
+                      for (final section in _Section.values)
+                        NavigationDestination(icon: ThemedIcon(section.icon), label: section.label(strings)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -401,64 +413,67 @@ class _HomePageState extends State<HomePage> {
       minimumSize: const Size.square(arrow),
       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
     );
-    return HistoryShortcuts(
-      history: _history,
-      // The home's own scope, where the focus goes back to (as Esc leaves the search bar): in the app's, outside the
-      // home, the keys wouldn't reach the shortcuts.
-      child: FocusScope(
-        autofocus: true,
-        child: PageArea(
-          navigator: _pages,
-          history: _history,
-          underTopBar: true,
-          child: Scaffold(
-            appBar: AppBar(
-              // The app's icon, over the side rail, which opens the home, and the arrows beside it.
-              leading: ListenableBuilder(
-                listenable: _history,
-                builder: (context, _) => Row(
-                  children: [
-                    SizedBox.square(dimension: kToolbarHeight, child: logo),
-                    IconButton(
-                      tooltip: strings.back,
-                      style: arrows,
-                      icon: const ThemedIcon(HugeIcons.strokeRoundedArrowLeft02),
-                      onPressed: _history.canGoBack ? _history.back : null,
-                    ),
-                    IconButton(
-                      tooltip: strings.forward,
-                      style: arrows,
-                      icon: const ThemedIcon(HugeIcons.strokeRoundedArrowRight02),
-                      onPressed: _history.canGoForward ? _history.forward : null,
-                    ),
-                  ],
+    return SearchShortcut(
+      onSearch: _focusSearch,
+      child: HistoryShortcuts(
+        history: _history,
+        // The home's own scope, where the focus goes back to (as Esc leaves the search bar): in the app's, outside the
+        // home, the keys wouldn't reach the shortcuts.
+        child: FocusScope(
+          autofocus: true,
+          child: PageArea(
+            navigator: _pages,
+            history: _history,
+            underTopBar: true,
+            child: Scaffold(
+              appBar: AppBar(
+                // The app's icon, over the side rail, which opens the home, and the arrows beside it.
+                leading: ListenableBuilder(
+                  listenable: _history,
+                  builder: (context, _) => Row(
+                    children: [
+                      SizedBox.square(dimension: kToolbarHeight, child: logo),
+                      IconButton(
+                        tooltip: strings.back,
+                        style: arrows,
+                        icon: const ThemedIcon(HugeIcons.strokeRoundedArrowLeft02),
+                        onPressed: _history.canGoBack ? _history.back : null,
+                      ),
+                      IconButton(
+                        tooltip: strings.forward,
+                        style: arrows,
+                        icon: const ThemedIcon(HugeIcons.strokeRoundedArrowRight02),
+                        onPressed: _history.canGoForward ? _history.forward : null,
+                      ),
+                    ],
+                  ),
                 ),
+                leadingWidth: kToolbarHeight + 2 * arrow,
+                // The search bar is the title, which the app bar centers on the window, moving it aside where the
+                // middle has no room for it.
+                title: searchBar,
+                centerTitle: true,
+                actions: actions,
               ),
-              leadingWidth: kToolbarHeight + 2 * arrow,
-              // The search bar is the title, which the app bar centers on the window, moving it aside where the
-              // middle has no room for it.
-              title: searchBar,
-              centerTitle: true,
-              actions: actions,
-            ),
-            body: Row(
-              children: [
-                _SideRail(selected: shown, onSelected: _select),
-                const VerticalDivider(width: 1),
-                Expanded(
-                  // A Material of its own for the lists' ink, which the page's transition would paint over.
-                  child: pageArea(Material(type: MaterialType.transparency, child: sections)),
+              body: Row(
+                children: [
+                  _SideRail(selected: shown, onSelected: _select),
+                  const VerticalDivider(width: 1),
+                  Expanded(
+                    // A Material of its own for the lists' ink, which the page's transition would paint over.
+                    child: pageArea(Material(type: MaterialType.transparency, child: sections)),
+                  ),
+                ],
+              ),
+              // Under the full-screen player, its lyrics button turns them on and off there, and its song closes it.
+              bottomNavigationBar: ListenableBuilder(
+                listenable: _history,
+                builder: (context, _) => NowPlayingBar(
+                  lyrics: switch (_history.current) {
+                    final PlayerRoute player => player.lyrics,
+                    _ => null,
+                  },
                 ),
-              ],
-            ),
-            // Under the full-screen player, its lyrics button turns them on and off there, and its song closes it.
-            bottomNavigationBar: ListenableBuilder(
-              listenable: _history,
-              builder: (context, _) => NowPlayingBar(
-                lyrics: switch (_history.current) {
-                  final PlayerRoute player => player.lyrics,
-                  _ => null,
-                },
               ),
             ),
           ),

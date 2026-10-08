@@ -84,7 +84,8 @@ the device it runs on.
   picture, round, and behind it the same picture, blurred, across the top of the page. On an album's
   or an artist's page, once the cover or the picture has gone up, the name stays at the top of the
   page, in a bar that comes in as it goes, after the album's play button. Esc takes the focus off
-  what has it; in the search bar, it first clears what was typed;
+  what has it; in the search bar, it first clears what was typed. The key / goes to the search bar
+  (on a phone, to the search), but in a text field, where it types;
 - on a phone, the player bar and the sections' bar stay at the bottom, and pages (an album, an
   artist, a genre) open over the rest, each with its own back arrow; a section closes them. The
   full-screen player and the queue cover everything, and the player's links close it to open their

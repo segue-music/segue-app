@@ -118,6 +118,45 @@ class TextFieldArrowShortcuts extends StatelessWidget {
 bool _inTextField(BuildContext focused) =>
     focused.widget is EditableText || focused.findAncestorWidgetOfExactType<EditableText>() != null;
 
+/// The key '/' goes to the search bar, as on many sites, wherever the focus is in the home: [onSearch]. By the
+/// character, which some keyboards type with Shift (Spanish, Shift+7), others on a key of their own or the number pad.
+/// Not while typing: with a text field focused, the key goes on to it.
+class SearchShortcut extends StatelessWidget {
+  const SearchShortcut({required this.onSearch, required this.child, super.key});
+
+  final VoidCallback onSearch;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Shortcuts(
+    shortcuts: const {CharacterActivator('/'): _SearchIntent()},
+    child: Actions(actions: {_SearchIntent: _SearchAction(onSearch)}, child: child),
+  );
+}
+
+class _SearchIntent extends Intent {
+  const _SearchIntent();
+}
+
+class _SearchAction extends Action<_SearchIntent> {
+  _SearchAction(this._search);
+
+  final VoidCallback _search;
+
+  /// Disabled while typing, so that the key isn't taken from the text field.
+  @override
+  bool isEnabled(_SearchIntent intent) {
+    final focused = FocusManager.instance.primaryFocus?.context;
+    return focused == null || !_inTextField(focused);
+  }
+
+  @override
+  Object? invoke(_SearchIntent intent) {
+    _search();
+    return null;
+  }
+}
+
 /// The arrow left goes back from a page with a back arrow (an album's, an artist's, the queue...), as
 /// that arrow does: on a phone, since a wide screen's home takes it first ([HistoryShortcuts]). Not
 /// while typing, where it moves the caret, nor on a TV, where the D-pad's left moves the focus and the

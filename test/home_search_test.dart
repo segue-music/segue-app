@@ -252,6 +252,41 @@ void main() {
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
   });
 
+  testWidgets('the key "/" goes to the search bar, also as a keyboard types it with Shift; not while typing, where it '
+      'goes on to the text field', (tester) async {
+    await pumpHome(tester, const Size(1000, 640));
+    final field = tester.state<EditableTextState>(find.byType(EditableText)).widget.focusNode;
+    expect(field.hasFocus, isFalse);
+
+    expect(await tester.sendKeyEvent(LogicalKeyboardKey.slash, character: '/'), isTrue);
+    await tester.pump();
+    expect(field.hasFocus, isTrue);
+    expect(tester.testTextInput.isVisible, isTrue, reason: 'ready to type');
+    expect(await tester.sendKeyEvent(LogicalKeyboardKey.slash, character: '/'), isFalse, reason: 'on to the field');
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump();
+    expect(field.hasFocus, isFalse);
+    // As a Spanish keyboard types it.
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.digit7, character: '/');
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.pump();
+    expect(field.hasFocus, isTrue);
+    await tester.pumpWidget(const SizedBox()); // stops the bar's timer
+  });
+
+  testWidgets('on a phone, the key "/" goes to the search, a section of its own, ready to type', (tester) async {
+    await pumpHome(tester, const Size(360, 640));
+    expect(find.byType(SearchBar), findsNothing);
+
+    expect(await tester.sendKeyEvent(LogicalKeyboardKey.slash, character: '/'), isTrue);
+    await tester.pumpAndSettle();
+    expect(tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex, 4);
+    expect(tester.state<EditableTextState>(find.byType(EditableText)).widget.focusNode.hasFocus, isTrue);
+    await tester.pumpWidget(const SizedBox()); // stops the bar's timer
+  });
+
   testWidgets('the app\'s icon clears the search, going back to the home', (tester) async {
     await pumpHome(tester, const Size(1000, 640));
     await tester.enterText(find.byType(TextField), 'dream');
