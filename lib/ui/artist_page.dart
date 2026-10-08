@@ -235,7 +235,7 @@ class _ArtistPageState extends State<ArtistPage> {
       final surface = theme.colorScheme.surface;
       // Where the picture starts fading into the page: lower down in the light theme, whose color would wash it out,
       // than in the dark one, whose color only darkens it.
-      final fade = theme.brightness == Brightness.light ? 0.65 : 0.5;
+      final fade = theme.brightness == Brightness.light ? 0.72 : 0.6;
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
