@@ -453,6 +453,34 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('on a wide screen, where the top bar stays over the settings, its button goes back from them rather than '
+      'opening them again', (tester) async {
+    await pumpHome(tester, const Size(1000, 700));
+    // The pages under the one on top too.
+    final settings = find.byType(SettingsPage, skipOffstage: false);
+
+    await openSettings(tester);
+    expect(settings, findsOneWidget);
+
+    await openSettings(tester);
+    expect(settings, findsNothing, reason: 'back to the section');
+
+    for (var i = 0; i < 3; i++) {
+      await openSettings(tester);
+    }
+
+    expect(settings, findsOneWidget, reason: 'open, and once only, however many clicks');
+
+    await openSettings(tester);
+    await tester.tap(find.byTooltip('Avançar'));
+    await tester.pumpAndSettle();
+    expect(settings, findsOneWidget, reason: 'open again, going forward');
+
+    await openSettings(tester);
+    expect(settings, findsNothing, reason: 'going back from it too');
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('on a phone, the settings pick the theme, the old one fading away, and the system\'s again', (
     tester,
   ) async {

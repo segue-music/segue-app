@@ -105,8 +105,34 @@ class _HomePageState extends State<HomePage> {
     _searchFocus.addListener(_searchFocusChanged);
   }
 
+  /// The settings' page, by which the top bar's button tells it on top, also once it opens again going forward
+  /// ([PageHistory] opens a page again with its settings).
+  static const _settings = RouteSettings(name: 'settings');
+
   /// A phone's screen, or a window as narrow: the sections in a bar at the bottom, and pages over all of it.
   bool get _narrow => MediaQuery.sizeOf(context).width < 600;
+
+  /// Opens the settings in the page area, over the section, which a section picked shows again. With them open on top
+  /// (on a wide screen, where the top bar stays over them), goes back instead, as the top bar's arrow does, rather than
+  /// opening them again over themselves. From here, above the area, its navigator is the home's own.
+  void _toggleSettings() {
+    if (_history.current?.settings.name == _settings.name) {
+      _history.back();
+      return;
+    }
+
+    _pages.currentState?.push(
+      MaterialPageRoute<void>(
+        settings: _settings,
+        builder: (_) => SettingsPage(
+          themeChoice: widget.themeChoice,
+          languageChoice: widget.languageChoice,
+          qualityChoice: widget.qualityChoice,
+          onSignOut: widget.onSignOut,
+        ),
+      ),
+    );
+  }
 
   /// Shows [section], closing the pages over it.
   void _select(_Section section) {
@@ -256,18 +282,7 @@ class _HomePageState extends State<HomePage> {
       IconButton(
         tooltip: strings.settings,
         icon: const ThemedIcon(HugeIcons.strokeRoundedSettings01),
-        // In the page area, over the section, which a section picked shows again. From here, above the area, its
-        // navigator is the home's own.
-        onPressed: () => _pages.currentState?.push(
-          MaterialPageRoute<void>(
-            builder: (_) => SettingsPage(
-              themeChoice: widget.themeChoice,
-              languageChoice: widget.languageChoice,
-              qualityChoice: widget.qualityChoice,
-              onSignOut: widget.onSignOut,
-            ),
-          ),
-        ),
+        onPressed: _toggleSettings,
       ),
     ];
     final sections = Stack(
