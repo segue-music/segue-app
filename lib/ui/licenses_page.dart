@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../l10n/app_localizations.dart';
+import 'arrow_scroll.dart';
 import 'page_area.dart';
 import 'spinner.dart';
 
@@ -96,33 +96,6 @@ class _PackageLicensesPageState extends State<PackageLicensesPage> {
     super.dispose();
   }
 
-  /// Scrolls most of a screen up or down for the arrow up or down; at the end it goes to, leaves the arrow to the focus,
-  /// which goes on past the page.
-  KeyEventResult _scrollByArrow(FocusNode _, KeyEvent event) {
-    final direction = switch (event.logicalKey) {
-      LogicalKeyboardKey.arrowUp => -1,
-      LogicalKeyboardKey.arrowDown => 1,
-      _ => 0,
-    };
-
-    if (direction == 0 || event is KeyUpEvent || !_scroll.hasClients) {
-      return KeyEventResult.ignored;
-    }
-
-    final position = _scroll.position;
-    final to = (position.pixels + direction * position.viewportDimension * 0.8).clamp(
-      position.minScrollExtent,
-      position.maxScrollExtent,
-    );
-
-    if (to == position.pixels) {
-      return KeyEventResult.ignored;
-    }
-
-    position.animateTo(to, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
-    return KeyEventResult.handled;
-  }
-
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
@@ -130,9 +103,8 @@ class _PackageLicensesPageState extends State<PackageLicensesPage> {
       automaticallyImplyLeading: !PageArea.holdsUnderTopBar(context),
       title: Text(widget.package),
     ),
-    body: Focus(
-      autofocus: true,
-      onKeyEvent: _scrollByArrow,
+    body: ArrowScroll(
+      controller: _scroll,
       child: ListView.separated(
         controller: _scroll,
         // At the end, clear of the bars a phone's home has over it.

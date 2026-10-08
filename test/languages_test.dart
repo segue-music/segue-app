@@ -15,6 +15,7 @@ import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
 import 'package:segue/theme_choice.dart';
 import 'package:segue/ui/artist_page.dart';
+import 'package:segue/ui/biography_page.dart';
 import 'package:segue/ui/home_page.dart';
 import 'package:segue/ui/login_page.dart';
 import 'package:segue/ui/settings_page.dart';
@@ -66,7 +67,7 @@ const songs = [
 ];
 
 /// A library of an album and an EP by one artist, in one genre, whose songs have lyrics, one of them played, and are
-/// the artist's popular ones.
+/// the artist's popular ones. The artist has a biography, Last.fm's.
 http.Response server(http.Request request) {
   final path = request.url.path;
 
@@ -105,6 +106,13 @@ http.Response server(http.Request request) {
             'releaseTypes': ['EP'],
           },
         ],
+      },
+    }),
+    'getArtistInfo2.view' => subsonic({
+      'artistInfo2': {
+        'biography':
+            'Aerosmith is an American rock band formed in Boston in 1970. <a target=\'_blank\' '
+            'href="https://www.last.fm/music/Aerosmith" rel="nofollow">Read more on Last.fm</a>',
       },
     }),
     'getTopSongs.view' => subsonic({
@@ -236,6 +244,10 @@ void main() {
         // On a phone, icons, their names in tooltips.
         expect(narrow ? find.byTooltip(strings.mostPlayedSongs) : find.text(strings.mostPlayedSongs), findsOneWidget);
         expect(narrow ? find.byTooltip(strings.popularSongs) : find.text(strings.popularSongs), findsOneWidget);
+        // Their biography, from the button after how many albums they have.
+        await tap(tester, find.byTooltip(strings.showBiography));
+        expect(find.text(strings.biographyProvidedBy('Last.fm')), findsOneWidget);
+        await tap(tester, find.descendant(of: find.byType(BiographyPage), matching: find.byTooltip(strings.close)));
         // Under the songs, the page scrolls to them.
         final page = find.descendant(of: find.byType(ArtistPage), matching: find.byType(Scrollable)).first;
         await tester.scrollUntilVisible(find.text(strings.singlesAndEps), 100, scrollable: page);

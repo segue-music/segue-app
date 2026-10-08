@@ -30,6 +30,8 @@
   "songDuration": "Duration",
   "close": "Close",
   "showCover": "View cover",
+  "showBiography": "View biography",
+  "biographyProvidedBy": "Biography provided by {source}",
   "turnShuffleOff": "Turn shuffle off",
   "turnShuffleOn": "Turn shuffle on",
   "repeatAll": "Repeat all",

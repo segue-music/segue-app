@@ -734,6 +734,50 @@ void main() {
     expect(asked.where((path) => path.endsWith('getArtist.view')), hasLength(2));
   });
 
+  test('an artist\'s biography is getArtistInfo2\'s, as text, Last.fm\'s link to the rest saying where it comes from', () async {
+    final asked = <Uri>[];
+    final api = SubsonicApi(
+      Uri.parse('https://music.test'),
+      credentials,
+      client: MockClient((request) async {
+        asked.add(request.url);
+        return subsonic({
+          'status': 'ok',
+          'artistInfo2': {
+            // As Navidrome gives it: Last.fm's summary, sanitized, its lines run together.
+            'biography':
+                'Aerosmith is an American rock band formed in Boston in 1970. The group&#39;s members are Steven Tyler '
+                '&amp; Joe Perry. <a target=\'_blank\' href="https://www.last.fm/music/Aerosmith" rel="nofollow">Read '
+                'more on Last.fm</a>',
+            'lastFmUrl': 'https://www.last.fm/music/Aerosmith',
+          },
+        });
+      }),
+    );
+    final biography = (await api.biography('ar1'))!;
+    expect(asked.single.path, '/rest/getArtistInfo2.view');
+    expect(asked.single.queryParameters, containsPair('id', 'ar1'));
+    expect(biography.paragraphs, [
+      'Aerosmith is an American rock band formed in Boston in 1970. The group\'s members are Steven Tyler & Joe Perry.',
+    ]);
+    expect(biography.source, 'Last.fm');
+  });
+
+  test('an artist without a biography, or with only the link to one, has none', () async {
+    for (final info in <Map<String, Object?>>[
+      {},
+      {'biography': ''},
+      {'biography': ' <a target=\'_blank\' href="https://www.last.fm/music/Nobody">Read more on Last.fm</a>'},
+    ]) {
+      final api = SubsonicApi(
+        Uri.parse('https://music.test'),
+        credentials,
+        client: MockClient((_) async => subsonic({'status': 'ok', 'artistInfo2': info})),
+      );
+      expect(await api.biography('ar1'), isNull, reason: '$info');
+    }
+  });
+
   test('an artist\'s popular songs are getTopSongs\', asked by their name', () async {
     final asked = <Uri>[];
     final api = SubsonicApi(

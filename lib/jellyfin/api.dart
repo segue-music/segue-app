@@ -278,6 +278,13 @@ class JellyfinApi implements MediaServer {
     );
   }
 
+  /// Its Overview, which only comes when asked for (Fields).
+  @override
+  Future<Biography?> biography(String artistId) async {
+    final artist = _only(await _items({'Ids': artistId, 'Fields': 'Overview'}), artistId);
+    return Biography.fromHtml(artist['Overview'] as String?);
+  }
+
   /// The file as it is (static), with the token in the URL: the player can't send headers. With [maxBitRate],
   /// Audio/{id}/universal, which sends the file as it is where its bitrate is within it, and otherwise transcodes it into
   /// AAC over HLS, which the player can seek in, unlike a stream transcoded as it goes.

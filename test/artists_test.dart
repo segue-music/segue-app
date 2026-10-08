@@ -16,6 +16,7 @@ import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/albums_view.dart';
 import 'package:segue/ui/artist_page.dart';
+import 'package:segue/ui/biography_page.dart';
 import 'package:segue/ui/cover.dart';
 import 'package:segue/ui/home_page.dart';
 import 'package:segue/ui/now_playing_bar.dart';
@@ -37,7 +38,8 @@ http.Response subsonic(Map<String, Object?> body) => http.Response(
 /// A server with three artists: Aerosmith, with two albums, none of them played, and a single and an EP, Cheap Trick,
 /// with one album, six of whose songs have played, and Ramones, with none. A search for "toys" finds an album; any other, the artist Aerosmith.
 /// Unless [played], nothing has played: not even Cheap Trick's songs. Cheap Trick's popular songs are three of that
-/// album's, Big Eyes first; the others' fail, as on a server that has none to give.
+/// album's, Big Eyes first; the others' fail, as on a server that has none to give. Aerosmith has a biography, Last.fm's;
+/// the others have none, which fails too.
 http.Response server(http.Request request, {bool played = true}) {
   final path = request.url.path;
   final id = request.url.queryParameters['id'];
@@ -91,6 +93,16 @@ http.Response server(http.Request request, {bool played = true}) {
             ],
           },
         ],
+      },
+    });
+  }
+
+  if (path.endsWith('getArtistInfo2.view') && id == 'ar1') {
+    return subsonic({
+      'artistInfo2': {
+        'biography':
+            'Aerosmith is an American rock band formed in Boston in 1970. <a target=\'_blank\' '
+            'href="https://www.last.fm/music/Aerosmith" rel="nofollow">Read more on Last.fm</a>',
       },
     });
   }
@@ -816,4 +828,51 @@ void main() {
     expect(artistName('Aerosmith'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
+
+  for (final (screen, size) in [('a wide screen', const Size(1000, 700)), ('a phone', const Size(360, 640))]) {
+    testWidgets('on $screen, a button after how many albums an artist has opens their biography over the window, under '
+        'their picture; an artist without one has no button', (tester) async {
+      final narrow = size.width < 600;
+      await pumpHome(tester, size);
+      final artists = narrow ? find.text('Artistas') : find.byTooltip('Artistas');
+      await tester.tap(artists);
+      await tester.pumpAndSettle();
+      await tester.tap(tile('Aerosmith'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.descendant(of: find.byType(ArtistPage), matching: find.byTooltip('Ver a biografia')));
+      await tester.pumpAndSettle();
+
+      final page = find.byType(BiographyPage);
+      expect(page, findsOneWidget);
+      expect(find.descendant(of: page, matching: find.text('Aerosmith')), findsOneWidget);
+      expect(
+        find.descendant(of: page, matching: find.text('Aerosmith is an American rock band formed in Boston in 1970.')),
+        findsOneWidget,
+      );
+      expect(find.descendant(of: page, matching: find.text('Biografia provida por Last.fm')), findsOneWidget);
+      final picture = find.descendant(of: page, matching: find.byType(LargeCover));
+      expect(tester.widget<LargeCover>(picture).id, 'ar-ar1');
+      // As wide as the screen, but no taller than most of it.
+      expect(tester.getSize(picture), Size.square(narrow ? 360 : 420));
+
+      if (narrow) {
+        await tester.tap(find.descendant(of: page, matching: find.byTooltip('Fechar')));
+      } else {
+        await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      }
+
+      await tester.pumpAndSettle();
+      expect(page, findsNothing);
+      expect(artistName('Aerosmith'), findsOneWidget, reason: 'back on their page');
+
+      // A section closes the page.
+      await tester.tap(artists);
+      await tester.pumpAndSettle();
+      await tester.tap(tile('Cheap Trick'));
+      await tester.pumpAndSettle();
+      expect(artistName('Cheap Trick'), findsOneWidget);
+      expect(find.byTooltip('Ver a biografia'), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    });
+  }
 }

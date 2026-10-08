@@ -10,6 +10,7 @@ import '../server/models.dart';
 import '../services.dart';
 import 'albums_view.dart';
 import 'artists_view.dart';
+import 'biography_page.dart';
 import 'cover.dart';
 import 'current_song.dart';
 import 'errors.dart';
@@ -37,6 +38,9 @@ class _ArtistPageState extends State<ArtistPage> {
   Future<(Artist, List<Album>)>? _artist;
   Future<List<Song>>? _mostPlayed;
 
+  /// Their biography; none where the server has none, or can't say.
+  Future<Biography?>? _biography;
+
   /// How much of the page's color its bar has. On a phone, over the artist's picture: none at the top of the page, where
   /// the name has its halo, and more as the page scrolls, all of it once half the picture has gone up under the bar, so
   /// that the name stays as easy to read over what passes under it. On a wide screen, how much of the bar shows, which
@@ -58,6 +62,8 @@ class _ArtistPageState extends State<ArtistPage> {
     final api = ServicesScope.of(context).api;
     _artist ??= api.artist(widget.artist.id);
     _mostPlayed ??= api.mostPlayedSongs(widget.artist.id, size: _ArtistSongs.count);
+    // A biography the server can't give is one it doesn't have: the page goes on without its button.
+    _biography ??= api.biography(widget.artist.id).catchError((Object _) => null);
   }
 
   @override
@@ -68,7 +74,6 @@ class _ArtistPageState extends State<ArtistPage> {
 
   @override
   Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
     final strings = AppLocalizations.of(context);
     // On a phone, or a window as narrow (as the home counts it), the picture goes across the top of the page, under its
     // bar, which has the name: beside it, a picture of some size would leave the name no room.
@@ -109,9 +114,7 @@ class _ArtistPageState extends State<ArtistPage> {
                   builder: (heading, songs) => _header(artist, albums, heading, songs, narrow: narrow),
                   icons: narrow,
                   // On a phone, how many albums they have, at the end of the choice's line.
-                  trailing: narrow
-                      ? Text(_count(strings, albums), style: text.bodyMedium, textAlign: TextAlign.end)
-                      : null,
+                  trailing: narrow ? _counts(artist, albums, end: true) : null,
                 ),
               ),
             ),
@@ -208,9 +211,8 @@ class _ArtistPageState extends State<ArtistPage> {
   /// lighter in the light one).
   Widget _header(Artist artist, List<Album> albums, Widget? heading, List<Widget> songs, {required bool narrow}) {
     final text = Theme.of(context).textTheme;
-    final strings = AppLocalizations.of(context);
     final picture = artist.coverArt ?? widget.artist.coverArt;
-    final count = Text(_count(strings, albums), style: text.bodyMedium);
+    final count = _counts(artist, albums, end: narrow);
 
     if (narrow) {
       // The system's bar, which the picture goes on under, as under the page's.
@@ -307,6 +309,41 @@ class _ArtistPageState extends State<ArtistPage> {
         ?heading,
         ...songs,
       ],
+    );
+  }
+
+  /// How many albums they have ([_count]), then, once the server has given their biography, a button that opens it
+  /// ([BiographyPage]), beside it: at the end of the line, where the page has it there ([end]).
+  Widget _counts(Artist artist, List<Album> albums, {bool end = false}) {
+    final strings = AppLocalizations.of(context);
+    final count = Text(
+      _count(strings, albums),
+      style: Theme.of(context).textTheme.bodyMedium,
+      textAlign: end ? TextAlign.end : null,
+    );
+    return FutureBuilder(
+      future: _biography,
+      builder: (context, snapshot) => switch (snapshot.data) {
+        null => count,
+        final biography => Row(
+          mainAxisAlignment: end ? MainAxisAlignment.end : MainAxisAlignment.start,
+          children: [
+            Flexible(child: count),
+            const SizedBox(width: 4),
+            IconButton(
+              tooltip: strings.showBiography,
+              icon: const ThemedIcon(HugeIcons.strokeRoundedBookUser),
+              visualDensity: VisualDensity.compact,
+              onPressed: () => BiographyPage.open(
+                context,
+                biography,
+                name: artist.name,
+                picture: artist.coverArt ?? widget.artist.coverArt,
+              ),
+            ),
+          ],
+        ),
+      },
     );
   }
 

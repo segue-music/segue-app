@@ -268,6 +268,13 @@ class SubsonicApi implements MediaServer {
     return (_artist(json), [for (final album in albums) _album(album as Map<String, dynamic>)]);
   }
 
+  /// getArtistInfo2's biography: Navidrome's comes from its agents (Last.fm's, where it's on), as HTML.
+  @override
+  Future<Biography?> biography(String artistId) async {
+    final body = await _get('getArtistInfo2', {'id': artistId});
+    return Biography.fromHtml((body['artistInfo2'] as Map<String, dynamic>?)?['biography'] as String?);
+  }
+
   /// The artist whose id is [id] and their albums, as getArtist gives them. The artist page asks for the artist and for
   /// their most played songs at once, which both start here, so a request under way for them answers both; one that
   /// has answered isn't kept, since the plays change.

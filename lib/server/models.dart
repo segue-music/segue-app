@@ -160,6 +160,61 @@ class Artist {
   final int? albumCount;
 }
 
+/// What the media server says of an artist's life and work, a paragraph at a time.
+class Biography {
+  const Biography(this.paragraphs, {this.source});
+
+  final List<String> paragraphs;
+
+  /// Who tells it, by name (Last.fm); null when the server doesn't say.
+  final String? source;
+
+  /// The biography [html] tells, as text: the servers give it as HTML, Navidrome Last.fm's summary of it, which ends
+  /// with a link to the rest ("Read more on Last.fm") that says where it comes from, its [source]. Null for none, or
+  /// one with no words.
+  static Biography? fromHtml(String? html) {
+    if (html == null) {
+      return null;
+    }
+
+    final lastFm = RegExp(r'''<a\b[^>]*href=["'][^"']*last\.fm[^>]*>.*?</a>''', caseSensitive: false, dotAll: true);
+    final text = html
+        .replaceAll(lastFm, '')
+        .replaceAll(RegExp(r'<br\s*/?>|</p>', caseSensitive: false), '\n')
+        .replaceAll(RegExp('<[^>]*>'), '');
+    final paragraphs = [
+      for (final line in _withoutEntities(text).split('\n'))
+        if (line.replaceAll(RegExp(r'\s+'), ' ').trim() case final paragraph when paragraph.isNotEmpty) paragraph,
+    ];
+    return paragraphs.isEmpty ? null : Biography(paragraphs, source: lastFm.hasMatch(html) ? 'Last.fm' : null);
+  }
+
+  /// [text] with HTML's entities ("&amp;", "&#39;") as the characters they stand for.
+  static String _withoutEntities(String text) =>
+      text.replaceAllMapped(RegExp('&(#[0-9]+|#x[0-9a-f]+|[a-z]+);', caseSensitive: false), (match) {
+        final name = match[1]!.toLowerCase();
+        final code = name.startsWith('#x')
+            ? int.tryParse(name.substring(2), radix: 16)
+            : name.startsWith('#')
+            ? int.tryParse(name.substring(1))
+            : null;
+
+        if (code != null) {
+          return code > 0 && code <= 0x10FFFF ? String.fromCharCode(code) : match[0]!;
+        }
+
+        return switch (name) {
+          'amp' => '&',
+          'lt' => '<',
+          'gt' => '>',
+          'quot' => '"',
+          'apos' => "'",
+          'nbsp' => ' ',
+          _ => match[0]!,
+        };
+      });
+}
+
 /// A genre of the library's albums.
 class Genre {
   const Genre({required this.id, required this.name, this.albumCount});

@@ -531,6 +531,29 @@ void main() {
     expect(albums.single.id, 'a1');
   });
 
+  test('an artist\'s biography is their Overview, asked for, a paragraph a line; one without it has none', () async {
+    final asked = <http.Request>[];
+    final biography = (await jellyfin(
+      (_) => items([
+        {
+          ...artist,
+          'Overview':
+              'Aerosmith is an American rock band.\n\nTheir <i>Toys in the Attic</i> came out in 1975.<br>It sold &gt; '
+              '8&#160;million copies.',
+        },
+      ]),
+      asked,
+    ).biography('ar1'))!;
+    expect(asked.single.url.queryParameters, allOf(containsPair('Ids', 'ar1'), containsPair('Fields', 'Overview')));
+    expect(biography.paragraphs, [
+      'Aerosmith is an American rock band.',
+      'Their Toys in the Attic came out in 1975.',
+      'It sold > 8 million copies.',
+    ]);
+    expect(biography.source, isNull);
+    expect(await jellyfin((_) => items([artist])).biography('ar1'), isNull);
+  });
+
   test('audio and covers come from URLs a player can open, the token in the stream\'s', () {
     final api = jellyfin((_) => http.Response('', 404));
     final stream = api.streamUrl('s1');

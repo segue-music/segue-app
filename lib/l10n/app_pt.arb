@@ -156,6 +156,19 @@
   "@showCover": {
     "description": "The tooltip of a cover, which opens it full screen."
   },
+  "showBiography": "Ver a biografia",
+  "@showBiography": {
+    "description": "The tooltip of the button, after how many albums an artist has, that opens their biography."
+  },
+  "biographyProvidedBy": "Biografia provida por {source}",
+  "@biographyProvidedBy": {
+    "description": "Under an artist's biography, where it came from (Last.fm).",
+    "placeholders": {
+      "source": {
+        "type": "String"
+      }
+    }
+  },
   "turnShuffleOff": "Desativar aleatório",
   "@turnShuffleOff": {
     "description": "The tooltip of the shuffle button while it shuffles."

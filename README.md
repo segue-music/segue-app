@@ -37,7 +37,9 @@ the device it runs on.
   as the grid nears its end), artists (by name or the most played first, picked above them, a thumb
   sliding to the one picked: on a Subsonic server, which counts no plays by artist, from the 500
   most played albums; each with their albums and then, apart, their singles and EPs, where the
-  server says which are, under five songs of theirs, numbered, which play from the one picked: the
+  server says which are, a button after how many they have that opens their biography, where the
+  server has one (Navidrome's comes from Last.fm), on black under their picture, as a cover full
+  screen is, under five songs of theirs, numbered, which play from the one picked: the
   ones the user plays most, once any has played (on a Subsonic server, which lists no songs by
   plays, those of the artist's albums, from the albums that have played), or the popular ones, which
   a Subsonic server learns from Last.fm (getTopSongs), picked over them where there are both (a
