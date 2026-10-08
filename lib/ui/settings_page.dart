@@ -46,6 +46,7 @@ class SettingsPage extends StatelessWidget {
       appBar: AppBar(
         // Under a wide screen's top bar, whose arrow goes back: no arrow of its own.
         automaticallyImplyLeading: !PageArea.holdsUnderTopBar(context),
+        centerTitle: true,
         title: Text(strings.settings),
       ),
       // In the page area, which has no player bar of its own: the home's bars stay under the page, the list ending clear

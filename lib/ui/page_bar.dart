@@ -16,10 +16,13 @@ import 'themed_icon.dart';
 /// the bar has little of it: of the page's color, or of its text's where the arrow and the title take the page's color
 /// to stand out from what the bar is over ([under]).
 class PageBar extends StatelessWidget implements PreferredSizeWidget {
-  const PageBar({this.title, this.shade, this.under, super.key});
+  const PageBar({this.title, this.shade, this.under, this.bold = false, super.key});
 
   /// The page's name, on one line, cut short where it's longer; none where the page shows it by its picture.
   final String? title;
+
+  /// Whether the title is in bold (an artist's), and the arrow as bold as it.
+  final bool bold;
 
   /// How much of the page's color the bar has, from none (0) to all of it (1); all of it where null.
   final ValueListenable<double>? shade;
@@ -55,31 +58,37 @@ class PageBar extends StatelessWidget implements PreferredSizeWidget {
     final (foreground, halo) = _contrast(colors.surface, behind) > _contrast(colors.onSurface, behind)
         ? (colors.surface, colors.onSurface)
         : (colors.onSurface, colors.surface);
+    final bar = AppBar(
+      backgroundColor: background,
+      foregroundColor: foreground,
+      systemOverlayStyle: under == null ? null : _systemBarWith(foreground),
+      centerTitle: true,
+      title: title == null
+          ? null
+          : Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontWeight: bold ? FontWeight.bold : null,
+                shadows: this.shade == null ? null : [Shadow(color: halo, blurRadius: 8)],
+              ),
+            ),
+      // As much room at the end as the arrow takes at the start, so that the title is in the middle of the page, not of
+      // the room the arrow leaves.
+      actions: const [SizedBox(width: kToolbarHeight)],
+    );
+
+    if (!bold) {
+      return bar;
+    }
+
     // The arrow as bold as the title.
     return ActionIconTheme(
       data: (ActionIconTheme.of(context) ?? const ActionIconThemeData()).copyWith(
         backButtonIconBuilder: (context) => const ThemedIcon(backArrow, strokeWidth: 2.5),
       ),
-      child: AppBar(
-        backgroundColor: background,
-        foregroundColor: foreground,
-        systemOverlayStyle: under == null ? null : _systemBarWith(foreground),
-        centerTitle: true,
-        title: title == null
-            ? null
-            : Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  shadows: this.shade == null ? null : [Shadow(color: halo, blurRadius: 8)],
-                ),
-              ),
-        // As much room at the end as the arrow takes at the start, so that the title is in the middle of the page, not
-        // of the room the arrow leaves.
-        actions: const [SizedBox(width: kToolbarHeight)],
-      ),
+      child: bar,
     );
   }
 

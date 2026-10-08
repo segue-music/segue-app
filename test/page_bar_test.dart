@@ -11,12 +11,13 @@ import 'package:segue/ui/page_bar.dart';
 import 'package:segue/ui/theme.dart';
 
 /// A page with a [PageBar] titled Aerosmith over [under], with [shade] of the page's color, in the theme of
-/// [brightness], opened over another, so that it has the back arrow.
+/// [brightness], in [bold] or not, opened over another, so that it has the back arrow.
 Future<void> pumpBar(
   WidgetTester tester, {
   Color? under,
   double shade = 0,
   Brightness brightness = Brightness.light,
+  bool bold = false,
 }) async {
   await tester.pumpWidget(MaterialApp(theme: segueTheme(brightness), home: const SizedBox()));
   unawaited(
@@ -25,7 +26,7 @@ Future<void> pumpBar(
         .push(
           MaterialPageRoute<void>(
             builder: (_) => Scaffold(
-              appBar: PageBar(title: 'Aerosmith', shade: ValueNotifier(shade), under: under),
+              appBar: PageBar(title: 'Aerosmith', shade: ValueNotifier(shade), under: under, bold: bold),
               extendBodyBehindAppBar: true,
               body: const SizedBox.expand(),
             ),
@@ -74,10 +75,14 @@ void main() {
     expect(barColors(tester), (light.onSurface, light.surface, light.onSurface, Brightness.dark));
   });
 
-  testWidgets('the title and the arrow are bold', (tester) async {
-    await pumpBar(tester);
+  testWidgets('in bold, the title and the arrow are bold; otherwise neither', (tester) async {
+    await pumpBar(tester, bold: true);
     expect(tester.renderObject<RenderParagraph>(find.text('Aerosmith')).text.style?.fontWeight, FontWeight.bold);
     expect(tester.widget<HugeIcon>(find.byType(HugeIcon)).strokeWidth, 2.5, reason: 'Hugeicons\' own is 1.5');
+
+    await pumpBar(tester);
+    expect(tester.renderObject<RenderParagraph>(find.text('Aerosmith')).text.style?.fontWeight, isNot(FontWeight.bold));
+    expect(tester.widget<HugeIcon>(find.byType(HugeIcon)).strokeWidth, isNull, reason: 'Hugeicons\' own');
   });
 
   testWidgets('over the page itself, the theme\'s colors', (tester) async {

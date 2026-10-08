@@ -95,10 +95,11 @@ the device it runs on.
   (on a phone, to the search), but in a text field, where it types;
 - on a phone, the player bar and the sections' bar stay at the bottom, and pages (an album, an
   artist, a genre) open over the rest, each with its own back arrow; a section closes them. An
-  album's and an artist's have their name at the top, in bold, as is the arrow; on an artist's, over
-  their picture, the arrow, the name and the system's icons are dark over a light picture and light
-  over a dark one, until the page's color fills the bar as it scrolls. The full-screen player and
-  the queue cover everything, and the player's links close it to open their page under the bars;
+  album's and an artist's have their name at the top, an artist's in bold, as is the arrow; on an
+  artist's, over their picture, the arrow, the name and the system's icons are dark over a light
+  picture and light over a dark one, until the page's color fills the bar as it scrolls. The
+  full-screen player and the queue cover everything, and the player's links close it to open their
+  page under the bars;
 - the queue of whichever device the app controls, from the full-screen player or, on a wide
   screen, the player bar: the current track on top, the next ones under it and what played before
   above it. A tap on a track plays it there;
