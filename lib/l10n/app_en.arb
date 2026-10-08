@@ -32,6 +32,7 @@
   "close": "Close",
   "showCover": "View cover",
   "showBiography": "View biography",
+  "showOnMap": "Show on map",
   "biographyProvidedBy": "Biography provided by {source}",
   "bandYears": "{kind, select, since{(since {begin})} until{(until {end})} endUnknown{({begin} – ?)} other{({begin} – {end})}}",
   "bandMembers": "Members",

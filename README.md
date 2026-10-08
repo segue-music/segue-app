@@ -52,6 +52,8 @@ the device it runs on.
   MusicBrainz names it, and its country, in the app's language ("Boston, Estados Unidos"): at once the one
   MusicBrainz gives the artist, then, where it turns out to be another (one born abroad's), the place's, which
   MusicBrainz says by what the place is part of, a request a level up, and the app keeps for the next launches,
+  a link, but on a TV, to it on a map, by its name (on Android in the maps app picked, on an iPhone or a Mac in
+  Apple Maps, on another computer OpenStreetMap's, in the browser),
   and, under the biography, a group's members, one a line, with the years they have been in it ("1970 – 1979,
   desde 1984"), those it has now apart from those who have left (all together where it has broken up), the ones
   in the library too, by their MusicBrainz ids, links to their pages,

@@ -137,8 +137,12 @@ if [ "$tool $command" = "flutter run" ]; then
     set -- -v "$runtime/pulse/native:$runtime/pulse/native" -e PULSE_SERVER="unix:$runtime/pulse/native" "$@"
   fi
 
+  # The links the app opens (where an artist comes from, on a map) go through this desktop's portal,
+  # on that bus, which opens them in its browser: the container has none to open them with. GTK reads
+  # GTK_USE_PORTAL, GLib GIO_USE_PORTALS.
   if [ -S "$runtime/bus" ]; then
-    set -- -v "$runtime/bus:$runtime/bus" -e DBUS_SESSION_BUS_ADDRESS="unix:path=$runtime/bus" "$@"
+    set -- -v "$runtime/bus:$runtime/bus" -e DBUS_SESSION_BUS_ADDRESS="unix:path=$runtime/bus" \
+      -e GTK_USE_PORTAL=1 -e GIO_USE_PORTALS=1 "$@"
   fi
 
   # The media controls hand the desktop the cover as a file, in /tmp/segue-covers

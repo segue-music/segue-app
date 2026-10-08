@@ -5,7 +5,9 @@ import '../l10n/app_localizations.dart';
 import '../pictures/fanart_tv.dart';
 import '../releases/musicbrainz.dart';
 import '../server/models.dart';
+import 'maps.dart';
 import 'reading_page.dart';
+import 'text_link.dart';
 import 'themed_icon.dart';
 
 /// An artist's biography, a [ReadingPage]: their pictures at the top, in a gallery, and their name, with a band's years
@@ -103,7 +105,8 @@ class BiographyPage extends StatelessWidget {
             style: text.headlineSmall?.copyWith(color: Colors.white),
           ),
         ),
-        // Where they come from, under it, as it comes: the country again where it turns out to be another.
+        // Where they come from, under it, as it comes: the country again where it turns out to be another. A link to it
+        // on a map, but on a TV, which seldom has a map or a browser to open.
         StreamBuilder(
           stream: origin,
           builder: (context, snapshot) => switch (snapshot.data) {
@@ -113,9 +116,7 @@ class BiographyPage extends StatelessWidget {
                 children: [
                   const ThemedIcon(HugeIcons.strokeRoundedLocation01, size: 18, color: Colors.white54),
                   const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(_originText(strings, origin), style: text.bodyLarge?.copyWith(color: Colors.white70)),
-                  ),
+                  Expanded(child: _place(context, _originText(strings, origin))),
                 ],
               ),
             ),
@@ -146,6 +147,19 @@ class BiographyPage extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  /// [place], where the artist comes from, as a link to it on a map ([showOnMap]); plain text on a TV.
+  Widget _place(BuildContext context, String place) {
+    final theme = Theme.of(context);
+    final television = MediaQuery.navigationModeOf(context) == NavigationMode.directional;
+    return TextLink(
+      place,
+      tooltip: AppLocalizations.of(context).showOnMap,
+      onTap: television ? null : () => showOnMap(place, platform: theme.platform),
+      style: theme.textTheme.bodyLarge?.copyWith(color: Colors.white70),
+      maxLines: 2,
     );
   }
 

@@ -32,6 +32,7 @@
   "close": "Cerrar",
   "showCover": "Ver portada",
   "showBiography": "Ver biografía",
+  "showOnMap": "Ver en el mapa",
   "biographyProvidedBy": "Biografía proporcionada por {source}",
   "bandYears": "{kind, select, since{(desde {begin})} until{(hasta {end})} endUnknown{({begin} – ?)} other{({begin} – {end})}}",
   "bandMembers": "Integrantes",

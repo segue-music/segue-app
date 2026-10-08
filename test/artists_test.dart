@@ -31,6 +31,8 @@ import 'package:segue/ui/segmented_choice.dart';
 import 'package:segue/ui/text_link.dart';
 import 'package:segue/ui/themed_icon.dart';
 import 'package:segue/ui/tile_row.dart';
+import 'package:url_launcher_platform_interface/link.dart';
+import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
 import 'fakes.dart';
 import 'side_rail.dart';
@@ -355,6 +357,29 @@ Finder morePicture(int n) => find.byWidgetPredicate(
         _ => false,
       },
 );
+
+/// What opens URLs out of the app, as url_launcher asks the platform: it notes them, and the modes they open in, and
+/// opens those that [opens] says.
+class FakeUrlLauncher extends UrlLauncherPlatform {
+  final launched = <String>[];
+  final modes = <PreferredLaunchMode>[];
+  bool Function(String url) opens = (_) => true;
+
+  void clear() {
+    launched.clear();
+    modes.clear();
+  }
+
+  @override
+  LinkDelegate? get linkDelegate => null;
+
+  @override
+  Future<bool> launchUrl(String url, LaunchOptions options) async {
+    launched.add(url);
+    modes.add(options.mode);
+    return opens(url);
+  }
+}
 
 /// The icon [data] draws.
 Finder icon(HugeIconData data) => find.byWidgetPredicate((widget) => widget is ThemedIcon && widget.icon == data);
@@ -1296,6 +1321,70 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Dumbarton, Reino Unido'), findsOneWidget);
     expect(find.text('Dumbarton, Estados Unidos'), findsNothing);
+  });
+
+  testWidgets('where an artist comes from is a link to it on a map: on Android in the maps app the user picks, on iOS '
+      'and macOS in Apple Maps, elsewhere OpenStreetMap\'s, in the browser; on a TV, plain text', (tester) async {
+    final launcher = FakeUrlLauncher();
+    final previous = UrlLauncherPlatform.instance;
+    UrlLauncherPlatform.instance = launcher;
+    addTearDown(() => UrlLauncherPlatform.instance = previous);
+
+    Future<void> pump(TargetPlatform platform, {bool television = false}) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(platform: platform),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: const [Locale('pt')],
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context)
+                .copyWith(navigationMode: television ? NavigationMode.directional : NavigationMode.traditional),
+            child: child!,
+          ),
+          home: BiographyPage(
+            const Biography(['Aerosmith is an American rock band.']),
+            name: 'Aerosmith',
+            origin: Stream.value((place: 'Boston', country: 'US')),
+          ),
+        ),
+      );
+      // Once the theme has gone from one platform's to the next.
+      await tester.pumpAndSettle();
+    }
+
+    for (final (platform, url) in [
+      (TargetPlatform.android, 'geo:0,0?q=Boston%2C+Estados+Unidos'),
+      (TargetPlatform.iOS, 'https://maps.apple.com/?q=Boston%2C+Estados+Unidos'),
+      (TargetPlatform.macOS, 'https://maps.apple.com/?q=Boston%2C+Estados+Unidos'),
+      (TargetPlatform.linux, 'https://www.openstreetmap.org/search?query=Boston%2C+Estados+Unidos'),
+      (TargetPlatform.windows, 'https://www.openstreetmap.org/search?query=Boston%2C+Estados+Unidos'),
+    ]) {
+      await pump(platform);
+      expect(find.byTooltip('Ver no mapa'), findsOneWidget);
+      await tester.tap(find.text('Boston, Estados Unidos'));
+      await tester.pump();
+      expect(launcher.launched, [url], reason: '$platform');
+      expect(launcher.modes.single, PreferredLaunchMode.externalApplication, reason: 'out of the app');
+      launcher.clear();
+    }
+
+    // On an Android without a maps app, OpenStreetMap's.
+    launcher.opens = (url) => !url.startsWith('geo:');
+    await pump(TargetPlatform.android);
+    await tester.tap(find.text('Boston, Estados Unidos'));
+    await tester.pump();
+    expect(launcher.launched, [
+      'geo:0,0?q=Boston%2C+Estados+Unidos',
+      'https://www.openstreetmap.org/search?query=Boston%2C+Estados+Unidos',
+    ]);
+    launcher.clear();
+
+    await pump(TargetPlatform.android, television: true);
+    expect(find.text('Boston, Estados Unidos'), findsOneWidget);
+    expect(find.byTooltip('Ver no mapa'), findsNothing);
+    await tester.tap(find.text('Boston, Estados Unidos'));
+    await tester.pump();
+    expect(launcher.launched, isEmpty);
   });
 
   for (final (screen, size) in [('a wide screen', const Size(1000, 700)), ('a phone', const Size(360, 640))]) {

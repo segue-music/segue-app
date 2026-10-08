@@ -164,6 +164,10 @@
   "@showBiography": {
     "description": "The tooltip of the button, after how many albums an artist has, that opens their biography."
   },
+  "showOnMap": "Ver no mapa",
+  "@showOnMap": {
+    "description": "The tooltip of where an artist comes from, under their name in their biography, a link that opens it on a map."
+  },
   "biographyProvidedBy": "Biografia provida por {source}",
   "@biographyProvidedBy": {
     "description": "Under an artist's biography, where it came from (Last.fm).",
