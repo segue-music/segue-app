@@ -15,6 +15,7 @@ import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/home_page.dart';
+import 'package:segue/ui/login_page.dart';
 import 'package:segue/ui/theme.dart';
 
 import 'fakes.dart';
@@ -126,6 +127,11 @@ Future<TestGesture> pumpApp(WidgetTester tester) async {
     ),
   );
   await tester.pumpAndSettle();
+  return addMouse(tester);
+}
+
+/// A mouse, in the window's bottom right corner.
+Future<TestGesture> addMouse(WidgetTester tester) async {
   final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
   await gesture.addPointer(location: const Offset(999, 699));
   addTearDown(gesture.removePointer);
@@ -155,18 +161,17 @@ void main() {
     // The home, with the player bar.
     await expectHand('the app\'s icon', find.byTooltip('Início'));
     await expectHand('a section in the side rail', find.byTooltip('Álbuns'));
-    await expectHand('a button in the top bar', find.byTooltip('Sair'));
+    await expectHand('a button in the top bar', find.byTooltip('Configurações'));
     await expectHand('an album', find.text('Toys in the Attic').first);
     await expectHand('its play button', find.byTooltip('Tocar o álbum').first);
     await expectHand('its artist', find.text('Aerosmith').first);
     await expectHand('the song in the player bar', find.byTooltip('Abrir o player'));
     await expectHand('a button in the player bar', find.byTooltip('Próxima'));
     await expectArrow('the hub\'s status, which only tells', find.byTooltip('Sem hub: só toca neste aparelho'));
-    await expectHand('the language menu', find.byTooltip('Idioma'));
-    await tester.tap(find.byTooltip('Idioma'));
+    await tester.tap(find.byTooltip('Configurações'));
     await tester.pumpAndSettle();
-    await expectHand('a language in it', find.text('English'));
-    await tester.tapAt(const Offset(500, 650)); // out of the menu, which closes
+    await expectHand('a language in the settings', find.text('English'));
+    await tester.tap(find.byTooltip('Início'));
     await tester.pumpAndSettle();
     await expectArrow('the side rail\'s empty part', find.byType(VerticalDivider));
     expect(
@@ -219,4 +224,26 @@ void main() {
     await expectArrow('a line that only tells', find.text('Nenhum hub encontrado'));
     await tester.pumpWidget(const SizedBox()); // stops the player bar's timers
   }, variant: TargetPlatformVariant.only(TargetPlatform.linux));
+
+  testWidgets('on the sign-in, the language menu, and the languages in it', (tester) async {
+    final languageChoice = LanguageChoice();
+    addTearDown(languageChoice.dispose);
+    tester.view.physicalSize = const Size(1000, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: const [Locale('pt')],
+        theme: segueTheme(Brightness.light),
+        home: LoginPage(onSignedIn: (_) {}, languageChoice: languageChoice),
+      ),
+    );
+    final gesture = await addMouse(tester);
+    expect(await cursorOver(tester, gesture, find.byTooltip('Idioma')), SystemMouseCursors.click, reason: 'the menu');
+
+    await tester.tap(find.byTooltip('Idioma'));
+    await tester.pumpAndSettle();
+    expect(await cursorOver(tester, gesture, find.text('English')), SystemMouseCursors.click, reason: 'a language');
+  });
 }

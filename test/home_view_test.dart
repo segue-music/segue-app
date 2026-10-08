@@ -135,7 +135,7 @@ Future<List<Map<String, String>>> pumpHome(
   return asked;
 }
 
-/// On a phone, the top bar's button that opens the settings.
+/// The top bar's button that opens the settings.
 final settingsButton = find.byTooltip('Configurações');
 
 /// In the settings, the item that says [text].
@@ -280,40 +280,6 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('on a wide screen, a button in the top bar switches to the dark theme and back, which stays picked', (
-    tester,
-  ) async {
-    tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
-    addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
-    final choice = ThemeChoice();
-    addTearDown(choice.dispose);
-    await pumpHome(tester, const Size(1000, 700), themeChoice: choice);
-    Brightness shown() => Theme.of(tester.element(find.byType(HomePage))).brightness;
-    Finder inTopBar(String tooltip) => find.descendant(of: find.byType(AppBar), matching: find.byTooltip(tooltip));
-
-    expect(shown(), Brightness.light, reason: 'the system\'s, until a pick');
-    expect(inTopBar('Tema escuro'), findsOneWidget);
-    expect(find.descendant(of: inTopBar('Tema escuro'), matching: themedIcon(HugeIcons.strokeRoundedMoon02)), findsOne);
-    expect(
-      tester.getRect(inTopBar('Tema escuro')).right,
-      lessThanOrEqualTo(tester.getRect(find.byTooltip('Sem hub: só toca neste aparelho')).left),
-      reason: 'before the hub\'s status and signing out',
-    );
-
-    await tester.tap(inTopBar('Tema escuro'));
-    await tester.pumpAndSettle();
-    expect(shown(), Brightness.dark);
-    expect((await ThemeChoice.load()).value, ThemeMode.dark, reason: 'kept for the next launch');
-    expect(inTopBar('Tema escuro'), findsNothing);
-    expect(find.descendant(of: inTopBar('Tema claro'), matching: themedIcon(HugeIcons.strokeRoundedSun03)), findsOne);
-
-    await tester.tap(inTopBar('Tema claro'));
-    await tester.pumpAndSettle();
-    expect(shown(), Brightness.light);
-    expect((await ThemeChoice.load()).value, ThemeMode.light, reason: 'no longer the system\'s, even where it agrees');
-    await tester.pumpWidget(const SizedBox());
-  });
-
   testWidgets('the app in the old theme fades away over the new one', (tester) async {
     tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
     addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
@@ -323,7 +289,8 @@ void main() {
     final old = find.byKey(ThemeFade.oldThemeKey);
     double opacity() => tester.widget<FadeTransition>(old).opacity.value;
 
-    await tester.tap(find.byTooltip('Tema escuro'));
+    await openSettings(tester);
+    await tester.tap(settingsItem('Tema escuro'));
     await tester.pump();
     expect(Theme.of(tester.element(find.byType(HomePage))).brightness, Brightness.dark, reason: 'at once, under it');
     expect(old, findsOneWidget, reason: 'the app as it was, in the light theme');
@@ -348,25 +315,11 @@ void main() {
     final choice = ThemeChoice();
     addTearDown(choice.dispose);
     await pumpHome(tester, const Size(1000, 700), themeChoice: choice);
-    await tester.tap(find.byTooltip('Tema escuro'));
+    await openSettings(tester);
+    await tester.tap(settingsItem('Tema escuro'));
     await tester.pump();
     expect(find.byKey(ThemeFade.oldThemeKey), findsNothing);
-    expect(find.byTooltip('Tema claro'), findsOneWidget);
-    await tester.pumpWidget(const SizedBox());
-  });
-
-  testWidgets('in a dark system the button switches to the light theme', (tester) async {
-    tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
-    addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
-    final choice = ThemeChoice();
-    addTearDown(choice.dispose);
-    await pumpHome(tester, const Size(1000, 700), themeChoice: choice);
-    expect(find.byTooltip('Tema escuro'), findsNothing);
-
-    await tester.tap(find.byTooltip('Tema claro'));
-    await tester.pumpAndSettle();
-    expect(Theme.of(tester.element(find.byType(HomePage))).brightness, Brightness.light);
-    expect(find.byTooltip('Tema escuro'), findsOneWidget);
+    expect(Theme.of(tester.element(find.byType(HomePage))).brightness, Brightness.dark);
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -449,6 +402,57 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('on a wide screen too, the settings are a page, in the page area, whose button comes after the hub\'s '
+      'status: the top bar has no button of its own for the theme, the language, the quality or signing out', (
+    tester,
+  ) async {
+    final (themeChoice, languageChoice, qualityChoice) = (ThemeChoice(), LanguageChoice(), QualityChoice());
+    addTearDown(themeChoice.dispose);
+    addTearDown(languageChoice.dispose);
+    addTearDown(qualityChoice.dispose);
+    var signedOut = false;
+    await pumpHome(
+      tester,
+      const Size(1000, 700),
+      themeChoice: themeChoice,
+      languageChoice: languageChoice,
+      qualityChoice: qualityChoice,
+      onSignOut: () => signedOut = true,
+    );
+
+    for (final tooltip in ['Tema escuro', 'Tema claro', 'Idioma', 'Qualidade do áudio', 'Sair']) {
+      expect(find.byTooltip(tooltip), findsNothing, reason: 'no button of its own: $tooltip');
+    }
+
+    expect(
+      tester.getRect(settingsButton).left,
+      greaterThanOrEqualTo(tester.getRect(find.byTooltip('Sem hub: só toca neste aparelho')).right),
+      reason: 'the hub\'s status in sight, before the settings',
+    );
+
+    await openSettings(tester);
+    final page = tester.getRect(find.byType(SettingsPage));
+    expect(page.top, greaterThanOrEqualTo(tester.getRect(settingsButton).bottom), reason: 'under the top bar');
+    expect(page.left, greaterThanOrEqualTo(tester.getRect(find.byType(VerticalDivider)).right), reason: 'by the rail');
+    expect(find.byType(BackButton), findsNothing, reason: 'the top bar\'s arrow goes back');
+    expect(checked('Tema do sistema'), isTrue, reason: 'which the button had no way back to');
+    expect(checked('Qualidade automática'), isTrue);
+
+    await tester.tap(find.byTooltip('Voltar'));
+    await tester.pumpAndSettle();
+    expect(find.byType(SettingsPage), findsNothing);
+
+    await openSettings(tester);
+    final list = find.descendant(of: find.byType(SettingsPage), matching: find.byType(Scrollable));
+    await tester.scrollUntilVisible(settingsItem('Sair'), 100, scrollable: list);
+    await tester.ensureVisible(settingsItem('Sair'));
+    await tester.pumpAndSettle();
+    await tester.tap(settingsItem('Sair'));
+    await tester.pumpAndSettle();
+    expect(signedOut, isTrue);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('on a phone, the settings pick the theme, the old one fading away, and the system\'s again', (
     tester,
   ) async {
@@ -475,58 +479,6 @@ void main() {
     expect(shown(), Brightness.light, reason: 'the system\'s again');
     expect((await ThemeChoice.load()).value, ThemeMode.system);
     expect([checked('Tema do sistema'), checked('Tema escuro')], [true, false]);
-    await tester.pumpWidget(const SizedBox());
-  });
-
-  testWidgets('on a wide screen, a menu in the top bar picks the quality the player streams in, which stays picked', (
-    tester,
-  ) async {
-    final choice = QualityChoice();
-    addTearDown(choice.dispose);
-    await pumpHome(tester, const Size(1000, 700), qualityChoice: choice);
-    Finder item(String text) => find.widgetWithText(PopupMenuItem<StreamQuality>, text);
-    bool picked(String text) =>
-        find.descendant(of: item(text), matching: themedIcon(HugeIcons.strokeRoundedTick02)).evaluate().isNotEmpty;
-    final button = find.descendant(of: find.byType(AppBar), matching: find.byTooltip('Qualidade do áudio'));
-    expect(
-      tester.getRect(button).right,
-      lessThanOrEqualTo(tester.getRect(find.byTooltip('Sem hub: só toca neste aparelho')).left),
-      reason: 'before the hub\'s status and signing out',
-    );
-
-    await tester.tap(button);
-    await tester.pumpAndSettle();
-    final names = [
-      'Qualidade automática',
-      'Qualidade original',
-      'Qualidade alta · 320 kbps',
-      'Qualidade normal · 160 kbps',
-      'Qualidade baixa · 96 kbps',
-    ];
-    final tops = [for (final name in names) tester.getTopLeft(item(name)).dy];
-    expect([...tops]..sort(), tops, reason: 'in this order, top to bottom');
-    expect(
-      [for (final name in names) picked(name)],
-      [true, false, false, false, false],
-      reason: 'the automatic one, until a pick',
-    );
-    expect(
-      find.descendant(
-        of: item('Qualidade automática'),
-        matching: find.text('Original no Wi-Fi, 160 kbps nos dados móveis'),
-      ),
-      findsOneWidget,
-      reason: 'what it does, under it',
-    );
-
-    await tester.tap(item('Qualidade baixa · 96 kbps'));
-    await tester.pumpAndSettle();
-    expect(choice.value, StreamQuality.low);
-    expect((await QualityChoice.load()).value, StreamQuality.low, reason: 'kept for the next launch');
-
-    await tester.tap(button);
-    await tester.pumpAndSettle();
-    expect([for (final name in names) picked(name)], [false, false, false, false, true]);
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -600,19 +552,19 @@ void main() {
   });
 
   testWidgets(
-    'the hub\'s status sits as far from signing out as two buttons are from each other',
+    'the hub\'s status sits as far from the settings\' button as two buttons are from each other',
     (tester) async {
       await pumpHome(tester, const Size(1000, 700));
 
       Rect icon(HugeIconData icon) =>
           tester.getRect(find.descendant(of: find.byType(AppBar), matching: themedIcon(icon)));
 
-      final (hub, signOut) = (icon(HugeIcons.strokeRoundedUnlink02), icon(HugeIcons.strokeRoundedLogout01));
+      final (hub, settings) = (icon(HugeIcons.strokeRoundedUnlink02), icon(HugeIcons.strokeRoundedSettings01));
       final button = tester.getSize(
-        find.ancestor(of: themedIcon(HugeIcons.strokeRoundedLogout01), matching: find.byType(IconButton)),
+        find.ancestor(of: themedIcon(HugeIcons.strokeRoundedSettings01), matching: find.byType(IconButton)),
       );
-      expect(signOut.left - hub.right, button.width - signOut.width);
-      expect(hub.center.dy, signOut.center.dy);
+      expect(settings.left - hub.right, button.width - settings.width);
+      expect(hub.center.dy, settings.center.dy);
       await tester.pumpWidget(const SizedBox());
     },
     // Buttons are smaller on a desktop.

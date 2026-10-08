@@ -18,15 +18,12 @@ import 'albums_view.dart';
 import 'artists_view.dart';
 import 'genres_view.dart';
 import 'home_view.dart';
-import 'language_button.dart';
 import 'now_playing_bar.dart';
 import 'page_area.dart';
 import 'player_page.dart';
-import 'quality_button.dart';
 import 'search_results.dart';
 import 'settings_page.dart';
 import 'shortcuts.dart';
-import 'theme_fade.dart';
 import 'themed_icon.dart';
 
 class HomePage extends StatefulWidget {
@@ -34,16 +31,13 @@ class HomePage extends StatefulWidget {
 
   final VoidCallback onSignOut;
 
-  /// The theme picked: on a wide screen a button in the top bar switches between light and dark, and on a phone the
-  /// settings pick either or the system's; none, neither.
+  /// The theme picked, in the settings: light, dark or the system's; none, no choice of it.
   final ThemeChoice? themeChoice;
 
-  /// The language picked: by the language menu in the top bar on a wide screen, and on a phone in the settings; none,
-  /// neither.
+  /// The language picked, in the settings; none, no choice of it.
   final LanguageChoice? languageChoice;
 
-  /// The quality the player streams in: picked by the quality menu in the top bar on a wide screen, and on a phone in
-  /// the settings; none, neither.
+  /// The quality the player streams in, picked in the settings; none, no choice of it.
   final QualityChoice? qualityChoice;
 
   /// How long typing in the search bar has to stop before the search goes out, so that it isn't one
@@ -254,41 +248,27 @@ class _HomePageState extends State<HomePage> {
       icon: Image.asset('assets/logo.png', width: 32, height: 32),
       onPressed: () => _select(_Section.home),
     );
-    final (themeChoice, languageChoice, qualityChoice) = (
-      widget.themeChoice,
-      widget.languageChoice,
-      widget.qualityChoice,
-    );
-    // On a phone, the theme, the language, the quality and signing out are in the settings, a page of their own, whose
-    // button comes after the hub's status, which stays in sight.
+    // The theme, the language, the quality and signing out are in the settings, a page of their own, whose button comes
+    // after the hub's status, which stays in sight: signing out, which forgets the token, two clicks away rather than
+    // one in the corner.
     final actions = [
-      if (!narrow && themeChoice != null) _ThemeButton(themeChoice),
-      if (!narrow && languageChoice != null) LanguageButton(languageChoice),
-      if (!narrow && qualityChoice != null) QualityButton(qualityChoice),
       _HubStatus(client: services.connect.client),
-      if (narrow)
-        IconButton(
-          tooltip: strings.settings,
-          icon: const ThemedIcon(HugeIcons.strokeRoundedSettings01),
-          // In the page area, over the section, which a section picked in the bar at the bottom shows again. From here,
-          // above the area, its navigator is the home's own.
-          onPressed: () => _pages.currentState?.push(
-            MaterialPageRoute<void>(
-              builder: (_) => SettingsPage(
-                themeChoice: themeChoice,
-                languageChoice: languageChoice,
-                qualityChoice: qualityChoice,
-                onSignOut: widget.onSignOut,
-              ),
+      IconButton(
+        tooltip: strings.settings,
+        icon: const ThemedIcon(HugeIcons.strokeRoundedSettings01),
+        // In the page area, over the section, which a section picked shows again. From here, above the area, its
+        // navigator is the home's own.
+        onPressed: () => _pages.currentState?.push(
+          MaterialPageRoute<void>(
+            builder: (_) => SettingsPage(
+              themeChoice: widget.themeChoice,
+              languageChoice: widget.languageChoice,
+              qualityChoice: widget.qualityChoice,
+              onSignOut: widget.onSignOut,
             ),
           ),
-        )
-      else
-        IconButton(
-          tooltip: strings.signOut,
-          icon: const ThemedIcon(HugeIcons.strokeRoundedLogout01),
-          onPressed: widget.onSignOut,
         ),
+      ),
     ];
     final sections = Stack(
       fit: StackFit.expand,
@@ -528,35 +508,6 @@ class _SideRail extends StatelessWidget {
         ],
       ),
     );
-  }
-}
-
-/// Switches to the light theme from the dark one, and back: to the other of the one showing, which until then may be the
-/// system's. The old theme fades into the new one (ThemeFade).
-class _ThemeButton extends StatelessWidget {
-  const _ThemeButton(this.choice);
-
-  final ThemeChoice choice;
-
-  @override
-  Widget build(BuildContext context) {
-    void pick(ThemeMode mode) {
-      ThemeFade.start(context);
-      choice.pick(mode);
-    }
-
-    final strings = AppLocalizations.of(context);
-    return Theme.of(context).brightness == Brightness.dark
-        ? IconButton(
-            tooltip: strings.lightTheme,
-            icon: const ThemedIcon(HugeIcons.strokeRoundedSun03),
-            onPressed: () => pick(ThemeMode.light),
-          )
-        : IconButton(
-            tooltip: strings.darkTheme,
-            icon: const ThemedIcon(HugeIcons.strokeRoundedMoon02),
-            onPressed: () => pick(ThemeMode.dark),
-          );
   }
 }
 

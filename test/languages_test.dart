@@ -201,24 +201,18 @@ void main() {
         await pumpHome(tester, language, size);
         expect(find.text(strings.orderReleased), findsOneWidget, reason: 'the home\'s first row');
 
-        if (narrow) {
-          await tap(tester, find.byTooltip(strings.settings));
-          expect(find.text(strings.systemTheme), findsOneWidget, reason: 'the settings');
-          // To their end, past the qualities.
-          await tester.scrollUntilVisible(
-            find.text(strings.signedInAs('a', 'music.test')),
-            100,
-            scrollable: find.descendant(of: find.byType(SettingsPage), matching: find.byType(Scrollable)),
-          );
-          expect(find.text(strings.automaticQualityDetail(160)), findsOneWidget, reason: 'the qualities');
-          expect(find.text(strings.signOut), findsOneWidget);
-          await tap(tester, find.byType(BackButton).hitTestable());
-        } else {
-          await tap(tester, find.byTooltip(strings.audioQuality));
-          expect(find.text(strings.automaticQualityDetail(160)), findsOneWidget, reason: 'the quality menu');
-          await tester.tapAt(const Offset(20, 600)); // out of the menu, which closes
-          await tester.pumpAndSettle();
-        }
+        await tap(tester, find.byTooltip(strings.settings));
+        expect(find.text(strings.systemTheme), findsOneWidget, reason: 'the settings');
+        // To their end, past the qualities.
+        await tester.scrollUntilVisible(
+          find.text(strings.signedInAs('a', 'music.test')),
+          100,
+          scrollable: find.descendant(of: find.byType(SettingsPage), matching: find.byType(Scrollable)),
+        );
+        expect(find.text(strings.automaticQualityDetail(160)), findsOneWidget, reason: 'the qualities');
+        expect(find.text(strings.signOut), findsOneWidget);
+        // On a phone the page's arrow; on a wide screen the top bar's.
+        await tap(tester, narrow ? find.byType(BackButton).hitTestable() : find.byTooltip(strings.back));
 
         await tap(tester, narrow ? find.text(strings.albums) : find.byTooltip(strings.albums));
         expect(find.widgetWithText(ChoiceChip, strings.orderLatest), findsOneWidget);

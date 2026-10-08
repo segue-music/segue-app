@@ -146,15 +146,15 @@ void main() {
     },
   );
 
-  testWidgets('the top bar\'s menu picks the language: the system\'s, or one the app has, by its own name', (
+  testWidgets('the sign-in\'s menu picks the language: the system\'s, or one the app has, by its own name', (
     tester,
   ) async {
     tester.platformDispatcher.localesTestValue = const [Locale('pt', 'BR')];
     addTearDown(tester.platformDispatcher.clearLocalesTestValue);
     final choice = LanguageChoice();
     addTearDown(choice.dispose);
-    await pumpHome(tester, choice);
-    expect(find.byTooltip('Álbuns'), findsOneWidget, reason: 'the system\'s');
+    await tester.pumpWidget(SegueApp(session: null, languageChoice: choice));
+    expect(find.text('Entrar'), findsOneWidget, reason: 'the system\'s');
 
     await tester.tap(find.byTooltip('Idioma'));
     await tester.pumpAndSettle();
@@ -166,7 +166,7 @@ void main() {
     await tester.tap(item('English'));
     await tester.pumpAndSettle();
     expect(choice.value, const Locale('en'));
-    expect(find.byTooltip('Albums'), findsOneWidget);
+    expect(find.text('Sign in'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Language'));
     await tester.pumpAndSettle();
@@ -180,10 +180,10 @@ void main() {
     await tester.tap(item('System language'));
     await tester.pumpAndSettle();
     expect(choice.value, isNull);
-    expect(find.byTooltip('Álbuns'), findsOneWidget);
+    expect(find.text('Entrar'), findsOneWidget);
   });
 
-  testWidgets('on a phone, the settings pick the language, the system\'s again too', (tester) async {
+  testWidgets('once signed in, the settings pick the language, the system\'s again too', (tester) async {
     tester.platformDispatcher.localesTestValue = const [Locale('pt', 'BR')];
     addTearDown(tester.platformDispatcher.clearLocalesTestValue);
     tester.view.physicalSize = const Size(360, 640);
@@ -192,7 +192,7 @@ void main() {
     final choice = LanguageChoice();
     addTearDown(choice.dispose);
     await pumpHome(tester, choice);
-    expect(find.byTooltip('Idioma'), findsNothing, reason: 'no language menu of its own');
+    expect(find.byTooltip('Idioma'), findsNothing, reason: 'no menu of its own in the top bar');
     Finder option(String name) => find.widgetWithText(ListTile, name);
     bool picked(String name) =>
         find.descendant(of: option(name), matching: find.byType(ThemedIcon)).evaluate().isNotEmpty;

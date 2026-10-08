@@ -117,16 +117,16 @@ Future<void> tap(WidgetTester tester, Finder finder) async {
 }
 
 void main() {
-  testWidgets('the app\'s icons are Hugeicons\', none of Material\'s: the home, an album, the player, its queue and '
-      'the devices', (tester) async {
+  testWidgets('the app\'s icons are Hugeicons\', none of Material\'s: the home, the settings, an album, the player, '
+      'its queue and the devices', (tester) async {
     await pumpApp(tester, const Size(1000, 700));
     expect(hugeIcons, findsWidgets);
     expect(otherIcons, findsNothing, reason: 'the home, with the player bar');
 
-    await tap(tester, find.byTooltip('Idioma'));
-    expect(otherIcons, findsNothing, reason: 'the language menu');
-    await tester.tapAt(const Offset(500, 650)); // out of the menu, which closes
-    await tester.pumpAndSettle();
+    await tap(tester, find.byTooltip('Configurações'));
+    expect(find.text('English'), findsOneWidget);
+    expect(otherIcons, findsNothing, reason: 'the settings');
+    await tap(tester, find.byTooltip('Voltar'));
 
     await tap(tester, find.text('Toys in the Attic').first);
     expect(otherIcons, findsNothing, reason: 'an album');

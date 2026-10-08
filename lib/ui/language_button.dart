@@ -7,15 +7,15 @@ import 'menu_item_label.dart';
 import 'themed_icon.dart';
 
 /// Picks the language the app shows, in a menu: the system's, or one of those the app has, each by its own name. The
-/// one picked has a check: the system's, until another is. In the home's top bar on a wide screen, and in the
-/// sign-in's corner.
+/// one picked has a check: the system's, until another is. In the sign-in's corner; once signed in, the settings pick
+/// it.
 class LanguageButton extends StatelessWidget {
   const LanguageButton(this.choice, {super.key});
 
   final LanguageChoice choice;
 
   /// The languages to pick from, each by its name: the system's (null), then those the app has, each by its own name.
-  /// The language menu's, and on a phone the settings'.
+  /// The language menu's, and the settings'.
   static List<(Locale?, String)> options(AppLocalizations strings) => [
     (null, strings.systemLanguage),
     for (final language in LanguageChoice.languages) (language, lookupAppLocalizations(language).languageName),

@@ -8,12 +8,11 @@ import '../services.dart';
 import '../theme_choice.dart';
 import 'language_button.dart';
 import 'page_area.dart';
-import 'quality_button.dart';
 import 'theme_fade.dart';
 import 'themed_icon.dart';
 
-/// On a phone, what a wide screen's top bar has buttons for, but the hub's status, which stays in sight: the theme (the
-/// system's again too), the language, the quality and, last, signing out, under the account it signs out of. Each kind
+/// What the user picks for the app, and signing out: the theme (the system's again too), the language, the quality and,
+/// last, signing out, under the account it signs out of. Each kind
 /// of choice a group of its own, under its name, the one picked with a check, as the devices' sheet has the one the app
 /// controls; a line between the groups, and between the last and signing out. In the page area, from the top bar's
 /// button; a choice missing (none given), its group too.
@@ -24,6 +23,18 @@ class SettingsPage extends StatelessWidget {
   final ThemeChoice? themeChoice;
   final LanguageChoice? languageChoice;
   final QualityChoice? qualityChoice;
+
+  /// The qualities to pick from, each by its name, and the automatic one with what it does.
+  static List<({StreamQuality quality, String name, String? detail})> _qualities(AppLocalizations strings) => [
+    for (final quality in StreamQuality.values)
+      (
+        quality: quality,
+        name: strings.streamQuality(quality.name, quality.maxBitRate ?? 0),
+        detail: quality == StreamQuality.automatic
+            ? strings.automaticQualityDetail(StreamQuality.automatic.inUse(onMobileData: true).maxBitRate!)
+            : null,
+      ),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -74,7 +85,7 @@ class SettingsPage extends StatelessWidget {
             if (qualityChoice != null)
               [
                 _Heading(strings.audioQuality),
-                for (final (:quality, :name, :detail) in QualityButton.options(strings))
+                for (final (:quality, :name, :detail) in _qualities(strings))
                   _Option(
                     name,
                     detail: detail,

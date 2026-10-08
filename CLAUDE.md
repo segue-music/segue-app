@@ -168,8 +168,9 @@ Running two app instances on one machine as different devices:
 - The app's words are in `lib/l10n/`'s ARB files, one per language (Portuguese, English, Spanish),
   from which gen-l10n makes `AppLocalizations` (`l10n.yaml`). `LanguageChoice`
   (`lib/language_choice.dart`) is the language shown: the system's, of those the app has the first
-  it prefers and English when it has none, until a menu (`LanguageButton`, in the top bar and in the
-  sign-in's corner) picks one, which the preferences keep, as `ThemeChoice` does the theme. Where no
+  it prefers and English when it has none, until the settings (`SettingsPage`, from the top bar), or
+  before signing in a menu in the sign-in's corner (`LanguageButton`), pick one, which the preferences
+  keep, as `ThemeChoice` does the theme. Where no
   `BuildContext` reaches, the words come in: `describeError` takes them, and `MediaControls` gets
   them from a widget under `MaterialApp` (`app.dart`), again as the language changes.
 - `Session` keeps the token (Subsonic's, with its salt, or Jellyfin's access token) in secure
