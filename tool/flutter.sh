@@ -100,6 +100,13 @@ if [ "$tool $command" = "flutter run" ]; then
   set -- -v /tmp/segue-covers:/tmp/segue-covers "$@"
 
   [ -S "$runtime/at-spi/bus" ] && set -- -v "$runtime/at-spi/bus:$runtime/at-spi/bus" "$@"
+
+  # The app shows this desktop's language, which Flutter reads from the first of LANGUAGE, LC_ALL,
+  # LC_MESSAGES and LANG that is set (GLib's g_get_language_names): without any, it showed English.
+  # The container gets it as LANGUAGE alone, which needs no locale installed: it has only C, and
+  # with LANG set to another, GTK warned and fell back to C as the app started.
+  language=${LANGUAGE:-${LC_ALL:-${LC_MESSAGES:-$LANG}}}
+  [ -n "$language" ] && set -- -e LANGUAGE="$language" "$@"
 fi
 
 exec docker run --rm -i --user "$(id -u):$(id -g)" --network host \

@@ -29,7 +29,7 @@ DART=1 tool/flutter.sh format lib test        # page width 120 (analysis_options
 tool/flutter.sh test
 tool/flutter.sh test test/player_test.dart    # one file
 tool/flutter.sh test --plain-name 'a refused hello is a final HubClosed'
-tool/flutter.sh run -d linux                  # the app in this desktop (display, GPU, sound, session bus)
+tool/flutter.sh run -d linux                  # the app in this desktop (display, GPU, sound, session bus, language)
 tool/package-linux.sh                         # release build → build/segue-linux-x64.tar.gz
 DART=1 tool/flutter.sh run tool/icons.dart    # every icon (Android, TV banner, Linux, iOS, macOS, Windows) from tool/icon.png
 ```
