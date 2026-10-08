@@ -206,7 +206,12 @@ class _AlbumPageState extends State<AlbumPage> {
                         if (!narrow) const SongListHeader(numbered: true),
                         for (var i = 0; i < songs.length; i++)
                           if (i == songs.length - 1)
-                            _LastSong(_song(songs, i), album: album, release: _release!)
+                            _LastSong(
+                              _song(songs, i),
+                              album: album,
+                              release: _release!,
+                              length: narrow ? _length(strings, songs) : null,
+                            )
                           else
                             _song(songs, i),
                       ],
@@ -377,7 +382,8 @@ class _AlbumPageState extends State<AlbumPage> {
 
 /// Under the album's name: its artist, with their picture, a link to their page; its type, where it isn't above the
 /// name; its year; how many songs it has and how long they last; the button that opens its credits. One paragraph,
-/// beside the cover; or, [stacked], the artist on a line of their own and the rest under them.
+/// beside the cover; or, [stacked], the artist on a line of their own and the rest under them, but how long the songs
+/// last, which a phone's line has no room for: that ends the list ([_LastSong]).
 class _Byline extends StatelessWidget {
   const _Byline(
     this.album,
@@ -400,10 +406,10 @@ class _Byline extends StatelessWidget {
 
   final TextStyle? style;
 
-  /// Whether the type, the year, the songs and how long they last are under the artist, rather than after them.
+  /// Whether the type, the year and the songs are under the artist, rather than after them, with how long they last.
   final bool stacked;
 
-  /// The button that opens the album's credits, at the end, beside how long the songs last.
+  /// The button that opens the album's credits, at the end.
   final Widget credits;
 
   @override
@@ -412,7 +418,7 @@ class _Byline extends StatelessWidget {
     final details = [
       if (type case final type?) releaseTypeName(strings, type),
       if (album.year case final year?) '$year',
-      if (songs.isNotEmpty) _songsLength(strings, songs),
+      if (songs.isNotEmpty) stacked ? strings.trackCount(songs.length) : _songsLength(strings, songs),
     ].join(' · ');
     final artist = album.artist == null
         ? null
@@ -454,11 +460,15 @@ class _Byline extends StatelessWidget {
 }
 
 /// How many songs there are, and how long they last together, where each says: "9 faixas, 37 min".
-String _songsLength(AppLocalizations strings, List<Song> songs) {
-  final count = strings.trackCount(songs.length);
+String _songsLength(AppLocalizations strings, List<Song> songs) => switch (_length(strings, songs)) {
+  final length? => strings.tracksAndLength(strings.trackCount(songs.length), length),
+  null => strings.trackCount(songs.length),
+};
 
+/// How long [songs] last together: "37 min", "1 h 14 min"; null where one doesn't say.
+String? _length(AppLocalizations strings, List<Song> songs) {
   if (songs.any((song) => song.duration == null)) {
-    return count;
+    return null;
   }
 
   final length = songs.fold(Duration.zero, (sum, song) => sum + song.duration!);
@@ -469,7 +479,7 @@ String _songsLength(AppLocalizations strings, List<Song> songs) {
     (_, 0) => strings.lengthHours(hours),
     _ => strings.lengthHoursMinutes(hours, minutes),
   };
-  return strings.tracksAndLength(count, time);
+  return time;
 }
 
 /// The picture of the album's artist, small and round, before their name: a person until it comes, and where the
@@ -515,15 +525,19 @@ class _ReleaseType extends StatelessWidget {
   );
 }
 
-/// The album's last song, with what is known of its release under it, ending the list: its date, and the labels that
-/// put it out. The media server's first, then with what MusicBrainz adds, as it comes. The keyboard and the remote
-/// stop at the songs only, so as the focus comes to the last one the list scrolls on to show these too.
+/// The album's last song, with what is known of its release under it, ending the list: its date, on a phone how long
+/// its songs last ([length]), and the labels that put it out. The media server's first, then with
+/// what MusicBrainz adds, as it comes. The keyboard and the remote stop at the songs only, so as the focus comes to the
+/// last one the list scrolls on to show these too.
 class _LastSong extends StatelessWidget {
-  const _LastSong(this.song, {required this.album, required this.release});
+  const _LastSong(this.song, {required this.album, required this.release, this.length});
 
   final Widget song;
   final Album album;
   final Future<AlbumRelease> release;
+
+  /// How long the album's songs last, between its date and its labels; null where that's under its name.
+  final String? length;
 
   @override
   Widget build(BuildContext context) {
@@ -536,6 +550,7 @@ class _LastSong extends StatelessWidget {
         final (:date, :labels, type: _) = snapshot.requireData;
         final lines = [
           if (date != null) formatDate(AppLocalizations.of(context), date),
+          ?length,
           if (labels.isNotEmpty) labels.join(', '),
         ];
         // The same widgets around the song, with or without the lines under it: rebuilt, it would lose the focus.

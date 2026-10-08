@@ -123,7 +123,8 @@ the device it runs on.
 - on the album page, what kind of release it is (an album, an EP, a single or a compilation: on a
   computer above its name, on a phone before its year), which its play button, and the one on its
   cover wherever albums are listed, say too ("Tocar o EP"); under its name, its artist with their
-  picture, its year, how many songs it has and how long they last; after its songs, its release
+  picture, its year, how many songs it has and how long they last (on a phone, whose line has no
+  room for it, that after its songs, under its release date); after its songs, its release
   date, as precisely as the server knows it, and its record labels (OpenSubsonic's; on a Jellyfin
   server, which reads no labels from music files, the album's studios, where someone set them),
   which the keyboard and the remote, coming to the last song, scroll on to. The kind is
