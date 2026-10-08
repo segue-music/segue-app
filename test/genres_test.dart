@@ -13,6 +13,7 @@ import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/albums_view.dart';
 import 'package:segue/ui/genre_page.dart';
+import 'package:segue/ui/genres_view.dart';
 import 'package:segue/ui/home_page.dart';
 import 'package:segue/ui/now_playing_bar.dart';
 
@@ -247,6 +248,23 @@ void main() {
     expect(find.text('Honky Tonk Blues'), findsOneWidget);
     expect(find.text('Mais tocados'), findsNothing);
     expect(find.text('Álbuns'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('dragged down from its top, the genres come again', (tester) async {
+    final asked = await pumpHome(tester, const Size(360, 640));
+    await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Gêneros')));
+    await tester.pumpAndSettle();
+
+    // The genres' most played come from the 500 most played albums, which the home's row isn't.
+    int mostPlayed() => asked.where((query) => query['type'] == 'frequent' && query['size'] == '500').length;
+
+    expect(mostPlayed(), 1);
+    final list = find.descendant(of: find.byType(GenresView), matching: find.byType(Scrollable));
+    await tester.dragFrom(tester.getTopLeft(list) + const Offset(100, 20), const Offset(0, 300));
+    await tester.pumpAndSettle();
+    expect(mostPlayed(), 2);
+    expect(tile('Blues'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 

@@ -65,7 +65,10 @@ class _GenresViewState extends State<GenresView> {
       return RefreshIndicator(
         onRefresh: () async {
           final reload = _load();
-          setState(() => _genres = reload);
+          // In braces: setState takes no callback that returns a future, as the assignment would.
+          setState(() {
+            _genres = reload;
+          });
           await reload;
         },
         child: ListView.builder(
