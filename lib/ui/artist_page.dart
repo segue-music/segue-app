@@ -86,7 +86,6 @@ class _ArtistPageState extends State<ArtistPage> {
                   title: narrow ? data?.$1.name ?? widget.artist.name : null,
                   shade: narrow && data != null ? _shade : null,
                   under: narrow && data != null ? _colorUnderBar(data.$1.coverArt ?? widget.artist.coverArt) : null,
-                  bold: true,
                 ),
           // On a phone the picture goes on under the bar and the system's, to the top of the screen.
           extendBodyBehindAppBar: narrow && data != null,
