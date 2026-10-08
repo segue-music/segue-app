@@ -35,10 +35,15 @@ class _ArtistPageState extends State<ArtistPage> {
   Future<(Artist, List<Album>)>? _artist;
   Future<List<Song>>? _mostPlayed;
 
-  /// How much of the page's color its bar has, on a phone, over the artist's picture: none at the top of the page, where
+  /// How much of the page's color its bar has. On a phone, over the artist's picture: none at the top of the page, where
   /// the name has its halo, and more as the page scrolls, all of it once half the picture has gone up under the bar, so
-  /// that the name stays as easy to read over what passes under it.
+  /// that the name stays as easy to read over what passes under it. On a wide screen, how much of the bar shows, which
+  /// comes in as the picture goes ([PageBarSliver.shadeAt]).
   final _shade = ValueNotifier<double>(0);
+
+  /// How big the artist's picture is on a wide screen, round, 16 from the top of the page: as big as an album's cover on
+  /// its page.
+  static const _widePicture = 220.0;
 
   @override
   void didChangeDependencies() {
@@ -79,8 +84,8 @@ class _ArtistPageState extends State<ArtistPage> {
           body: switch (data) {
             _ when snapshot.hasError => Center(child: Text(strings.couldNotOpenArtistError('${snapshot.error}'))),
             null => const Center(child: Spinner()),
-            (final artist, final albums) => NotificationListener<ScrollNotification>(
-              onNotification: narrow ? _followScroll : null,
+            (final artist, final albums) => NotificationListener(
+              onNotification: _followScroll,
               child: AlbumGrid.sections(
                 _sections(strings, albums),
                 // Its year, and its type where it isn't an album: "2020 · EP".
@@ -88,6 +93,8 @@ class _ArtistPageState extends State<ArtistPage> {
                   if (album.year case final year?) '$year',
                   if (album.releaseType case final type? when type != ReleaseType.album) releaseTypeName(strings, type),
                 ].join(' · '),
+                // On a wide screen, where the name is by the picture, and stays in sight once that has gone.
+                bar: narrow ? null : PageBarSliver(title: artist.name, shade: _shade),
                 header: _ArtistSongs(
                   artist,
                   mostPlayed: _mostPlayed!,
@@ -121,10 +128,19 @@ class _ArtistPageState extends State<ArtistPage> {
     return min(screen.width, screen.height / 2);
   }
 
-  /// Follows the page as it scrolls, on a phone, for its bar's color ([_shade]).
-  bool _followScroll(ScrollNotification notification) {
-    if (notification.depth == 0) {
-      _shade.value = (notification.metrics.pixels / (_pictureHeight / 2)).clamp(0, 1);
+  /// Follows the page as it scrolls, and as it's laid out anew (as the window narrows or widens), for its bar's color
+  /// ([_shade]), letting the notification go on.
+  bool _followScroll(Notification notification) {
+    final offset = switch (notification) {
+      ScrollNotification(depth: 0, :final metrics) ||
+      ScrollMetricsNotification(depth: 0, :final metrics) => metrics.pixels,
+      _ => null,
+    };
+
+    if (offset != null) {
+      _shade.value = MediaQuery.sizeOf(context).width < 600
+          ? (offset / (_pictureHeight / 2)).clamp(0, 1)
+          : PageBarSliver.shadeAt(offset, pictureBottom: 16 + _widePicture);
     }
 
     return false;
@@ -205,9 +221,9 @@ class _ArtistPageState extends State<ArtistPage> {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
           child: Row(
             children: [
-              // As big as an album's cover on its page, and asked of the server as that one is.
+              // Asked of the server as an album's cover on its page is.
               SizedBox.square(
-                dimension: 220,
+                dimension: _widePicture,
                 child: ClipOval(child: LargeCover(picture, size: 800, icon: HugeIcons.strokeRoundedUser)),
               ),
               const SizedBox(width: 16),

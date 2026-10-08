@@ -239,15 +239,15 @@ class _Retry extends StatelessWidget {
 /// A section of an [AlbumGrid]: albums, under a title or none.
 typedef AlbumSection = ({String? title, List<Album> albums});
 
-/// Albums as a grid of covers, between an optional [header] and [footer]. Each opens its page.
+/// Albums as a grid of covers, between an optional [header] and [footer], under an optional [bar]. Each opens its page.
 class AlbumGrid extends StatelessWidget {
   /// [albums] in one grid, with no title.
-  const AlbumGrid(List<Album> albums, {this.header, this.footer, this.subtitle, super.key})
+  const AlbumGrid(List<Album> albums, {this.header, this.footer, this.subtitle, this.bar, super.key})
     : _albums = albums,
       _sections = null;
 
   /// The albums of [sections], a grid for each, under its title.
-  const AlbumGrid.sections(List<AlbumSection> sections, {this.header, this.footer, this.subtitle, super.key})
+  const AlbumGrid.sections(List<AlbumSection> sections, {this.header, this.footer, this.subtitle, this.bar, super.key})
     : _albums = null,
       _sections = sections;
 
@@ -259,6 +259,9 @@ class AlbumGrid extends StatelessWidget {
 
   final Widget? header;
   final Widget? footer;
+
+  /// A sliver over the top of the rest, the first: the page's bar on a wide screen (`PageBarSliver`).
+  final Widget? bar;
 
   /// The line under each name; the artist, by default.
   final String Function(Album album)? subtitle;
@@ -273,6 +276,7 @@ class AlbumGrid extends StatelessWidget {
     final lines = AlbumTile.linesHeight(context);
     return CustomScrollView(
       slivers: [
+        ?bar,
         if (header != null) SliverToBoxAdapter(child: header),
         for (final (i, (:title, :albums)) in sections.indexed) ...[
           if (title != null)

@@ -20,6 +20,7 @@ import 'package:segue/ui/album_page.dart';
 import 'package:segue/ui/artist_page.dart';
 import 'package:segue/ui/cover_page.dart';
 import 'package:segue/ui/now_playing_bar.dart';
+import 'package:segue/ui/page_bar.dart';
 
 import 'fakes.dart';
 
@@ -149,9 +150,9 @@ void main() {
     await pumpAlbum(tester, more: 20, size: const Size(360, 640));
     await tester.tap(song('Walk This Way'));
     await tester.pumpAndSettle();
-    expect(tester.getRect(find.byType(ListView)).bottom, 640);
+    expect(tester.getRect(find.byType(CustomScrollView)).bottom, 640);
 
-    await tester.drag(find.byType(ListView), const Offset(0, -100000));
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -100000));
     await tester.pumpAndSettle();
     expect(tester.getRect(song('Song 20')).bottom, lessThanOrEqualTo(tester.getRect(find.byType(NowPlayingBar)).top));
     await tester.pumpWidget(const SizedBox()); // stops the player bar's timer
@@ -314,7 +315,7 @@ void main() {
       expect(name.center.dx, moreOrLessEquals(180, epsilon: 1), reason: 'centered on the page');
       expect(name.left, greaterThanOrEqualTo(arrow.right));
       expect(cover.top, 24 + kToolbarHeight + 8, reason: 'under them');
-      final list = find.descendant(of: page, matching: find.byType(ListView));
+      final list = find.descendant(of: page, matching: find.byType(CustomScrollView));
       expect(tester.getRect(list).top, 0, reason: 'the page goes on under the bars, to the top of the screen');
       // Clear at the top of the page, more of the page's color as the cover goes up under the bar, all of it once half
       // the cover has.
@@ -401,6 +402,97 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     }
   });
+
+  testWidgets('on a wide screen, once the cover has gone up, the album\'s name stays in a bar at the top of the page, '
+      'after the play button, coming in with the page\'s color; nothing there until then, where the cover takes taps', (
+    tester,
+  ) async {
+    final engine = await pumpAlbum(tester, more: 20);
+    final list = find.byType(CustomScrollView);
+    final position = tester
+        .state<ScrollableState>(find.descendant(of: list, matching: find.byType(Scrollable)))
+        .position;
+    Finder inBar(Finder finder) => find.descendant(of: find.byType(PageBarSliver), matching: finder);
+    double shown() => tester.widget<Opacity>(inBar(find.byType(Opacity))).opacity;
+    expect(inBar(find.byType(Opacity)), findsNothing, reason: 'nothing while the cover shows');
+    expect(find.byTooltip('Ver a capa').hitTestable(at: Alignment.topCenter), findsOneWidget, reason: 'to its top');
+
+    position.jumpTo(150);
+    await tester.pumpAndSettle();
+    expect(shown(), inExclusiveRange(0, 1), reason: 'coming in as the cover goes up');
+
+    position.jumpTo(300);
+    await tester.pumpAndSettle();
+    expect(shown(), 1, reason: 'the cover gone');
+    final (page, bar) = (tester.getRect(list), tester.getRect(inBar(find.byType(Material)).first));
+    expect(bar, Rect.fromLTWH(page.left, page.top, page.width, kToolbarHeight + 1), reason: 'at the top, a line under');
+    final play = tester.getRect(inBar(find.byTooltip('Tocar o álbum')));
+    final name = tester.getRect(inBar(find.text('Toys in the Attic')));
+    expect(name.left, greaterThan(play.right), reason: 'after the play button');
+    expect(name.center.dy, moreOrLessEquals(page.top + kToolbarHeight / 2, epsilon: 1));
+    expect(play.center.dy, moreOrLessEquals(page.top + kToolbarHeight / 2, epsilon: 1));
+
+    await tester.tap(inBar(find.byTooltip('Tocar o álbum')));
+    await tester.pumpAndSettle();
+    expect(engine.tracks, hasLength(22), reason: 'the album, from its first song');
+    expect(engine.index, 0);
+
+    position.jumpTo(0);
+    await tester.pumpAndSettle();
+    expect(inBar(find.byType(Opacity)), findsNothing, reason: 'gone with the cover back');
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('a window widened with the page scrolled a little shows no bar yet, where a phone\'s had some color', (
+    tester,
+  ) async {
+    await pumpAlbum(tester, more: 20, size: const Size(360, 640));
+    final list = find.byType(CustomScrollView);
+    tester.state<ScrollableState>(find.descendant(of: list, matching: find.byType(Scrollable))).position.jumpTo(100);
+    await tester.pumpAndSettle();
+
+    tester.view.physicalSize = const Size(1000, 700);
+    await tester.pumpAndSettle();
+    expect(find.descendant(of: find.byType(PageBarSliver), matching: find.byType(Opacity)), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets(
+    'on a wide screen, as the keyboard or a remote goes up the songs, the one it comes to is clear of the bar',
+    (tester) async {
+      await pumpAlbum(tester, more: 20);
+
+      for (
+        var i = 0;
+        i < 10 && FocusManager.instance.primaryFocus?.rect != tester.getRect(song('Walk This Way'));
+        i++
+      ) {
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.pump();
+      }
+
+      for (var i = 0; i < 21; i++) {
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+        await tester.pump();
+      }
+
+      final bar = find.descendant(of: find.byType(PageBarSliver), matching: find.byType(Material)).first;
+      expect(bar, findsOneWidget, reason: 'down at the last song');
+
+      for (var i = 20; i > 0; i--) {
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+        await tester.pumpAndSettle();
+        final focused = FocusManager.instance.primaryFocus!.rect;
+        expect(focused, tester.getRect(song(i == 1 ? 'Sweet Emotion' : 'Song ${i - 1}')));
+
+        if (bar.evaluate().isNotEmpty) {
+          expect(focused.top, greaterThanOrEqualTo(tester.getRect(bar).bottom), reason: 'under the bar, at song $i');
+        }
+      }
+
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
 
   testWidgets('on a wide screen, the cover is 220, asked of the server as the phone\'s', (tester) async {
     await pumpAlbum(tester);
@@ -577,7 +669,7 @@ void main() {
     expect(FocusManager.instance.primaryFocus?.rect, tester.getRect(song('Song 20')));
     expect(
       tester.getRect(find.text('Columbia')).bottom,
-      lessThanOrEqualTo(tester.getRect(find.byType(ListView)).bottom),
+      lessThanOrEqualTo(tester.getRect(find.byType(CustomScrollView)).bottom),
     );
     await tester.pumpWidget(const SizedBox());
   });

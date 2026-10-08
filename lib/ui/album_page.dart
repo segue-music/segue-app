@@ -41,9 +41,13 @@ class _AlbumPageState extends State<AlbumPage> {
   /// The album's release date, record labels and type, with what MusicBrainz adds to the media server's.
   Future<AlbumRelease>? _release;
 
-  /// How much of the page's color its bar has, on a phone, where the page goes on under it: none at the top of the
-  /// page, and more as the cover goes up under the bar, all of it once half the cover has.
+  /// How much of the page's color its bar has. On a phone, where the page goes on under it: none at the top of the
+  /// page, and more as the cover goes up under the bar, all of it once half the cover has. On a wide screen, how much of
+  /// the bar shows, which comes in as the cover goes ([PageBarSliver.shadeAt]).
   final _shade = ValueNotifier<double>(0);
+
+  /// How big the cover is on a wide screen, square, 16 from the top of the page.
+  static const _wideCover = 220.0;
 
   @override
   void didChangeDependencies() {
@@ -93,12 +97,26 @@ class _AlbumPageState extends State<AlbumPage> {
     super.dispose();
   }
 
-  /// Follows the page as it scrolls, on a phone, for its bar's color ([_shade]).
-  bool _followScroll(ScrollNotification notification) {
-    if (notification.depth == 0) {
+  /// Follows the page as it scrolls, and as it's laid out anew (as the window narrows or widens), for its bar's color
+  /// ([_shade]), letting the notification go on.
+  bool _followScroll(Notification notification) {
+    final offset = switch (notification) {
+      ScrollNotification(depth: 0, :final metrics) ||
+      ScrollMetricsNotification(depth: 0, :final metrics) => metrics.pixels,
+      _ => null,
+    };
+    final width = MediaQuery.sizeOf(context).width;
+
+    if (offset == null) {
+      return false;
+    }
+
+    if (width < 600) {
       // The cover is as wide as the page less its margins, up to 280, under a gap of 8 (_header).
-      final cover = min(MediaQuery.sizeOf(context).width - 2 * 16, 280);
-      _shade.value = (notification.metrics.pixels / (8 + cover / 2)).clamp(0, 1);
+      final cover = min(width - 2 * 16, 280);
+      _shade.value = (offset / (8 + cover / 2)).clamp(0, 1);
+    } else {
+      _shade.value = PageBarSliver.shadeAt(offset, pictureBottom: 16 + _wideCover);
     }
 
     return false;
@@ -139,23 +157,42 @@ class _AlbumPageState extends State<AlbumPage> {
               child: Text(strings.couldNotOpenRelease(releaseSelector(widget.album.releaseType), '${snapshot.error}')),
             ),
             null => const Center(child: Spinner()),
-            (final album, final songs) => NotificationListener<ScrollNotification>(
-              onNotification: narrow ? _followScroll : null,
-              child: ListView(
-                children: [
-                  // The type the media server says, then the one MusicBrainz finds, as it comes.
-                  FutureBuilder(
-                    future: _release,
-                    initialData: (date: album.releaseDate, labels: album.recordLabels, type: album.releaseType),
-                    builder: (context, release) =>
-                        _header(album, songs, type: release.requireData.type, narrow: narrow),
+            (final album, final songs) => NotificationListener(
+              onNotification: _followScroll,
+              child: CustomScrollView(
+                slivers: [
+                  // On a wide screen, where the name is by the cover, and stays in sight once that has gone, with the
+                  // button that plays the album.
+                  if (!narrow)
+                    _ReleaseType(
+                      album,
+                      _release!,
+                      builder: (type) => PageBarSliver(
+                        title: album.name,
+                        shade: _shade,
+                        leading: _playButton(songs, type: type),
+                      ),
+                    ),
+                  // Clear of the bars the page goes on under, by the room MediaQuery says they take, as a list is.
+                  SliverSafeArea(
+                    left: false,
+                    right: false,
+                    sliver: SliverList.list(
+                      children: [
+                        _ReleaseType(
+                          album,
+                          _release!,
+                          builder: (type) => _header(album, songs, type: type, narrow: narrow),
+                        ),
+                        if (!narrow) const SongListHeader(numbered: true),
+                        for (var i = 0; i < songs.length; i++)
+                          if (i == songs.length - 1)
+                            _LastSong(_song(songs, i), album: album, release: _release!)
+                          else
+                            _song(songs, i),
+                      ],
+                    ),
                   ),
-                  if (!narrow) const SongListHeader(numbered: true),
-                  for (var i = 0; i < songs.length; i++)
-                    if (i == songs.length - 1)
-                      _LastSong(_song(songs, i), album: album, release: _release!)
-                    else
-                      _song(songs, i),
                 ],
               ),
             ),
@@ -187,12 +224,7 @@ class _AlbumPageState extends State<AlbumPage> {
       style: text.bodyMedium,
       stacked: narrow,
     );
-    // Just the icon, its name in the tooltip, as the play button on the albums' covers.
-    final play = IconButton.filled(
-      tooltip: strings.playRelease(releaseSelector(type)),
-      onPressed: songs.isEmpty ? null : () => _play(songs, 0),
-      icon: const ThemedIcon(HugeIcons.strokeRoundedPlay),
-    );
+    final play = _playButton(songs, type: type);
 
     if (narrow) {
       return Column(
@@ -223,9 +255,8 @@ class _AlbumPageState extends State<AlbumPage> {
       );
     }
 
-    // How big the cover is, square; asked of the server as the phone's, which a screen of more than one pixel per point
-    // needs at this size.
-    const size = 220.0;
+    // Asked of the server as the phone's, which a screen of more than one pixel per point needs at this size.
+    const size = _wideCover;
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -254,6 +285,14 @@ class _AlbumPageState extends State<AlbumPage> {
       ),
     );
   }
+
+  /// The button that plays the album, of [type], from its first song: just the icon, its name in the tooltip, as the play
+  /// button on the albums' covers.
+  Widget _playButton(List<Song> songs, {required ReleaseType? type}) => IconButton.filled(
+    tooltip: AppLocalizations.of(context).playRelease(releaseSelector(type)),
+    onPressed: songs.isEmpty ? null : () => _play(songs, 0),
+    icon: const ThemedIcon(HugeIcons.strokeRoundedPlay),
+  );
 
   /// The album's song at [index] in its list, which plays the album from it.
   Widget _song(List<Song> songs, int index) {
@@ -376,6 +415,23 @@ class _ArtistPicture extends StatelessWidget {
         ),
       ),
     ),
+  );
+}
+
+/// What [builder] makes of the album's type (album, EP, ...): the one the media server says, then the one MusicBrainz
+/// finds, as it comes.
+class _ReleaseType extends StatelessWidget {
+  const _ReleaseType(this.album, this.release, {required this.builder});
+
+  final Album album;
+  final Future<AlbumRelease> release;
+  final Widget Function(ReleaseType? type) builder;
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder(
+    future: release,
+    initialData: (date: album.releaseDate, labels: album.recordLabels, type: album.releaseType),
+    builder: (context, release) => builder(release.requireData.type),
   );
 }
 

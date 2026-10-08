@@ -19,6 +19,7 @@ import 'package:segue/ui/artist_page.dart';
 import 'package:segue/ui/cover.dart';
 import 'package:segue/ui/home_page.dart';
 import 'package:segue/ui/now_playing_bar.dart';
+import 'package:segue/ui/page_bar.dart';
 import 'package:segue/ui/segmented_choice.dart';
 import 'package:segue/ui/themed_icon.dart';
 
@@ -356,6 +357,34 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Aerosmith'), findsOneWidget);
     expect(find.text('Ramones'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a wide screen, once the artist\'s picture has gone up, their name stays in a bar at the top of their '
+      'page, under the top bar, whose arrows go back', (tester) async {
+    await pumpHome(tester, const Size(1000, 700));
+    await tester.tap(find.byTooltip('Artistas'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cheap Trick'));
+    await tester.pumpAndSettle();
+    final page = find.byType(ArtistPage);
+    Finder inBar(Finder finder) => find.descendant(of: find.byType(PageBarSliver), matching: finder);
+    final position = tester
+        .state<ScrollableState>(find.descendant(of: page, matching: find.byType(Scrollable)).first)
+        .position;
+    expect(inBar(find.text('Cheap Trick')), findsNothing, reason: 'by the picture');
+
+    position.jumpTo(300);
+    await tester.pumpAndSettle();
+    expect(position.pixels, 300, reason: 'far enough down for the picture to have gone');
+    final (area, name) = (tester.getRect(page), tester.getRect(inBar(find.text('Cheap Trick'))));
+    expect(name.left, area.left + 16, reason: 'from the page\'s margin');
+    expect(name.center.dy, moreOrLessEquals(area.top + kToolbarHeight / 2, epsilon: 1), reason: 'at its top');
+    expect(find.descendant(of: page, matching: find.byType(BackButton)), findsNothing);
+
+    position.jumpTo(0);
+    await tester.pumpAndSettle();
+    expect(inBar(find.text('Cheap Trick')), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
 
