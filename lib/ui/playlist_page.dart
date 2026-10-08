@@ -428,7 +428,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
           title: Text(song.title, maxLines: 1, overflow: TextOverflow.ellipsis),
           // The artists take no focus: for the keyboard and the remote the song stays one stop, as on an album's page.
           subtitle: song.artist == null ? null : ExcludeFocus(child: ArtistLinks.song(song)),
-          trailing: SongTrailing(SongDuration(song.duration), menu),
+          trailing: SongTrailing(song.duration, menu),
           onTap: () => _play(songs, index),
         ),
       ),

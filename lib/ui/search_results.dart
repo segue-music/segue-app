@@ -81,7 +81,7 @@ class SearchResultsList extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  trailing: SongTrailing(SongDuration(song.duration), menu),
+                  trailing: SongTrailing(song.duration, menu),
                   onTap: () => _play(context, songs, i),
                 ),
               ),

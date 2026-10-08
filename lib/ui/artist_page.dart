@@ -661,7 +661,7 @@ class _ArtistSongsState extends State<_ArtistSongs> {
                     subtitle: song.album == null
                         ? null
                         : Text(song.album!, maxLines: 1, overflow: TextOverflow.ellipsis),
-                    trailing: SongTrailing(SongDuration(song.duration), menu),
+                    trailing: SongTrailing(song.duration, menu),
                     onTap: () => _play(context, songs, i),
                   ),
                 ),

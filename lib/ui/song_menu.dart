@@ -11,7 +11,7 @@ import 'themed_icon.dart';
 /// What a song's menu does.
 enum _SongAction { addToPlaylist, removeFromPlaylist }
 
-/// A song's menu, at the end of its line in a list: what can be done with it besides playing it, adding it to a playlist,
+/// A song's menu, at the end of its line in a list, before its duration: what can be done with it besides playing it, adding it to a playlist,
 /// and, in a playlist that the user can change ([onRemove]), taking it out. Its button takes no focus: for the keyboard
 /// and the remote the song stays one stop, where the menu key, or Shift+F10, opens the menu. [builder] makes the song's
 /// line, with the button ([SongMenu.width] wide) where it goes.
@@ -82,25 +82,4 @@ class _SongMenuState extends State<SongMenu> {
       child: widget.builder(context, button),
     );
   }
-}
-
-/// The end of a song's line in a list: its duration ([duration]), under the header's clock, and its menu's [button].
-class SongTrailing extends StatelessWidget {
-  const SongTrailing(this.duration, this.button, {super.key});
-
-  final Widget duration;
-  final Widget button;
-
-  /// The room between them.
-  static const gap = 4.0;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      duration,
-      const SizedBox(width: gap),
-      button,
-    ],
-  );
 }

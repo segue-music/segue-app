@@ -125,7 +125,7 @@ the device it runs on.
 - the album's songs and the queue have a header naming their columns: the number ("#") or the
   cover, the title, and the duration as a clock; over the queue it stays as the tracks scroll;
 - making and changing playlists: a new one, from a button over the list of them, named in a dialog; a
-  song added to one, from its menu (a button after its duration, wherever songs are listed: an album's
+  song added to one, from its menu (a button before its duration, wherever songs are listed: an album's
   page, an artist's, a playlist's, search; for the keyboard and the remote, which stop at the song
   alone, the menu key or Shift+F10 on it), or an album, all its songs, from a button beside its play
   button, to one of those the user can change, picked in a dialog, or to a new one named there; on the

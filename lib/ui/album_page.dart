@@ -384,7 +384,7 @@ class _AlbumPageState extends State<AlbumPage> {
           // The artists take no focus: for the keyboard and the remote the song stays one stop, as an album in the grid
           // is.
           subtitle: song.artist == null ? null : ExcludeFocus(child: ArtistLinks.song(song)),
-          trailing: SongTrailing(SongDuration(song.duration), menu),
+          trailing: SongTrailing(song.duration, menu),
           onTap: () => _play(songs, index),
         ),
       ),

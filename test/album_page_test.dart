@@ -478,6 +478,26 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('each song\'s duration ends its line, after its menu, whose buttons line up past a longer one too', (
+    tester,
+  ) async {
+    await pumpAlbum(
+      tester,
+      others: [
+        {'id': 's9', 'title': 'Long Song', 'artist': 'Aerosmith', 'duration': 625},
+      ],
+    );
+
+    Rect menu(String title) =>
+        tester.getRect(find.descendant(of: song(title), matching: find.byTooltip('Mais opções')));
+
+    expect(tester.getRect(find.text('3:40')).left, greaterThan(menu('Walk This Way').right));
+    expect(tester.getRect(find.text('10:25')).left, greaterThan(menu('Long Song').right));
+    expect(tester.getRect(find.text('10:25')).right, tester.getRect(find.text('3:40')).right);
+    expect(menu('Long Song').left, menu('Walk This Way').left);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('on a phone, no header over the songs, which keep their numbers', (tester) async {
     await pumpAlbum(tester, size: const Size(360, 640));
     expect(find.text('Título'), findsNothing);

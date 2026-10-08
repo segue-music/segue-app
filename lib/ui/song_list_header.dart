@@ -25,14 +25,52 @@ class SongNumber extends StatelessWidget {
   Widget build(BuildContext context) => Text('$number', textAlign: TextAlign.end, style: _columnStyle(context));
 }
 
-/// A song's duration, in the last column of a list of songs, under the header's clock.
+/// A song's duration, in the last column of a list of songs, under the header's clock: at its end, lined up with the
+/// others.
 class SongDuration extends StatelessWidget {
   const SongDuration(this.duration, {super.key});
 
   final Duration? duration;
 
   @override
-  Widget build(BuildContext context) => Text(formatDuration(duration), style: _columnStyle(context));
+  Widget build(BuildContext context) =>
+      Text(formatDuration(duration), textAlign: TextAlign.end, style: _columnStyle(context));
+}
+
+/// The end of a song's line in a list: its menu's [button], then its [duration], last, under the header's clock. The
+/// duration takes at least the room of the longest under 100 minutes ("00:00"), so that the buttons line up from song to
+/// song.
+class SongTrailing extends StatelessWidget {
+  const SongTrailing(this.duration, this.button, {super.key});
+
+  final Duration? duration;
+  final Widget button;
+
+  /// The room between them.
+  static const gap = 4.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final painter = TextPainter(
+      text: TextSpan(text: '00:00', style: DefaultTextStyle.of(context).style.merge(_columnStyle(context))),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    final width = painter.width;
+    painter.dispose();
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        button,
+        const SizedBox(width: gap),
+        ConstrainedBox(
+          constraints: BoxConstraints(minWidth: width),
+          child: SongDuration(duration),
+        ),
+      ],
+    );
+  }
 }
 
 /// The header of a list of songs, naming its columns over them: their numbers ("#") or covers (unnamed), their
@@ -44,7 +82,7 @@ class SongListHeader extends StatelessWidget {
   /// Whether the songs are numbered, as an album's are, rather than shown with their covers, as the queue's.
   final bool numbered;
 
-  /// Whether each song has its menu's button after its duration ([SongMenu]), which the header leaves room for.
+  /// Whether each song has its menu's button before its duration ([SongMenu]), which the header leaves room for.
   final bool menus;
 
   /// How wide a numbered song's number is.
@@ -69,11 +107,11 @@ class SongListHeader extends StatelessWidget {
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              if (menus) const SizedBox(width: SongMenu.width + SongTrailing.gap),
               Tooltip(
                 message: strings.songDuration,
                 child: ThemedIcon(HugeIcons.strokeRoundedClock01, size: 18, color: muted),
               ),
-              if (menus) const SizedBox(width: SongTrailing.gap + SongMenu.width),
             ],
           ),
         ),
