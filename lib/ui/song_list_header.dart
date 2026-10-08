@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
@@ -49,16 +51,32 @@ class SongTrailing extends StatelessWidget {
   /// The room between them.
   static const gap = 4.0;
 
-  @override
-  Widget build(BuildContext context) {
+  /// The room a list tile leaves after what ends its line, in Material 3.
+  static const _tileEnd = 24.0;
+
+  /// How far from the end of its line a song's [button] ends: past its duration, the room before it, and the list
+  /// tile's after it. What lines up with the songs' buttons, above them, is as far.
+  static double buttonInset(BuildContext context) => _durationWidth(context) + gap + _tileEnd;
+
+  /// How wide the duration's room is: as "00:00".
+  static double _durationWidth(BuildContext context) {
     final painter = TextPainter(
       text: TextSpan(text: '00:00', style: DefaultTextStyle.of(context).style.merge(_columnStyle(context))),
       textDirection: Directionality.of(context),
       textScaler: MediaQuery.textScalerOf(context),
       maxLines: 1,
     )..layout();
-    final width = painter.width;
-    painter.dispose();
+
+    try {
+      return painter.width;
+    } finally {
+      painter.dispose();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final width = _durationWidth(context);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -69,6 +87,37 @@ class SongTrailing extends StatelessWidget {
           child: SongDuration(duration),
         ),
       ],
+    );
+  }
+}
+
+/// The line above a list of songs on a phone, under its cover: [details] at its start, and at its end [button], over the
+/// songs' menus, as far from the end as they are, then [play], its round edge 16 from the screen's as the rest is: the
+/// room Material leaves around it on a touch screen goes past that. [button] has none, as the songs' menus don't.
+class SongListTopLine extends StatelessWidget {
+  const SongListTopLine({required this.details, required this.play, this.button, super.key});
+
+  final Widget details;
+  final Widget? button;
+  final Widget play;
+
+  @override
+  Widget build(BuildContext context) {
+    final around = Theme.of(context).materialTapTargetSize == MaterialTapTargetSize.padded
+        ? (kMinInteractiveDimension - SongMenu.width) / 2
+        : 0.0;
+    final beforePlay = SongTrailing.buttonInset(context) - (16 - around) - (SongMenu.width + 2 * around);
+    final button = this.button;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16, 16, 16 - around, 16),
+      child: Row(
+        children: [
+          Expanded(child: details),
+          const SizedBox(width: 16),
+          if (button != null) ...[button, SizedBox(width: max(0, beforePlay))],
+          play,
+        ],
+      ),
     );
   }
 }

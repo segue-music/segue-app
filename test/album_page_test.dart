@@ -405,6 +405,27 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets(
+    'on a phone, the button that adds the album to a playlist lines up with the songs\' menus, and the play button\'s '
+    'edge is 16 from the screen\'s, also on a touch screen, whose buttons have room around them',
+    variant: const TargetPlatformVariant({TargetPlatform.android, TargetPlatform.linux}),
+    (tester) async {
+      await pumpAlbum(tester, size: const Size(360, 640));
+      final add = tester.getRect(find.byTooltip('Adicionar à playlist'));
+      final menus = find.byTooltip('Mais opções');
+      expect(menus, findsNWidgets(2), reason: 'its two songs\'');
+
+      for (var i = 0; i < 2; i++) {
+        expect(tester.getCenter(menus.at(i)).dx, moreOrLessEquals(add.center.dx), reason: '$i');
+      }
+
+      final play = tester.getRect(find.byTooltip('Tocar o álbum'));
+      expect(play.right, 360 - 16);
+      expect(play.left, greaterThan(add.right), reason: 'after it, apart');
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
   /// The album, with a song by Run-DMC and Aerosmith after its own, on a screen of [size].
   Future<FakeEngine> pumpDuet(WidgetTester tester, {Size size = const Size(1000, 700)}) => pumpAlbum(
     tester,
@@ -604,7 +625,8 @@ void main() {
       // The artist with their picture, which the songs' have not.
       final artist = tester.getRect(find.ancestor(of: coverOf('ar-ar1'), matching: find.byTooltip('Abrir o artista')));
       final details = tester.getRect(find.text('1975 · 2 faixas'));
-      final play = tester.getRect(playButton);
+      // Its round edge, without the room Material leaves around it on a touch screen.
+      final play = tester.getRect(find.byTooltip('Tocar o álbum'));
       expect(artist.top, greaterThanOrEqualTo(cover.bottom));
       expect(details.top, greaterThanOrEqualTo(artist.bottom), reason: 'the year and the songs under the artist');
       expect((artist.left, details.left), (16, 16), reason: 'from the page\'s margin, not the cover\'s');

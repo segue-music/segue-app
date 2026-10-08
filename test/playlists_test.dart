@@ -537,6 +537,30 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets(
+    'on a phone, the playlist\'s menu lines up with the songs\' menus, and its play button\'s edge is 16 from the '
+    'screen\'s, also on a touch screen, whose buttons have room around them',
+    variant: const TargetPlatformVariant({TargetPlatform.android, TargetPlatform.linux}),
+    (tester) async {
+      await pumpHome(tester, const Size(360, 640));
+      await openPlaylist(tester, 'Road trip', size: const Size(360, 640));
+      final menus = find.byTooltip('Mais opções');
+      expect(menus, findsNWidgets(3), reason: 'the playlist\'s and its two songs\'');
+
+      for (var i = 1; i < 3; i++) {
+        expect(tester.getCenter(menus.at(i)).dx, moreOrLessEquals(tester.getCenter(menus.first).dx), reason: '$i');
+      }
+
+      expect(tester.getRect(find.byTooltip('Tocar a playlist')).right, 360 - 16);
+      expect(
+        tester.getRect(find.byTooltip('Tocar a playlist')).left,
+        greaterThan(tester.getRect(menus.first).right),
+        reason: 'after the menu, apart',
+      );
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
   testWidgets('the playlist\'s menu renames it, in a dialog with its name', (tester) async {
     final library = Library();
     await pumpHome(tester, const Size(1000, 700), library: library);

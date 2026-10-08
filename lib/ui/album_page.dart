@@ -238,7 +238,8 @@ class _AlbumPageState extends State<AlbumPage> {
   /// it and add it to a playlist. On a wide screen the name is beside the cover, the type above it, the buttons under
   /// them; on a narrow one ([narrow]) the name is in the page's bar (a [PageBar]), over the cover, which is centered, and
   /// the byline under the cover, from the page's margin as the songs are, with the buttons at the end of its line, the
-  /// play button last, and the type before the year.
+  /// one that adds it over the songs' menus and the play button last ([SongListTopLine]), and the type before the
+  /// year.
   Widget _header(Album album, List<Song> songs, {required ReleaseType? type, required bool narrow}) {
     final text = Theme.of(context).textTheme;
     final strings = AppLocalizations.of(context);
@@ -256,6 +257,8 @@ class _AlbumPageState extends State<AlbumPage> {
       tooltip: strings.addToPlaylist,
       onPressed: songs.isEmpty ? null : () => addToPlaylist(context, songs),
       icon: const ThemedIcon(HugeIcons.strokeRoundedAddCircle),
+      // On a phone, over the songs' menus, as big as they are, without Material's padding for a touch screen around it.
+      style: narrow ? IconButton.styleFrom(tapTargetSize: MaterialTapTargetSize.shrinkWrap) : null,
     );
 
     if (narrow) {
@@ -273,18 +276,7 @@ class _AlbumPageState extends State<AlbumPage> {
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Expanded(child: byline),
-                const SizedBox(width: 16),
-                add,
-                const SizedBox(width: 8),
-                play,
-              ],
-            ),
-          ),
+          SongListTopLine(details: byline, button: add, play: play),
         ],
       );
     }
