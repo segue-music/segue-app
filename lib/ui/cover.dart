@@ -5,15 +5,28 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
+import '../pictures/fanart_tv.dart';
+import '../server/models.dart';
 import '../services.dart';
 import 'equalizer.dart';
 import 'themed_icon.dart';
 
-/// A cover from the media server, or a placeholder.
+/// A cover from the media server, or a picture from elsewhere ([url]), or a placeholder.
 class Cover extends StatelessWidget {
-  const Cover(this.id, {this.size = 300, this.icon = HugeIcons.strokeRoundedCd, this.gapless = false, super.key});
+  const Cover(
+    this.id, {
+    this.url,
+    this.size = 300,
+    this.icon = HugeIcons.strokeRoundedCd,
+    this.gapless = false,
+    super.key,
+  });
 
   final String? id;
+
+  /// Where the media server has no cover ([id] null), a picture from elsewhere, by its URL: an artist's from fanart.tv
+  /// ([ArtistPicture]). Taken [size] pixels across at most, as the server's are.
+  final Uri? url;
 
   /// Pixels asked of the server.
   final int size;
@@ -29,18 +42,25 @@ class Cover extends StatelessWidget {
   /// Loads the cover [id], at [size] pixels, ahead of a [Cover] that shows it, which then shows it at once. One that
   /// can't be loaded is left to that cover's placeholder.
   static Future<void> preload(BuildContext context, String id, {int size = 300}) =>
-      precacheImage(_image(context, id, size), context, onError: (_, _) {});
+      precacheImage(_image(context, id, null, size)!, context, onError: (_, _) {});
 
-  /// The color of the cover [id], at [size] pixels, on average over the part of it that [region] picks by its size (as
-  /// where a bar goes over it); null where it can't be loaded.
+  /// The color of the cover [id], or else of the picture at [url] ([Cover.url]), at [size] pixels, on average over the
+  /// part of it that [region] picks by its size (as where a bar goes over it); null where it can't be loaded.
   static Future<Color?> averageColor(
     BuildContext context,
-    String id, {
+    String? id, {
+    Uri? url,
     required Rect Function(Size image) region,
     int size = 300,
   }) async {
+    final image = _image(context, id, url, size);
+
+    if (image == null) {
+      return null;
+    }
+
     final loaded = Completer<ImageInfo?>();
-    final stream = _image(context, id, size).resolve(createLocalImageConfiguration(context));
+    final stream = image.resolve(createLocalImageConfiguration(context));
     final listener = ImageStreamListener(
       (image, _) => loaded.isCompleted ? image.dispose() : loaded.complete(image),
       onError: (_, _) => loaded.isCompleted ? null : loaded.complete(null),
@@ -61,8 +81,13 @@ class Cover extends StatelessWidget {
     }
   }
 
-  static ImageProvider _image(BuildContext context, String id, int size) =>
-      NetworkImage(ServicesScope.of(context).api.coverArtUrl(id, size: size).toString());
+  /// The cover [id], asked of the media server at [size] pixels, or else the picture at [url], taken that many across at
+  /// most; null for neither.
+  static ImageProvider? _image(BuildContext context, String? id, Uri? url, int size) => switch ((id, url)) {
+    (final id?, _) => NetworkImage(ServicesScope.of(context).api.coverArtUrl(id, size: size).toString()),
+    (null, final url?) => ResizeImage(NetworkImage('$url'), width: size),
+    (null, null) => null,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -70,18 +95,13 @@ class Cover extends StatelessWidget {
       color: Theme.of(context).colorScheme.surfaceContainerHighest,
       child: Center(child: ThemedIcon(icon)),
     );
-    final id = this.id;
+    final image = _image(context, id, url, size);
 
-    if (id == null) {
+    if (image == null) {
       return placeholder;
     }
 
-    return Image(
-      image: _image(context, id, size),
-      fit: BoxFit.cover,
-      gaplessPlayback: gapless,
-      errorBuilder: (_, _, _) => placeholder,
-    );
+    return Image(image: image, fit: BoxFit.cover, gaplessPlayback: gapless, errorBuilder: (_, _, _) => placeholder);
   }
 }
 
@@ -120,9 +140,12 @@ Future<Color?> averageColorOf(ui.Image image, Rect region) async {
 /// A cover asked of the server at [size] pixels, more than [Cover]'s usual: the usual one, which the page that led here
 /// has likely loaded already, shows under it until it comes.
 class LargeCover extends StatelessWidget {
-  const LargeCover(this.id, {required this.size, this.icon = HugeIcons.strokeRoundedCd, super.key});
+  const LargeCover(this.id, {required this.size, this.url, this.icon = HugeIcons.strokeRoundedCd, super.key});
 
   final String? id;
+
+  /// Where the media server has no cover ([id] null), a picture from elsewhere, by its URL ([Cover.url]).
+  final Uri? url;
 
   /// Pixels asked of the server.
   final int size;
@@ -134,20 +157,23 @@ class LargeCover extends StatelessWidget {
   Widget build(BuildContext context) => Stack(
     fit: StackFit.expand,
     children: [
-      Cover(id, icon: icon),
-      Cover(id, size: size, icon: icon),
+      Cover(id, url: url, icon: icon),
+      Cover(id, url: url, size: size, icon: icon),
     ],
   );
 }
 
-/// A small cover, for a list.
+/// A small cover, for a list, or an artist's picture.
 class Thumbnail extends StatelessWidget {
-  const Thumbnail(this.coverArt, {this.round = false, this.playing = false, this.icon, super.key});
+  const Thumbnail(this.coverArt, {this.playing = false, this.icon, super.key}) : artist = null;
+
+  /// [artist]'s picture ([ArtistPicture]), round, with a person for a placeholder.
+  const Thumbnail.artist(Artist this.artist, {super.key}) : coverArt = null, playing = false, icon = null;
 
   final String? coverArt;
 
-  /// An artist's: round, with a person for a placeholder.
-  final bool round;
+  /// The artist whose picture it is; null: a cover.
+  final Artist? artist;
 
   /// What the placeholder shows, where it isn't an album's or an artist's: a playlist's.
   final HugeIconData? icon;
@@ -161,22 +187,88 @@ class Thumbnail extends StatelessWidget {
   @override
   Widget build(BuildContext context) => SizedBox.square(
     dimension: size,
-    child: round
-        ? ClipOval(child: Cover(coverArt, size: 96, icon: icon ?? HugeIcons.strokeRoundedUser))
-        : ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                Cover(coverArt, size: 96, icon: icon ?? HugeIcons.strokeRoundedCd),
-                // The primary color's light tone in either theme, which stands out on the dark veil.
-                if (playing)
-                  ColoredBox(
-                    color: Colors.black54,
-                    child: Equalizer(color: Theme.of(context).colorScheme.primaryFixedDim),
-                  ),
-              ],
-            ),
-          ),
+    child: switch (artist) {
+      final artist? => ClipOval(child: ArtistPicture(artist, size: 96)),
+      null => ClipRRect(
+        borderRadius: BorderRadius.circular(4),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Cover(coverArt, size: 96, icon: icon ?? HugeIcons.strokeRoundedCd),
+            // The primary color's light tone in either theme, which stands out on the dark veil.
+            if (playing)
+              ColoredBox(
+                color: Colors.black54,
+                child: Equalizer(color: Theme.of(context).colorScheme.primaryFixedDim),
+              ),
+          ],
+        ),
+      ),
+    },
   );
+}
+
+/// An artist's picture: the media server's, or, where it has none, the one fanart.tv's users like most
+/// ([FanartPicture]); a person meanwhile, and where neither has one.
+class ArtistPicture extends StatelessWidget {
+  const ArtistPicture(this.artist, {this.size = 300, super.key});
+
+  final Artist artist;
+
+  /// Pixels asked for.
+  final int size;
+
+  @override
+  Widget build(BuildContext context) => FanartPicture(
+    artist,
+    builder: (context, picture) => Cover(artist.coverArt, url: picture, size: size, icon: HugeIcons.strokeRoundedUser),
+  );
+}
+
+/// What [builder] makes of fanart.tv's picture of [artist], where the media server has none ([Artist.coverArt]): the one
+/// its users like most ([FanartTv.artistPictures]), by the artist's MusicBrainz id, at once where it has been found
+/// already, and otherwise as it comes. Null meanwhile, where the server has one, and where fanart.tv has none, or isn't
+/// asked (a build without its key).
+class FanartPicture extends StatefulWidget {
+  const FanartPicture(this.artist, {required this.builder, super.key});
+
+  final Artist artist;
+
+  final Widget Function(BuildContext context, Uri? picture) builder;
+
+  @override
+  State<FanartPicture> createState() => _FanartPictureState();
+}
+
+class _FanartPictureState extends State<FanartPicture> {
+  /// The MusicBrainz id of the artist whose pictures it last asked for, to ask once: it builds again as they come.
+  String? _asked;
+
+  @override
+  Widget build(BuildContext context) {
+    final artist = widget.artist;
+    final fanartTv = ServicesScope.of(context).fanartTv;
+
+    if (artist.coverArt != null || fanartTv == null) {
+      return widget.builder(context, null);
+    }
+
+    final found = fanartTv.foundPictures(artist);
+
+    if (found == null && _asked != artist.musicBrainzId) {
+      _asked = artist.musicBrainzId;
+      unawaited(_ask(fanartTv, artist));
+    }
+
+    return widget.builder(context, found?.firstOrNull);
+  }
+
+  /// Asks [fanartTv] for [artist]'s pictures, and builds again once they have come.
+  Future<void> _ask(FanartTv fanartTv, Artist artist) async {
+    await fanartTv.artistPictures(artist);
+
+    if (mounted) {
+      setState(() {});
+    }
+  }
 }

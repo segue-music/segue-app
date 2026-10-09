@@ -200,7 +200,7 @@ class _ArtistTileState extends State<ArtistTile> {
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
-                        Cover(artist.coverArt, icon: HugeIcons.strokeRoundedUser),
+                        ArtistPicture(artist),
                         // The album cover's shade (AlbumPlayButton), coming and going in the same fade.
                         AnimatedSwitcher(
                           duration: const Duration(milliseconds: 150),

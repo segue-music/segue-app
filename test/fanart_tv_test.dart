@@ -85,6 +85,29 @@ void main() {
     expect(asked, isEmpty);
   });
 
+  test('the pictures it has found come at once: none for an artist without a MusicBrainz id, and nothing before they '
+      'have come, nor where they failed to', () async {
+    var fails = true;
+    final fanart = fanartTv(
+      () => fails
+          ? json({'error': 'invalid API key'}, 401)
+          : json({
+              'artistthumb': [thumb('liked', 1)],
+            }),
+    );
+    expect(fanart.foundPictures(const Artist(id: 'ar2', name: 'Cheap Trick')), isEmpty);
+    expect(fanart.foundPictures(aerosmith), isNull);
+
+    await fanart.artistPictures(aerosmith);
+    expect(fanart.foundPictures(aerosmith), isNull, reason: 'it failed');
+
+    fails = false;
+    final pictures = fanart.artistPictures(aerosmith);
+    expect(fanart.foundPictures(aerosmith), isNull, reason: 'not yet');
+    await pictures;
+    expect(fanart.foundPictures(aerosmith), [Uri.parse('https://assets.fanart.tv/fanart/liked.jpg')]);
+  });
+
   test('none when it fails, asked again the next time', () async {
     var fails = true;
     final asked = <http.Request>[];

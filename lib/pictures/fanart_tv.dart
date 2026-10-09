@@ -10,7 +10,8 @@ import '../server/server.dart';
 const fanartTvKey = String.fromEnvironment('FANART_TV_KEY');
 
 /// fanart.tv, a site of pictures of artists (and of films and series) that its users send in and like: where more
-/// pictures of an artist than the media server's one come from, by the artist's MusicBrainz id.
+/// pictures of an artist than the media server's one come from, and their picture where the server has none, by the
+/// artist's MusicBrainz id.
 class FanartTv {
   FanartTv({required this.apiKey, http.Client? client, Uri? base})
     : _http = client ?? http.Client(),
@@ -31,6 +32,9 @@ class FanartTv {
   /// Each artist's pictures, by their MusicBrainz id, for the session: a biography opened again asks nothing.
   final _pictures = <String, Future<List<Uri>>>{};
 
+  /// Those that have come, by the artist's MusicBrainz id: what [foundPictures] gives.
+  final _found = <String, List<Uri>>{};
+
   /// Pictures of [artist], by their MusicBrainz id: fanart.tv's square ones (its artist thumbs, 1000 pixels a side),
   /// those its users like most first. None for an artist without that id, one fanart.tv has none of, and when it fails
   /// (asked again the next time).
@@ -42,12 +46,20 @@ class FanartTv {
     }
 
     try {
-      return await (_pictures[id] ??= _lookUp(id));
+      return _found[id] = await (_pictures[id] ??= _lookUp(id));
     } on Object {
       _pictures.remove(id);
       return const [];
     }
   }
+
+  /// The pictures [artistPictures] has found of [artist], at once, for a picture shown again (as a list scrolls back to
+  /// it) not to wait for them: none for an artist without a MusicBrainz id; null where it hasn't found them yet, or
+  /// has failed to.
+  List<Uri>? foundPictures(Artist artist) => switch (artist.musicBrainzId) {
+    null => const [],
+    final id => _found[id],
+  };
 
   /// The artist thumbs fanart.tv has of the artist whose MusicBrainz id is [id], the most liked first.
   Future<List<Uri>> _lookUp(String id) async {

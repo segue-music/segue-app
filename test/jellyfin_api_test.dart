@@ -603,12 +603,17 @@ void main() {
     await expectLater(api.song('s3'), throwsA(isA<ServerError>()));
   });
 
-  test('search: artists, albums and songs that match', () async {
+  test('search: artists, with their MusicBrainz ids, albums and songs that match', () async {
     final asked = <http.Request>[];
     final (:artists, :albums, :songs) = await jellyfin((request) {
       // Artists from their own endpoint: Jellyfin's Items doesn't list them.
       if (request.url.path == '/jellyfin/Artists/AlbumArtists') {
-        return items([artist]);
+        return items([
+          {
+            ...artist,
+            if (request.url.queryParameters['Fields'] == 'ProviderIds') 'ProviderIds': {'MusicBrainzArtist': 'mb1'},
+          },
+        ]);
       }
 
       return switch (request.url.queryParameters['IncludeItemTypes']) {
@@ -621,6 +626,7 @@ void main() {
     expect(asked.map((request) => request.url.queryParameters['Limit']), unorderedEquals(['5', '10', '50']));
     expect(artists.single.name, 'Aerosmith');
     expect(artists.single.coverArt, 'ar1');
+    expect(artists.single.musicBrainzId, 'mb1');
     expect(albums.single.name, 'Toys in the Attic');
     expect(songs.single.title, 'Walk This Way');
   });
@@ -754,15 +760,17 @@ void main() {
     expect(await jellyfin((_) => items([artist])).biography('ar1'), isNull);
   });
 
-  test('the artists like one are Artists/{id}/Similar\'s, 20 at most, but the artist themselves', () async {
+  test('the artists like one are Artists/{id}/Similar\'s, 20 at most, but the artist themselves, with their '
+      'MusicBrainz ids', () async {
     final asked = <http.Request>[];
     final similar = await jellyfin(
-      (_) => items([
+      (request) => items([
         {
           'Id': 'ar2',
           'Name': 'Cheap Trick',
           'Type': 'MusicArtist',
           'ImageTags': {'Primary': 'tag'},
+          if (request.url.queryParameters['Fields'] == 'ProviderIds') 'ProviderIds': {'MusicBrainzArtist': 'mb2'},
         },
         artist,
         {'Id': 'ar3', 'Name': 'Ramones', 'Type': 'MusicArtist'},
@@ -773,6 +781,7 @@ void main() {
     expect(asked.single.url.queryParameters, allOf(containsPair('Limit', '20'), containsPair('userId', 'u1')));
     expect([for (final artist in similar) artist.name], ['Cheap Trick', 'Ramones']);
     expect([for (final artist in similar) artist.coverArt], ['ar2', null]);
+    expect([for (final artist in similar) artist.musicBrainzId], ['mb2', null]);
   });
 
   test('audio and covers come from URLs a player can open, the token in the stream\'s', () {

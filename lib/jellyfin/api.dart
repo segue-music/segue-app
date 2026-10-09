@@ -297,10 +297,12 @@ class JellyfinApi implements MediaServer {
     return lines.isEmpty ? null : Lyrics(lines, provider: 'Jellyfin');
   }
 
+  /// The artists with their MusicBrainz ids (ProviderIds, which come only when asked for), for fanart.tv's picture of
+  /// one Jellyfin has none of.
   @override
   Future<SearchResults> search(String query, {int artists = 5, int albums = 10, int songs = 50}) async {
     final [foundArtists, foundAlbums, foundSongs] = await Future.wait([
-      _albumArtists({'searchTerm': query, 'Limit': '$artists'}),
+      _albumArtists({'searchTerm': query, 'Limit': '$artists', 'Fields': 'ProviderIds'}),
       _items({'searchTerm': query, 'IncludeItemTypes': 'MusicAlbum', 'Limit': '$albums'}),
       _items({'searchTerm': query, 'IncludeItemTypes': 'Audio', 'Limit': '$songs'}),
     ]);
@@ -374,10 +376,13 @@ class JellyfinApi implements MediaServer {
   }
 
   /// Artists/{id}/Similar, which Jellyfin finds by what their metadata shares (genres, tags), but the artist
-  /// themselves, should it count them.
+  /// themselves, should it count them; with their MusicBrainz ids, as [search] has them.
   @override
   Future<List<Artist>> similarArtists(String artistId) async => [
-    for (final json in await _list('Artists/${Uri.encodeComponent(artistId)}/Similar', {'Limit': '20'}))
+    for (final json in await _list('Artists/${Uri.encodeComponent(artistId)}/Similar', {
+      'Limit': '20',
+      'Fields': 'ProviderIds',
+    }))
       if (json['Id'] != artistId) _artist(json),
   ];
 

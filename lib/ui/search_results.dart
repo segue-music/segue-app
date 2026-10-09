@@ -58,7 +58,7 @@ class SearchResultsList extends StatelessWidget {
           if (artists.isNotEmpty) _Heading(strings.artists),
           for (final artist in artists)
             ListTile(
-              leading: Thumbnail(artist.coverArt, round: true),
+              leading: Thumbnail.artist(artist),
               title: Text(artist.name, maxLines: 1, overflow: TextOverflow.ellipsis),
               subtitle: Text(albumCount(strings, artist.albumCount)),
               onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ArtistPage(artist))),

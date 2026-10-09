@@ -40,8 +40,8 @@ class AlbumPage extends StatefulWidget {
 class _AlbumPageState extends State<AlbumPage> {
   Future<(Album, List<Song>)>? _album;
 
-  /// The cover id of the picture of the album's artist.
-  Future<String?>? _artistPicture;
+  /// The album's artist, for their picture.
+  Future<Artist?>? _artist;
 
   /// The album's release date, record labels and type, with what MusicBrainz adds to the media server's.
   Future<AlbumRelease>? _release;
@@ -62,7 +62,7 @@ class _AlbumPageState extends State<AlbumPage> {
     super.didChangeDependencies();
     final services = ServicesScope.of(context);
     final album = _album ??= services.api.album(widget.album.id);
-    _artistPicture ??= _pictureOfArtist(services.api, widget.album.artistId, album);
+    _artist ??= _artistOf(services.api, widget.album.artistId, album);
     _release ??= _releaseOf(album, musicBrainz: services.musicBrainz);
     _credits ??= _creditsOf(album, musicBrainz: services.musicBrainz);
   }
@@ -95,9 +95,9 @@ class _AlbumPageState extends State<AlbumPage> {
     }
   }
 
-  /// The cover id of the picture of the album's artist, [artistId] or, when the page opened without it, the one
-  /// [album] names: none when it names none, or the server fails, and the picture stays a placeholder.
-  static Future<String?> _pictureOfArtist(MediaServer api, String? artistId, Future<(Album, List<Song>)> album) async {
+  /// The album's artist, [artistId] or, when the page opened without it, the one [album] names: none when it names
+  /// none, or the server fails, and their picture stays a placeholder.
+  static Future<Artist?> _artistOf(MediaServer api, String? artistId, Future<(Album, List<Song>)> album) async {
     try {
       final id = artistId ?? (await album).$1.artistId;
 
@@ -106,7 +106,7 @@ class _AlbumPageState extends State<AlbumPage> {
       }
 
       final (artist, _) = await api.artist(id);
-      return artist.coverArt;
+      return artist;
     } on Object {
       return null;
     }
@@ -246,7 +246,7 @@ class _AlbumPageState extends State<AlbumPage> {
     final byline = _Byline(
       album,
       songs,
-      artistPicture: _artistPicture!,
+      artist: _artist!,
       type: narrow ? type : null,
       style: text.bodyMedium,
       stacked: narrow,
@@ -398,7 +398,7 @@ class _Byline extends StatelessWidget {
   const _Byline(
     this.album,
     this.songs, {
-    required this.artistPicture,
+    required this.artist,
     required this.credits,
     this.type,
     this.style,
@@ -408,8 +408,8 @@ class _Byline extends StatelessWidget {
   final Album album;
   final List<Song> songs;
 
-  /// The cover id of the artist's picture.
-  final Future<String?> artistPicture;
+  /// The artist, for their picture.
+  final Future<Artist?> artist;
 
   /// The album's type, before its year; null where the page doesn't show it here.
   final ReleaseType? type;
@@ -430,15 +430,15 @@ class _Byline extends StatelessWidget {
       if (album.year case final year?) '$year',
       if (songs.isNotEmpty) stacked ? strings.trackCount(songs.length) : songCountAndLength(strings, songs),
     ].join(' · ');
-    final artist = album.artist == null
+    final link = album.artist == null
         ? null
-        : ArtistLink.album(album, style: style, picture: album.artistId == null ? null : _ArtistPicture(artistPicture));
+        : ArtistLink.album(album, style: style, picture: album.artistId == null ? null : _ArtistPicture(artist));
 
     if (stacked) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ?artist,
+          ?link,
           Row(
             children: [
               if (details.isNotEmpty) Flexible(child: Text(details, style: style)),
@@ -453,8 +453,8 @@ class _Byline extends StatelessWidget {
     return Text.rich(
       TextSpan(
         children: [
-          if (artist != null) ...[
-            WidgetSpan(alignment: PlaceholderAlignment.middle, child: artist),
+          if (link != null) ...[
+            WidgetSpan(alignment: PlaceholderAlignment.middle, child: link),
             if (details.isNotEmpty) const TextSpan(text: ' · '),
           ],
           TextSpan(text: details),
@@ -469,13 +469,13 @@ class _Byline extends StatelessWidget {
   }
 }
 
-/// The picture of the album's artist, small and round, before their name: a person until it comes, and where the
-/// server has none.
+/// The picture of the album's artist, small and round, before their name ([ArtistPicture]): a person until it comes,
+/// and where there's none.
 class _ArtistPicture extends StatelessWidget {
-  const _ArtistPicture(this.coverArt);
+  const _ArtistPicture(this.artist);
 
-  /// Its cover id.
-  final Future<String?> coverArt;
+  /// Whose it is.
+  final Future<Artist?> artist;
 
   /// How big it is, square.
   static const size = 24.0;
@@ -487,8 +487,11 @@ class _ArtistPicture extends StatelessWidget {
       child: IconTheme.merge(
         data: const IconThemeData(size: 16),
         child: FutureBuilder(
-          future: coverArt,
-          builder: (context, snapshot) => Cover(snapshot.data, size: 96, icon: HugeIcons.strokeRoundedUser),
+          future: artist,
+          builder: (context, snapshot) => switch (snapshot.data) {
+            final artist? => ArtistPicture(artist, size: 96),
+            null => const Cover(null, icon: HugeIcons.strokeRoundedUser),
+          },
         ),
       ),
     ),

@@ -37,7 +37,10 @@ the device it runs on.
   released, the most played or the latest added, picked in chips above them, the next ones coming
   as the grid nears its end), artists (by name or the most played first, picked above them, a thumb
   sliding to the one picked: on a Subsonic server, which counts no plays by artist, from the 500
-  most played albums; each with their albums and then, apart, their singles and EPs, where the
+  most played albums; each with their picture, the media server's or, where it has none (on Navidrome, since
+  0.64, which before gave its placeholder), the one fanart.tv's users like most, by the artist's MusicBrainz id,
+  there too in search, on their page and by their name on an album's; each with their albums and then, apart,
+  their singles and EPs, where the
   server says which are, and at the end a row of the library's artists like them, each opening their page,
   where the server knows them (Navidrome from Last.fm, Jellyfin by their metadata), their genres, the three
   most of their albums are in, each a link to its page (under how many albums they have; on a phone, over the
@@ -247,7 +250,7 @@ has been tried on a tablet and on an Android TV; the iOS build has not been trie
 | `lib/player/` | `PlayerController` (queue, commands, state reports, each song's ReplayGain, the equalizer) over an `AudioEngine`; `MediaKitEngine` is the real one. `MediaControls`: the system's media controls. `AudioInterruptions`: calls and the like pausing the music, on iOS |
 | `lib/connect/` | `ConnectController`: which device the app controls, and moving the music between devices |
 | `lib/lyrics/` | LRCLIB (lrclib.net), where lyrics come from when the media server has none, and LRC |
-| `lib/pictures/` | fanart.tv, where more pictures of an artist than the media server's one come from, for their biography |
+| `lib/pictures/` | fanart.tv, where more pictures of an artist than the media server's one come from, for their biography, and their picture where the server has none |
 | `lib/releases/` | MusicBrainz (musicbrainz.org), where an album's release date and record labels come from when the media server doesn't say them, its credits where the server has none, where it was recorded, mixed and mastered, who made its cover, a band's years and members, and where an artist comes from; `AlbumCredits`, the server's credits and MusicBrainz's together, by person |
 | `lib/ui/` | The pages: sign-in, home, albums, artists, genres, playlists, album, artist, playlist, search, player bar and full-screen player, queue, device picker |
 | `lib/l10n/` | The app's words in each language, as ARB files (Portuguese's, the template, says what each is); the Dart code comes from them on `pub get` and on every build |
@@ -444,7 +447,8 @@ or `~/Android/Sdk`, where Android Studio puts it) on the first of its virtual de
 ## Keys
 
 The app asks fanart.tv with a key of its own, which isn't in git: a build gets it as it's made, and
-one without it shows an artist's biography with the media server's picture alone. `tool/flutter.sh`
+one without it shows an artist's biography with the media server's picture alone, and a person where
+the server has none. `tool/flutter.sh`
 gives `run` and `build` (and so `tool/package-linux.sh` and `tool/package-android.sh`) the
 `keys.json` at the top of this folder, where there is one, which git ignores:
 

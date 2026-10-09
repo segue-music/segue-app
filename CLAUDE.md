@@ -184,9 +184,13 @@ Running two app instances on one machine as different devices:
   one; tests leave `Services.musicBrainz` null, so that none goes out to the internet.
 - `lib/pictures/fanart_tv.dart`: fanart.tv, where more pictures of an artist than the media server's one come from,
   for their biography's gallery (`PictureGallery`, `lib/ui/picture_gallery.dart`): its square ones (artist thumbs),
-  the most liked first, by the artist's MusicBrainz id, and only by it. It asks with the app's own key (a project's),
-  `fanartTvKey`, given as the app is built, and remembers what it found for the session. `Services.start` gives it one
-  where the build has the key; tests leave `Services.fanartTv` null, so that none goes out to the internet.
+  the most liked first, by the artist's MusicBrainz id, and only by it. Where the server has no picture of an artist
+  (`coverArt` null: Jellyfin without a primary image, Navidrome since 0.64, which before gave its placeholder), the
+  most liked is theirs, wherever it shows (`ArtistPicture` and `FanartPicture`, `lib/ui/cover.dart`; `Cover` takes a
+  picture's URL where it has no cover id). It asks with the app's own key (a project's), `fanartTvKey`, given as the
+  app is built, and remembers what it found for the session, at once (`foundPictures`) for a picture built again, as a
+  list scrolls back to it. `Services.start` gives it one where the build has the key; tests leave
+  `Services.fanartTv` null, so that none goes out to the internet.
 - `lib/releases/album_credits.dart`: an album's credits (`CreditsPage`, from the button after its
   byline), by section (performing, writing, producing) and by person: in each section the media
   server's (`Song.credits`: OpenSubsonic's contributors, Jellyfin's people), or, where it has none

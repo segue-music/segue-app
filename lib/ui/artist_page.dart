@@ -59,7 +59,7 @@ class _ArtistPageState extends State<ArtistPage> {
   /// On a phone, the color of the artist's picture under the page's bar, on average, with what it was found for: the
   /// picture, how big it shows, and how far down the bar goes, with the system's above it. What the arrow and the name
   /// stand out from; null until it's known, or where the picture can't be loaded.
-  ((String, Size, double), Color?)? _underBar;
+  ((Object, Size, double), Color?)? _underBar;
 
   /// How big the artist's picture is on a wide screen, round, 16 from the top of the page: as big as an album's cover on
   /// its page.
@@ -96,49 +96,58 @@ class _ArtistPageState extends State<ArtistPage> {
       future: _artist,
       builder: (context, snapshot) {
         final data = snapshot.data;
-        return Scaffold(
-          // On a phone with the name, the link's until the artist comes, then over their picture; under a wide
-          // screen's top bar, none.
-          appBar: PageArea.holdsUnderTopBar(context)
-              ? null
-              : PageBar(
-                  title: narrow ? data?.$1.name ?? widget.artist.name : null,
-                  shade: narrow && data != null ? _shade : null,
-                  under: narrow && data != null ? _colorUnderBar(data.$1.coverArt ?? widget.artist.coverArt) : null,
+        // Where the server has no picture of them, fanart.tv's: of the artist the page opened with until theirs comes,
+        // with the MusicBrainz id a list may not have given.
+        return FanartPicture(
+          data?.$1 ?? widget.artist,
+          builder: (context, otherPicture) => Scaffold(
+            // On a phone with the name, the link's until the artist comes, then over their picture; under a wide
+            // screen's top bar, none.
+            appBar: PageArea.holdsUnderTopBar(context)
+                ? null
+                : PageBar(
+                    title: narrow ? data?.$1.name ?? widget.artist.name : null,
+                    shade: narrow && data != null ? _shade : null,
+                    under: narrow && data != null
+                        ? _colorUnderBar(data.$1.coverArt ?? widget.artist.coverArt, otherPicture)
+                        : null,
+                  ),
+            // On a phone the picture goes on under the bar and the system's, to the top of the screen.
+            extendBodyBehindAppBar: narrow && data != null,
+            body: switch (data) {
+              _ when snapshot.hasError => Center(child: Text(strings.couldNotOpenArtistError('${snapshot.error}'))),
+              null => const Center(child: Spinner()),
+              (final artist, final albums) => NotificationListener(
+                onNotification: _followScroll,
+                child: AlbumGrid.sections(
+                  _sections(strings, albums),
+                  // Its year, and its type where it isn't an album: "2020 · EP".
+                  subtitle: (album) => [
+                    if (album.year case final year?) '$year',
+                    if (album.releaseType case final type? when type != ReleaseType.album)
+                      releaseTypeName(strings, type),
+                  ].join(' · '),
+                  // On a wide screen, where the name is by the picture, and stays in sight once that has gone.
+                  bar: narrow ? null : PageBarSliver(title: artist.name, shade: _shade),
+                  header: _ArtistSongs(
+                    artist,
+                    mostPlayed: _mostPlayed!,
+                    builder: (heading, songs) =>
+                        _header(artist, albums, heading, songs, otherPicture: otherPicture, narrow: narrow),
+                    icons: narrow,
+                    // On a phone, how many albums they have, at the end of the choice's line.
+                    trailing: narrow ? _counts(artist, albums, end: true) : null,
+                  ),
+                  footer: _similarArtists(),
                 ),
-          // On a phone the picture goes on under the bar and the system's, to the top of the screen.
-          extendBodyBehindAppBar: narrow && data != null,
-          body: switch (data) {
-            _ when snapshot.hasError => Center(child: Text(strings.couldNotOpenArtistError('${snapshot.error}'))),
-            null => const Center(child: Spinner()),
-            (final artist, final albums) => NotificationListener(
-              onNotification: _followScroll,
-              child: AlbumGrid.sections(
-                _sections(strings, albums),
-                // Its year, and its type where it isn't an album: "2020 · EP".
-                subtitle: (album) => [
-                  if (album.year case final year?) '$year',
-                  if (album.releaseType case final type? when type != ReleaseType.album) releaseTypeName(strings, type),
-                ].join(' · '),
-                // On a wide screen, where the name is by the picture, and stays in sight once that has gone.
-                bar: narrow ? null : PageBarSliver(title: artist.name, shade: _shade),
-                header: _ArtistSongs(
-                  artist,
-                  mostPlayed: _mostPlayed!,
-                  builder: (heading, songs) => _header(artist, albums, heading, songs, narrow: narrow),
-                  icons: narrow,
-                  // On a phone, how many albums they have, at the end of the choice's line.
-                  trailing: narrow ? _counts(artist, albums, end: true) : null,
-                ),
-                footer: _similarArtists(),
               ),
-            ),
-          },
-          // The albums go on behind the player bar, slightly see-through on a phone; the grid ends with the room
-          // MediaQuery says the bar takes. In the page area the home's bars stay under the page instead, with the room
-          // they take, which a bar of its own, even one showing nothing, would take away.
-          extendBody: true,
-          bottomNavigationBar: PageArea.holds(context) ? null : const NowPlayingBar(),
+            },
+            // The albums go on behind the player bar, slightly see-through on a phone; the grid ends with the room
+            // MediaQuery says the bar takes. In the page area the home's bars stay under the page instead, with the room
+            // they take, which a bar of its own, even one showing nothing, would take away.
+            extendBody: true,
+            bottomNavigationBar: PageArea.holds(context) ? null : const NowPlayingBar(),
+          ),
         );
       },
     );
@@ -167,16 +176,19 @@ class _ArtistPageState extends State<ArtistPage> {
     return min(screen.width, screen.height / 2);
   }
 
-  /// The color of the artist's [picture] under the page's bar on a phone, as [_underBar] has it: found out where it
-  /// hasn't been yet, for that picture and where it shows, which keeps the last one's meanwhile, as the screen turns.
-  Color? _colorUnderBar(String? picture) {
-    if (picture == null) {
+  /// The color of the artist's [picture] (or, where the server has none, [otherPicture], fanart.tv's) under the page's
+  /// bar on a phone, as [_underBar] has it: found out where it hasn't been yet, for that picture and where it shows,
+  /// which keeps the last one's meanwhile, as the screen turns.
+  Color? _colorUnderBar(String? picture, Uri? otherPicture) {
+    final shown = picture ?? otherPicture;
+
+    if (shown == null) {
       return null;
     }
 
     final top = MediaQuery.paddingOf(context).top;
     final box = Size(MediaQuery.sizeOf(context).width, top + _pictureHeight);
-    final key = (picture, box, top + kToolbarHeight);
+    final key = (shown, box, top + kToolbarHeight);
 
     if (_underBar case (final known, final color) when known == key) {
       return color;
@@ -184,8 +196,14 @@ class _ArtistPageState extends State<ArtistPage> {
 
     final last = _underBar?.$2;
     _underBar = (key, last);
+    final average = Cover.averageColor(
+      context,
+      picture,
+      url: otherPicture,
+      region: (image) => _topOf(image, box, key.$3),
+    );
     unawaited(
-      Cover.averageColor(context, picture, region: (image) => _topOf(image, box, key.$3)).then((color) {
+      average.then((color) {
         if (mounted && _underBar?.$1 == key) {
           setState(() => _underBar = (key, color));
         }
@@ -223,8 +241,16 @@ class _ArtistPageState extends State<ArtistPage> {
   /// them the picture again, blurred, across the page. On a narrow one ([narrow]) it goes across the page from the top
   /// of the screen, under the page's bar, which has the name (a [PageBar]), and the system's; the heading is over its
   /// bottom, with how many albums they have at the end of its line, where it fades to the page's color (darker in the
-  /// dark theme, lighter in the light one), and their genres over it.
-  Widget _header(Artist artist, List<Album> albums, Widget? heading, List<Widget> songs, {required bool narrow}) {
+  /// dark theme, lighter in the light one), and their genres over it. The picture is the server's or, where it has
+  /// none, [otherPicture], fanart.tv's ([FanartPicture]).
+  Widget _header(
+    Artist artist,
+    List<Album> albums,
+    Widget? heading,
+    List<Widget> songs, {
+    required Uri? otherPicture,
+    required bool narrow,
+  }) {
     final text = Theme.of(context).textTheme;
     final picture = artist.coverArt ?? widget.artist.coverArt;
     final count = _counts(artist, albums, end: narrow);
@@ -253,7 +279,7 @@ class _ArtistPageState extends State<ArtistPage> {
                   // bottom, under the heading.
                   decoration: BoxDecoration(gradient: _fade(surface, start: fade)),
                   // Asked of the server as many pixels across as a phone's screen has.
-                  child: LargeCover(picture, size: 1200, icon: HugeIcons.strokeRoundedUser),
+                  child: LargeCover(picture, url: otherPicture, size: 1200, icon: HugeIcons.strokeRoundedUser),
                 ),
               ),
               // The heading over the picture's bottom, with how many albums they have at the end of its line; with no
@@ -291,7 +317,7 @@ class _ArtistPageState extends State<ArtistPage> {
           children: [
             // Behind them, the picture blurred into its colors, across the page, under half of the page's color at the
             // top and more of it lower down, all of it at the bottom of the round picture, where the page goes on.
-            if (picture != null)
+            if (picture != null || otherPicture != null)
               Positioned.fill(
                 child: ClipRect(
                   child: DecoratedBox(
@@ -300,7 +326,7 @@ class _ArtistPageState extends State<ArtistPage> {
                     // As the artists' grid has asked for it, which the blur leaves nothing more to see in.
                     child: ImageFiltered(
                       imageFilter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
-                      child: Cover(picture, icon: HugeIcons.strokeRoundedUser),
+                      child: Cover(picture, url: otherPicture, icon: HugeIcons.strokeRoundedUser),
                     ),
                   ),
                 ),
@@ -312,7 +338,9 @@ class _ArtistPageState extends State<ArtistPage> {
                   // Asked of the server as an album's cover on its page is.
                   SizedBox.square(
                     dimension: _widePicture,
-                    child: ClipOval(child: LargeCover(picture, size: 800, icon: HugeIcons.strokeRoundedUser)),
+                    child: ClipOval(
+                      child: LargeCover(picture, url: otherPicture, size: 800, icon: HugeIcons.strokeRoundedUser),
+                    ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(

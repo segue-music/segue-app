@@ -48,7 +48,8 @@ http.Response subsonic(Map<String, Object?> body) => http.Response(
 /// A server with four artists: Aerosmith, with two albums, none of them played, and a single and an EP, Cheap Trick,
 /// with one album, six of whose songs have played, Joe Perry, a member of Aerosmith by their MusicBrainz id, whose
 /// albums it doesn't give, and Ramones, with none. Aerosmith's albums are in four genres: Hard Rock (three of them),
-/// Blues Rock (two), Rock and Pop (one each, Rock first); Cheap Trick's in Power Pop. A search for "toys" finds an album; any other, the artist Aerosmith.
+/// Blues Rock (two), Rock and Pop (one each, Rock first); Cheap Trick's in Power Pop. A search for "toys" finds an
+/// album, one for "perry" the artist Joe Perry, any other the artist Aerosmith.
 /// Unless [played], nothing has played: not even Cheap Trick's songs. Cheap Trick's popular songs are three of that
 /// album's, Big Eyes first; the others' fail, as on a server that has none to give. Aerosmith has a biography, Last.fm's,
 /// a MusicBrainz id, and Cheap Trick and Ramones as the artists like them; the others have neither, which fails too.
@@ -254,6 +255,16 @@ http.Response server(http.Request request, {bool played = true}) {
     });
   }
 
+  if (path.endsWith('search3.view') && request.url.queryParameters['query'] == 'perry') {
+    return subsonic({
+      'searchResult3': {
+        'artist': [
+          {'id': 'ar4', 'name': 'Joe Perry', 'albumCount': 3, 'musicBrainzId': 'mb-perry'},
+        ],
+      },
+    });
+  }
+
   if (path.endsWith('search3.view')) {
     return subsonic({
       'searchResult3': {
@@ -327,11 +338,11 @@ Finder artistPictureAt(int size) => find.descendant(
   ),
 );
 
-/// The URL of the [n]th picture of Aerosmith that fanart.tv has.
-Uri fanartUrl(int n) => Uri.parse('https://assets.fanart.tv/fanart/aerosmith-$n.jpg');
+/// The URL of the [n]th picture of Aerosmith that fanart.tv has, or of [artist].
+Uri fanartUrl(int n, {String artist = 'aerosmith'}) => Uri.parse('https://assets.fanart.tv/fanart/$artist-$n.jpg');
 
-/// fanart.tv, with five pictures of Aerosmith (by their MusicBrainz id, mb1), the first the most liked, and none of
-/// anyone else; [asked] gets every request.
+/// fanart.tv, with five pictures of Aerosmith (by their MusicBrainz id, mb1), the first the most liked, two of Joe Perry
+/// (mb-perry), the second the most liked, and none of anyone else; [asked] gets every request.
 FanartTv fanartTv({List<http.Request>? asked}) => FanartTv(
   apiKey: 'key',
   client: MockClient((request) async {
@@ -341,6 +352,10 @@ FanartTv fanartTv({List<http.Request>? asked}) => FanartTv(
         if (request.url.path.endsWith('/mb1'))
           'artistthumb': [
             for (var n = 1; n <= 5; n++) {'id': '$n', 'url': '${fanartUrl(n)}', 'likes': '${5 - n}'},
+          ]
+        else if (request.url.path.endsWith('/mb-perry'))
+          'artistthumb': [
+            for (var n = 1; n <= 2; n++) {'id': 'p$n', 'url': '${fanartUrl(n, artist: 'joe-perry')}', 'likes': '$n'},
           ],
       }),
       200,
@@ -349,11 +364,14 @@ FanartTv fanartTv({List<http.Request>? asked}) => FanartTv(
 );
 
 /// The [n]th picture of Aerosmith that fanart.tv has, in their biography's gallery.
-Finder morePicture(int n) => find.byWidgetPredicate(
+Finder morePicture(int n) => fanartPicture(fanartUrl(n));
+
+/// The picture at [url], one of fanart.tv's, as the app shows it: taken no more pixels across than it shows.
+Finder fanartPicture(Uri url) => find.byWidgetPredicate(
   (widget) =>
       widget is Image &&
       switch (widget.image) {
-        ResizeImage(imageProvider: NetworkImage(:final url)) => url == '${fanartUrl(n)}',
+        ResizeImage(imageProvider: NetworkImage(url: final shown)) => shown == '$url',
         _ => false,
       },
 );
@@ -1010,10 +1028,14 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(tile('Aerosmith'));
       await tester.pumpAndSettle();
-      expect(asked, isEmpty, reason: 'only the biography shows them');
+      expect(
+        asked.map((request) => request.url.path),
+        isNot(contains('/v3/music/mb1')),
+        reason: 'only the biography shows those of an artist the server has a picture of',
+      );
       await tester.tap(find.descendant(of: find.byType(ArtistPage), matching: find.byTooltip('Ver a biografia')));
       await tester.pumpAndSettle();
-      expect(asked.single.url.path, '/v3/music/mb1', reason: 'by their MusicBrainz id');
+      expect(asked.last.url.path, '/v3/music/mb1', reason: 'by their MusicBrainz id');
 
       final page = find.byType(BiographyPage);
       final picture = find.descendant(of: page, matching: find.byType(LargeCover));
@@ -1100,6 +1122,54 @@ void main() {
     expect(tester.getRect(morePicture(2)).left, tester.getRect(morePicture(1)).right + 8);
     expect(tester.getTopLeft(find.text('Aerosmith is an American rock band.')), text, reason: 'where it was');
   });
+
+  for (final (screen, size) in [('a wide screen', const Size(1000, 700)), ('a phone', const Size(360, 640))]) {
+    testWidgets('on $screen, an artist the server has no picture of has the one fanart.tv\'s users like most, by their '
+        'MusicBrainz id: in search, in the artists\' grid and on their page, asked for once; one without the id, a '
+        'person', (tester) async {
+      final narrow = size.width < 600;
+      final asked = <http.Request>[];
+      await pumpHome(tester, size, fanartTv: fanartTv(asked: asked));
+
+      if (narrow) {
+        await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Buscar')));
+        await tester.pumpAndSettle();
+      }
+
+      await tester.enterText(find.byType(TextField), 'perry');
+      await tester.pump(HomePage.searchTypingPause);
+      await tester.pumpAndSettle();
+      final liked = fanartPicture(fanartUrl(2, artist: 'joe-perry'));
+      expect(find.descendant(of: find.widgetWithText(ListTile, 'Joe Perry'), matching: liked), findsOneWidget);
+      expect(asked.map((request) => request.url.path), ['/v3/music/mb-perry']);
+
+      await tester.tap(
+        narrow
+            ? find.descendant(of: find.byType(NavigationBar), matching: find.text('Artistas'))
+            : find.byTooltip('Artistas'),
+      );
+      await tester.pumpAndSettle();
+      expect(find.descendant(of: tile('Joe Perry'), matching: liked), findsOneWidget);
+      expect(find.descendant(of: tile('Ramones'), matching: find.byType(Image)), findsNothing);
+      expect(find.descendant(of: tile('Ramones'), matching: icon(HugeIcons.strokeRoundedUser)), findsOneWidget);
+
+      await tester.tap(tile('Joe Perry'));
+      await tester.pumpAndSettle();
+      expect(find.descendant(of: artistPicture(), matching: liked), findsWidgets);
+
+      if (!narrow) {
+        final backdrop = find.descendant(of: find.byType(ArtistPage), matching: find.byType(ImageFiltered));
+        expect(
+          find.descendant(of: backdrop, matching: liked),
+          findsOneWidget,
+          reason: 'behind, blurred',
+        );
+      }
+
+      expect(asked, hasLength(1), reason: 'remembered, and none for the others');
+      await tester.pumpWidget(const SizedBox());
+    });
+  }
 
   for (final (screen, size) in [('a wide screen', const Size(1000, 700)), ('a phone', const Size(360, 640))]) {
     testWidgets(
