@@ -193,17 +193,27 @@ void main() {
     addTearDown(choice.dispose);
     await pumpHome(tester, choice);
     expect(find.byTooltip('Idioma'), findsNothing, reason: 'no menu of its own in the top bar');
-    Finder option(String name) => find.widgetWithText(ListTile, name);
+    // In the sheet of the languages, which the settings' choice of them opens.
+    Finder option(String name) =>
+        find.descendant(of: find.byType(BottomSheet), matching: find.widgetWithText(ListTile, name));
     bool picked(String name) =>
         find.descendant(of: option(name), matching: find.byType(ThemedIcon)).evaluate().isNotEmpty;
 
+    Future<void> openLanguages(String choiceName) async {
+      await tester.tap(find.widgetWithText(ListTile, choiceName));
+      await tester.pumpAndSettle();
+    }
+
     await tester.tap(find.byTooltip('Configurações'));
     await tester.pumpAndSettle();
+    await openLanguages('Idioma');
     await tester.tap(option('English'));
     await tester.pumpAndSettle();
     expect(choice.value, const Locale('en'));
     expect(find.text('Settings'), findsOneWidget, reason: 'the page, in English at once');
-    expect(find.text('Albums'), findsOneWidget, reason: 'the sections\' bar, in English');
+    expect(find.text('Library'), findsOneWidget, reason: 'the bar at the bottom, in English');
+
+    await openLanguages('Language');
     expect(
       [
         for (final name in ['System language', 'English', 'Español', 'Português']) picked(name),
@@ -214,7 +224,7 @@ void main() {
     await tester.tap(option('System language'));
     await tester.pumpAndSettle();
     expect(choice.value, isNull);
-    expect(find.text('Álbuns'), findsOneWidget);
+    expect(find.text('Biblioteca'), findsOneWidget);
     expect(find.text('Configurações'), findsOneWidget);
   });
 

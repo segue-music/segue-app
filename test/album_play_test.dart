@@ -18,6 +18,7 @@ import 'package:segue/ui/shortcuts.dart';
 import 'package:segue/ui/themed_icon.dart';
 
 import 'fakes.dart';
+import 'sections.dart';
 import 'side_rail.dart';
 
 const credentials = SubsonicCredentials(username: 'a', token: 't', salt: 's');
@@ -105,9 +106,7 @@ Future<PlayerController> pumpAlbums(
     ),
   );
   await tester.pumpAndSettle();
-  // The side rail's, or on a phone the bottom bar's.
-  await tester.tap(find.byTooltip('Álbuns'));
-  await tester.pumpAndSettle();
+  await openSection(tester, 'Álbuns');
   return player;
 }
 

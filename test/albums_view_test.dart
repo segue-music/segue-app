@@ -19,6 +19,7 @@ import 'package:segue/ui/home_page.dart';
 import 'package:segue/ui/now_playing_bar.dart';
 
 import 'fakes.dart';
+import 'sections.dart';
 
 http.Response subsonic(Map<String, Object?> body) => http.Response(
   jsonEncode({
@@ -114,9 +115,7 @@ Future<List<String>> pumpAlbums(
   );
   await tester.pumpAndSettle();
   asked.clear(); // the home's rows
-  // The side rail's, or on a phone the bottom bar's.
-  await tester.tap(find.byTooltip('Álbuns'));
-  await tester.pumpAndSettle();
+  await openSection(tester, 'Álbuns');
   return asked;
 }
 
