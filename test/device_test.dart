@@ -47,6 +47,35 @@ void main() {
     expect(await hasMobileData(), isFalse);
   });
 
+  testWidgets('the screen stays on while one keeps it so, though another that did goes as it comes', (tester) async {
+    final keptOn = <Object?>[];
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      keptOn.add(call.arguments);
+      return null;
+    });
+    Widget keeping({required bool first, required bool second}) => Column(
+      children: [
+        if (first) const KeepScreenOn(key: ValueKey('first'), child: SizedBox()),
+        if (second) const KeepScreenOn(key: ValueKey('second'), child: SizedBox()),
+      ],
+    );
+
+    await tester.pumpWidget(keeping(first: true, second: false));
+    expect(keptOn, [true]);
+    await tester.pumpWidget(keeping(first: true, second: true));
+    await tester.pumpWidget(keeping(first: false, second: true));
+    expect(keptOn, [true], reason: 'the second still keeps it on');
+    await tester.pumpWidget(keeping(first: false, second: false));
+    expect(keptOn, [true, false]);
+  });
+
+  testWidgets('where the platform has no such channel (a computer), the screen goes off as the system has it', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const KeepScreenOn(child: SizedBox()));
+    await tester.pumpWidget(const SizedBox());
+  });
+
   test('the device goes by the name its system gives it (on Android, its settings), not the system\'s', () async {
     messenger.setMockMethodCallHandler(channel, (call) async => call.method == 'deviceName' ? 'TV do quarto' : null);
     expect(await systemDeviceName(), 'TV do quarto');

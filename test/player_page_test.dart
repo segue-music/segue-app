@@ -557,6 +557,37 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('while the lyrics show full screen, the screen stays on, and may go off again as they close', (
+    tester,
+  ) async {
+    const channel = MethodChannel('segue/device');
+    final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    final keptOn = <Object?>[];
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      if (call.method == 'keepScreenOn') {
+        keptOn.add(call.arguments);
+      }
+
+      return null;
+    });
+    addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+    await pumpBar(tester, server: withLyrics(verse));
+    await openPlayer(tester);
+    await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
+    await tester.pumpAndSettle();
+    expect(keptOn, isEmpty, reason: 'under the player, they are not all there is');
+
+    await tester.tap(onPage(find.byTooltip('Maximizar a letra')));
+    await tester.pumpAndSettle();
+    expect(keptOn, [true]);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(find.byType(LyricsPage), findsNothing);
+    expect(keptOn, [true, false]);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('at their top left, the lyrics full screen have a button that hides them: they go down, whole, over '
       'the player, which is back as it opened, without them', (tester) async {
     await pumpBar(tester, server: withLyrics(verse));

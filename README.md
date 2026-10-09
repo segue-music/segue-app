@@ -88,7 +88,8 @@ the device it runs on.
   with a note for a part with no singing, and a line tapped goes there; under the player, the cover
   smaller to make room for them, a tap on them (or the button at their corner) opens them full screen,
   with the seek bar and the buttons, where a button at the top left hides them, back to the player
-  as it opened, and on a phone a drag down takes them down with the finger, back under the player; a wide bar's lyrics button opens the player with them. The bar stays put from page to page, and on a wide screen under the
+  as it opened, and on a phone a drag down takes them down with the finger, back under the player (full screen, on
+  a phone or a tablet, they keep the screen on); a wide bar's lyrics button opens the player with them. The bar stays put from page to page, and on a wide screen under the
   full-screen player too, whose top then leaves the lyrics, the queue and the devices to it, and the
   player the seek bar and the buttons, showing the song alone; on a phone it has them all, the
   lyrics, the devices and the queue in a bar at the bottom, and the album's name at the top, and a

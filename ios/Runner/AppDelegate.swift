@@ -21,6 +21,10 @@ import UIKit
       // user-assigned-device-name entitlement; without it, iOS says "iPhone" or "iPad".
       case "deviceName": result(UIDevice.current.name)
       case "hasMobileData": result(self.hasMobileData())
+      // While the app is in front, the screen stays on (lib/device.dart's KeepScreenOn).
+      case "keepScreenOn":
+        UIApplication.shared.isIdleTimerDisabled = call.arguments as? Bool ?? false
+        result(nil)
       default: result(FlutterMethodNotImplemented)
       }
     }

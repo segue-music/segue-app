@@ -7,6 +7,7 @@ import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.view.WindowManager
 import com.ryanheise.audioservice.AudioServiceActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -35,6 +36,10 @@ class MainActivity : AudioServiceActivity() {
                 "isTelevision" -> result.success(isTelevision())
                 "deviceName" -> result.success(deviceName())
                 "hasMobileData" -> result.success(hasMobileData())
+                "keepScreenOn" -> {
+                    keepScreenOn(call.arguments as Boolean)
+                    result.success(null)
+                }
                 else -> result.notImplemented()
             }
         }
@@ -45,6 +50,15 @@ class MainActivity : AudioServiceActivity() {
 
     /** Whether the device has a mobile network, and with it mobile data: a phone, a tablet with a SIM; not a TV. */
     private fun hasMobileData(): Boolean = packageManager.hasSystemFeature(PackageManager.FEATURE_TELEPHONY)
+
+    /** Keeps the screen on while the window shows, or lets it go off again (lib/device.dart's KeepScreenOn). */
+    private fun keepScreenOn(on: Boolean) {
+        if (on) {
+            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        } else {
+            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
 
     /**
      * A phone stays in portrait, as the app's narrow layout is made for it (the pages' 600 dp). A

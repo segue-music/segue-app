@@ -56,3 +56,50 @@ Future<String> systemDeviceName() async {
 
   return Platform.isIOS ? 'iPhone' : Platform.localHostname;
 }
+
+/// Keeps the screen on while it is in the tree, as the lyrics full screen do, which are read rather than touched:
+/// Android's window keeps it on (MainActivity.kt), and iOS's idle timer is off (AppDelegate.swift). Elsewhere there is
+/// no such channel, and the screen goes off as the system has it.
+class KeepScreenOn extends StatefulWidget {
+  const KeepScreenOn({required this.child, super.key});
+
+  final Widget child;
+
+  @override
+  State<KeepScreenOn> createState() => _KeepScreenOnState();
+}
+
+class _KeepScreenOnState extends State<KeepScreenOn> {
+  /// How many are in the tree: one that opens as another is still closing (the lyrics minimized and maximized again at
+  /// once) keeps the screen on after that one goes.
+  static var _count = 0;
+
+  @override
+  void initState() {
+    super.initState();
+
+    if (_count++ == 0) {
+      _keepScreenOn(true);
+    }
+  }
+
+  @override
+  void dispose() {
+    if (--_count == 0) {
+      _keepScreenOn(false);
+    }
+
+    super.dispose();
+  }
+
+  Future<void> _keepScreenOn(bool on) async {
+    try {
+      await _channel.invokeMethod<void>('keepScreenOn', on);
+    } on MissingPluginException {
+      // no such channel: not a phone or a tablet
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
+}
