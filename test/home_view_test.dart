@@ -22,6 +22,7 @@ import 'package:segue/subsonic/api.dart';
 import 'package:segue/theme_choice.dart';
 import 'package:segue/ui/album_page.dart';
 import 'package:segue/ui/albums_view.dart';
+import 'package:segue/ui/artists_view.dart';
 import 'package:segue/ui/home_page.dart';
 import 'package:segue/ui/home_view.dart';
 import 'package:segue/ui/settings_page.dart';
@@ -442,10 +443,10 @@ void main() {
       expect(title('Início'), findsOneWidget);
 
       await openSettings(tester);
-      await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Álbuns')));
+      await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Biblioteca')));
       await tester.pumpAndSettle();
       expect(find.byType(SettingsPage), findsNothing, reason: 'a section picked closes it');
-      expect(title('Álbuns'), findsOneWidget);
+      expect(title('Biblioteca'), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
     },
   );
@@ -836,14 +837,52 @@ void main() {
     expect(tester.getRect(logo).left, lessThan(16));
     expect(find.descendant(of: bar, matching: find.text('Início')), findsOneWidget);
 
-    await tester.tap(find.descendant(of: bar, matching: find.text('Álbuns')));
+    await tester.tap(find.descendant(of: bar, matching: find.text('Biblioteca')));
     await tester.pumpAndSettle();
-    expect(title('Álbuns'), findsOneWidget);
+    expect(title('Biblioteca'), findsOneWidget);
 
     await tester.tap(logo);
     await tester.pumpAndSettle();
     expect(title('Início'), findsOneWidget);
     expect(tester.widget<NavigationBar>(bar).selectedIndex, 0);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a phone, the bar at the bottom has the home, the search and the library, whose albums, artists and '
+      'playlists are tabs at its top; it opens again on the one picked last', (tester) async {
+    await pumpHome(tester, const Size(360, 640));
+    final bar = find.byType(NavigationBar);
+    expect(
+      [
+        for (final destination in tester.widgetList<NavigationDestination>(find.byType(NavigationDestination)))
+          destination.label,
+      ],
+      ['Início', 'Buscar', 'Biblioteca'],
+    );
+
+    await tester.tap(find.descendant(of: bar, matching: find.text('Biblioteca')));
+    await tester.pumpAndSettle();
+    final tabs = find.byType(TabBar);
+    expect(find.descendant(of: tabs, matching: find.byType(Tab)), findsNWidgets(3));
+    expect(
+      [for (final tab in tester.widgetList<Tab>(find.descendant(of: tabs, matching: find.byType(Tab)))) tab.text],
+      ['Álbuns', 'Artistas', 'Playlists'],
+    );
+    expect(tester.widget<TabBar>(tabs).controller?.index, 0, reason: 'the albums first');
+    expect(find.byType(AlbumsView), findsOneWidget);
+
+    await tester.tap(find.descendant(of: tabs, matching: find.text('Artistas')));
+    await tester.pumpAndSettle();
+    expect(find.byType(AlbumsView), findsNothing);
+    expect(find.byType(ArtistsView), findsOneWidget);
+
+    await tester.tap(find.descendant(of: bar, matching: find.text('Início')));
+    await tester.pumpAndSettle();
+    expect(tabs, findsNothing);
+    await tester.tap(find.descendant(of: bar, matching: find.text('Biblioteca')));
+    await tester.pumpAndSettle();
+    expect(tester.widget<TabBar>(tabs).controller?.index, 1);
+    expect(find.byType(ArtistsView), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -970,6 +1009,25 @@ void main() {
       expect(asked.last, allOf(containsPair('type', type), containsPair('size', '200')), reason: row);
     }
 
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a phone, a row\'s title opens the library on its albums tab, from another tab too, in the row\'s '
+      'order', (tester) async {
+    await pumpHome(tester, const Size(360, 640));
+    final bar = find.byType(NavigationBar);
+    await tester.tap(find.descendant(of: bar, matching: find.text('Biblioteca')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.descendant(of: find.byType(TabBar), matching: find.text('Artistas')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.descendant(of: bar, matching: find.text('Início')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Lançamentos'));
+    await tester.pumpAndSettle();
+    expect(tester.widget<NavigationBar>(bar).selectedIndex, 2);
+    expect(tester.widget<TabBar>(find.byType(TabBar)).controller?.index, 0);
+    expect(tester.widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'Lançamentos')).selected, isTrue);
     await tester.pumpWidget(const SizedBox());
   });
 

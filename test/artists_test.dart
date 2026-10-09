@@ -35,6 +35,7 @@ import 'package:url_launcher_platform_interface/link.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
 import 'fakes.dart';
+import 'sections.dart';
 import 'side_rail.dart';
 
 http.Response subsonic(Map<String, Object?> body) => http.Response(
@@ -735,14 +736,13 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('on a phone, the sections are in a bar at the bottom, the artists\' orders in icons, and the bar stays '
-      'under an artist\'s page', (tester) async {
+  testWidgets('on a phone, the artists are a tab of the library, in the bar at the bottom, their orders in icons, and '
+      'the bar stays under an artist\'s page', (tester) async {
     await pumpHome(tester, const Size(360, 640));
     expect(find.byType(NavigationBar), findsOneWidget);
-    expect(find.byTooltip('Artistas'), findsOneWidget, reason: 'in the bar alone, with no side rail');
-    await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Artistas')));
-    await tester.pumpAndSettle();
-    expect(title('Artistas'), findsOneWidget);
+    expect(find.byTooltip('Artistas'), findsNothing, reason: 'with no side rail');
+    await openSection(tester, 'Artistas');
+    expect(title('Biblioteca'), findsOneWidget);
     expect(find.text('Cheap Trick'), findsOneWidget);
     // The orders in icons, their names in tooltips, as on an artist's page: A to Z, and headphones for what the user
     // listens to.
@@ -776,8 +776,7 @@ void main() {
     tester.view.padding = const FakeViewPadding(top: 24);
     tester.view.viewPadding = const FakeViewPadding(top: 24);
     await pumpHome(tester, const Size(360, 640));
-    await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Artistas')));
-    await tester.pumpAndSettle();
+    await openSection(tester, 'Artistas');
     await tester.tap(find.text('Cheap Trick'));
     await tester.pumpAndSettle();
     final picture = tester.getRect(artistPicture());
@@ -1001,9 +1000,7 @@ void main() {
         'their picture; an artist without one has no button', (tester) async {
       final narrow = size.width < 600;
       await pumpHome(tester, size);
-      final artists = narrow ? find.text('Artistas') : find.byTooltip('Artistas');
-      await tester.tap(artists);
-      await tester.pumpAndSettle();
+      await openSection(tester, 'Artistas');
       await tester.tap(tile('Aerosmith'));
       await tester.pumpAndSettle();
       await tester.tap(find.descendant(of: find.byType(ArtistPage), matching: find.byTooltip('Ver a biografia')));
@@ -1047,8 +1044,7 @@ void main() {
       expect(artistName('Aerosmith'), findsOneWidget, reason: 'back on their page');
 
       // A section closes the page.
-      await tester.tap(artists);
-      await tester.pumpAndSettle();
+      await openSection(tester, 'Artistas');
       await tester.tap(tile('Cheap Trick'));
       await tester.pumpAndSettle();
       expect(artistName('Cheap Trick'), findsOneWidget);
@@ -1064,8 +1060,7 @@ void main() {
       final narrow = size.width < 600;
       final asked = <http.Request>[];
       await pumpHome(tester, size, fanartTv: fanartTv(asked: asked));
-      await tester.tap(narrow ? find.text('Artistas') : find.byTooltip('Artistas'));
-      await tester.pumpAndSettle();
+      await openSection(tester, 'Artistas');
       await tester.tap(tile('Aerosmith'));
       await tester.pumpAndSettle();
       expect(
@@ -1183,12 +1178,7 @@ void main() {
       expect(find.descendant(of: find.widgetWithText(ListTile, 'Joe Perry'), matching: liked), findsOneWidget);
       expect(asked.map((request) => request.url.path), ['/v3/music/mb-perry']);
 
-      await tester.tap(
-        narrow
-            ? find.descendant(of: find.byType(NavigationBar), matching: find.text('Artistas'))
-            : find.byTooltip('Artistas'),
-      );
-      await tester.pumpAndSettle();
+      await openSection(tester, 'Artistas');
       expect(find.descendant(of: tile('Joe Perry'), matching: liked), findsOneWidget);
       expect(find.descendant(of: tile('Ramones'), matching: find.byType(Image)), findsNothing);
       expect(find.descendant(of: tile('Ramones'), matching: icon(HugeIcons.strokeRoundedUser)), findsOneWidget);
@@ -1217,8 +1207,7 @@ void main() {
       'their pages; an artist with none has no row',
       (tester) async {
         await pumpHome(tester, size);
-        await tester.tap(size.width < 600 ? find.text('Artistas') : find.byTooltip('Artistas'));
-        await tester.pumpAndSettle();
+        await openSection(tester, 'Artistas');
         await tester.tap(tile('Aerosmith'));
         await tester.pumpAndSettle();
         // The page's own, the first: the row's scrolls sideways.
@@ -1293,8 +1282,7 @@ void main() {
   testWidgets('on a phone, an artist\'s genres are over the bottom of their picture, between their name and the choice '
       'of their songs, with no halo', (tester) async {
     await pumpHome(tester, const Size(360, 640));
-    await tester.tap(find.text('Artistas'));
-    await tester.pumpAndSettle();
+    await openSection(tester, 'Artistas');
     await tester.tap(tile('Cheap Trick'));
     await tester.pumpAndSettle();
     final page = find.byType(ArtistPage);
@@ -1315,8 +1303,7 @@ void main() {
     testWidgets('on $screen, an artist\'s genres show the ink of the focus (a TV\'s) over their picture: on a material '
         'of their own, not on the page\'s, under the picture', (tester) async {
       await pumpHome(tester, size);
-      await tester.tap(size.width < 600 ? find.text('Artistas') : find.byTooltip('Artistas'));
-      await tester.pumpAndSettle();
+      await openSection(tester, 'Artistas');
       await tester.tap(tile('Cheap Trick'));
       await tester.pumpAndSettle();
       final page = find.byType(ArtistPage);
@@ -1531,8 +1518,7 @@ void main() {
         ),
       );
       await pumpHome(tester, size, musicBrainz: brainz);
-      await tester.tap(size.width < 600 ? find.text('Artistas') : find.byTooltip('Artistas'));
-      await tester.pumpAndSettle();
+      await openSection(tester, 'Artistas');
       await tester.tap(tile('Aerosmith'));
       await tester.pumpAndSettle();
       await tester.tap(find.descendant(of: find.byType(ArtistPage), matching: find.byTooltip('Ver a biografia')));

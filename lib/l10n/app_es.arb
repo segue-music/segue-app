@@ -148,6 +148,7 @@
   "home": "Inicio",
   "genres": "Géneros",
   "playlists": "Playlists",
+  "library": "Biblioteca",
   "playlistsEmpty": "Aún no hay playlists.",
   "couldNotListPlaylists": "No pude cargar las playlists: {error}",
   "playlist": "Playlist",

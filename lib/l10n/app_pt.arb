@@ -910,6 +910,10 @@
   "@playlists": {
     "description": "The playlists section."
   },
+  "library": "Biblioteca",
+  "@library": {
+    "description": "On a phone, the destination of the bar at the bottom that holds the albums, the artists and the playlists, in tabs."
+  },
   "playlistsEmpty": "Ainda não há playlists.",
   "@playlistsEmpty": {
     "description": "The playlists section when the server has none for the user."

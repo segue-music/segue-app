@@ -20,6 +20,7 @@ import 'package:segue/ui/playlists_view.dart';
 import 'package:segue/ui/themed_icon.dart';
 
 import 'fakes.dart';
+import 'sections.dart';
 import 'side_rail.dart';
 
 http.Response subsonic(Map<String, Object?> body) => http.Response(
@@ -211,19 +212,12 @@ Future<PlayerController> pumpHome(WidgetTester tester, Size size, {Library? libr
   return player;
 }
 
-/// Goes to the playlists, on a phone ([size] narrow) by the bar at the bottom.
-Future<void> openPlaylists(WidgetTester tester, {Size size = const Size(1000, 700)}) async {
-  await tester.tap(
-    size.width < 600
-        ? find.descendant(of: find.byType(NavigationBar), matching: find.text('Playlists'))
-        : find.byTooltip('Playlists'),
-  );
-  await tester.pumpAndSettle();
-}
+/// Goes to the playlists.
+Future<void> openPlaylists(WidgetTester tester) => openSection(tester, 'Playlists');
 
 /// Opens the playlist named [name], from the playlists.
-Future<void> openPlaylist(WidgetTester tester, String name, {Size size = const Size(1000, 700)}) async {
-  await openPlaylists(tester, size: size);
+Future<void> openPlaylist(WidgetTester tester, String name) async {
+  await openPlaylists(tester);
   await tester.tap(tile(name));
   await tester.pumpAndSettle();
 }
@@ -343,12 +337,7 @@ void main() {
       final library = Library();
       final asked = library.asked;
       await pumpHome(tester, size, library: library);
-      await tester.tap(
-        size.width < 600
-            ? find.descendant(of: find.byType(NavigationBar), matching: find.text('Playlists'))
-            : find.byTooltip('Playlists'),
-      );
-      await tester.pumpAndSettle();
+      await openPlaylists(tester);
       expect(asked.where((endpoint) => endpoint == 'getPlaylists.view'), hasLength(1));
 
       final list = find.descendant(of: find.byType(PlaylistsView), matching: find.byType(Scrollable));
@@ -359,13 +348,11 @@ void main() {
     }, variant: TargetPlatformVariant.only(platform));
   }
 
-  testWidgets('on a phone, the playlists are in the bar at the bottom, which stays under a playlist\'s page', (
-    tester,
-  ) async {
+  testWidgets('on a phone, the playlists are a tab of the library, in the bar at the bottom, which stays under a '
+      'playlist\'s page', (tester) async {
     await pumpHome(tester, const Size(360, 640));
-    await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Playlists')));
-    await tester.pumpAndSettle();
-    expect(find.descendant(of: find.byType(AppBar), matching: find.text('Playlists')), findsOneWidget);
+    await openPlaylists(tester);
+    expect(find.descendant(of: find.byType(AppBar), matching: find.text('Biblioteca')), findsOneWidget);
 
     await tester.tap(tile('Road trip'));
     await tester.pumpAndSettle();
@@ -501,7 +488,7 @@ void main() {
   ) async {
     final library = Library();
     await pumpHome(tester, const Size(360, 640), library: library);
-    await openPlaylist(tester, 'Road trip', size: const Size(360, 640));
+    await openPlaylist(tester, 'Road trip');
     final height = tester.getSize(tile('Dream Police')).height;
 
     await tester.drag(tile('Dream Police'), Offset(0, -height * 1.5));
@@ -532,7 +519,7 @@ void main() {
 
   testWidgets('on a phone, a song\'s artist is plain text: only the player links them', (tester) async {
     await pumpHome(tester, const Size(360, 640));
-    await openPlaylist(tester, 'Road trip', size: const Size(360, 640));
+    await openPlaylist(tester, 'Road trip');
     expect(find.descendant(of: tile('Dream Police'), matching: find.text('Cheap Trick')), findsOneWidget);
     expect(find.descendant(of: tile('Dream Police'), matching: find.byTooltip('Abrir o artista')), findsNothing);
     await tester.pumpWidget(const SizedBox());
@@ -544,7 +531,7 @@ void main() {
     variant: const TargetPlatformVariant({TargetPlatform.android, TargetPlatform.linux}),
     (tester) async {
       await pumpHome(tester, const Size(360, 640));
-      await openPlaylist(tester, 'Road trip', size: const Size(360, 640));
+      await openPlaylist(tester, 'Road trip');
       final menus = find.byTooltip('Mais opções');
       expect(menus, findsNWidgets(3), reason: 'the playlist\'s and its two songs\'');
       expect(tester.getRect(find.byTooltip('Tocar a playlist')).right, 360 - 16);

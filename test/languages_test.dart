@@ -26,6 +26,7 @@ import 'package:segue/ui/settings_page.dart';
 import 'package:segue/ui/theme.dart';
 
 import 'fakes.dart';
+import 'sections.dart';
 
 const credentials = SubsonicCredentials(username: 'a', token: 't', salt: 's');
 
@@ -295,16 +296,16 @@ void main() {
         // On a phone the page's arrow; on a wide screen the top bar's.
         await tap(tester, narrow ? find.byType(BackButton).hitTestable() : find.byTooltip(strings.back));
 
-        await tap(tester, narrow ? find.text(strings.albums) : find.byTooltip(strings.albums));
+        await openSection(tester, strings.albums, strings: strings);
         expect(find.widgetWithText(ChoiceChip, strings.orderLatest), findsOneWidget);
 
-        await tap(tester, narrow ? find.text(strings.artists) : find.byTooltip(strings.artists));
+        await openSection(tester, strings.artists, strings: strings);
         expect(find.text(strings.albumCount(2)), findsOneWidget);
 
-        await tap(tester, narrow ? find.text(strings.genres) : find.byTooltip(strings.genres));
+        await openSection(tester, strings.genres, strings: strings);
         expect(find.text(strings.albumCount(2)), findsOneWidget);
 
-        await tap(tester, narrow ? find.text(strings.playlists) : find.byTooltip(strings.playlists));
+        await openSection(tester, strings.playlists, strings: strings);
         expect(find.text(strings.trackCount(2)), findsOneWidget);
         await tap(tester, find.text('Road trip'));
         expect(find.byTooltip(strings.playPlaylist), findsOneWidget);

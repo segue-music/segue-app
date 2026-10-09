@@ -18,6 +18,7 @@ import 'package:segue/ui/home_page.dart';
 import 'package:segue/ui/now_playing_bar.dart';
 
 import 'fakes.dart';
+import 'sections.dart';
 import 'side_rail.dart';
 
 http.Response subsonic(Map<String, Object?> body) => http.Response(
@@ -253,8 +254,7 @@ void main() {
 
   testWidgets('dragged down from its top, the genres come again', (tester) async {
     final asked = await pumpHome(tester, const Size(360, 640));
-    await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Gêneros')));
-    await tester.pumpAndSettle();
+    await openSection(tester, 'Gêneros');
 
     // The genres' most played come from the 500 most played albums, which the home's row isn't.
     int mostPlayed() => asked.where((query) => query['type'] == 'frequent' && query['size'] == '500').length;
@@ -268,11 +268,13 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('on a phone, the genres are in the bar at the bottom, which stays under a genre\'s page', (tester) async {
+  testWidgets('on a phone, the genres are in the search, until something is searched, in the bar at the bottom, which '
+      'stays under a genre\'s page', (tester) async {
     await pumpHome(tester, const Size(360, 640));
-    await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Gêneros')));
+    await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Buscar')));
     await tester.pumpAndSettle();
-    expect(title('Gêneros'), findsOneWidget);
+    expect(title('Buscar'), findsOneWidget);
+    expect(find.byType(SearchBar), findsOneWidget);
     expect(tile('hard rock'), findsOneWidget);
 
     await tester.tap(tile('hard rock'));

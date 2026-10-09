@@ -70,9 +70,9 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-/// The library's sections, in the side rail (or, on a phone, the bar at the bottom). The app's icon, in the top
-/// bar, opens the home too, and on a wide screen it alone does. The search is a section on a phone only, where its
-/// bar shows with it; on a wide screen the bar is always in the top bar.
+/// The library's sections, in the side rail (on a phone, in the bar at the bottom's [_Destination]s). The app's icon, in
+/// the top bar, opens the home too, and on a wide screen it alone does. The search is a section on a phone only, where
+/// its bar shows with it; on a wide screen the bar is always in the top bar.
 enum _Section {
   home(HugeIcons.strokeRoundedHome01),
   albums(HugeIcons.strokeRoundedCd),
@@ -97,7 +97,36 @@ enum _Section {
   };
 }
 
-class _HomePageState extends State<HomePage> {
+/// On a phone, the bar at the bottom's destinations, fewer than the sections, which wouldn't fit its width: the home,
+/// the search, which shows the genres until something is searched, and the library, whose albums, artists and playlists
+/// are tabs at its top.
+enum _Destination {
+  home(HugeIcons.strokeRoundedHome01),
+  search(HugeIcons.strokeRoundedSearch01),
+  library(HugeIcons.strokeRoundedLibrary);
+
+  const _Destination(this.icon);
+
+  final HugeIconData icon;
+
+  /// The library's tabs, in their order.
+  static const libraryTabs = [_Section.albums, _Section.artists, _Section.playlists];
+
+  /// The destination [section] is in.
+  static _Destination of(_Section section) => switch (section) {
+    _Section.home => home,
+    _Section.search || _Section.genres => search,
+    _Section.albums || _Section.artists || _Section.playlists => library,
+  };
+
+  String label(AppLocalizations strings) => switch (this) {
+    home => strings.home,
+    search => strings.search,
+    library => strings.library,
+  };
+}
+
+class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin {
   final _search = TextEditingController();
   Timer? _typing;
   String _query = '';
@@ -117,6 +146,9 @@ class _HomePageState extends State<HomePage> {
 
   /// The sections opened so far: each loads the first time it is opened.
   final _opened = {_Section.home};
+
+  /// On a phone, the library's tabs: the one picked, which the library opens on again.
+  late final _libraryTabs = TabController(length: _Destination.libraryTabs.length, vsync: this);
 
   /// On a wide screen, the page area's navigator, and the pages opened in it.
   final _pages = GlobalKey<NavigatorState>();
@@ -173,6 +205,11 @@ class _HomePageState extends State<HomePage> {
   /// Shows [section], closing the pages over it.
   void _select(_Section section) {
     _history.closeAll();
+
+    if (_Destination.libraryTabs.contains(section)) {
+      _libraryTabs.index = _Destination.libraryTabs.indexOf(section);
+    }
+
     setState(() {
       _section = section;
       _opened.add(section);
@@ -184,6 +221,13 @@ class _HomePageState extends State<HomePage> {
       _clearSearch();
     }
   }
+
+  /// On a phone, shows [destination]: the library on the tab picked last.
+  void _open(_Destination destination) => _select(switch (destination) {
+    _Destination.home => _Section.home,
+    _Destination.search => _Section.search,
+    _Destination.library => _Destination.libraryTabs[_libraryTabs.index],
+  });
 
   /// The albums tab, in [order].
   void _showAlbums(AlbumOrder order) {
@@ -246,6 +290,7 @@ class _HomePageState extends State<HomePage> {
     _search.dispose();
     _searchFocus.dispose();
     _history.dispose();
+    _libraryTabs.dispose();
     super.dispose();
   }
 
@@ -257,8 +302,14 @@ class _HomePageState extends State<HomePage> {
     final width = MediaQuery.sizeOf(context).width;
     final narrow = _narrow;
     // On a wide screen the search is the top bar's, not a section: a window narrowed to the search and widened again
-    // shows the home.
-    final shown = !narrow && _section == _Section.search ? _Section.home : _section;
+    // shows the home. On a phone the genres are the search's, before something is searched.
+    final shown = switch (_section) {
+      _Section.search when !narrow => _Section.home,
+      _Section.genres when narrow => _Section.search,
+      final section => section,
+    };
+    // Shown in another's place, as the window changes width, a section loads too.
+    _opened.add(shown);
     final television = MediaQuery.maybeNavigationModeOf(context) == NavigationMode.directional;
     // On a phone, on a line of its own, as wide as the screen; on a wide one, at most 600 and two fifths of the window,
     // which on a TV's (960 wide) leaves the top bar more than the search.
@@ -288,9 +339,6 @@ class _HomePageState extends State<HomePage> {
           // tablet, unfocusing it only for a mouse.
           onTapOutside: (_) => _searchFocus.unfocus(),
           hintText: strings.searchHint,
-          // On a phone, where the bar shows as the search opens: ready to type, but for a search already there, whose
-          // results the keyboard would cover.
-          autoFocus: narrow && _search.text.isEmpty,
           leading: const ThemedIcon(HugeIcons.strokeRoundedSearch01),
           trailing: [
             ListenableBuilder(
@@ -348,8 +396,14 @@ class _HomePageState extends State<HomePage> {
               _Section.artists => const ArtistsView(),
               _Section.genres => const GenresView(),
               _Section.playlists => const PlaylistsView(),
-              // On a phone, blank until a search finds something.
-              _Section.search => results == null ? const SizedBox.shrink() : SearchResultsList(results),
+              // On a phone, the genres until a search finds something, which come back as it is cleared, where they were.
+              _Section.search => Stack(
+                fit: StackFit.expand,
+                children: [
+                  Visibility(visible: results == null, maintainState: true, child: const GenresView()),
+                  if (results != null) SearchResultsList(results),
+                ],
+              ),
             },
           ),
         // On a wide screen, over the section.
@@ -373,10 +427,12 @@ class _HomePageState extends State<HomePage> {
       ),
     );
 
-    // On a phone the bars at the bottom stay, the player's and the sections', and pages open over the rest, in the page
-    // area, each with its own top bar and back arrow: over the section, under its name, and in the search the search
-    // bar, on a line of its own. The full-screen player and the queue cover everything.
+    // On a phone the bars at the bottom stay, the player's and the destinations', and pages open over the rest, in the
+    // page area, each with its own top bar and back arrow: over the section, under its destination's name, and in the
+    // search the search bar, on a line of its own, in the library its tabs. The full-screen player and the queue cover
+    // everything.
     if (narrow) {
+      final destination = _Destination.of(shown);
       return SearchShortcut(
         onSearch: _focusSearch,
         child: PageArea(
@@ -394,15 +450,21 @@ class _HomePageState extends State<HomePage> {
                   // it: in the middle of a slot 64 wide, rather than Material's 56, which would leave it at 12.
                   leading: logo,
                   leadingWidth: 64,
-                  // The section's name where a page's is, after its back arrow: 72 from the edge.
+                  // The destination's name where a page's is, after its back arrow: 72 from the edge.
                   titleSpacing: 8,
-                  title: Text(_section.label(strings)),
-                  bottom: _section == _Section.search
-                      ? PreferredSize(
-                          preferredSize: const Size.fromHeight(56),
-                          child: Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 12), child: searchBar),
-                        )
-                      : null,
+                  title: Text(destination.label(strings)),
+                  bottom: switch (destination) {
+                    _Destination.home => null,
+                    _Destination.search => PreferredSize(
+                      preferredSize: const Size.fromHeight(56),
+                      child: Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 12), child: searchBar),
+                    ),
+                    _Destination.library => TabBar(
+                      controller: _libraryTabs,
+                      tabs: [for (final section in _Destination.libraryTabs) Tab(text: section.label(strings))],
+                      onTap: (index) => _select(_Destination.libraryTabs[index]),
+                    ),
+                  },
                   actions: actions,
                 ),
                 body: sections,
@@ -427,11 +489,11 @@ class _HomePageState extends State<HomePage> {
                     height: 68,
                     backgroundColor: Theme.of(context).colorScheme.surfaceContainer
                         .withValues(alpha: NowPlayingBar.phoneOpacity),
-                    selectedIndex: _section.index,
-                    onDestinationSelected: (index) => _select(_Section.values[index]),
+                    selectedIndex: destination.index,
+                    onDestinationSelected: (index) => _open(_Destination.values[index]),
                     destinations: [
-                      for (final section in _Section.values)
-                        NavigationDestination(icon: ThemedIcon(section.icon), label: section.label(strings)),
+                      for (final destination in _Destination.values)
+                        NavigationDestination(icon: ThemedIcon(destination.icon), label: destination.label(strings)),
                     ],
                   ),
                 ),

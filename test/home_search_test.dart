@@ -50,6 +50,17 @@ Future<(PlayerController, List<String?>)> pumpHome(WidgetTester tester, Size siz
         });
       }
 
+      // On a phone, in the search before something is searched.
+      if (request.url.path.endsWith('getGenres.view')) {
+        return subsonic({
+          'genres': {
+            'genre': [
+              {'value': 'Hard Rock', 'albumCount': 2},
+            ],
+          },
+        });
+      }
+
       queries.add(request.url.queryParameters['query']);
       return subsonic({
         'searchResult3': {
@@ -89,7 +100,7 @@ Future<(PlayerController, List<String?>)> pumpHome(WidgetTester tester, Size siz
 }
 
 void main() {
-  testWidgets('on a phone-sized screen, the search is a section of the bar at the bottom, blank until typing stops', (
+  testWidgets('on a phone-sized screen, the search is in the bar at the bottom, with the genres until typing stops', (
     tester,
   ) async {
     final (player, queries) = await pumpHome(tester, const Size(360, 640));
@@ -99,10 +110,18 @@ void main() {
 
     await tester.tap(find.descendant(of: sections, matching: find.text('Buscar')));
     await tester.pumpAndSettle();
-    expect(tester.widget<NavigationBar>(sections).selectedIndex, 5, reason: 'after the playlists');
+    expect(tester.widget<NavigationBar>(sections).selectedIndex, 1, reason: 'after the home');
     expect(find.text('Toys in the Attic'), findsNothing);
+    expect(find.text('Hard Rock'), findsOneWidget, reason: 'the genres, until a search');
     expect(find.byTooltip('Limpar'), findsNothing);
-    expect(tester.testTextInput.isVisible, isTrue, reason: 'ready to type');
+    expect(
+      tester.testTextInput.isVisible,
+      isFalse,
+      reason: 'the keyboard would cover the genres, until a tap on the bar',
+    );
+    await tester.tap(find.byType(TextField));
+    await tester.pump();
+    expect(tester.testTextInput.isVisible, isTrue);
     // The bar has a line of its own, under the title.
     expect(
       tester.getCenter(find.byType(TextField)).dy,
@@ -115,6 +134,7 @@ void main() {
     await tester.pump(HomePage.searchTypingPause);
     await tester.pump();
     expect(queries, ['dream']);
+    expect(find.text('Hard Rock'), findsNothing);
     expect(find.textContaining('1973'), findsOneWidget, reason: 'the album, after its artist');
     expect(find.text('Cheap Trick · Heaven Tonight'), findsOneWidget);
     expect(find.text('4:28'), findsOneWidget);
@@ -138,7 +158,8 @@ void main() {
     await tester.tap(find.byTooltip('Limpar'));
     await tester.pump();
     expect(find.textContaining('1973'), findsNothing);
-    expect(find.text('Toys in the Attic'), findsNothing, reason: 'blank again');
+    expect(find.text('Toys in the Attic'), findsNothing);
+    expect(find.text('Hard Rock'), findsOneWidget, reason: 'the genres again');
     expect(queries, ['dream']);
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
   });
@@ -316,7 +337,7 @@ void main() {
 
     expect(await tester.sendKeyEvent(LogicalKeyboardKey.slash, character: '/'), isTrue);
     await tester.pumpAndSettle();
-    expect(tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex, 5);
+    expect(tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex, 1);
     expect(tester.state<EditableTextState>(find.byType(EditableText)).widget.focusNode.hasFocus, isTrue);
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
   });
