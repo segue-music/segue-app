@@ -435,19 +435,12 @@ void main() {
   });
 
   testWidgets(
-    'on a phone, the button that adds the album to the queue or a playlist lines up with the songs\' menus, and the play '
-    'button\'s edge is 16 from the screen\'s, also on a touch screen, whose buttons have room around them',
+    'on a phone, the button that adds the album to the queue or a playlist comes before the play button, whose edge is '
+    '16 from the screen\'s, also on a touch screen, whose buttons have room around them',
     variant: const TargetPlatformVariant({TargetPlatform.android, TargetPlatform.linux}),
     (tester) async {
       await pumpAlbum(tester, size: const Size(360, 640));
       final add = tester.getRect(find.byTooltip('Adicionar'));
-      final menus = find.byTooltip('Mais opções');
-      expect(menus, findsNWidgets(2), reason: 'its two songs\'');
-
-      for (var i = 0; i < 2; i++) {
-        expect(tester.getCenter(menus.at(i)).dx, moreOrLessEquals(add.center.dx), reason: '$i');
-      }
-
       final play = tester.getRect(find.byTooltip('Tocar o álbum'));
       expect(play.right, 360 - 16);
       expect(play.left, greaterThan(add.right), reason: 'after it, apart');
@@ -549,7 +542,7 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('each song\'s duration ends its line, after its menu, whose buttons line up past a longer one too', (
+  testWidgets('each song\'s menu ends its line, after its duration, the durations ending together, a longer one too', (
     tester,
   ) async {
     await pumpAlbum(
@@ -562,8 +555,8 @@ void main() {
     Rect menu(String title) =>
         tester.getRect(find.descendant(of: song(title), matching: find.byTooltip('Mais opções')));
 
-    expect(tester.getRect(find.text('3:40')).left, greaterThan(menu('Walk This Way').right));
-    expect(tester.getRect(find.text('10:25')).left, greaterThan(menu('Long Song').right));
+    expect(menu('Walk This Way').left, greaterThan(tester.getRect(find.text('3:40')).right));
+    expect(menu('Long Song').left, greaterThan(tester.getRect(find.text('10:25')).right));
     expect(tester.getRect(find.text('10:25')).right, tester.getRect(find.text('3:40')).right);
     expect(menu('Long Song').left, menu('Walk This Way').left);
     await tester.pumpWidget(const SizedBox());

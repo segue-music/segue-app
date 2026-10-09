@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
@@ -27,21 +25,19 @@ class SongNumber extends StatelessWidget {
   Widget build(BuildContext context) => Text('$number', textAlign: TextAlign.end, style: _columnStyle(context));
 }
 
-/// A song's duration, in the last column of a list of songs, under the header's clock: at its end, lined up with the
-/// others.
+/// A song's duration, in the last column of a list of songs, under the header's clock, or before its menu
+/// ([SongTrailing]).
 class SongDuration extends StatelessWidget {
   const SongDuration(this.duration, {super.key});
 
   final Duration? duration;
 
   @override
-  Widget build(BuildContext context) =>
-      Text(formatDuration(duration), textAlign: TextAlign.end, style: _columnStyle(context));
+  Widget build(BuildContext context) => Text(formatDuration(duration), style: _columnStyle(context));
 }
 
-/// The end of a song's line in a list: its menu's [button], then its [duration], last, under the header's clock. The
-/// duration takes at least the room of the longest under 100 minutes ("00:00"), so that the buttons line up from song to
-/// song.
+/// The end of a song's line in a list: its [duration], under the header's clock, then its menu's [button], last, at the
+/// end of the line, where the durations end too, lined up from song to song.
 class SongTrailing extends StatelessWidget {
   const SongTrailing(this.duration, this.button, {super.key});
 
@@ -51,49 +47,20 @@ class SongTrailing extends StatelessWidget {
   /// The room between them.
   static const gap = 4.0;
 
-  /// The room a list tile leaves after what ends its line, in Material 3.
-  static const _tileEnd = 24.0;
-
-  /// How far from the end of its line a song's [button] ends: past its duration, the room before it, and the list
-  /// tile's after it. What lines up with the songs' buttons, above them, is as far.
-  static double buttonInset(BuildContext context) => _durationWidth(context) + gap + _tileEnd;
-
-  /// How wide the duration's room is: as "00:00".
-  static double _durationWidth(BuildContext context) {
-    final painter = TextPainter(
-      text: TextSpan(text: '00:00', style: DefaultTextStyle.of(context).style.merge(_columnStyle(context))),
-      textDirection: Directionality.of(context),
-      textScaler: MediaQuery.textScalerOf(context),
-      maxLines: 1,
-    )..layout();
-
-    try {
-      return painter.width;
-    } finally {
-      painter.dispose();
-    }
-  }
-
   @override
-  Widget build(BuildContext context) {
-    final width = _durationWidth(context);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        button,
-        const SizedBox(width: gap),
-        ConstrainedBox(
-          constraints: BoxConstraints(minWidth: width),
-          child: SongDuration(duration),
-        ),
-      ],
-    );
-  }
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      SongDuration(duration),
+      const SizedBox(width: gap),
+      button,
+    ],
+  );
 }
 
-/// The line above a list of songs on a phone, under its cover: [details] at its start, and at its end [button], over the
-/// songs' menus, as far from the end as they are, then [play], its round edge 16 from the screen's as the rest is: the
-/// room Material leaves around it on a touch screen goes past that. [button] has none, as the songs' menus don't.
+/// The line above a list of songs on a phone, under its cover: [details] at its start, and at its end [button], then
+/// [play], its round edge 16 from the screen's as the rest is: the room Material leaves around it on a touch screen goes
+/// past that.
 class SongListTopLine extends StatelessWidget {
   const SongListTopLine({required this.details, required this.play, this.button, super.key});
 
@@ -106,7 +73,6 @@ class SongListTopLine extends StatelessWidget {
     final around = Theme.of(context).materialTapTargetSize == MaterialTapTargetSize.padded
         ? (kMinInteractiveDimension - SongMenu.width) / 2
         : 0.0;
-    final beforePlay = SongTrailing.buttonInset(context) - (16 - around) - (SongMenu.width + 2 * around);
     final button = this.button;
     return Padding(
       padding: EdgeInsets.fromLTRB(16, 16, 16 - around, 16),
@@ -114,7 +80,7 @@ class SongListTopLine extends StatelessWidget {
         children: [
           Expanded(child: details),
           const SizedBox(width: 16),
-          if (button != null) ...[button, SizedBox(width: max(0, beforePlay))],
+          if (button != null) ...[button, const SizedBox(width: 8)],
           play,
         ],
       ),
@@ -131,7 +97,7 @@ class SongListHeader extends StatelessWidget {
   /// Whether the songs are numbered, as an album's are, rather than shown with their covers, as the queue's.
   final bool numbered;
 
-  /// Whether each song has its menu's button before its duration ([SongMenu]), which the header leaves room for.
+  /// Whether each song has its menu's button after its duration ([SongMenu]), which the header leaves room for.
   final bool menus;
 
   /// How wide a numbered song's number is.
@@ -156,11 +122,11 @@ class SongListHeader extends StatelessWidget {
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (menus) const SizedBox(width: SongMenu.width + SongTrailing.gap),
               Tooltip(
                 message: strings.songDuration,
                 child: ThemedIcon(HugeIcons.strokeRoundedClock01, size: 18, color: muted),
               ),
+              if (menus) const SizedBox(width: SongTrailing.gap + SongMenu.width),
             ],
           ),
         ),

@@ -71,7 +71,7 @@ Future<bool> addToQueue(BuildContext context, List<Song> songs, {required bool n
   return result.ok;
 }
 
-/// A song's menu, at the end of its line in a list, before its duration: what can be done with it besides playing it,
+/// A song's menu, at the end of its line in a list, after its duration: what can be done with it besides playing it,
 /// playing it next, adding it to the queue or to a playlist, and, in a playlist that the user can change ([onRemove]),
 /// taking it out. Its button takes no focus: for the keyboard and the remote the song stays one stop, where the menu
 /// key, or Shift+F10, opens the menu. [builder] makes the song's line, with the button ([SongMenu.width] wide) where it

@@ -256,17 +256,15 @@ class _PlaylistPageState extends State<PlaylistPage> {
 
   /// The top of the page: the playlist's picture, its name, how many songs it has and how long they last (where it has
   /// any: an empty one says so under it), the button that plays it, and, where it has songs or the user can change it,
-  /// its menu. On a
-  /// wide screen the name is beside the picture, under the word "Playlist", the buttons under them; on a narrow one
-  /// ([narrow]) the name is in the page's bar, over the picture, which is centered, and the songs and their length under
-  /// it, with the buttons at the end of their line, the menu over the songs' menus and the play button last
-  /// ([SongListTopLine]).
+  /// its menu. On a wide screen the name is beside the picture, under the word "Playlist", the buttons under them; on a
+  /// narrow one ([narrow]) the name is in the page's bar, over the picture, which is centered, and the songs and their
+  /// length under it, with the buttons at the end of their line, the play button last ([SongListTopLine]).
   Widget _header(Playlist playlist, List<Song> songs, {required bool narrow}) {
     final text = Theme.of(context).textTheme;
     final strings = AppLocalizations.of(context);
     final details = songs.isEmpty ? null : Text(songCountAndLength(strings, songs), style: text.bodyMedium);
     final play = _playButton(songs);
-    final menu = songs.isNotEmpty || playlist.editable ? _menu(playlist, songs, narrow: narrow) : null;
+    final menu = songs.isNotEmpty || playlist.editable ? _menu(playlist, songs) : null;
     // Asked of the server as an album's cover is.
     final picture = CoverButton(playlist.coverArt, size: 800, icon: HugeIcons.strokeRoundedPlaylist01);
 
@@ -331,14 +329,12 @@ class _PlaylistPageState extends State<PlaylistPage> {
   );
 
   /// The playlist's menu, which plays its [songs] next or adds them to the queue, renames it, and deletes it, closing its
-  /// page. On a [narrow] screen, where it lines up with the songs' menus, its button is as big as theirs, without
-  /// Material's padding for a touch screen around it.
-  Widget _menu(Playlist playlist, List<Song> songs, {required bool narrow}) {
+  /// page.
+  Widget _menu(Playlist playlist, List<Song> songs) {
     final strings = AppLocalizations.of(context);
     return PopupMenuButton<PlaylistAction>(
       tooltip: strings.moreOptions,
       icon: const ThemedIcon(HugeIcons.strokeRoundedMoreVertical),
-      style: narrow ? IconButton.styleFrom(tapTargetSize: MaterialTapTargetSize.shrinkWrap) : null,
       onSelected: (action) async {
         final navigator = Navigator.of(context);
 
