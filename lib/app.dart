@@ -180,7 +180,8 @@ class _SegueAppState extends State<SegueApp> {
         final page = DirectionalNavigation(
           enabled: widget.television,
           child: TextFieldArrowShortcuts(
-            child: BackShortcut(child: UnfocusShortcut(child: child!)),
+            // Esc goes back from a page before it takes the focus off what has it there.
+            child: UnfocusShortcut(child: BackShortcut(child: child!)),
           ),
         );
 

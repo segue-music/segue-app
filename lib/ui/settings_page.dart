@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -19,8 +18,7 @@ import 'themed_icon.dart';
 /// volume's normalization, the app's version, the licenses' page and, last, signing out, under the account it signs out
 /// of. Each kind of choice a group of its own, under its name, the one picked with a check, as the devices' sheet has
 /// the one the app controls; a line between the groups, and between the last and signing out. In the page area, from
-/// the top bar's button; a choice missing (none given), its group too, and the version with none. Esc closes it, as
-/// the top bar's arrow does.
+/// the top bar's button; a choice missing (none given), its group too, and the version with none.
 class SettingsPage extends StatelessWidget {
   const SettingsPage({
     required this.onSignOut,
@@ -64,10 +62,7 @@ class SettingsPage extends StatelessWidget {
       this.replayGainChoice,
     );
     final packageInfo = this.packageInfo;
-    // On a TV the remote starts on a setting. Elsewhere the page itself takes the focus as it opens, so that Esc
-    // reaches it, and no setting looks focused.
-    final television = MediaQuery.navigationModeOf(context) == NavigationMode.directional;
-    final page = Scaffold(
+    return Scaffold(
       appBar: AppBar(
         // Under a wide screen's top bar, whose arrow goes back: no arrow of its own.
         automaticallyImplyLeading: !PageArea.holdsUnderTopBar(context),
@@ -160,10 +155,6 @@ class SettingsPage extends StatelessWidget {
           );
         },
       ),
-    );
-    return CallbackShortcuts(
-      bindings: {const SingleActivator(LogicalKeyboardKey.escape): () => Navigator.of(context).maybePop()},
-      child: Focus(autofocus: !television, child: page),
     );
   }
 }

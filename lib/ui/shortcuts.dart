@@ -157,10 +157,11 @@ class _SearchAction extends Action<_SearchIntent> {
   }
 }
 
-/// The arrow left goes back from a page with a back arrow (an album's, an artist's, the queue...), as
-/// that arrow does: on a phone, since a wide screen's home takes it first ([HistoryShortcuts]). Not
-/// while typing, where it moves the caret, nor on a TV, where the D-pad's left moves the focus and the
-/// remote has a back button of its own.
+/// The arrow left and Esc go back from a page with a back arrow (an album's, an artist's, the queue...), as that arrow
+/// does, whatever on the page has the focus: on a phone, since a wide screen's home takes them first
+/// ([HistoryShortcuts]). Not while typing, where the arrow moves the caret and Esc leaves the text field
+/// ([UnfocusShortcut]), nor, the arrow, on a TV, where the D-pad's left moves the focus and the remote has a back button
+/// of its own.
 class BackShortcut extends StatelessWidget {
   const BackShortcut({required this.child, super.key});
 
@@ -168,24 +169,30 @@ class BackShortcut extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Shortcuts(
-    shortcuts: const {SingleActivator(LogicalKeyboardKey.arrowLeft): _BackIntent()},
+    shortcuts: const {
+      SingleActivator(LogicalKeyboardKey.arrowLeft): _BackIntent(),
+      SingleActivator(LogicalKeyboardKey.escape): _BackIntent(onTelevision: true),
+    },
     child: Actions(actions: {_BackIntent: _BackAction()}, child: child),
   );
 }
 
 class _BackIntent extends Intent {
-  const _BackIntent();
+  const _BackIntent({this.onTelevision = false});
+
+  /// Whether it goes back on a TV too: from a key the D-pad doesn't move the focus with.
+  final bool onTelevision;
 }
 
 class _BackAction extends Action<_BackIntent> {
-  /// The page the focus is on, when the arrow left goes back from it: one pushed as a
-  /// [MaterialPageRoute], whose app bar has a back arrow. The full-screen player and the cover, pushed
-  /// otherwise, close with a button of their own instead, and a sheet has none.
-  ModalRoute<Object?>? get _page {
+  /// The page the focus is on, when [intent] goes back from it: one pushed as a [MaterialPageRoute], whose app bar has a
+  /// back arrow. The full-screen player and the cover, pushed otherwise, close with a button of their own (and Esc)
+  /// instead, and a sheet, a menu or a dialog has none: Esc goes on to close them, as ever.
+  ModalRoute<Object?>? _page(_BackIntent intent) {
     final focused = FocusManager.instance.primaryFocus?.context;
     if (focused == null ||
         _inTextField(focused) ||
-        MediaQuery.maybeNavigationModeOf(focused) == NavigationMode.directional) {
+        (!intent.onTelevision && MediaQuery.maybeNavigationModeOf(focused) == NavigationMode.directional)) {
       return null;
     }
 
@@ -194,20 +201,21 @@ class _BackAction extends Action<_BackIntent> {
     return route is MaterialPageRoute && route.isCurrent && route.impliesAppBarDismissal ? route : null;
   }
 
-  /// Disabled elsewhere, so that the key goes on: to the text field, or to move the focus.
+  /// Disabled elsewhere, so that the key goes on: to the text field, to move the focus, or to take it off.
   @override
-  bool isEnabled(_BackIntent intent) => _page != null;
+  bool isEnabled(_BackIntent intent) => _page(intent) != null;
 
   @override
   Object? invoke(_BackIntent intent) {
-    _page?.navigator?.maybePop();
+    _page(intent)?.navigator?.maybePop();
     return null;
   }
 }
 
 /// On a wide screen, the arrows left and right go back and forward through the pages of the home's page area, as its
-/// top bar's arrows do, wherever the focus is in the home. Not while typing, where they move the caret, nor on a TV,
-/// where they move the focus and the remote has a back button of its own.
+/// top bar's arrows do, wherever the focus is in the home, and Esc goes back as the arrow left does. Not while typing,
+/// where the arrows move the caret and Esc leaves the text field ([UnfocusShortcut]), nor, the arrows, on a TV, where
+/// they move the focus and the remote has a back button of its own.
 class HistoryShortcuts extends StatelessWidget {
   const HistoryShortcuts({required this.history, required this.child, super.key});
 
@@ -219,15 +227,19 @@ class HistoryShortcuts extends StatelessWidget {
     shortcuts: const {
       SingleActivator(LogicalKeyboardKey.arrowLeft): _HistoryIntent(forward: false),
       SingleActivator(LogicalKeyboardKey.arrowRight): _HistoryIntent(forward: true),
+      SingleActivator(LogicalKeyboardKey.escape): _HistoryIntent(forward: false, onTelevision: true),
     },
     child: Actions(actions: {_HistoryIntent: _HistoryAction(history)}, child: child),
   );
 }
 
 class _HistoryIntent extends Intent {
-  const _HistoryIntent({required this.forward});
+  const _HistoryIntent({required this.forward, this.onTelevision = false});
 
   final bool forward;
+
+  /// Whether it goes on a TV too: from a key the D-pad doesn't move the focus with.
+  final bool onTelevision;
 }
 
 class _HistoryAction extends Action<_HistoryIntent> {
@@ -242,7 +254,7 @@ class _HistoryAction extends Action<_HistoryIntent> {
 
     if (focused == null ||
         _inTextField(focused) ||
-        MediaQuery.maybeNavigationModeOf(focused) == NavigationMode.directional) {
+        (!intent.onTelevision && MediaQuery.maybeNavigationModeOf(focused) == NavigationMode.directional)) {
       return false;
     }
 
@@ -263,7 +275,7 @@ class _HistoryAction extends Action<_HistoryIntent> {
 
 /// Esc takes the focus off what has it: the tint or the ring the theme gives it goes, and a text field
 /// lets go of the keys, space among them. With nothing focused, Esc goes on, closing a sheet as ever;
-/// the pages that Esc closes take it first.
+/// the pages that Esc closes, and those it goes back from ([BackShortcut], [HistoryShortcuts]), take it first.
 class UnfocusShortcut extends StatelessWidget {
   const UnfocusShortcut({required this.child, super.key});
 

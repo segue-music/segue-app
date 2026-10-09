@@ -199,6 +199,34 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('Esc goes back too, as the top bar\'s arrow does, wherever the focus is in the home, but while typing', (
+    tester,
+  ) async {
+    await pumpWide(tester);
+    await tapAndSettle(tester, album);
+    await press(tester, LogicalKeyboardKey.escape);
+    expect(find.byType(AlbumPage), findsNothing);
+    await tapAndSettle(tester, forward);
+    expect(find.byType(AlbumPage), findsOneWidget, reason: 'and forward to it again');
+
+    // On the app's icon, in the top bar.
+    final icon = Focus.of(tester.element(find.descendant(of: find.byTooltip('Início'), matching: find.byType(Image))));
+    icon.requestFocus();
+    await tester.pump();
+    expect(icon.hasPrimaryFocus, isTrue);
+    await press(tester, LogicalKeyboardKey.escape);
+    expect(find.byType(AlbumPage), findsNothing);
+
+    await tapAndSettle(tester, forward);
+    await tester.tap(find.byType(TextField));
+    await tester.pump();
+    await press(tester, LogicalKeyboardKey.escape);
+    expect(find.byType(AlbumPage), findsOneWidget, reason: 'out of the search bar only');
+    await press(tester, LogicalKeyboardKey.escape);
+    expect(find.byType(AlbumPage), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('the full-screen player opens between the bars too, the player bar\'s lyrics and song acting on it', (
     tester,
   ) async {
