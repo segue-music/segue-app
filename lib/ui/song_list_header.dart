@@ -37,7 +37,7 @@ class SongDuration extends StatelessWidget {
 }
 
 /// The end of a song's line in a list: its [duration], under the header's clock, then its menu's [button], last, at the
-/// end of the line, where the durations end too, lined up from song to song.
+/// end of the line, where the durations end too, lined up from song to song. The line's list tile takes [tilePadding].
 class SongTrailing extends StatelessWidget {
   const SongTrailing(this.duration, this.button, {super.key});
 
@@ -46,6 +46,11 @@ class SongTrailing extends StatelessWidget {
 
   /// The room between them.
   static const gap = 4.0;
+
+  /// The room a song's list tile leaves around its line: Material's at its start, and at its end, rather than
+  /// Material's 24, as little as ends the button's icon (24 wide, in the button's [SongMenu.width]) as far from the
+  /// line's end as the line's start is from its own, 16.
+  static const tilePadding = EdgeInsetsDirectional.only(start: 16, end: 16 - (SongMenu.width - 24) / 2);
 
   @override
   Widget build(BuildContext context) => Row(
@@ -97,7 +102,8 @@ class SongListHeader extends StatelessWidget {
   /// Whether the songs are numbered, as an album's are, rather than shown with their covers, as the queue's.
   final bool numbered;
 
-  /// Whether each song has its menu's button after its duration ([SongMenu]), which the header leaves room for.
+  /// Whether each song has its menu's button after its duration ([SongMenu]), which the header leaves room for, ending
+  /// as near the end as the songs do ([SongTrailing.tilePadding]).
   final bool menus;
 
   /// How wide a numbered song's number is.
@@ -114,6 +120,7 @@ class SongListHeader extends StatelessWidget {
         ListTile(
           enabled: false,
           minTileHeight: 36,
+          contentPadding: menus ? SongTrailing.tilePadding : null,
           leading: SizedBox(
             width: numbered ? numberWidth : Thumbnail.size,
             child: numbered ? Text('#', style: style, textAlign: TextAlign.end) : null,

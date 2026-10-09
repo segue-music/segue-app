@@ -415,6 +415,7 @@ class _AlbumPageState extends State<AlbumPage> {
       builder: (context, current, playing) => SongMenu(
         song,
         builder: (context, menu) => ListTile(
+          contentPadding: SongTrailing.tilePadding,
           selected: current,
           leading: SizedBox(
             width: SongListHeader.numberWidth,

@@ -356,6 +356,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
         song,
         onRemove: editable ? () => _remove(index) : null,
         builder: (context, menu) => ListTile(
+          contentPadding: SongTrailing.tilePadding,
           selected: current,
           leading: Thumbnail(song.coverArt, playing: playing),
           title: Text(song.title, maxLines: 1, overflow: TextOverflow.ellipsis),

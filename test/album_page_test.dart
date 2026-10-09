@@ -570,6 +570,8 @@ void main() {
     expect(menu('Long Song').left, greaterThan(tester.getRect(find.text('10:25')).right));
     expect(tester.getRect(find.text('10:25')).right, tester.getRect(find.text('3:40')).right);
     expect(menu('Long Song').left, menu('Walk This Way').left);
+    // Its icon, 8 inside it, as far from the line's end as the number is from its start.
+    expect(menu('Walk This Way').right - 8, tester.getRect(song('Walk This Way')).right - 16);
     await tester.pumpWidget(const SizedBox());
   });
 
