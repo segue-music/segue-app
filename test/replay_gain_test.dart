@@ -55,4 +55,11 @@ void main() {
     const ownPeak = ReplayGain(trackGain: 5, trackPeak: 0.25, albumPeak: 1);
     expect(ownPeak.decibels(album: true), 5, reason: 'its own gain, with its own peak');
   });
+
+  test('a preamp makes a song louder than its gain, still no louder than its peak lets it', () {
+    const gain = ReplayGain(trackGain: -8, albumGain: 3, trackPeak: 0.5, albumPeak: 0.5);
+    expect(gain.decibels(album: false, preamp: 4), -4);
+    expect(gain.decibels(album: true, preamp: 4), closeTo(6.02, 0.01));
+    expect(const ReplayGain(trackGain: -2).decibels(album: false, preamp: 4), 0, reason: 'no peak said');
+  });
 }

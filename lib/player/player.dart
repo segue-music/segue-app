@@ -76,7 +76,7 @@ class PlayerController extends ChangeNotifier {
   }
 
   /// How loud the song at [index] of [songs], as playQueue got them, plays, as it loads: by the gain the media server
-  /// gives for it, or else by its file's tags; its album's or its own, as the way picked says.
+  /// gives for it, or else by its file's tags; its album's or its own, as the way picked says; [replayGainPreamp] louder.
   TrackGain _gain(List<Song> songs, int index) {
     final mode = _replayGain?.value ?? ReplayGainMode.off;
 
@@ -90,7 +90,9 @@ class PlayerController extends ChangeNotifier {
       _ => false,
     };
     final replayGain = songs[index].replayGain;
-    return replayGain == null ? TrackGain.tagged(album: album) : TrackGain(replayGain.decibels(album: album));
+    return replayGain == null
+        ? TrackGain.tagged(album: album, preamp: replayGainPreamp)
+        : TrackGain(replayGain.decibels(album: album, preamp: replayGainPreamp));
   }
 
   /// Whether the song at [index] of [songs] plays among its album's: the song before or after it is of the same album,

@@ -18,6 +18,11 @@ enum ReplayGainMode {
   off,
 }
 
+/// How much louder than ReplayGain's reference (89 dB, about -18 LUFS) the songs play levelled, in dB: about -10 LUFS.
+/// At the reference itself most songs of today play 6 to 10 dB quieter than as they are. A song still plays no louder
+/// than its peak lets it.
+const replayGainPreamp = 8.0;
+
 /// How the player levels the songs: the way the user picked, kept across launches (and sign-outs), or, until they pick
 /// one, off: the songs as they are. A pick holds at once, for the song that plays too.
 class ReplayGainChoice extends ValueNotifier<ReplayGainMode> {

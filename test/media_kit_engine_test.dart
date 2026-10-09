@@ -350,6 +350,22 @@ void main() {
       },
     );
 
+    test('a file\'s tags play with the preamp given, no louder than their peak lets them', () async {
+      const gain = TrackGain.tagged(album: false, preamp: 4);
+      final tracks = [
+        track(0, gain: gain, tags: {'REPLAYGAIN_TRACK_GAIN': '-12.00 dB'}),
+        track(1, gain: gain, tags: {'REPLAYGAIN_TRACK_GAIN': '-2.00 dB', 'REPLAYGAIN_TRACK_PEAK': '0.500000'}),
+        track(2, seconds: 2, gain: gain, tags: {'REPLAYGAIN_TRACK_GAIN': '-2.00 dB'}),
+      ];
+      await listened.open(tracks, index: 0, position: Duration.zero, play: true);
+      await Future<void>.delayed(const Duration(seconds: 1));
+      expect(loudestBySecond(heard).take(3), [
+        withGain(-8),
+        withGain(2), // under the 6 dB its peak lets it
+        withGain(0), // where no peak is said, no louder than it is
+      ]);
+    });
+
     test('a new gain holds at once for the track that plays', () async {
       var gain = TrackGain.none;
       final file = File('${dir.path}/t0.wav')..writeAsBytesSync(wav(0, seconds: 2));

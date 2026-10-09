@@ -197,8 +197,10 @@ the device it runs on.
   files' tags, or Jellyfin's normalization gain, which it measures itself where a file has no tags (the album's comes
   with each song from Jellyfin 12.0 on, and before that only on the album's page, elsewhere the song's own standing in
   for it). Where the server gives none (a song another device sent, a server without them), the file's own tags, which
-  a file as it is has, but not one Jellyfin transcodes. A gain never makes a song clip: no louder than its peak lets it,
-  or, where the server doesn't say its peak, as Jellyfin doesn't, no louder than it is;
+  a file as it is has, but not one Jellyfin transcodes. The songs play 8 dB over ReplayGain's reference (89 dB, about
+  -18 LUFS), at about -10 LUFS: at the reference most songs of today play 6 to 10 dB quieter than as they are. A gain
+  never makes a song clip: no louder than its peak lets it, or, where the server doesn't say its peak, as Jellyfin
+  doesn't, no louder than it is;
 - an equalizer of ten bands, from 31 Hz to 16 kHz, for the songs this device plays, on its page from the settings:
   off, as it is until it is turned on, a curve made for a kind of music (rock, pop, jazz, classical, electronic,
   hip-hop, voices, more bass, more treble, Android's presets spread over ten bands), or the user's own, by moving the

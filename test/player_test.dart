@@ -96,13 +96,14 @@ void main() {
   });
 
   group('ReplayGain', () {
-    // Two songs of an album, its third, another album's, and a song with no gain from the server.
+    // Two songs of an album, its third, another album's, and a song with no gain from the server. Each plays
+    // replayGainPreamp louder than its gain, still under 0 dB, where a gain with no peak said stops.
     const queue = [
-      Song(id: 's1', title: 'One', albumId: 'a1', replayGain: ReplayGain(trackGain: -8, albumGain: -6)),
-      Song(id: 's2', title: 'Two', albumId: 'a1', replayGain: ReplayGain(trackGain: -4, albumGain: -6)),
-      Song(id: 's3', title: 'Three', albumId: 'a2', replayGain: ReplayGain(trackGain: -10, albumGain: -9)),
+      Song(id: 's1', title: 'One', albumId: 'a1', replayGain: ReplayGain(trackGain: -16, albumGain: -14)),
+      Song(id: 's2', title: 'Two', albumId: 'a1', replayGain: ReplayGain(trackGain: -13, albumGain: -14)),
+      Song(id: 's3', title: 'Three', albumId: 'a2', replayGain: ReplayGain(trackGain: -18, albumGain: -17)),
       Song(id: 's4', title: 'Four', albumId: 'a2'),
-      Song(id: 's5', title: 'Five', albumId: 'a3', replayGain: ReplayGain(trackGain: -3, albumGain: -5)),
+      Song(id: 's5', title: 'Five', albumId: 'a3', replayGain: ReplayGain(trackGain: -15, albumGain: -13)),
     ];
 
     List<TrackGain> gains() => [for (final track in engine.opened) track.gain()];
@@ -114,20 +115,20 @@ void main() {
       player = PlayerController(engine, api, replayGain: choice);
       await player.playQueue(queue);
       expect(gains(), const [
-        TrackGain(-6),
-        TrackGain(-6),
-        TrackGain(-9),
-        TrackGain.tagged(album: true),
-        TrackGain(-3),
+        TrackGain(-14 + replayGainPreamp),
+        TrackGain(-14 + replayGainPreamp),
+        TrackGain(-17 + replayGainPreamp),
+        TrackGain.tagged(album: true, preamp: replayGainPreamp),
+        TrackGain(-15 + replayGainPreamp),
       ]);
 
       await player.setShuffle(true);
       expect(gains(), const [
-        TrackGain(-8),
-        TrackGain(-4),
-        TrackGain(-10),
-        TrackGain.tagged(album: false),
-        TrackGain(-3),
+        TrackGain(-16 + replayGainPreamp),
+        TrackGain(-13 + replayGainPreamp),
+        TrackGain(-18 + replayGainPreamp),
+        TrackGain.tagged(album: false, preamp: replayGainPreamp),
+        TrackGain(-15 + replayGainPreamp),
       ], reason: 'shuffled, a song plays among others');
     });
 
@@ -137,22 +138,22 @@ void main() {
       player = PlayerController(engine, api, replayGain: choice);
       await player.playQueue(queue, index: 1);
       expect(gains(), const [
-        TrackGain(-8),
-        TrackGain(-4),
-        TrackGain(-10),
-        TrackGain.tagged(album: false),
-        TrackGain(-3),
+        TrackGain(-16 + replayGainPreamp),
+        TrackGain(-13 + replayGainPreamp),
+        TrackGain(-18 + replayGainPreamp),
+        TrackGain.tagged(album: false, preamp: replayGainPreamp),
+        TrackGain(-15 + replayGainPreamp),
       ]);
 
       choice.value = ReplayGainMode.album;
       await pumpEventQueue();
-      expect(engine.gain, const TrackGain(-6), reason: 'the song that plays, at once');
+      expect(engine.gain, const TrackGain(-14 + replayGainPreamp), reason: 'the song that plays, at once');
       expect(gains(), const [
-        TrackGain(-6),
-        TrackGain(-6),
-        TrackGain(-9),
-        TrackGain.tagged(album: true),
-        TrackGain(-5),
+        TrackGain(-14 + replayGainPreamp),
+        TrackGain(-14 + replayGainPreamp),
+        TrackGain(-17 + replayGainPreamp),
+        TrackGain.tagged(album: true, preamp: replayGainPreamp),
+        TrackGain(-13 + replayGainPreamp),
       ]);
 
       choice.value = ReplayGainMode.off;
@@ -180,11 +181,11 @@ void main() {
         ),
       );
       expect(gains(), const [
-        TrackGain.tagged(album: true),
-        TrackGain.tagged(album: true),
-        TrackGain.tagged(album: false),
-        TrackGain.tagged(album: false),
-        TrackGain.tagged(album: false),
+        TrackGain.tagged(album: true, preamp: replayGainPreamp),
+        TrackGain.tagged(album: true, preamp: replayGainPreamp),
+        TrackGain.tagged(album: false, preamp: replayGainPreamp),
+        TrackGain.tagged(album: false, preamp: replayGainPreamp),
+        TrackGain.tagged(album: false, preamp: replayGainPreamp),
       ], reason: 'songs of no album aren\'t of the same one');
     });
 

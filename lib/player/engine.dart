@@ -30,11 +30,11 @@ class TrackSource {
 @immutable
 class TrackGain {
   /// [decibels] louder, or, below zero, quieter.
-  const TrackGain(this.decibels) : tagged = false, album = false;
+  const TrackGain(this.decibels) : tagged = false, album = false, preamp = 0;
 
-  /// As the file's own ReplayGain tags say: its album's gain ([album]), or its own, the other where it has only that
-  /// one, lowered where the tags' peak says it would clip; none where it has no tags.
-  const TrackGain.tagged({required this.album}) : decibels = 0, tagged = true;
+  /// As the file's own ReplayGain tags say, [preamp] dB louder: its album's gain ([album]), or its own, the other where
+  /// it has only that one, lowered where the tags' peak says it would clip; none where it has no tags.
+  const TrackGain.tagged({required this.album, this.preamp = 0}) : decibels = 0, tagged = true;
 
   /// The track as it is.
   static const none = TrackGain(0);
@@ -47,15 +47,22 @@ class TrackGain {
   /// Whether the tags' gain is the album's.
   final bool album;
 
+  /// How much louder than its tags' gain the track plays, in dB, where they say it.
+  final double preamp;
+
   @override
   bool operator ==(Object other) =>
-      other is TrackGain && other.decibels == decibels && other.tagged == tagged && other.album == album;
+      other is TrackGain &&
+      other.decibels == decibels &&
+      other.tagged == tagged &&
+      other.album == album &&
+      other.preamp == preamp;
 
   @override
-  int get hashCode => Object.hash(decibels, tagged, album);
+  int get hashCode => Object.hash(decibels, tagged, album, preamp);
 
   @override
-  String toString() => tagged ? 'TrackGain.tagged(album: $album)' : 'TrackGain($decibels)';
+  String toString() => tagged ? 'TrackGain.tagged(album: $album, preamp: $preamp)' : 'TrackGain($decibels)';
 }
 
 /// What [PlayerController] needs from an audio backend. [MediaKitEngine] is the real one; the tests
@@ -760,12 +767,13 @@ class MediaKitEngine implements AudioEngine {
     }
   }
 
-  /// Plays the current track, and the next until another gain, with [gain]. mpv's ReplayGain reads a file's tags, and
-  /// lowers the gain where their peak says it would clip; with it off, or for a file without them, it plays every track
-  /// with its fallback gain (player/audio.c, compute_replaygain), which then gives [TrackGain.decibels]. It reckons
-  /// the gain again as each track's audio starts, and right away as these change.
+  /// Plays the current track, and the next until another gain, with [gain]. mpv's ReplayGain reads a file's tags, adds
+  /// its preamp to their gain, and lowers it where their peak says it would clip; with it off, or for a file without
+  /// them, it plays every track with its fallback gain (player/audio.c, compute_replaygain), which then gives
+  /// [TrackGain.decibels]. It reckons the gain again as each track's audio starts, and right away as these change.
   Future<void> _playWith(TrackGain gain) async {
     final native = _player.platform as NativePlayer;
+    await native.setProperty('replaygain-preamp', '${gain.preamp}');
     await native.setProperty('replaygain', gain.tagged ? (gain.album ? 'album' : 'track') : 'no');
     // mpv takes fallbacks from -200 dB to 60 dB.
     await native.setProperty('replaygain-fallback', '${gain.decibels.clamp(-200, 60)}');

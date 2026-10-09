@@ -116,10 +116,11 @@ Running two app instances on one machine as different devices:
   engine adding where the stream starts to mpv's positions. That a track has loaded it learns by asking mpv for its
   duration after each "Playing:" in the log: mpv's own notice says nothing for a track as long as the one before.
   Until then the position stays where the track is to start, and a seek waits for it. The on_load hook also plays the
-  track with its gain (`TrackGain`, ReplayGain): the file's tags, through mpv's `replaygain`, or a gain in dB, which
-  goes in `replaygain-fallback` with `replaygain` off: mpv then applies it to every track, as a volume of its own
-  (`compute_replaygain` in its `player/audio.c`). `PlayerController` picks each song's (`ReplayGainChoice`,
-  `lib/replay_gain_choice.dart`): the media server's gain, or, where it gives none, the file's tags.
+  track with its gain (`TrackGain`, ReplayGain): the file's tags, through mpv's `replaygain` (and `replaygain-preamp`),
+  or a gain in dB, which goes in `replaygain-fallback` with `replaygain` off: mpv then applies it to every track, as a
+  volume of its own (`compute_replaygain` in its `player/audio.c`). `PlayerController` picks each song's
+  (`ReplayGainChoice`, `lib/replay_gain_choice.dart`): the media server's gain, or, where it gives none, the file's
+  tags, either 8 dB louder (`replayGainPreamp`) and capped by its peak.
   The equalizer (`setEqualizer`, from `EqualizerChoice`, `lib/equalizer_choice.dart`) is mpv's `af`: FFmpeg's
   `equalizer`, one for each of its ten bands, in a single lavfi graph. Of FFmpeg's filters, media_kit's libmpv for
   Android has only `equalizer` (no `aresample`, no `volume`; iOS's has no `volume`), so mpv's own `format` filter

@@ -164,14 +164,14 @@ class ReplayGain {
   final double? albumPeak;
 
   /// The gain to play the song with, in dB: its album's ([album]) or its own, the other where the server gives only
-  /// that one. No more than takes its peak to the loudest a file holds, or, where the server doesn't say the peak, no
-  /// more than 0 dB, as mpv does with a file's tags: a gain never makes it clip.
-  double decibels({required bool album}) {
+  /// that one, [preamp] dB louder. No more than takes its peak to the loudest a file holds, or, where the server doesn't
+  /// say the peak, no more than 0 dB, as mpv does with a file's tags: a gain never makes it clip.
+  double decibels({required bool album, double preamp = 0}) {
     final (gain, peak) = (album && albumGain != null) || trackGain == null
         ? (albumGain, albumPeak)
         : (trackGain, trackPeak);
     final headroom = peak != null && peak > 0 ? -20 * log(peak) / ln10 : 0.0;
-    return min(gain ?? 0, headroom);
+    return min((gain ?? 0) + preamp, headroom);
   }
 }
 
