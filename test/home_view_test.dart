@@ -528,6 +528,32 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('on a wide screen, Esc closes the settings, as the top bar\'s arrow does, also from a setting with the '
+      'focus', (tester) async {
+    final themeChoice = ThemeChoice();
+    addTearDown(themeChoice.dispose);
+    await pumpHome(tester, const Size(1000, 700), themeChoice: themeChoice);
+    final settings = find.byType(SettingsPage);
+
+    await openSettings(tester);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(settings, findsNothing);
+
+    await tester.tap(find.byTooltip('Avançar'));
+    await tester.pumpAndSettle();
+    expect(settings, findsOneWidget, reason: 'and forward to them again');
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.pump();
+    final focused = FocusManager.instance.primaryFocus?.context;
+    expect(focused?.findAncestorWidgetOfExactType<ListTile>(), isNotNull, reason: 'a setting has the focus');
+    expect(focused?.findAncestorWidgetOfExactType<SettingsPage>(), isNotNull);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(settings, findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('on a wide screen, where the top bar stays over the settings, its button goes back from them rather than '
       'opening them again', (tester) async {
     await pumpHome(tester, const Size(1000, 700));
