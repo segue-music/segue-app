@@ -194,7 +194,7 @@ class NowPlayingBar extends StatelessWidget {
                               IconButton(
                                 tooltip: strings.queue,
                                 icon: const ThemedIcon(HugeIcons.strokeRoundedPlaylist03),
-                                onPressed: () => QueuePage.open(context),
+                                onPressed: () => QueuePage.toggle(context),
                               ),
                             IconButton(
                               tooltip: strings.devices,

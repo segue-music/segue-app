@@ -7,6 +7,7 @@ import 'package:segue/ui/album_page.dart';
 import 'package:segue/ui/cover.dart';
 import 'package:segue/ui/home_page.dart';
 import 'package:segue/ui/player_page.dart';
+import 'package:segue/ui/queue_page.dart';
 
 import 'home_search_test.dart' show pumpHome;
 
@@ -243,6 +244,31 @@ void main() {
     await tapAndSettle(tester, find.byTooltip('Fechar o player'));
     expect(find.byType(PlayerPage), findsNothing);
     expect(find.byTooltip('Abrir o player'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('the player bar\'s queue button goes back from the queue rather than opening it again', (tester) async {
+    await pumpWide(tester);
+    // The pages under the one on top too.
+    final queue = find.byType(QueuePage, skipOffstage: false);
+    final button = find.byTooltip('Fila');
+
+    await tapAndSettle(tester, button);
+    expect(queue, findsOneWidget);
+    await tapAndSettle(tester, button);
+    expect(queue, findsNothing, reason: 'back to the section');
+
+    await tapAndSettle(tester, forward);
+    expect(queue, findsOneWidget, reason: 'open again, going forward');
+    await tapAndSettle(tester, button);
+    expect(queue, findsNothing, reason: 'going back from it too');
+
+    await tapAndSettle(tester, find.byTooltip('Abrir o player'));
+    await tapAndSettle(tester, button);
+    expect(queue, findsOneWidget);
+    await tapAndSettle(tester, button);
+    expect(queue, findsNothing);
+    expect(find.byType(PlayerPage), findsOneWidget, reason: 'back to the full-screen player it opened over');
     await tester.pumpWidget(const SizedBox());
   });
 

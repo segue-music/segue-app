@@ -15,9 +15,27 @@ import 'song_list_header.dart';
 class QueuePage extends StatefulWidget {
   const QueuePage({super.key});
 
+  /// The queue's page, by which [toggle] tells it on top, also once it opens again going forward ([PageHistory] opens
+  /// a page again with its settings).
+  static const _settings = RouteSettings(name: 'queue');
+
   /// Opens it over the current page: on a wide screen, in the page area; on a phone, over everything.
   static Future<void> open(BuildContext context) =>
-      PageArea.playerNavigatorOf(context).push(MaterialPageRoute<void>(builder: (_) => const QueuePage()));
+      PageArea.playerNavigatorOf(context)
+          .push(MaterialPageRoute<void>(settings: _settings, builder: (_) => const QueuePage()));
+
+  /// Opens it, or, with it open on top of the page area (a wide screen's, where the player bar stays under it), goes
+  /// back from it instead, as the top bar's arrow does, rather than opening it again over itself.
+  static void toggle(BuildContext context) {
+    final history = PageArea.maybeOf(context)?.history;
+
+    if (history != null && history.current?.settings.name == _settings.name) {
+      history.back();
+      return;
+    }
+
+    open(context);
+  }
 
   @override
   State<QueuePage> createState() => _QueuePageState();
