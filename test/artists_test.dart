@@ -660,36 +660,46 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('an artist\'s singles and EPs, newest first, come after their albums, under a title of their own', (
-    tester,
-  ) async {
-    // Tall enough for both sections.
-    await pumpHome(tester, const Size(1000, 1200));
+  testWidgets('an artist with albums and singles or EPs has a choice between them over the albums, which shows their '
+      'singles and EPs, newest first, in their place', (tester) async {
+    await pumpHome(tester, const Size(1000, 900));
     await tester.tap(find.byTooltip('Artistas'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Aerosmith'));
     await tester.pumpAndSettle();
-    final albums = tester.getRect(find.descendant(of: find.byType(ArtistPage), matching: find.text('Álbuns')));
-    final singles = tester.getRect(find.text('Singles e EPs'));
-    final (toys, pink, dreamOn) = (
-      tester.getRect(find.text('Toys in the Attic')),
-      tester.getRect(find.text('Pink')),
-      tester.getRect(find.text('Dream On')),
-    );
-    expect(albums.bottom, lessThan(toys.top));
-    expect(toys.bottom, lessThan(singles.top), reason: 'the albums first');
+    final choice = find.descendant(of: find.byType(ArtistPage), matching: orders());
+    expect(choice, findsOneWidget);
+    expect(find.descendant(of: choice, matching: find.text('Álbuns')), findsOneWidget);
+    expect(find.descendant(of: choice, matching: find.text('Singles e EPs')), findsOneWidget);
     expect(
-      singles.top - tester.getRect(find.text('1975')).bottom,
-      36,
-      reason: 'from the albums\' last lines, with no room left empty under them, as far as the albums from the songs',
+      tester.getSemantics(find.text('Álbuns')),
+      isSemantics(label: 'Álbuns', isButton: true),
+      reason: 'the albums first',
     );
-    expect(singles.bottom, lessThan(pink.top));
-    expect((pink.top, singles.left), (dreamOn.top, albums.left));
+    final toys = tester.getRect(find.text('Toys in the Attic'));
+    expect(tester.getRect(choice).bottom, lessThan(toys.top));
+    expect(tester.getRect(choice).left, toys.left, reason: 'lined up with the covers and their names');
+    expect(tester.getRect(choice).width, lessThan(400), reason: 'as wide as its options, not the page');
+    expect(find.text('1975'), findsOneWidget, reason: 'an album\'s year alone');
+    expect(find.text('Pink'), findsNothing, reason: 'the EP not with the albums');
+    expect(find.text('Dream On'), findsNothing);
+    expect(find.text('2 álbuns · 2 singles e EPs'), findsOneWidget, reason: 'by their picture, how many of each');
+
+    await tester.tap(choice);
+    await tester.pumpAndSettle();
+    expect(tester.getSemantics(find.text('Singles e EPs')), isSemantics(label: 'Singles e EPs'));
+    expect(find.text('Toys in the Attic'), findsNothing);
+    final (pink, dreamOn) = (tester.getRect(find.text('Pink')), tester.getRect(find.text('Dream On')));
+    expect(tester.getRect(choice).bottom, lessThan(pink.top));
+    expect((pink.top, pink.left), (dreamOn.top, toys.left), reason: 'where the albums were');
     expect(pink.left, lessThan(dreamOn.left), reason: 'the 1997 EP before the 1973 single');
     expect(find.text('1997 · EP'), findsOneWidget, reason: 'its year and its type');
     expect(find.text('1973 · Single'), findsOneWidget);
-    expect(find.text('1975'), findsOneWidget, reason: 'an album\'s year alone');
-    expect(find.text('2 álbuns · 2 singles e EPs'), findsOneWidget, reason: 'by their picture, how many of each');
+
+    await tester.tap(choice);
+    await tester.pumpAndSettle();
+    expect(find.text('Toys in the Attic'), findsOneWidget, reason: 'the albums again');
+    expect(find.text('Pink'), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -705,7 +715,7 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('an artist with albums alone has no title for singles and EPs', (tester) async {
+  testWidgets('an artist with albums alone has them under a title, with nothing to pick', (tester) async {
     // Tall enough for their songs and their album.
     await pumpHome(tester, const Size(1000, 900));
     await tester.tap(find.byTooltip('Artistas'));
@@ -713,6 +723,13 @@ void main() {
     await tester.tap(find.text('Cheap Trick'));
     await tester.pumpAndSettle();
     expect(find.text('1977'), findsOneWidget, reason: 'the album, in the grid');
+    final albums = find.descendant(of: find.byType(ArtistPage), matching: find.text('Álbuns'));
+    expect(albums, findsOneWidget);
+    expect(
+      find.ancestor(of: albums, matching: orders()),
+      findsNothing,
+      reason: 'a title, not a choice',
+    );
     expect(find.text('Singles e EPs'), findsNothing);
     expect(find.text('1 álbum'), findsOneWidget, reason: 'and no singles or EPs to count');
     await tester.pumpWidget(const SizedBox());
@@ -1193,10 +1210,8 @@ void main() {
         expect(find.descendant(of: row, matching: find.text('Artistas parecidos')), findsOneWidget);
         expect(
           tester.getTopLeft(row).dy,
-          greaterThan(tester.getBottomLeft(find.text('Dream On')).dy),
-          reason:
-              'after '
-              'their singles and EPs',
+          greaterThan(tester.getBottomLeft(find.text('1973')).dy),
+          reason: 'after their albums, the 1973 one last',
         );
         final artists = find.descendant(of: row, matching: find.byType(ArtistTile));
         expect(

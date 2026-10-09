@@ -29,15 +29,19 @@ import 'text_link.dart';
 import 'themed_icon.dart';
 import 'tile_row.dart';
 
+/// Albums of an artist's of one kind, and what they're called: their albums, or their singles and EPs.
+typedef AlbumSection = ({String title, List<Album> albums});
+
 /// An artist and their albums, newest first, under a few songs of theirs (the ones the user plays most, or the popular
-/// ones: [_ArtistSongs]): their albums, then their singles and EPs, each under a title, then the artists like them.
+/// ones: [_ArtistSongs]): their albums or their singles and EPs, picked above them where they have both, or else under
+/// a title, then the artists like them.
 class ArtistPage extends StatefulWidget {
   const ArtistPage(this.artist, {super.key});
 
   final Artist artist;
 
   /// [albums], newest first, in sections: the artist's albums (with those the server says no type of), then their
-  /// singles and EPs. A section of none isn't there, nor its title, even with the songs above.
+  /// singles and EPs. A section of none isn't there, nor its title or its option, even with the songs above.
   static List<AlbumSection> sections(AppLocalizations strings, List<Album> albums) {
     const short = {ReleaseType.single, ReleaseType.ep};
     final newest = [...albums]..sort((a, b) => (b.year ?? 0).compareTo(a.year ?? 0));
@@ -68,6 +72,10 @@ class _ArtistPageState extends State<ArtistPage> {
 
   /// The library's artists like them; none where the server can't say.
   Future<List<Artist>>? _similar;
+
+  /// Which of their sections ([ArtistPage.sections]) shows where they have two: their albums (0) until the user picks
+  /// their singles and EPs (1).
+  int _section = 0;
 
   /// How much of the page's color its bar has. On a phone, over the artist's picture: none at the top of the page, where
   /// the name has its halo, and more as the page scrolls, all of it once half the picture has gone up under the bar, so
@@ -138,7 +146,7 @@ class _ArtistPageState extends State<ArtistPage> {
               null => const Center(child: Spinner()),
               (final artist, final albums) => NotificationListener(
                 onNotification: _followScroll,
-                child: AlbumGrid.sections(
+                child: _albums(
                   ArtistPage.sections(strings, albums),
                   subtitle: (album) => yearAndReleaseType(strings, album),
                   // On a wide screen, where the name is by the picture, and stays in sight once that has gone.
@@ -249,6 +257,36 @@ class _ArtistPageState extends State<ArtistPage> {
 
     return false;
   }
+
+  /// The albums of one of [sections] in a grid, as an [AlbumGrid] has them, between [header] and [footer]: of the one
+  /// picked in a choice above them, where there are two, as an artist's songs are; of the one alone under its title.
+  Widget _albums(
+    List<AlbumSection> sections, {
+    required String Function(Album album) subtitle,
+    required Widget? bar,
+    required Widget header,
+    required Widget footer,
+  }) => AlbumGrid(
+    switch (sections) {
+      [] => const [],
+      [final section] => section.albums,
+      _ => sections[_section].albums,
+    },
+    heading: switch (sections) {
+      [] => null,
+      [final section] => Text(section.title, style: Theme.of(context).textTheme.titleLarge),
+      _ => SegmentedChoice(
+        _section,
+        options: [for (var i = 0; i < sections.length; i++) i],
+        label: (i) => sections[i].title,
+        onSelected: (i) => setState(() => _section = i),
+      ),
+    },
+    subtitle: subtitle,
+    bar: bar,
+    header: header,
+    footer: footer,
+  );
 
   /// The top of the page, down to the artist's [songs] and the choice of their lists, or its title ([heading]). On a
   /// wide screen the picture is round, the name beside it, with how many albums they have and their genres, and behind

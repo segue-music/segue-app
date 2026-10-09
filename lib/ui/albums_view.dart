@@ -236,26 +236,15 @@ class _Retry extends StatelessWidget {
   );
 }
 
-/// A section of an [AlbumGrid]: albums, under a title or none.
-typedef AlbumSection = ({String? title, List<Album> albums});
-
-/// Albums as a grid of covers, between an optional [header] and [footer], under an optional [bar]. Each opens its page.
+/// Albums as a grid of covers, under an optional [heading], between an optional [header] and [footer], under an optional
+/// [bar]. Each opens its page.
 class AlbumGrid extends StatelessWidget {
-  /// [albums] in one grid, with no title.
-  const AlbumGrid(List<Album> albums, {this.header, this.footer, this.subtitle, this.bar, super.key})
-    : _albums = albums,
-      _sections = null;
+  const AlbumGrid(this.albums, {this.heading, this.header, this.footer, this.subtitle, this.bar, super.key});
 
-  /// The albums of [sections], a grid for each, under its title.
-  const AlbumGrid.sections(List<AlbumSection> sections, {this.header, this.footer, this.subtitle, this.bar, super.key})
-    : _albums = null,
-      _sections = sections;
+  final List<Album> albums;
 
-  final List<Album>? _albums;
-  final List<AlbumSection>? _sections;
-
-  /// Its albums, in sections: one with no title, from the default constructor.
-  List<AlbumSection> get sections => _sections ?? [(title: null, albums: _albums!)];
+  /// Over the albums, under the [header], at its left: their title, or a choice between them and others.
+  final Widget? heading;
 
   final Widget? header;
   final Widget? footer;
@@ -266,43 +255,40 @@ class AlbumGrid extends StatelessWidget {
   /// The line under each name; the artist, by default.
   final String Function(Album album)? subtitle;
 
-  /// How far a row's lines are from what comes under them: the next row's covers, or the next section's title. About as
-  /// far as a list's last song is from a title under it, as the most played songs on an artist's page are from their
-  /// albums.
+  /// How far a row's lines are from the next row's covers. About as far as a list's last song is from a title under
+  /// it, as the most played songs on an artist's page are from their albums.
   static const _below = 36.0;
 
   @override
   Widget build(BuildContext context) {
     final lines = AlbumTile.linesHeight(context);
+    final heading = this.heading;
     return CustomScrollView(
       slivers: [
         ?bar,
         if (header != null) SliverToBoxAdapter(child: header),
-        for (final (i, (:title, :albums)) in sections.indexed) ...[
-          if (title != null)
-            SliverToBoxAdapter(
-              child: Padding(
-                // Under another section, _below from its lines, which its grid and its tiles leave 16 under.
-                padding: EdgeInsets.fromLTRB(16, i == 0 ? 24 : _below - 16, 16, 0),
-                child: Text(title, style: Theme.of(context).textTheme.titleLarge),
-              ),
-            ),
-          // Covers of up to 180 pixels, 16 from the edges and from one another, of which the tiles' room inside
-          // (AlbumTile.padding) is part.
-          SliverPadding(
-            padding: const EdgeInsets.all(16 - AlbumTile.padding),
-            sliver: SliverGrid.builder(
-              gridDelegate: _AlbumGridDelegate(
-                lines: lines,
-                maxCrossAxisExtent: 180 + 2 * AlbumTile.padding,
-                mainAxisSpacing: _below - 2 * AlbumTile.padding,
-                crossAxisSpacing: 16 - 2 * AlbumTile.padding,
-              ),
-              itemCount: albums.length,
-              itemBuilder: (context, i) => AlbumTile(albums[i], subtitle: subtitle?.call(albums[i])),
+        if (heading != null)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+              child: Align(alignment: AlignmentDirectional.centerStart, child: heading),
             ),
           ),
-        ],
+        // Covers of up to 180 pixels, 16 from the edges and from one another, of which the tiles' room inside
+        // (AlbumTile.padding) is part.
+        SliverPadding(
+          padding: const EdgeInsets.all(16 - AlbumTile.padding),
+          sliver: SliverGrid.builder(
+            gridDelegate: _AlbumGridDelegate(
+              lines: lines,
+              maxCrossAxisExtent: 180 + 2 * AlbumTile.padding,
+              mainAxisSpacing: _below - 2 * AlbumTile.padding,
+              crossAxisSpacing: 16 - 2 * AlbumTile.padding,
+            ),
+            itemCount: albums.length,
+            itemBuilder: (context, i) => AlbumTile(albums[i], subtitle: subtitle?.call(albums[i])),
+          ),
+        ),
         if (footer != null) SliverToBoxAdapter(child: footer),
         // Clear of the bars a phone's home has over it.
         SliverToBoxAdapter(child: SizedBox(height: MediaQuery.paddingOf(context).bottom)),
