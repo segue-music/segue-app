@@ -771,13 +771,18 @@ class MediaKitEngine implements AudioEngine {
     await native.setProperty('replaygain-fallback', '${gain.decibels.clamp(-200, 60)}');
   }
 
-  /// The equalizer is mpv's audio filters (af), FFmpeg's: none while it is off, and on, one for each band, so that mpv,
-  /// given them again with a band moved, makes only that one anew, the others going on as they were
-  /// (mp_output_chain_update_filters, in its filters/f_output_chain.c). Before them, the audio goes to 48 kHz, in
-  /// floats: FFmpeg's equalizer leaves out a band past half a track's sample rate, but one at half of it (16 kHz, in a
-  /// track of 32 kHz) silences the track. And it goes down there by as much as the bands raise the frequency they raise
-  /// most, by aresample's rematrix_volume: iOS's libavfilter has no volume filter. Turning it on or off changes what mpv
-  /// sends to the audio output, which starts again: the sound stops for a moment.
+  /// The equalizer is mpv's audio filters (af): none while it is off, and on, the bands in one lavfi graph, each one of
+  /// FFmpeg's equalizer. Of FFmpeg's filters, media_kit's libmpv for Android has only that one (iOS's has no volume
+  /// either), so what comes before the bands is mpv's or an equalizer too. First the audio goes to 48 kHz, in floats, by
+  /// mpv's format filter, before which mpv puts its own resampler: FFmpeg's equalizer leaves out a band past half a
+  /// track's sample rate, but one at half of it (16 kHz, in a track of 32 kHz) silences the track. Then it goes down by
+  /// as much as the bands raise the frequency they raise most, by an equalizer whose band, of a Q of 0.0001, takes in
+  /// every frequency but those within a hertz or two of none and of half the sample rate: it makes them all quieter by
+  /// its gain. A graph for each band would do on Linux, but on Android (mpv 0.35, FFmpeg 6.0) a second lavfi filter
+  /// after mpv's resampler fails every frame ("could not pass frame to filter"). Given the graph again with a band
+  /// moved, mpv makes only it anew, keeping the format filter (mp_output_chain_update_filters, in its
+  /// filters/f_output_chain.c), and the audio output goes on; turning the equalizer on or off changes what mpv sends to
+  /// the output, which starts again: the sound stops for a moment.
   @override
   Future<void> setEqualizer(Map<int, double> gains) async {
     await _ready;
@@ -786,13 +791,15 @@ class MediaKitEngine implements AudioEngine {
       return;
     }
 
-    final volume = pow(10, -_loudestBoost(gains) / 20);
-    final filters = [
-      if (gains.isNotEmpty) 'lavfi=[aresample=$_equalizerRate:osf=fltp:rematrix_volume=${volume.toStringAsFixed(6)}]',
+    final graph = [
+      'equalizer=f=${_equalizerRate ~/ 4}:t=q:w=0.0001:g=${(-_loudestBoost(gains)).toStringAsFixed(2)}',
       for (final MapEntry(key: frequency, value: gain) in gains.entries)
-        'lavfi=[equalizer=f=$frequency:t=o:w=1:g=${gain.toStringAsFixed(2)}]',
+        'equalizer=f=$frequency:t=o:w=1:g=${gain.toStringAsFixed(2)}',
     ];
-    await (_player.platform as NativePlayer).setProperty('af', filters.join(','));
+    await (_player.platform as NativePlayer).setProperty(
+      'af',
+      gains.isEmpty ? '' : 'format=format=floatp:srate=$_equalizerRate,lavfi=[${graph.join(',')}]',
+    );
   }
 
   /// The sample rate the equalizer works at.

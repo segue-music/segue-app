@@ -121,11 +121,13 @@ Running two app instances on one machine as different devices:
   (`compute_replaygain` in its `player/audio.c`). `PlayerController` picks each song's (`ReplayGainChoice`,
   `lib/replay_gain_choice.dart`): the media server's gain, or, where it gives none, the file's tags.
   The equalizer (`setEqualizer`, from `EqualizerChoice`, `lib/equalizer_choice.dart`) is mpv's `af`: FFmpeg's
-  `equalizer`, a filter for each of its ten bands, so that mpv, given the list again with one band moved, makes only
-  that one anew. Before them `aresample` takes the audio to 48 kHz (a band at half a track's sample rate, 16 kHz in
-  one of 32 kHz, silences it in FFmpeg) and lowers it by as much as the bands raise the loudest frequency
-  (`rematrix_volume`, since iOS's libavfilter has no `volume`; the media_kit builds have only a few filters).
-  Turning it on or off restarts the audio output, a moment of silence; moving a band doesn't.
+  `equalizer`, one for each of its ten bands, in a single lavfi graph. Of FFmpeg's filters, media_kit's libmpv for
+  Android has only `equalizer` (no `aresample`, no `volume`; iOS's has no `volume`), so mpv's own `format` filter
+  takes the audio to 48 kHz first (a band at half a track's sample rate, 16 kHz in one of 32 kHz, silences it in
+  FFmpeg), and one more `equalizer`, at the head of the graph, lowers it by as much as the bands raise the loudest
+  frequency: of a Q so small (0.0001) that its band takes in every frequency, it is a gain. One graph, since on
+  Android (mpv 0.35, FFmpeg 6.0) a second lavfi filter after mpv's resampler fails every frame. Turning it on or
+  off restarts the audio output, a moment of silence; moving a band makes the graph anew, but not the output.
 - `ConnectController` (`lib/connect/`) follows the Connect model: the app controls one device at a
   time (`activeId`, null meaning this device). UI actions go through it (`playSongs`, `toggle`,
   `seek`, ...): it either runs them on the local player or sends them as hub commands. The UI should
