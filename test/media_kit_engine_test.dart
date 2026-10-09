@@ -660,6 +660,73 @@ void main() {
     expect(engine.index, 2);
   }, skip: hasLibmpv ? false : 'needs libmpv');
 
+  group('tracks added', () {
+    test('play next, right after the current one, or after the last, the current one playing on', () async {
+      final server = await TrackServer.start();
+      addTearDown(server.close);
+      await engine.open(
+        [server.track('short0'), server.track('short1')],
+        index: 0,
+        position: Duration.zero,
+        play: true,
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      expect(await engine.add([server.track('short2')], next: false), 2);
+      expect(await engine.add([server.track('short3'), server.track('short4')], next: true), 1);
+      expect(engine.order, [0, 1, 2, 3, 4]);
+      expect(engine.index, 0);
+      expect(engine.playing, isTrue);
+      await Future<void>.delayed(const Duration(seconds: 5)); // to the end of the queue
+      expect(server.requests, ['/short0', '/short3', '/short4', '/short1', '/short2']);
+      expect(engine.index, 4);
+    }, skip: hasLibmpv ? false : 'needs libmpv');
+
+    test('never take the current track elsewhere, or back to its start, even for a moment', () async {
+      final tracks = [for (var i = 0; i < 3; i++) tone(dir, i, seconds: 20)];
+      await engine.open(tracks, index: 1, position: const Duration(seconds: 10), play: true);
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      final told = <(int, Duration)>[];
+      final subscription = engine.changes.listen((_) => told.add((engine.order[engine.index], engine.position)));
+      await engine.add([tone(dir, 3), tone(dir, 4)], next: true);
+      await engine.add([tone(dir, 5)], next: false);
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      expect(told, isNotEmpty);
+      expect(
+        told,
+        everyElement(predicate<(int, Duration)>((told) => told.$1 == 1 && told.$2 > const Duration(seconds: 10))),
+      );
+      await subscription.cancel();
+    }, skip: hasLibmpv ? false : 'needs libmpv');
+
+    test('shuffled, play next all the same, and go where they would have unshuffled as shuffle goes off', () async {
+      for (var round = 0; round < 3; round++) {
+        final tracks = [for (var i = 0; i < 6; i++) tone(dir, i, seconds: 20)];
+        await engine.setShuffle(true);
+        await engine.open(tracks, index: 2, position: const Duration(seconds: 3), play: true);
+        await Future<void>.delayed(const Duration(milliseconds: 300));
+        final current = engine.index;
+        expect(await engine.add([tone(dir, 6), tone(dir, 7)], next: true), 3);
+        expect(await engine.add([tone(dir, 8)], next: false), 8);
+        expect(engine.index, current);
+        expect(engine.order.sublist(current, current + 3), [2, 3, 4], reason: 'the current track, then those added');
+        expect(engine.order.last, 8);
+
+        final told = <(int, Duration)>[];
+        final subscription = engine.changes.listen((_) => told.add((engine.order[engine.index], engine.position)));
+        await engine.setShuffle(false);
+        await Future<void>.delayed(const Duration(milliseconds: 300));
+        expect(engine.order, [0, 1, 2, 3, 4, 5, 6, 7, 8]);
+        expect(engine.index, 2);
+        expect(engine.playing, isTrue);
+        expect(
+          told,
+          everyElement(predicate<(int, Duration)>((told) => told.$1 == 2 && told.$2 > const Duration(seconds: 3))),
+        );
+        await subscription.cancel();
+      }
+    }, skip: hasLibmpv ? false : 'needs libmpv');
+  });
+
   test('shuffle stays on for the tracks opened next', () async {
     final tracks = [for (var i = 0; i < 8; i++) tone(dir, i)];
     await engine.setShuffle(true);

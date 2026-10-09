@@ -12,7 +12,21 @@ enum Role { player, controller }
 enum PlaybackStatus { playing, paused, stopped }
 
 /// The command names. Their `name` is the wire name.
-enum CommandAction { play, pause, toggle, stop, next, previous, jump, seek, setVolume, setQueue, setRepeat, setShuffle }
+enum CommandAction {
+  play,
+  pause,
+  toggle,
+  stop,
+  next,
+  previous,
+  jump,
+  seek,
+  setVolume,
+  setQueue,
+  setRepeat,
+  setShuffle,
+  addToQueue,
+}
 
 /// A player's repeat mode (SPEC.md, section 4). Their `name` is the wire name.
 enum Repeat { off, all, one }
@@ -175,7 +189,8 @@ class Command {
       index = null,
       play = null,
       repeat = null,
-      shuffle = null;
+      shuffle = null,
+      next = null;
 
   const Command.jump(int this.index)
     : action = CommandAction.jump,
@@ -184,7 +199,8 @@ class Command {
       queue = null,
       play = null,
       repeat = null,
-      shuffle = null;
+      shuffle = null,
+      next = null;
 
   const Command.seek(int this.positionMs)
     : action = CommandAction.seek,
@@ -193,7 +209,8 @@ class Command {
       index = null,
       play = null,
       repeat = null,
-      shuffle = null;
+      shuffle = null,
+      next = null;
 
   const Command.setVolume(int this.volume)
     : action = CommandAction.setVolume,
@@ -202,7 +219,8 @@ class Command {
       index = null,
       play = null,
       repeat = null,
-      shuffle = null;
+      shuffle = null,
+      next = null;
 
   const Command.setQueue({
     required List<QueueItem> this.queue,
@@ -212,7 +230,19 @@ class Command {
   }) : action = CommandAction.setQueue,
        volume = null,
        repeat = null,
-       shuffle = null;
+       shuffle = null,
+       next = null;
+
+  /// Adds [queue] to the player's queue: right after the current track if [next], otherwise at its end (SPEC.md,
+  /// section 5).
+  const Command.addToQueue({required List<QueueItem> this.queue, required bool this.next})
+    : action = CommandAction.addToQueue,
+      positionMs = null,
+      volume = null,
+      index = null,
+      play = null,
+      repeat = null,
+      shuffle = null;
 
   const Command.setRepeat(Repeat this.repeat)
     : action = CommandAction.setRepeat,
@@ -221,7 +251,8 @@ class Command {
       queue = null,
       index = null,
       play = null,
-      shuffle = null;
+      shuffle = null,
+      next = null;
 
   const Command.setShuffle(bool this.shuffle)
     : action = CommandAction.setShuffle,
@@ -230,7 +261,8 @@ class Command {
       queue = null,
       index = null,
       play = null,
-      repeat = null;
+      repeat = null,
+      next = null;
 
   factory Command.fromJson(Map<String, dynamic> json) {
     final action = _enum(CommandAction.values, json['action']);
@@ -246,6 +278,10 @@ class Command {
       ),
       CommandAction.setRepeat => Command.setRepeat(_enum(Repeat.values, json['repeat'])),
       CommandAction.setShuffle => Command.setShuffle(json['shuffle'] as bool),
+      CommandAction.addToQueue => Command.addToQueue(
+        queue: (json['queue'] as List).map((item) => QueueItem.fromJson(item as Map<String, dynamic>)).toList(),
+        next: json['next'] as bool,
+      ),
       _ => Command(action),
     };
   }
@@ -259,6 +295,9 @@ class Command {
   final Repeat? repeat;
   final bool? shuffle;
 
+  /// Whether [CommandAction.addToQueue] puts its tracks right after the current one, rather than at the end.
+  final bool? next;
+
   Map<String, Object?> toJson() => {
     'action': action.name,
     'positionMs': ?positionMs,
@@ -268,6 +307,7 @@ class Command {
     'play': ?play,
     'repeat': ?repeat?.name,
     'shuffle': ?shuffle,
+    'next': ?next,
   };
 }
 

@@ -196,6 +196,17 @@ class ConnectController extends ChangeNotifier {
     return result;
   }
 
+  /// Whether the device the app controls takes [addToQueue].
+  bool get canAddToQueue =>
+      _active == null || (activeDevice?.info.capabilities.contains(CommandAction.addToQueue) ?? false);
+
+  /// Adds [songs] to the queue of the device the app controls, the current track playing on: right after it if [next],
+  /// otherwise at its end.
+  Future<Result> addToQueue(List<Song> songs, {required bool next}) => _run(
+    Command.addToQueue(queue: [for (final song in songs) song.toQueueItem()], next: next),
+    () => player.addToQueue(songs, next: next),
+  );
+
   Future<Result> play() => _run(const Command(CommandAction.play), player.play);
 
   Future<Result> pause() => _run(const Command(CommandAction.pause), player.pause);

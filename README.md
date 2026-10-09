@@ -133,12 +133,17 @@ the device it runs on.
 - the queue of whichever device the app controls, from the full-screen player or, on a wide
   screen, the player bar: the current track on top, the next ones under it and what played before
   above it. A tap on a track plays it there;
+- songs played next, right after the one that plays, or added at the end of the queue, on whichever
+  device the app controls: a song from its menu, and an album, all its songs, from the button beside
+  its play button. Shuffled, they still play next, and turning shuffle off puts them where they would
+  have gone unshuffled. To an empty queue they are the queue, paused at the first. A message at the
+  bottom says so;
 - the album's songs and the queue have a header naming their columns: the number ("#") or the
   cover, the title, and the duration as a clock; over the queue it stays as the tracks scroll;
 - making and changing playlists: a new one, from a button over the list of them, named in a dialog; a
   song added to one, from its menu (a button before its duration, wherever songs are listed: an album's
   page, an artist's, a playlist's, search; for the keyboard and the remote, which stop at the song
-  alone, the menu key or Shift+F10 on it), or an album, all its songs, from a button beside its play
+  alone, the menu key or Shift+F10 on it), or an album, all its songs, from the button beside its play
   button, to one of those the user can change, picked in a dialog, or to a new one named there; on the
   page of one the user can change, a song taken out from its menu, a song moved by dragging it (on a
   touch screen, once held a moment), and the playlist renamed or deleted (once asked) from its own
@@ -231,8 +236,8 @@ the device it runs on.
   On a computer the window opens maximized.
 
 Not yet: moving a playlist's songs with the remote (a TV has no drag), adding the song that plays to a playlist from
-the player, editing the queue (play next, add to it, reorder it), the media controls on the other platforms (Android's
-media session), on a Jellyfin server the cover of a song that came from another device
+the player, a playlist played next or added to the queue, moving songs in the queue and taking them out, the media
+controls on the other platforms (Android's media session), on a Jellyfin server the cover of a song that came from another device
 when its file has none of its own (Jellyfin doesn't fall back to the album's) and an artist's popular songs (Jellyfin
 knows only its users' plays), an offline cache, settings, sending the music
 to speakers and TVs that don't run the app (Google Cast, UPnP/DLNA), and CarPlay as an app of its own (browsing the library

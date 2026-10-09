@@ -79,8 +79,8 @@ abstract class AudioEngine {
   /// 0 to 100.
   int get volume;
 
-  /// The play order: for each position, the index of the track in what [open] got. Shuffled while
-  /// [shuffle] is on; [index] is a position in it.
+  /// The play order: for each position, the index of the track in the order the tracks have unshuffled: what [open]
+  /// got, with what [add] added among them. Shuffled while [shuffle] is on; [index] is a position in it.
   List<int> get order;
 
   Repeat get repeat;
@@ -95,6 +95,12 @@ abstract class AudioEngine {
   /// fail then, the engine stops on it without telling ([failed] stays false), since nothing asked it
   /// to play: [play] tries it again, and tells if it fails again.
   Future<void> open(List<TrackSource> tracks, {required int index, required Duration position, required bool play});
+
+  /// Adds [tracks] to those open got, the current one playing on: right after it if [next], in the play order and in
+  /// the order unshuffled alike, otherwise after the last one in both. Where they went in the order unshuffled: the
+  /// index of the first; -1 where none were open to add them to (a stop, or another open, came first).
+  Future<int> add(List<TrackSource> tracks, {required bool next});
+
   Future<void> play();
   Future<void> pause();
   Future<void> stop();
@@ -118,7 +124,7 @@ abstract class AudioEngine {
 
   Future<void> setRepeat(Repeat mode);
 
-  /// On, shuffles the tracks, the current one still playing; off, back to the order [open] got.
+  /// On, shuffles the tracks, the current one still playing; off, back to their order unshuffled ([order]).
   /// It stays on for the tracks opened next.
   Future<void> setShuffle(bool on);
 
@@ -155,13 +161,19 @@ class MediaKitEngine implements AudioEngine {
           return;
         }
 
-        // Stopped on a track that failed, where mpv had moved on before it stopped: the failed one
-        // stays current, wherever a shuffle puts it.
-        if (_failed) {
-          if (!listEquals(inOrder, _inOrder)) {
+        final moved = !listEquals(inOrder, _inOrder);
+
+        // Stopped on a track that failed, where mpv had moved on before it stopped, or tracks moving ([_rearrange]),
+        // which media_kit tells of with the index from before: the current one stays current, wherever they put it.
+        if (_failed || (_rearranging && moved)) {
+          if (moved) {
             _index = max(0, inOrder.indexOf(_at(_inOrder, _index) ?? ''));
             _inOrder = inOrder;
-            _changes.add(null);
+
+            // Moving, once they are all where they go.
+            if (!_rearranging) {
+              _changes.add(null);
+            }
           }
 
           return;
@@ -224,12 +236,20 @@ class MediaKitEngine implements AudioEngine {
   // and comes back silently (its playlist stream skips a repeat of what it already announced).
   int _index = 0;
 
-  // The tracks as open got them, and their names in mpv's playlist, as open got them and in play order (shuffled, or
-  // not). Each open names them anew, so that what mpv says late of the tracks before isn't taken for these.
+  // The tracks as open got them, with those added among them (the order unshuffled), and their names in mpv's
+  // playlist, in that order and in play order (shuffled, or not). Each open names them anew, so that what mpv says late
+  // of the tracks before isn't taken for these; and counts the tracks it named, for the names of those added.
   List<TrackSource> _tracks = const [];
   int _opens = 0;
+  int _named = 0;
   List<String> _opened = const [];
   List<String> _inOrder = const [];
+
+  // Moving tracks in mpv's playlist ([_rearrange]): media_kit tells of each move with the index from before, so until
+  // done the current track is known by its name. And the changes that move them (adding tracks, shuffling), one after
+  // another, each finding the playlist as the one before left it.
+  bool _rearranging = false;
+  Future<void> _rearrangements = Future.value();
 
   // Where in the track the current track's stream starts: zero, unless it was loaded again to start later.
   Duration _offset = Duration.zero;
@@ -281,8 +301,9 @@ class MediaKitEngine implements AudioEngine {
 
   static String? _at(List<String> tracks, int index) => index >= 0 && index < tracks.length ? tracks[index] : null;
 
-  /// Whether [tracks] are the ones open got, in any order.
-  bool _ours(List<String> tracks) => listEquals([...tracks]..sort(), [..._opened]..sort());
+  /// Whether [tracks] are of those open got, and add added: all of them, in any order, or, as [add] gives mpv its tracks
+  /// one by one, some.
+  bool _ours(List<String> tracks) => tracks.isNotEmpty && tracks.every(_opened.toSet().contains);
 
   // Where playback went with a seek, a jump or a new track, until media_kit's position gets there:
   // its state.position keeps the old place for a moment, and the player's report to the hub,
@@ -399,15 +420,27 @@ class MediaKitEngine implements AudioEngine {
   }
 
   @override
-  Future<void> setShuffle(bool on) async {
+  Future<void> setShuffle(bool on) => _inTurn(() async {
     await _ready;
     _shuffle = on;
 
     if (_opened.isNotEmpty) {
       await _player.setShuffle(on);
+
+      // mpv puts back in their order only the tracks it shuffled, and those added since anywhere.
+      if (!on) {
+        await _rearrange(_opened);
+      }
     }
 
     _changes.add(null);
+  });
+
+  /// Runs [change] once the changes that move tracks before it are done ([_rearrangements]).
+  Future<T> _inTurn<T>(Future<T> Function() change) {
+    final done = _rearrangements.then((_) => change());
+    _rearrangements = done.then<void>((_) {}, onError: (Object _) {});
+    return done;
   }
 
   @override
@@ -422,6 +455,7 @@ class MediaKitEngine implements AudioEngine {
     _quiet = !play;
     _tracks = tracks;
     _opens++;
+    _named = tracks.length;
     _opened = _inOrder = [for (var i = 0; i < tracks.length; i++) Media('segue://track/$_opens/$i').uri];
     _index = index;
     _offset = Duration.zero;
@@ -432,6 +466,86 @@ class MediaKitEngine implements AudioEngine {
     if (_shuffle) {
       await _player.setShuffle(true);
     }
+  }
+
+  /// mpv appends each track at the end of its playlist, from where, to play next, they move one by one to right after
+  /// the current track, which plays on.
+  @override
+  Future<int> add(List<TrackSource> tracks, {required bool next}) {
+    final opens = _opens;
+    return _inTurn(() => _add(tracks, next: next, opens: opens));
+  }
+
+  /// [add], once the changes before it are done, unless another open, the [opens]th, came first.
+  Future<int> _add(List<TrackSource> tracks, {required bool next, required int opens}) async {
+    await _ready;
+    final current = _at(_inOrder, _index);
+
+    if (opens != _opens || current == null) {
+      return -1;
+    }
+
+    final at = next ? _opened.indexOf(current) + 1 : _opened.length;
+    final place = next ? _index + 1 : _inOrder.length;
+    final names = [for (final _ in tracks) Media('segue://track/$_opens/${_named++}').uri];
+    _tracks = [..._tracks.take(at), ...tracks, ..._tracks.skip(at)];
+    _opened = [..._opened.take(at), ...names, ..._opened.skip(at)];
+    await _rearrange(
+      [..._inOrder.take(place), ...names, ..._inOrder.skip(place)],
+      append: () async {
+        for (final name in names) {
+          // Another open, or a stop, took the playlist.
+          if (opens != _opens || _opened.isEmpty) {
+            return;
+          }
+
+          await _player.add(Media(name));
+        }
+      },
+    );
+    return at;
+  }
+
+  /// Moves the tracks in mpv's playlist, once [append] has added its own at its end, into the play order [target], the
+  /// current track playing on. media_kit tells of each move with the index from before: until done the engine knows the
+  /// current track by its name, and tells of the change once. mpv tells of the current track's new place, where a move
+  /// takes another track over it, only after the move: the next move waits for it, so that it comes with the playlist
+  /// it is about, rather than with a later one, where it would name another track. That one may come too, where the
+  /// current track has ended meanwhile, which the engine follows.
+  Future<void> _rearrange(List<String> target, {Future<void> Function()? append}) async {
+    final opens = _opens;
+    _rearranging = true;
+
+    try {
+      await append?.call();
+      final playing = int.tryParse(await (_player.platform as NativePlayer).getProperty('playlist-playing-pos')) ?? -1;
+      final inOrder = [for (final media in _player.state.playlist.medias) media.uri];
+      final current = _at(inOrder, playing);
+
+      for (var i = 0; i < target.length && opens == _opens && _opened.isNotEmpty; i++) {
+        final from = inOrder.indexOf(target[i], i);
+
+        // In its place, or not in mpv's playlist.
+        if (from <= i) {
+          continue;
+        }
+
+        final before = current == null ? -1 : inOrder.indexOf(current);
+        inOrder.insert(i, inOrder.removeAt(from));
+        final after = current == null ? -1 : inOrder.indexOf(current);
+        final told = before == after
+            ? null
+            : _player.stream.playlist
+                  .firstWhere((playlist) => playlist.index == after)
+                  .then<void>((_) {}, onError: (Object _) {});
+        await _player.move(from, i);
+        await told?.timeout(const Duration(seconds: 1), onTimeout: () {});
+      }
+    } finally {
+      _rearranging = false;
+    }
+
+    _changes.add(null);
   }
 
   /// mpv's on_load hook: points mpv, about to load one of the tracks, at its stream, and plays it with its gain. The

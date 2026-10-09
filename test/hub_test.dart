@@ -345,6 +345,23 @@ void main() {
     expect(phone.player.queue, isEmpty, reason: 'not the phone\'s own player');
   });
 
+  test('songs played next, or added, go to the queue of the device it controls', () async {
+    final user = newUser();
+    final laptop = await App(user, 'laptop').start();
+    final phone = await App(user, 'phone').start();
+    await laptop.player.playQueue(songs);
+    await until(() => phone.connect.nowPlaying?.device == 'laptop', 'the phone to follow the laptop');
+    expect(phone.connect.canAddToQueue, isTrue);
+    const added = [Song(id: '4QFKvMsJrd57QE2Le2dKKo', title: 'Added')];
+    expect((await phone.connect.addToQueue(added, next: true)).ok, isTrue);
+    expect((await phone.connect.addToQueue(added, next: false)).ok, isTrue);
+    expect(laptop.player.queue.map((song) => song.title), ['Dream On', 'Added', 'Other', 'Added']);
+    expect(laptop.player.current?.title, 'Dream On');
+    expect(laptop.player.playing, isTrue);
+    await until(() => phone.connect.queue.tracks.length == 4, 'the phone to see the songs added');
+    expect(phone.player.queue, isEmpty, reason: 'not the phone\'s own player');
+  });
+
   test('starting to play on one device stops the others: no other is left paused with the music', () async {
     final user = newUser();
     final laptop = await App(user, 'laptop').start();

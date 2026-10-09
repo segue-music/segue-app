@@ -115,10 +115,15 @@ Running two app instances on one machine as different devices:
   (one a Subsonic server transcodes as it goes) seeks by loading its track again from that point (`timeOffset`), the
   engine adding where the stream starts to mpv's positions. That a track has loaded it learns by asking mpv for its
   duration after each "Playing:" in the log: mpv's own notice says nothing for a track as long as the one before.
-  Until then the position stays where the track is to start, and a seek waits for it. The on_load hook also plays the
-  track with its gain (`TrackGain`, ReplayGain): the file's tags, through mpv's `replaygain` (and `replaygain-preamp`),
-  or a gain in dB, which goes in `replaygain-fallback` with `replaygain` off: mpv then applies it to every track, as a
-  volume of its own (`compute_replaygain` in its `player/audio.c`). `PlayerController` picks each song's
+  Until then the position stays where the track is to start, and a seek waits for it. It adds tracks (`add`, play next
+  or at the end) by appending them to mpv's playlist and moving them after the current one (`_rearrange`): media_kit
+  tells of a move with the index from before, and mpv of the current track's new place only after, so while it moves
+  them it knows the current track by its name, and after a move that takes a track over the current one it waits for
+  mpv's word, which would otherwise come with a later playlist and name another track. mpv's unshuffle puts back only
+  the tracks it shuffled, and the others anywhere, so turning shuffle off moves them where they go the same way. The
+  on_load hook also plays the track with its gain (`TrackGain`, ReplayGain): the file's tags, through mpv's
+  `replaygain` (and `replaygain-preamp`), or a gain in dB, which goes in `replaygain-fallback` with `replaygain` off:
+  mpv then applies it to every track, as a volume of its own (`compute_replaygain` in its `player/audio.c`). `PlayerController` picks each song's
   (`ReplayGainChoice`, `lib/replay_gain_choice.dart`): the media server's gain, or, where it gives none, the file's
   tags, either 8 dB louder (`replayGainPreamp`) and capped by its peak.
   The equalizer (`setEqualizer`, from `EqualizerChoice`, `lib/equalizer_choice.dart`) is mpv's `af`: FFmpeg's

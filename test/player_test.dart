@@ -132,6 +132,21 @@ void main() {
       ], reason: 'shuffled, a song plays among others');
     });
 
+    test('a song added plays among the songs around it where it went, and so do they', () async {
+      final choice = ReplayGainChoice(ReplayGainMode.automatic);
+      addTearDown(choice.dispose);
+      player = PlayerController(engine, api, replayGain: choice);
+      await player.playQueue([queue[0], queue[2]]);
+      expect(gains(), const [TrackGain(-16 + replayGainPreamp), TrackGain(-18 + replayGainPreamp)]);
+
+      await player.addToQueue([queue[1]], next: true);
+      expect(gains(), const [
+        TrackGain(-14 + replayGainPreamp),
+        TrackGain(-14 + replayGainPreamp),
+        TrackGain(-18 + replayGainPreamp),
+      ]);
+    });
+
     test('by song, by album, or not at all, as picked; a pick holds at once for the song that plays', () async {
       final choice = ReplayGainChoice(ReplayGainMode.track);
       addTearDown(choice.dispose);
@@ -381,6 +396,88 @@ void main() {
     expect(player.queue.map((song) => song.id), ['s1', 's2', 's3']);
     expect(player.current?.id, 's2');
     expect(reports.last.shuffle, isFalse);
+  });
+
+  group('adding to the queue', () {
+    const three = [...songs, Song(id: 's3', title: 'Three')];
+    const added = [Song(id: 'a1', title: 'Added one'), Song(id: 'a2', title: 'Added two')];
+
+    List<String> ids() => [for (final song in player.queue) song.id];
+
+    test(
+      'play next puts the songs right after the current one, which plays on where it was; add, after the last',
+      () async {
+        await player.playQueue(three, index: 1, position: const Duration(seconds: 30));
+        reports.clear();
+        await player.addToQueue(added, next: true);
+        expect(ids(), ['s1', 's2', 'a1', 'a2', 's3']);
+        expect(player.current?.id, 's2');
+        expect(player.playing, isTrue);
+        expect(player.position.inSeconds, 30);
+        expect(reports.last.queue?.map((item) => item.id), ['s1', 's2', 'a1', 'a2', 's3']);
+        expect(reports.last.index, 1);
+
+        await player.addToQueue(const [Song(id: 'a3', title: 'Added three')], next: false);
+        expect(ids(), ['s1', 's2', 'a1', 'a2', 's3', 'a3']);
+        expect(engine.tracks.map((track) => track.queryParameters['id']), ['s1', 's2', 'a1', 'a2', 's3', 'a3']);
+        await player.next();
+        expect(player.current?.id, 'a1');
+      },
+    );
+
+    test(
+      'shuffled, play next goes after the current song in the play order, and stays after it as shuffle goes off',
+      () async {
+        await player.playQueue(three, index: 1);
+        await player.setShuffle(true);
+        expect(ids(), ['s2', 's3', 's1']); // the fake's shuffle
+        await player.addToQueue(added.take(1).toList(), next: true);
+        await player.addToQueue(added.skip(1).toList(), next: false);
+        expect(ids(), ['s2', 'a1', 's3', 's1', 'a2']);
+        expect(player.current?.id, 's2');
+
+        await player.setShuffle(false);
+        expect(ids(), ['s1', 's2', 'a1', 's3', 'a2']);
+        expect(player.current?.id, 's2');
+      },
+    );
+
+    test('adds made at once go in the order they were made', () async {
+      await player.playQueue(songs);
+      await Future.wait([
+        player.addToQueue(added.take(1).toList(), next: true),
+        player.addToQueue(added.skip(1).toList(), next: true),
+      ]);
+      expect(ids(), ['s1', 'a2', 'a1', 's2']);
+    });
+
+    test('to an empty queue, the songs are the queue, paused at the first', () async {
+      await player.addToQueue(added, next: true);
+      expect(ids(), ['a1', 'a2']);
+      expect(player.index, 0);
+      expect(player.playing, isFalse);
+      expect(reports.lastWhere((report) => report.queue != null).queue?.map((item) => item.id), ['a1', 'a2']);
+    });
+
+    test('obeys addToQueue, skipping the items without an id, and fails with none left', () async {
+      await player.playQueue(songs);
+      await player.obey(
+        const Command.addToQueue(
+          queue: [
+            QueueItem(title: 'Untranslatable'),
+            QueueItem(id: 'a1', title: 'Added one'),
+          ],
+          next: true,
+        ),
+      );
+      expect(ids(), ['s1', 'a1', 's2']);
+      expect(player.queue[1].title, 'Added one');
+      await expectLater(
+        player.obey(const Command.addToQueue(queue: [QueueItem(title: 'Untranslatable')], next: false)),
+        throwsA(isA<CommandFailed>()),
+      );
+      expect(ids(), ['s1', 'a1', 's2']);
+    });
   });
 
   test('obeys setRepeat and setShuffle, and reports both', () async {

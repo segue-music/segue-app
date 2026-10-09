@@ -983,6 +983,36 @@
   "@addToPlaylist": {
     "description": "The menu item and the button that add a song or an album to a playlist, and the title of the dialog that picks it."
   },
+  "add": "Adicionar",
+  "@add": {
+    "description": "The tooltip of the album's button whose menu plays its songs next, adds them to the queue or adds them to a playlist."
+  },
+  "playNext": "Tocar a seguir",
+  "@playNext": {
+    "description": "The menu item that puts a song, or an album's songs, right after the current track in the queue."
+  },
+  "addToQueue": "Adicionar à fila",
+  "@addToQueue": {
+    "description": "The menu item that puts a song, or an album's songs, at the end of the queue."
+  },
+  "playingNext": "{count, plural, =1{Vai tocar a seguir} other{{count} faixas vão tocar a seguir}}",
+  "@playingNext": {
+    "description": "What says that songs went into the queue right after the current track, by how many.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "addedToQueue": "{count, plural, =1{Adicionada à fila} other{{count} faixas adicionadas à fila}}",
+  "@addedToQueue": {
+    "description": "What says that songs went at the end of the queue, by how many.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "removeFromPlaylist": "Remover da playlist",
   "@removeFromPlaylist": {
     "description": "The menu item that takes a song out of the playlist listing it."

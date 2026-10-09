@@ -326,6 +326,35 @@ void main() {
     await tester.pumpWidget(const SizedBox()); // stops the player bar's timer
   });
 
+  testWidgets(
+    'a song\'s menu plays it next, or adds it to the queue, and says so; the album\'s button, all its songs',
+    (tester) async {
+      final engine = await pumpAlbum(tester);
+      List<String?> queue() => [for (final i in engine.order) engine.tracks[i].queryParameters['id']];
+
+      Future<void> pick(Finder menu, String item) async {
+        await tester.tap(menu);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(item).last);
+        await tester.pumpAndSettle();
+      }
+
+      await tester.tap(song('Walk This Way'));
+      await tester.pumpAndSettle();
+      await pick(find.descendant(of: song('Sweet Emotion'), matching: find.byTooltip('Mais opções')), 'Tocar a seguir');
+      expect(queue(), ['s1', 's2', 's2']);
+      expect(find.text('Vai tocar a seguir'), findsOneWidget);
+
+      await pick(find.byTooltip('Adicionar'), 'Adicionar à fila');
+      expect(queue(), ['s1', 's2', 's2', 's1', 's2']);
+      expect(engine.index, 0, reason: 'the song that played plays on');
+      await tester.pump(const Duration(seconds: 5)); // the message before goes
+      await tester.pumpAndSettle();
+      expect(find.text('2 faixas adicionadas à fila'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
   testWidgets('the cover opens full screen: as big as the screen\'s shorter side, asked of the server so', (
     tester,
   ) async {
@@ -406,12 +435,12 @@ void main() {
   });
 
   testWidgets(
-    'on a phone, the button that adds the album to a playlist lines up with the songs\' menus, and the play button\'s '
-    'edge is 16 from the screen\'s, also on a touch screen, whose buttons have room around them',
+    'on a phone, the button that adds the album to the queue or a playlist lines up with the songs\' menus, and the play '
+    'button\'s edge is 16 from the screen\'s, also on a touch screen, whose buttons have room around them',
     variant: const TargetPlatformVariant({TargetPlatform.android, TargetPlatform.linux}),
     (tester) async {
       await pumpAlbum(tester, size: const Size(360, 640));
-      final add = tester.getRect(find.byTooltip('Adicionar à playlist'));
+      final add = tester.getRect(find.byTooltip('Adicionar'));
       final menus = find.byTooltip('Mais opções');
       expect(menus, findsNWidgets(2), reason: 'its two songs\'');
 

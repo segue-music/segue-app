@@ -424,7 +424,8 @@ void main() {
     final library = Library();
     await pumpHome(tester, const Size(1000, 700), library: library);
     await tap(tester, find.text('Toys in the Attic').first);
-    await tap(tester, find.byTooltip('Adicionar à playlist'));
+    await tap(tester, find.byTooltip('Adicionar'));
+    await tap(tester, item('Adicionar à playlist'));
     await tap(tester, item('Nova playlist'));
     await tester.enterText(nameField, 'Aerosmith');
     await tester.testTextInput.receiveAction(TextInputAction.done);

@@ -87,6 +87,23 @@ class FakeEngine implements AudioEngine {
   }
 
   @override
+  Future<int> add(List<TrackSource> tracks, {required bool next}) async {
+    if (opened.isEmpty) {
+      return -1;
+    }
+
+    final at = next ? _order[_index] + 1 : opened.length;
+    final place = next ? _index + 1 : _order.length;
+    final moved = [for (final track in _order) track < at ? track : track + tracks.length];
+    _order = [...moved.take(place), for (var i = 0; i < tracks.length; i++) at + i, ...moved.skip(place)];
+    opened = [...opened.take(at), ...tracks, ...opened.skip(at)];
+    _changes.add(null);
+    final added = [for (final track in tracks) (await track.address(Duration.zero))!];
+    this.tracks = [...this.tracks.take(at), ...added, ...this.tracks.skip(at)];
+    return at;
+  }
+
+  @override
   Future<void> setRepeat(Repeat mode) async {
     _repeat = mode;
     _changes.add(null);

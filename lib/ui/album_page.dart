@@ -21,7 +21,6 @@ import 'errors.dart';
 import 'now_playing_bar.dart';
 import 'page_area.dart';
 import 'page_bar.dart';
-import 'playlist_dialogs.dart';
 import 'release_types.dart';
 import 'song_list_header.dart';
 import 'song_menu.dart';
@@ -235,11 +234,11 @@ class _AlbumPageState extends State<AlbumPage> {
   }
 
   /// The top of the page: the album's cover, its type (album, EP, ...), its name and byline, and the buttons that play
-  /// it and add it to a playlist. On a wide screen the name is beside the cover, the type above it, the buttons under
-  /// them; on a narrow one ([narrow]) the name is in the page's bar (a [PageBar]), over the cover, which is centered, and
-  /// the byline under the cover, from the page's margin as the songs are, with the buttons at the end of its line, the
-  /// one that adds it over the songs' menus and the play button last ([SongListTopLine]), and the type before the
-  /// year.
+  /// it and add it (its menu: to the queue, or to a playlist). On a wide screen the name is beside the cover, the type
+  /// above it, the buttons under them; on a narrow one ([narrow]) the name is in the page's bar (a [PageBar]), over the
+  /// cover, which is centered, and the byline under the cover, from the page's margin as the songs are, with the buttons
+  /// at the end of its line, the one that adds it over the songs' menus and the play button last ([SongListTopLine]), and
+  /// the type before the year.
   Widget _header(Album album, List<Song> songs, {required ReleaseType? type, required bool narrow}) {
     final text = Theme.of(context).textTheme;
     final strings = AppLocalizations.of(context);
@@ -253,12 +252,14 @@ class _AlbumPageState extends State<AlbumPage> {
       credits: _creditsButton(album, songs),
     );
     final play = _playButton(songs, type: type);
-    final add = IconButton(
-      tooltip: strings.addToPlaylist,
-      onPressed: songs.isEmpty ? null : () => addToPlaylist(context, songs),
+    final add = PopupMenuButton<SongAction>(
+      tooltip: strings.add,
+      enabled: songs.isNotEmpty,
       icon: const ThemedIcon(HugeIcons.strokeRoundedAddCircle),
       // On a phone, over the songs' menus, as big as they are, without Material's padding for a touch screen around it.
       style: narrow ? IconButton.styleFrom(tapTargetSize: MaterialTapTargetSize.shrinkWrap) : null,
+      onSelected: (action) => runSongAction(context, action, songs),
+      itemBuilder: songMenuItems,
     );
 
     if (narrow) {

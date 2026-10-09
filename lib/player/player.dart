@@ -32,11 +32,16 @@ class PlayerController extends ChangeNotifier {
   final ValueListenable<ReplayGainMode>? _replayGain;
   final ValueListenable<EqualizerSettings>? _equalizer;
   late final StreamSubscription<void> _subscription;
-  // The songs as playQueue got them, and _queue: them in the engine's play order (shuffled, or not).
+  // The songs as playQueue got them, with those addToQueue added among them (their order unshuffled), and their tracks
+  // for the engine; and _queue: them in the engine's play order (shuffled, or not).
   List<Song> _opened = const [];
+  List<TrackSource> _tracks = const [];
   List<int> _order = const [];
   List<Song> _queue = const [];
   bool _queueChanged = false;
+
+  // The adds to the queue, one after another: each finds it as the one before left it.
+  Future<void> _adds = Future.value();
 
   /// Receives this player's state after every change, for the hub.
   void Function(PlayerState state)? onReport;
@@ -61,23 +66,58 @@ class PlayerController extends ChangeNotifier {
 
   Future<void> playQueue(List<Song> songs, {int index = 0, Duration position = Duration.zero, bool play = true}) async {
     _queue = _opened = List.unmodifiable(songs);
+    _tracks = [for (final song in songs) _track(song)];
     _order = const []; // so that the engine's order, shuffled or not, is taken up
     _queueChanged = true;
-    await _engine.open(
-      [
-        for (final (i, song) in songs.indexed)
-          TrackSource.resolved((from) => _stream(song.id, from), gain: () => _gain(songs, i)),
-      ],
-      index: index,
-      position: position,
-      play: play,
-    );
+    await _engine.open(_tracks, index: index, position: position, play: play);
     _changed();
   }
 
-  /// How loud the song at [index] of [songs], as playQueue got them, plays, as it loads: by the gain the media server
-  /// gives for it, or else by its file's tags; its album's or its own, as the way picked says; [replayGainPreamp] louder.
-  TrackGain _gain(List<Song> songs, int index) {
+  /// Adds [songs] to the queue, the current song playing on: right after it if [next], otherwise after the last one,
+  /// where they stay as shuffle goes off (SPEC.md, section 5). To an empty queue, they are the queue, paused at the
+  /// first.
+  Future<void> addToQueue(List<Song> songs, {required bool next}) {
+    final added = _adds.then((_) => _add(songs, next: next));
+    _adds = added.then<void>((_) {}, onError: (Object _) {});
+    return added;
+  }
+
+  Future<void> _add(List<Song> songs, {required bool next}) async {
+    if (songs.isEmpty) {
+      return;
+    }
+
+    if (_queue.isEmpty) {
+      return playQueue(songs, play: false);
+    }
+
+    final opened = _opened;
+    final tracks = [for (final song in songs) _track(song)];
+    final at = await _engine.add(tracks, next: next);
+
+    // Another queue came meanwhile.
+    if (at < 0 || !identical(_opened, opened)) {
+      return;
+    }
+
+    _opened = List.unmodifiable([..._opened.take(at), ...songs, ..._opened.skip(at)]);
+    _tracks = [..._tracks.take(at), ...tracks, ..._tracks.skip(at)];
+    _order = const [];
+    _queueChanged = true;
+    _changed();
+  }
+
+  /// The engine's track of [song]: its stream, and its gain, by its place in the queue as it loads.
+  TrackSource _track(Song song) {
+    late final TrackSource track;
+    track = TrackSource.resolved((from) => _stream(song.id, from), gain: () => _gain(song, _tracks.indexOf(track)));
+    return track;
+  }
+
+  /// How loud [song], at [index] of the songs in their order unshuffled (-1: no longer in the queue), plays, as it
+  /// loads: by the gain the media server gives for it, or else by its file's tags; its album's or its own, as the way
+  /// picked says; [replayGainPreamp] louder.
+  TrackGain _gain(Song song, int index) {
     final mode = _replayGain?.value ?? ReplayGainMode.off;
 
     if (mode == ReplayGainMode.off) {
@@ -86,10 +126,10 @@ class PlayerController extends ChangeNotifier {
 
     final album = switch (mode) {
       ReplayGainMode.album => true,
-      ReplayGainMode.automatic => !shuffle && _amongItsAlbum(songs, index),
+      ReplayGainMode.automatic => !shuffle && index >= 0 && _amongItsAlbum(_opened, index),
       _ => false,
     };
-    final replayGain = songs[index].replayGain;
+    final replayGain = song.replayGain;
     return replayGain == null
         ? TrackGain.tagged(album: album, preamp: replayGainPreamp)
         : TrackGain(replayGain.decibels(album: album, preamp: replayGainPreamp));
@@ -176,6 +216,7 @@ class PlayerController extends ChangeNotifier {
   Future<void> stop() async {
     await _engine.stop();
     _queue = _opened = const [];
+    _tracks = const [];
     _order = const [];
     _queueChanged = true;
     _changed();
@@ -226,6 +267,18 @@ class PlayerController extends ChangeNotifier {
           position: Duration(milliseconds: command.positionMs!),
           play: command.play!,
         );
+      case CommandAction.addToQueue:
+        // As for setQueue, the items the hub couldn't express in this device's API are skipped.
+        final playable = [
+          for (final item in command.queue!)
+            if (item.id != null) Song.fromQueueItem(item),
+        ];
+
+        if (playable.isEmpty) {
+          throw const CommandFailed('nothing playable');
+        }
+
+        await addToQueue(playable, next: command.next!);
     }
   }
 
