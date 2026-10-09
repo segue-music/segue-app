@@ -606,19 +606,26 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('another user\'s playlist has no menu of its own, and its songs neither come out nor move', (
-    tester,
-  ) async {
+  testWidgets('another user\'s playlist\'s menu only plays it next or adds it to the queue, and its songs neither come '
+      'out nor move', (tester) async {
     final library = Library();
     await pumpHome(tester, const Size(1000, 700), library: library);
     await openPlaylist(tester, 'chill');
     final page = find.byType(PlaylistPage);
     expect(
       find.descendant(of: page, matching: find.byTooltip('Mais opções')),
-      findsNWidgets(3),
-      reason: 'the songs\'',
+      findsNWidgets(4),
+      reason: 'the playlist\'s and the songs\'',
     );
     expect(find.descendant(of: page, matching: find.byType(ReorderableDragStartListener)), findsNothing);
+
+    await tap(tester, find.byTooltip('Mais opções').first);
+    expect(find.text('Tocar a seguir'), findsOneWidget);
+    expect(find.text('Adicionar à fila'), findsOneWidget);
+    expect(find.text('Renomear a playlist'), findsNothing);
+    expect(find.text('Excluir a playlist'), findsNothing);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
 
     await tap(tester, songMenu('Sweet Emotion'));
     expect(find.text('Adicionar à playlist'), findsOneWidget);
@@ -678,12 +685,48 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   }, variant: TargetPlatformVariant.only(TargetPlatform.linux));
 
-  testWidgets('another user\'s playlist, held, opens no menu', (tester) async {
+  testWidgets('another user\'s playlist, held, opens a menu that only plays it next or adds it to the queue; an empty '
+      'one of theirs would open none', (tester) async {
     await pumpHome(tester, const Size(1000, 700));
     await openPlaylists(tester);
     await tester.longPress(tile('chill'));
     await tester.pumpAndSettle();
+    expect(find.text('Tocar a seguir'), findsOneWidget);
     expect(find.text('Renomear a playlist'), findsNothing);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+
+    // The user's empty one: only what changes it.
+    await tester.longPress(tile('Empty'));
+    await tester.pumpAndSettle();
+    expect(find.text('Renomear a playlist'), findsOneWidget);
+    expect(find.text('Tocar a seguir'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('a playlist\'s menu plays its songs next, or adds them to the queue: on its page, as it shows them; in '
+      'the list, as the server has them', (tester) async {
+    final library = Library();
+    final player = await pumpHome(tester, const Size(1000, 700), library: library);
+    List<String> queue() => [for (final song in player.queue) song.id];
+
+    await openPlaylist(tester, 'chill');
+    await tap(tester, tile('Dream Police'));
+    expect(queue(), ['s1', 's2', 's9']);
+    expect(player.current?.id, 's9');
+
+    await tap(tester, find.byTooltip('Mais opções').first);
+    await tap(tester, item('Tocar a seguir'));
+    expect(queue(), ['s1', 's2', 's9', 's1', 's2', 's9']);
+    expect(player.current?.id, 's9', reason: 'the song that played plays on');
+    expect(find.text('3 faixas vão tocar a seguir'), findsOneWidget);
+
+    await tap(tester, find.byTooltip('Voltar'));
+    await tester.longPress(tile('Road trip'));
+    await tester.pumpAndSettle();
+    await tap(tester, item('Adicionar à fila'));
+    expect(queue(), ['s1', 's2', 's9', 's1', 's2', 's9', 's2', 's9']);
+    expect(player.current?.id, 's9');
     await tester.pumpWidget(const SizedBox());
   });
 

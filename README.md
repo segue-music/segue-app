@@ -134,8 +134,9 @@ the device it runs on.
   screen, the player bar: the current track on top, the next ones under it and what played before
   above it. A tap on a track plays it there;
 - songs played next, right after the one that plays, or added at the end of the queue, on whichever
-  device the app controls: a song from its menu, and an album, all its songs, from the button beside
-  its play button. Shuffled, they still play next, and turning shuffle off puts them where they would
+  device the app controls: a song from its menu, an album, all its songs, from the button beside its
+  play button, and a playlist from its menu, on its page and in the list of them (a long press, or the
+  menu key), another user's too. Shuffled, they still play next, and turning shuffle off puts them where they would
   have gone unshuffled. To an empty queue they are the queue, paused at the first. A message at the
   bottom says so;
 - the album's songs and the queue have a header naming their columns: the number ("#") or the
@@ -148,7 +149,7 @@ the device it runs on.
   page of one the user can change, a song taken out from its menu, a song moved by dragging it (on a
   touch screen, once held a moment), and the playlist renamed or deleted (once asked) from its own
   menu, which in the list of them a long press on it opens too (with a finger or the mouse), or the menu key. Another user's playlist, or one the server makes from rules (Navidrome's smart playlists), as
-  OpenSubsonic says, has none of these. Each change goes to the server as it's made, one after another,
+  OpenSubsonic says, has none of these: its menu only plays it next or adds it to the queue. Each change goes to the server as it's made, one after another,
   and what shows the playlists then loads them again as the server has them; one the server refuses
   says so. On a Subsonic server a song moves as the playlist's songs go back in their new order, which
   a server with OpenSubsonic's formPost (Navidrome) takes in a form's body, rather than in the URL;
@@ -236,8 +237,7 @@ the device it runs on.
   On a computer the window opens maximized.
 
 Not yet: moving a playlist's songs with the remote (a TV has no drag), adding the song that plays to a playlist from
-the player, a playlist played next or added to the queue, moving songs in the queue and taking them out, the media
-controls on the other platforms (Android's media session), on a Jellyfin server the cover of a song that came from another device
+the player, moving songs in the queue and taking them out, the media controls on the other platforms (Android's media session), on a Jellyfin server the cover of a song that came from another device
 when its file has none of its own (Jellyfin doesn't fall back to the album's) and an artist's popular songs (Jellyfin
 knows only its users' plays), an offline cache, settings, sending the music
 to speakers and TVs that don't run the app (Google Cast, UPnP/DLNA), and CarPlay as an app of its own (browsing the library

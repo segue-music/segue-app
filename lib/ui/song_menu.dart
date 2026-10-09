@@ -56,8 +56,8 @@ void runSongAction(BuildContext context, SongAction action, List<Song> songs, {V
 }
 
 /// Adds [songs] to the queue of the device the app controls, the current track playing on: right after it if [next],
-/// otherwise at its end; and says so, or why not.
-Future<void> addToQueue(BuildContext context, List<Song> songs, {required bool next}) async {
+/// otherwise at its end; and says so, or why not. Whether they went.
+Future<bool> addToQueue(BuildContext context, List<Song> songs, {required bool next}) async {
   final connect = ServicesScope.of(context).connect;
   final messenger = ScaffoldMessenger.maybeOf(context);
   final strings = AppLocalizations.of(context);
@@ -68,6 +68,7 @@ Future<void> addToQueue(BuildContext context, List<Song> songs, {required bool n
     _ => strings.addedToQueue(songs.length),
   };
   messenger?.showSnackBar(SnackBar(content: Text(said)));
+  return result.ok;
 }
 
 /// A song's menu, at the end of its line in a list, before its duration: what can be done with it besides playing it,

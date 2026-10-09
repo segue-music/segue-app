@@ -14,8 +14,8 @@ import 'playlist_page.dart';
 import 'spinner.dart';
 
 /// The user's playlists, and those others share with them, by name, each with its picture and how many songs it has,
-/// opening its page, under a button that makes a new one. Held, one the user can change opens its menu, which renames
-/// and deletes it. They load again as the app changes any.
+/// opening its page, under a button that makes a new one. Held, one opens its menu, which plays it next or adds it to
+/// the queue, and renames and deletes one the user can change. They load again as the app changes any.
 class PlaylistsView extends StatefulWidget {
   const PlaylistsView({super.key});
 
@@ -104,9 +104,9 @@ class _PlaylistsViewState extends State<PlaylistsView> {
   );
 }
 
-/// A playlist in the list: a tap opens its page. Where the user can change it, a long press (held, with a finger or the
-/// mouse) opens its menu where it was pressed, as the menu key, or Shift+F10, does over it, for the keyboard and the
-/// remote.
+/// A playlist in the list: a tap opens its page. A long press (held, with a finger or the mouse) opens its menu where it
+/// was pressed, as the menu key, or Shift+F10, does over it, for the keyboard and the remote; where it has nothing to
+/// do (another user's playlist, empty, or one the device the app controls can't add to its queue), nothing opens.
 class _PlaylistTile extends StatefulWidget {
   const _PlaylistTile(this.playlist);
 
@@ -122,6 +122,12 @@ class _PlaylistTileState extends State<_PlaylistTile> {
 
   /// Opens the menu: where the pointer is held ([at]), or else over the playlist.
   Future<void> _openMenu({Offset? at}) async {
+    final items = playlistMenuItems(context, widget.playlist, hasSongs: widget.playlist.songCount != 0);
+
+    if (items.isEmpty) {
+      return;
+    }
+
     final overlay = Overlay.of(context).context.findRenderObject()! as RenderBox;
     final tile = context.findRenderObject()! as RenderBox;
     final area = switch (at) {
@@ -134,7 +140,7 @@ class _PlaylistTileState extends State<_PlaylistTile> {
     final action = await showMenu<PlaylistAction>(
       context: context,
       position: RelativeRect.fromRect(area, Offset.zero & overlay.size),
-      items: playlistMenuItems(AppLocalizations.of(context)),
+      items: items,
     );
 
     if (action != null && mounted) {
@@ -151,13 +157,8 @@ class _PlaylistTileState extends State<_PlaylistTile> {
       title: Text(playlist.name, maxLines: 1, overflow: TextOverflow.ellipsis),
       subtitle: playlist.songCount == null ? null : Text(strings.trackCount(playlist.songCount!)),
       onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => PlaylistPage(playlist))),
-      onLongPress: playlist.editable ? () => _openMenu(at: _pressedAt) : null,
+      onLongPress: () => _openMenu(at: _pressedAt),
     );
-
-    if (!playlist.editable) {
-      return tile;
-    }
-
     return CallbackShortcuts(
       bindings: {
         const SingleActivator(LogicalKeyboardKey.contextMenu): _openMenu,
