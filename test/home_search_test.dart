@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:segue/connect/connect.dart';
 import 'package:segue/l10n/app_localizations.dart';
 import 'package:segue/player/player.dart';
@@ -16,6 +17,7 @@ import 'package:segue/ui/home_page.dart';
 import 'package:segue/ui/now_playing_bar.dart';
 
 import 'fakes.dart';
+import 'themed_icons.dart';
 
 http.Response subsonic(Map<String, Object?> body) => http.Response(
   jsonEncode({
@@ -138,6 +140,38 @@ void main() {
     expect(find.textContaining('1973'), findsNothing);
     expect(find.text('Toys in the Attic'), findsNothing, reason: 'blank again');
     expect(queries, ['dream']);
+    await tester.pumpWidget(const SizedBox()); // stops the bar's timer
+  });
+
+  testWidgets('on a phone, a touch off the search bar closes the keyboard, and one on the bar, as on its clear button, '
+      'leaves it open', (tester) async {
+    await pumpHome(tester, const Size(360, 640));
+    await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Buscar')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'dream');
+    await tester.pump(HomePage.searchTypingPause);
+    await tester.pump();
+    final field = tester.state<EditableTextState>(find.byType(EditableText)).widget.focusNode;
+    expect(tester.testTextInput.isVisible, isTrue);
+
+    await tester.tap(find.text('Músicas'));
+    await tester.pump();
+    expect(tester.testTextInput.isVisible, isFalse);
+    expect(field.hasFocus, isFalse);
+    expect(find.text('Dream Police'), findsOneWidget, reason: 'the results stay');
+
+    await tester.tap(find.byType(TextField));
+    await tester.pump();
+    expect(tester.testTextInput.isVisible, isTrue);
+    await tester.tap(
+      find.descendant(of: find.byType(SearchBar), matching: themedIcon(HugeIcons.strokeRoundedSearch01)),
+    );
+    await tester.pump();
+    expect(tester.testTextInput.isVisible, isTrue);
+    await tester.tap(find.byTooltip('Limpar'));
+    await tester.pump();
+    expect(tester.testTextInput.isVisible, isTrue, reason: 'ready for another search');
+    expect(field.hasFocus, isTrue);
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
   });
 

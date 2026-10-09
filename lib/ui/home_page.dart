@@ -275,34 +275,41 @@ class _HomePageState extends State<HomePage> {
           }
         },
       },
-      child: SearchBar(
-        controller: _search,
-        focusNode: _searchFocus,
-        readOnly: television && !_searchEditable,
-        // A tap, or the remote's center button.
-        onTap: television ? _openKeyboard : null,
-        hintText: strings.searchHint,
-        // On a phone, where the bar shows as the search opens: ready to type, but for a search already there, whose
-        // results the keyboard would cover.
-        autoFocus: narrow && _search.text.isEmpty,
-        leading: const ThemedIcon(HugeIcons.strokeRoundedSearch01),
-        trailing: [
-          ListenableBuilder(
-            listenable: _search,
-            builder: (context, _) => _search.text.isEmpty
-                ? const SizedBox.shrink()
-                : IconButton(
-                    tooltip: strings.clear,
-                    icon: const ThemedIcon(HugeIcons.strokeRoundedCancel01),
-                    onPressed: _clearSearch,
-                  ),
-          ),
-        ],
-        elevation: const WidgetStatePropertyAll(0),
-        constraints: BoxConstraints(maxWidth: searchWidth, minHeight: 44, maxHeight: 44),
-        textInputAction: TextInputAction.search,
-        onChanged: _typed,
-        onSubmitted: _searchFor,
+      // The whole bar counts as the text field, its icon and clear button too: a tap on them leaves the field focused,
+      // and the keyboard open.
+      child: TextFieldTapRegion(
+        child: SearchBar(
+          controller: _search,
+          focusNode: _searchFocus,
+          readOnly: television && !_searchEditable,
+          // A tap, or the remote's center button.
+          onTap: television ? _openKeyboard : null,
+          // A tap anywhere else closes the keyboard: Flutter leaves the field focused on a touch, on a phone or a
+          // tablet, unfocusing it only for a mouse.
+          onTapOutside: (_) => _searchFocus.unfocus(),
+          hintText: strings.searchHint,
+          // On a phone, where the bar shows as the search opens: ready to type, but for a search already there, whose
+          // results the keyboard would cover.
+          autoFocus: narrow && _search.text.isEmpty,
+          leading: const ThemedIcon(HugeIcons.strokeRoundedSearch01),
+          trailing: [
+            ListenableBuilder(
+              listenable: _search,
+              builder: (context, _) => _search.text.isEmpty
+                  ? const SizedBox.shrink()
+                  : IconButton(
+                      tooltip: strings.clear,
+                      icon: const ThemedIcon(HugeIcons.strokeRoundedCancel01),
+                      onPressed: _clearSearch,
+                    ),
+            ),
+          ],
+          elevation: const WidgetStatePropertyAll(0),
+          constraints: BoxConstraints(maxWidth: searchWidth, minHeight: 44, maxHeight: 44),
+          textInputAction: TextInputAction.search,
+          onChanged: _typed,
+          onSubmitted: _searchFor,
+        ),
       ),
     );
     final logo = IconButton(
