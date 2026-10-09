@@ -469,8 +469,7 @@ void main() {
     await pumpHome(tester, const Size(1000, 700));
     await tester.tap(find.byTooltip('Artistas'));
     await tester.pumpAndSettle();
-    expect(tester.getSemantics(order('Nome')), isSemantics(isSelected: true));
-    expect(tester.getSemantics(order('Mais tocados')), isSemantics(isSelected: false));
+    expect(tester.getSemantics(order('Nome')), isSemantics(label: 'Nome', isButton: true), reason: 'the order picked');
     expect(find.text('Aerosmith'), findsOneWidget);
     expect(find.text('Ramones'), findsOneWidget);
     final picture = tester.getRect(find.descendant(of: tile('Aerosmith'), matching: find.byType(Cover)));
@@ -485,8 +484,7 @@ void main() {
 
     await tester.tap(order('Mais tocados'));
     await tester.pumpAndSettle();
-    expect(tester.getSemantics(order('Mais tocados')), isSemantics(isSelected: true));
-    expect(tester.getSemantics(order('Nome')), isSemantics(isSelected: false));
+    expect(tester.getSemantics(order('Mais tocados')), isSemantics(label: 'Mais tocados'));
     expect(find.text('Cheap Trick'), findsOneWidget, reason: 'their songs have played');
     expect(find.text('1 álbum'), findsOneWidget, reason: 'as the tab lists them by name');
     expect(find.text('Aerosmith'), findsNothing, reason: 'none of theirs has');
@@ -580,8 +578,11 @@ void main() {
     final heading = songList('Suas mais tocadas');
     final albums = find.descendant(of: find.byType(ArtistPage), matching: find.text('Álbuns'));
     expect(heading, findsOneWidget);
-    expect(tester.getSemantics(heading), isSemantics(isSelected: true), reason: 'the user\'s first');
-    expect(tester.getSemantics(songList('Populares')), isSemantics(isSelected: false));
+    expect(
+      tester.getSemantics(heading),
+      isSemantics(label: 'Suas mais tocadas', isButton: true),
+      reason: 'the user\'s first',
+    );
     expect(find.text('Big Eyes'), findsNothing, reason: 'it hasn\'t played');
     final top = find.text('I Want You to Want Me');
     final second = find.text('Hello There');
@@ -625,8 +626,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(songList('Populares'));
     await tester.pumpAndSettle();
-    expect(tester.getSemantics(songList('Populares')), isSemantics(isSelected: true));
-    expect(tester.getSemantics(songList('Suas mais tocadas')), isSemantics(isSelected: false));
+    expect(tester.getSemantics(songList('Populares')), isSemantics(label: 'Populares'));
     final first = find.widgetWithText(ListTile, 'Big Eyes');
     final last = find.widgetWithText(ListTile, 'So Good to See You');
     expect(find.descendant(of: first, matching: find.text('1')), findsOneWidget);
@@ -735,7 +735,7 @@ void main() {
       find.descendant(of: find.byTooltip('Mais tocados'), matching: icon(HugeIcons.strokeRoundedHeadphones)),
       findsOne,
     );
-    expect(tester.getSemantics(find.byTooltip('Nome')), isSemantics(isSelected: true));
+    expect(tester.getSemantics(find.byTooltip('Nome')), isSemantics(label: 'Nome', isButton: true));
 
     await tester.tap(find.text('Cheap Trick'));
     await tester.pumpAndSettle();
@@ -800,7 +800,10 @@ void main() {
       findsOne,
     );
     expect(find.descendant(of: find.byTooltip('Populares'), matching: icon(HugeIcons.strokeRoundedFire)), findsOne);
-    expect(tester.getSemantics(find.byTooltip('Suas mais tocadas')), isSemantics(isSelected: true));
+    expect(
+      tester.getSemantics(find.byTooltip('Suas mais tocadas')),
+      isSemantics(label: 'Suas mais tocadas', isButton: true),
+    );
     // The picture is as it is at the top, under the system's bar and the name, and fades to the page's color, all of it
     // at the bottom.
     final surface = Theme.of(tester.element(find.byType(ArtistPage))).colorScheme.surface;
@@ -838,7 +841,7 @@ void main() {
 
     await tester.tap(find.byTooltip('Populares'));
     await tester.pumpAndSettle();
-    expect(tester.getSemantics(find.byTooltip('Populares')), isSemantics(isSelected: true));
+    expect(tester.getSemantics(find.byTooltip('Populares')), isSemantics(label: 'Populares'));
     expect(find.text('Big Eyes'), findsOneWidget, reason: 'the popular ones');
     await tester.pumpWidget(const SizedBox()); // stops the player bar's timer
   });
