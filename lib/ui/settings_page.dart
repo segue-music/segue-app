@@ -43,9 +43,12 @@ class SettingsPage extends StatelessWidget {
   /// The app's version and build number, as the build stamped them.
   final PackageInfo? packageInfo;
 
-  /// The qualities to pick from, each by its name, and the automatic one with what it does.
-  static List<({StreamQuality quality, String name, String? detail})> _qualities(AppLocalizations strings) => [
-    for (final quality in StreamQuality.values)
+  /// The qualities to pick from ([QualityChoice.options]), each by its name, and the automatic one with what it does.
+  static List<({StreamQuality quality, String name, String? detail})> _qualities(
+    QualityChoice choice,
+    AppLocalizations strings,
+  ) => [
+    for (final quality in choice.options)
       (
         quality: quality,
         name: strings.streamQuality(quality.name, quality.maxBitRate ?? 0),
@@ -112,7 +115,7 @@ class SettingsPage extends StatelessWidget {
             if (qualityChoice != null)
               [
                 _Heading(strings.audioQuality),
-                for (final (:quality, :name, :detail) in _qualities(strings))
+                for (final (:quality, :name, :detail) in _qualities(qualityChoice, strings))
                   _Option(
                     name,
                     detail: detail,

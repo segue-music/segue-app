@@ -13,27 +13,44 @@ void main() {
     FlutterSecureStorage.setMockInitialValues({});
   });
 
-  test('the automatic quality until a pick, which the next launch, and a sign-out, keep', () async {
-    expect((await QualityChoice.load()).value, StreamQuality.automatic);
+  test('the original quality until a pick, which the next launch, and a sign-out, keep', () async {
+    expect((await QualityChoice.load(mobileData: true)).value, StreamQuality.original);
 
     await QualityChoice().pick(StreamQuality.low);
     await Session.clear();
-    expect((await QualityChoice.load()).value, StreamQuality.low);
+    expect((await QualityChoice.load(mobileData: true)).value, StreamQuality.low);
 
     await QualityChoice().pick(StreamQuality.high);
-    expect((await QualityChoice.load()).value, StreamQuality.high);
+    expect((await QualityChoice.load(mobileData: false)).value, StreamQuality.high);
   });
 
-  test('a quality saved that the app doesn\'t know is the automatic one', () async {
+  test('a quality saved that the app doesn\'t know is the original one', () async {
     await SharedPreferencesAsync().setString('quality', 'lossless');
-    expect((await QualityChoice.load()).value, StreamQuality.automatic);
+    expect((await QualityChoice.load(mobileData: true)).value, StreamQuality.original);
   });
 
-  test('each quality after the original has a bitrate, lower down the list', () {
-    final bitRates = [for (final quality in StreamQuality.values.skip(2)) quality.maxBitRate!];
-    expect(StreamQuality.original.maxBitRate, isNull);
-    expect(bitRates, [...bitRates]..sort((a, b) => b.compareTo(a)));
+  test('the automatic quality is one to pick only on a device with mobile data: on another, a computer, it is the '
+      'original, which it would always stream', () async {
+    final (phone, laptop) = (QualityChoice(mobileData: true), QualityChoice());
+    addTearDown(phone.dispose);
+    addTearDown(laptop.dispose);
+    expect(phone.options, StreamQuality.values);
+    expect(laptop.options, [StreamQuality.original, StreamQuality.high, StreamQuality.normal, StreamQuality.low]);
+
+    await phone.pick(StreamQuality.automatic);
+    expect((await QualityChoice.load(mobileData: true)).value, StreamQuality.automatic);
+    expect((await QualityChoice.load(mobileData: false)).value, StreamQuality.original);
   });
+
+  test(
+    'the original comes first, and each quality after it and the automatic one has a bitrate, lower down the list',
+    () {
+      expect(StreamQuality.values.take(2), [StreamQuality.original, StreamQuality.automatic]);
+      final bitRates = [for (final quality in StreamQuality.values.skip(2)) quality.maxBitRate!];
+      expect(StreamQuality.original.maxBitRate, isNull);
+      expect(bitRates, [...bitRates]..sort((a, b) => b.compareTo(a)));
+    },
+  );
 
   test('the automatic quality is the original on Wi-Fi or a cable, and the normal one on mobile data', () {
     expect(StreamQuality.automatic.inUse(onMobileData: false), StreamQuality.original);

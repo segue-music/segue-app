@@ -35,6 +35,18 @@ void main() {
     expect(FocusManager.instance.highlightStrategy, FocusHighlightStrategy.automatic);
   });
 
+  test('a phone, or a tablet with a SIM, has mobile data, as its system says', () async {
+    messenger.setMockMethodCallHandler(channel, (call) async => call.method == 'hasMobileData');
+    expect(await hasMobileData(), isTrue);
+
+    messenger.setMockMethodCallHandler(channel, (call) async => false);
+    expect(await hasMobileData(), isFalse, reason: 'a TV, a tablet with Wi-Fi only');
+  });
+
+  test('where the platform has no such channel (a computer), there is no mobile data', () async {
+    expect(await hasMobileData(), isFalse);
+  });
+
   test('the device goes by the name its system gives it (on Android, its settings), not the system\'s', () async {
     messenger.setMockMethodCallHandler(channel, (call) async => call.method == 'deviceName' ? 'TV do quarto' : null);
     expect(await systemDeviceName(), 'TV do quarto');

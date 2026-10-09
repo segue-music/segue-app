@@ -192,16 +192,16 @@ the device it runs on.
   playing time added up across pauses and seeks, so that a song moved to another device halfway
   doesn't count on both; on a Jellyfin server the hub counts them, as a song starts (with no hub,
   nothing counts them there yet);
-- the quality the songs stream in: automatic (the files as they are on Wi-Fi or a cable, 160 kbps on mobile data,
-  as the system says the device is online), the files as they are, or transcoded by the media server down to 320,
-  160 or 96 kbps, picked in the settings, which the app keeps and
-  which holds, as a change of connection does, from the next song on. A song a Subsonic server transcodes as it
+- the quality the songs stream in: the files as they are, as it is until the settings pick another; automatic, on a
+  device with mobile data (a phone, a tablet with a SIM: the files as they are on Wi-Fi or a cable, 160 kbps on mobile
+  data, as the system says the device is online); or transcoded by the media server down to 320, 160 or 96 kbps. The
+  app keeps the one picked, which holds, as a change of connection does, from the next song on. A song a Subsonic server transcodes as it
   goes can't seek, so a seek asks for it again from that point (OpenSubsonic's transcodeOffset, which Navidrome
   has), as does opening on the last playback; a Jellyfin server sends it as HLS, which can seek;
 - the volume's normalization (ReplayGain), so that the songs this device plays play about as loud as one another:
-  automatic (by album where a song plays among its album's, in their order, unshuffled; by song otherwise), by song, by
-  album, or off, as it is until the settings pick another, which the app keeps, and which holds at once, for the song
-  that plays too.
+  off, as it is until the settings pick another; automatic (by album where a song plays among its album's, in their
+  order, unshuffled; by song otherwise); by song; or by album. The app keeps the one picked, which holds at once, for
+  the song that plays too.
   The gains are the media server's, whatever the quality: OpenSubsonic's replayGain, which Navidrome reads from the
   files' tags, or Jellyfin's normalization gain, which it measures itself where a file has no tags (the album's comes
   with each song from Jellyfin 12.0 on, and before that only on the album's page, elsewhere the song's own standing in

@@ -4,6 +4,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// How this device's player levels the songs' loudness, so that they play about as loud as one another (ReplayGain):
 /// by the gains the media server gives, or else the file's tags.
 enum ReplayGainMode {
+  /// The songs as they are.
+  off,
+
   /// By album ([album]) where a song plays among its album's, in their order: unshuffled, with the song before or after
   /// it of the same album. By song ([track]) otherwise.
   automatic,
@@ -13,9 +16,6 @@ enum ReplayGainMode {
 
   /// Every album as loud as the others, its songs as loud as they are against one another.
   album,
-
-  /// The songs as they are.
-  off,
 }
 
 /// How much louder than ReplayGain's reference (89 dB, about -18 LUFS) the songs play levelled, in dB: about -10 LUFS.

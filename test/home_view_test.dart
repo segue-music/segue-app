@@ -484,14 +484,20 @@ void main() {
     expect(page.left, greaterThanOrEqualTo(tester.getRect(find.byType(VerticalDivider)).right), reason: 'by the rail');
     expect(find.byType(BackButton), findsNothing, reason: 'the top bar\'s arrow goes back');
     expect(checked('Tema do sistema'), isTrue, reason: 'which the button had no way back to');
-    expect(checked('Qualidade automática'), isTrue);
+    final list = find.descendant(of: find.byType(SettingsPage), matching: find.byType(Scrollable));
+    await tester.scrollUntilVisible(settingsItem('Qualidade baixa · 96 kbps'), 100, scrollable: list);
+    expect(checked('Qualidade original'), isTrue);
+    expect(
+      find.text('Qualidade automática', skipOffstage: false),
+      findsNothing,
+      reason: 'a computer has no mobile data, where it would stream other than the original',
+    );
 
     await tester.tap(find.byTooltip('Voltar'));
     await tester.pumpAndSettle();
     expect(find.byType(SettingsPage), findsNothing);
 
     await openSettings(tester);
-    final list = find.descendant(of: find.byType(SettingsPage), matching: find.byType(Scrollable));
     await tester.scrollUntilVisible(settingsItem('Sair'), 100, scrollable: list);
     await tester.ensureVisible(settingsItem('Sair'));
     await tester.pumpAndSettle();
@@ -614,61 +620,70 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('on a phone, the quality is in the settings, after the languages, before signing out', (tester) async {
-    final (themeChoice, languageChoice, qualityChoice) = (ThemeChoice(), LanguageChoice(), QualityChoice());
-    addTearDown(themeChoice.dispose);
-    addTearDown(languageChoice.dispose);
-    addTearDown(qualityChoice.dispose);
-    await pumpHome(
-      tester,
-      const Size(360, 640),
-      themeChoice: themeChoice,
-      languageChoice: languageChoice,
-      qualityChoice: qualityChoice,
-    );
-    expect(find.byTooltip('Qualidade do áudio'), findsNothing, reason: 'no button of its own');
+  testWidgets(
+    'on a phone, the quality is in the settings, after the languages, before signing out: the original first, '
+    'picked until another is, then the automatic one, which a phone has mobile data for',
+    (tester) async {
+      final (themeChoice, languageChoice, qualityChoice) = (
+        ThemeChoice(),
+        LanguageChoice(),
+        QualityChoice(mobileData: true),
+      );
+      addTearDown(themeChoice.dispose);
+      addTearDown(languageChoice.dispose);
+      addTearDown(qualityChoice.dispose);
+      await pumpHome(
+        tester,
+        const Size(360, 640),
+        themeChoice: themeChoice,
+        languageChoice: languageChoice,
+        qualityChoice: qualityChoice,
+      );
+      expect(find.byTooltip('Qualidade do áudio'), findsNothing, reason: 'no button of its own');
 
-    await openSettings(tester);
-    // More than a phone's screen: down to the qualities.
-    final list = find.descendant(of: find.byType(SettingsPage), matching: find.byType(Scrollable));
-    await tester.scrollUntilVisible(settingsItem('Qualidade automática'), 100, scrollable: list);
-    double top(String text) => tester.getTopLeft(find.text(text)).dy;
-    expect(top('Português'), lessThan(top('Qualidade do áudio')), reason: 'after the languages');
-    expect(top('Qualidade do áudio'), lessThan(top('Qualidade automática')), reason: 'under its name');
-    expect(checked('Qualidade automática'), isTrue);
-    expect(
-      find.descendant(
-        of: settingsItem('Qualidade automática'),
-        matching: find.text('Original no Wi-Fi, 160 kbps nos dados móveis'),
-      ),
-      findsOneWidget,
-      reason: 'what it does, under it',
-    );
+      await openSettings(tester);
+      // More than a phone's screen: down to the qualities.
+      final list = find.descendant(of: find.byType(SettingsPage), matching: find.byType(Scrollable));
+      await tester.scrollUntilVisible(settingsItem('Qualidade automática'), 100, scrollable: list);
+      double top(String text) => tester.getTopLeft(find.text(text)).dy;
+      expect(top('Português'), lessThan(top('Qualidade do áudio')), reason: 'after the languages');
+      expect(top('Qualidade do áudio'), lessThan(top('Qualidade original')), reason: 'under its name');
+      expect(top('Qualidade original'), lessThan(top('Qualidade automática')), reason: 'the original first');
+      expect(checked('Qualidade original'), isTrue);
+      expect(
+        find.descendant(
+          of: settingsItem('Qualidade automática'),
+          matching: find.text('Original no Wi-Fi, 160 kbps nos dados móveis'),
+        ),
+        findsOneWidget,
+        reason: 'what it does, under it',
+      );
 
-    // To its end, which stays clear of the bars at the bottom.
-    await tester.fling(list, const Offset(0, -1000), 3000);
-    await tester.pumpAndSettle();
-    expect(
-      tester.getRect(settingsItem('Sair')).bottom,
-      lessThanOrEqualTo(tester.getRect(find.byType(NavigationBar)).top),
-    );
-    final texts = [
-      'Qualidade original',
-      'Qualidade alta · 320 kbps',
-      'Qualidade normal · 160 kbps',
-      'Qualidade baixa · 96 kbps',
-      'Sair',
-    ];
-    final tops = [for (final text in texts) top(text)];
-    expect([...tops]..sort(), tops, reason: 'in this order, top to bottom, signing out last');
+      // To its end, which stays clear of the bars at the bottom.
+      await tester.fling(list, const Offset(0, -1000), 3000);
+      await tester.pumpAndSettle();
+      expect(
+        tester.getRect(settingsItem('Sair')).bottom,
+        lessThanOrEqualTo(tester.getRect(find.byType(NavigationBar)).top),
+      );
+      final texts = [
+        'Qualidade automática',
+        'Qualidade alta · 320 kbps',
+        'Qualidade normal · 160 kbps',
+        'Qualidade baixa · 96 kbps',
+        'Sair',
+      ];
+      final tops = [for (final text in texts) top(text)];
+      expect([...tops]..sort(), tops, reason: 'in this order, top to bottom, signing out last');
 
-    await tester.tap(settingsItem('Qualidade normal · 160 kbps'));
-    await tester.pumpAndSettle();
-    expect(qualityChoice.value, StreamQuality.normal);
-    expect((await QualityChoice.load()).value, StreamQuality.normal);
-    expect([checked('Qualidade automática'), checked('Qualidade normal · 160 kbps')], [false, true]);
-    await tester.pumpWidget(const SizedBox());
-  });
+      await tester.tap(settingsItem('Qualidade normal · 160 kbps'));
+      await tester.pumpAndSettle();
+      expect(qualityChoice.value, StreamQuality.normal);
+      expect((await QualityChoice.load(mobileData: true)).value, StreamQuality.normal);
+      expect([checked('Qualidade original'), checked('Qualidade normal · 160 kbps')], [false, true]);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
 
   testWidgets('on a phone, the volume\'s normalization is in the settings, after the qualities, each way with what it '
       'does; a pick holds, and is kept', (tester) async {
@@ -679,25 +694,25 @@ void main() {
 
     await openSettings(tester);
     final list = find.descendant(of: find.byType(SettingsPage), matching: find.byType(Scrollable));
-    await tester.scrollUntilVisible(settingsItem('Desligada'), 100, scrollable: list);
+    await tester.scrollUntilVisible(settingsItem('Por álbum'), 100, scrollable: list);
     double top(String text) => tester.getTopLeft(find.text(text)).dy;
     final texts = [
       'Qualidade baixa · 96 kbps',
       'Normalização do volume',
+      'Desligada',
       'Automática',
       'Por música',
       'Por álbum',
-      'Desligada',
     ];
     final tops = [for (final text in texts) top(text)];
-    expect([...tops]..sort(), tops, reason: 'in this order, top to bottom, after the qualities');
+    expect([...tops]..sort(), tops, reason: 'in this order, top to bottom, after the qualities, off first');
     expect(checked('Desligada'), isTrue, reason: 'until a pick');
 
     for (final (name, detail) in [
+      ('Desligada', 'Cada música no volume do seu arquivo'),
       ('Automática', 'Por álbum quando um álbum toca em ordem, por música nas outras vezes'),
       ('Por música', 'Todas as músicas no mesmo volume'),
       ('Por álbum', 'Todos os álbuns no mesmo volume, e as músicas de cada um como são entre si'),
-      ('Desligada', 'Cada música no volume do seu arquivo'),
     ]) {
       expect(
         find.descendant(of: settingsItem(name), matching: find.text(detail)),
@@ -706,6 +721,8 @@ void main() {
       );
     }
 
+    // To the end, so that the bars at the bottom leave the last way in sight.
+    await tester.scrollUntilVisible(settingsItem('Sair'), 100, scrollable: list);
     await tester.tap(settingsItem('Por álbum'));
     await tester.pumpAndSettle();
     expect(replayGainChoice.value, ReplayGainMode.album);
@@ -734,8 +751,10 @@ void main() {
       await tester.scrollUntilVisible(settingsItem('Sair'), 100, scrollable: list);
       expect(
         tester.getTopLeft(find.text('Equalizador')).dy,
-        greaterThan(tester.getTopLeft(find.text('Cada música no volume do seu arquivo')).dy),
-        reason: 'after the volume\'s normalization',
+        greaterThan(
+          tester.getTopLeft(find.text('Todos os álbuns no mesmo volume, e as músicas de cada um como são entre si')).dy,
+        ),
+        reason: 'after the volume\'s normalization, whose last way is by album',
       );
       expect(find.descendant(of: settingsItem('Equalizador'), matching: find.text('Desligado')), findsOneWidget);
 

@@ -2,6 +2,7 @@ package io.github.mateusguilherme.segue
 
 import android.app.UiModeManager
 import android.content.pm.ActivityInfo
+import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
@@ -33,6 +34,7 @@ class MainActivity : AudioServiceActivity() {
             when (call.method) {
                 "isTelevision" -> result.success(isTelevision())
                 "deviceName" -> result.success(deviceName())
+                "hasMobileData" -> result.success(hasMobileData())
                 else -> result.notImplemented()
             }
         }
@@ -40,6 +42,9 @@ class MainActivity : AudioServiceActivity() {
 
     private fun isTelevision(): Boolean =
         getSystemService(UiModeManager::class.java)?.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION
+
+    /** Whether the device has a mobile network, and with it mobile data: a phone, a tablet with a SIM; not a TV. */
+    private fun hasMobileData(): Boolean = packageManager.hasSystemFeature(PackageManager.FEATURE_TELEPHONY)
 
     /**
      * A phone stays in portrait, as the app's narrow layout is made for it (the pages' 600 dp). A

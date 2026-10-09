@@ -36,8 +36,8 @@ class Services {
     this.mobileData,
   });
 
-  /// Starts a session: the API, this device's player, which streams in the quality picked ([quality]; the automatic one,
-  /// with none), levels the songs' loudness the way picked ([replayGain]; not at all, with none) and plays them through
+  /// Starts a session: the API, this device's player, which streams in the quality picked ([quality]; the original, with
+  /// none), levels the songs' loudness the way picked ([replayGain]; not at all, with none) and plays them through
   /// the equalizer as set ([equalizer]; as they are, with none), and, if a hub is found, the connection to it.
   static Future<Services> start(
     Session session, {
@@ -56,7 +56,7 @@ class Services {
     final player = PlayerController(
       engine ?? MediaKitEngine(),
       api,
-      quality: () => (quality?.value ?? StreamQuality.automatic).inUse(onMobileData: mobileData.value),
+      quality: () => (quality?.value ?? StreamQuality.original).inUse(onMobileData: mobileData.value),
       replayGain: replayGain,
       equalizer: equalizer,
     );

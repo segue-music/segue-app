@@ -166,8 +166,8 @@ Running two app instances on one machine as different devices:
   `api` and `auth`, so a Jellyfin sign-in is a Jellyfin device, with ids in Jellyfin's API. A song
   streams as its file, or within a bitrate (`QualityChoice`, `lib/quality_choice.dart`, which
   `PlayerController` reads as each song loads, the automatic one by `MobileData`, `lib/mobile_data.dart`, from
-  connectivity_plus): Subsonic's `maxBitRate`, with `timeOffset` to start later where the server has OpenSubsonic's
-  transcodeOffset, or Jellyfin's `universal`, as HLS.
+  connectivity_plus, and offered only on a device with mobile data, `hasMobileData`): Subsonic's `maxBitRate`, with
+  `timeOffset` to start later where the server has OpenSubsonic's transcodeOffset, or Jellyfin's `universal`, as HLS.
 - `PlaylistEditor` (`lib/server/playlist_editor.dart`, `Services.playlistEditor`) makes the changes to the user's
   playlists (create, rename, delete, add, remove, move), one after another in the order they come, since removing and
   moving go by the songs' places, and tells its listeners once none is left: the playlists section and a playlist's page
@@ -239,7 +239,8 @@ Running two app instances on one machine as different devices:
 - `MainActivity` extends audio_service's `AudioServiceActivity`, so the screen and the plugin share
   one Flutter engine. With a plain `FlutterActivity`, audio_service started an engine of its own,
   and with it a second, hidden copy of the app that connected to the hub as the same device. It
-  also answers `lib/device.dart` (TV or not, the device's name in the system settings).
+  also answers `lib/device.dart` (TV or not, the device's name in the system settings, whether it has mobile data,
+  for the automatic quality), as `AppDelegate.swift` does on iOS (the name, mobile data).
 
 ## Conventions
 

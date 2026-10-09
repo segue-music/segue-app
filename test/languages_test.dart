@@ -204,7 +204,8 @@ Future<void> pumpHome(WidgetTester tester, Locale language, Size size) async {
   addTearDown(themeChoice.dispose);
   final languageChoice = LanguageChoice(language);
   addTearDown(languageChoice.dispose);
-  final qualityChoice = QualityChoice();
+  // As on a phone, with the automatic quality, and what it does under it.
+  final qualityChoice = QualityChoice(mobileData: true);
   addTearDown(qualityChoice.dispose);
   final replayGainChoice = ReplayGainChoice();
   addTearDown(replayGainChoice.dispose);

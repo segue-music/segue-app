@@ -20,8 +20,27 @@ import UIKit
       // The name in Settings > General > About. Since iOS 16, only with Apple's
       // user-assigned-device-name entitlement; without it, iOS says "iPhone" or "iPad".
       case "deviceName": result(UIDevice.current.name)
+      case "hasMobileData": result(self.hasMobileData())
       default: result(FlutterMethodNotImplemented)
       }
+    }
+  }
+
+  /// An iPhone always has a mobile network; an iPad, only the model with a SIM, which has its
+  /// network interface (pdp_ip0) whether or not a SIM is in.
+  private func hasMobileData() -> Bool {
+    if UIDevice.current.userInterfaceIdiom == .phone {
+      return true
+    }
+
+    var interfaces: UnsafeMutablePointer<ifaddrs>?
+    guard getifaddrs(&interfaces) == 0, let first = interfaces else {
+      return false
+    }
+
+    defer { freeifaddrs(interfaces) }
+    return sequence(first: first, next: { $0.pointee.ifa_next }).contains {
+      String(cString: $0.pointee.ifa_name).hasPrefix("pdp_ip")
     }
   }
 }

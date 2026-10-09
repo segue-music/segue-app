@@ -15,6 +15,17 @@ Future<bool> isTelevision() async {
   }
 }
 
+/// Whether the device can go online through mobile data, which a data plan counts: asked of Android, which knows by its
+/// features (a phone, a tablet with a SIM; not a TV), in MainActivity.kt, and of iOS (an iPhone, an iPad with a SIM),
+/// in AppDelegate.swift. Elsewhere there is no such channel, and it can't: a computer goes by Wi-Fi or a cable.
+Future<bool> hasMobileData() async {
+  try {
+    return await _channel.invokeMethod<bool>('hasMobileData') ?? false;
+  } on MissingPluginException {
+    return false;
+  }
+}
+
 /// On a TV, the focus always shows. Flutter starts Android as if it were touched, and shows the
 /// focus only after a key from a hardware keyboard; but a TV has no touch screen, and a remote's
 /// keys can come as a virtual keyboard's (adb's do), which Flutter doesn't count.
