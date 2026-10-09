@@ -30,8 +30,9 @@ the device it runs on.
 - a home, where the app opens, with a row of the latest released albums (by release date, or by
   year where the server has no more), one of the albums the user plays most and one of the latest
   added to the library, 30 each, with arrows in each row's corner to go a screenful forward and
-  back, and a title that opens the albums tab in the row's order (on a Jellyfin server, which counts
-  plays only by song, an album's plays are its songs', added up), which load again as the home is
+  back (on a computer and a TV; on a touch screen a finger drags the row), and a title that opens
+  the albums tab in the row's order (on a Jellyfin server, which counts plays only by song, an
+  album's plays are its songs', added up), which load again as the home is
   dragged down from its top (with a finger, a touchpad, or on a computer the mouse); albums (by name, the latest
   released, the most played or the latest added, picked in chips above them, the next ones coming
   as the grid nears its end), artists (by name or the most played first, picked above them, a thumb

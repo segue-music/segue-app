@@ -863,7 +863,11 @@ void main() {
       mostPlayed: [for (var i = 0; i < 20; i++) 'Most $i'],
       latest: [for (var i = 0; i < 20; i++) 'Latest $i'],
     );
-    expect(find.byType(Scrollbar), findsNothing);
+    expect(
+      find.descendant(of: rows, matching: find.byType(Scrollbar)),
+      findsNothing,
+      reason: 'the arrows take the place of the scrollbar a computer gives',
+    );
     final back = find.byTooltip('Anteriores').first;
     final forward = find.byTooltip('Próximos').first;
     final heading = tester.getRect(find.text('Mais tocados'));
@@ -903,7 +907,30 @@ void main() {
     expect(scroll.offset, scroll.position.maxScrollExtent);
     expect(find.text('Most 19'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.linux));
+
+  testWidgets('on a touch screen, as wide as a tablet\'s, a row has no arrows: a finger drags it', (tester) async {
+    await pumpHome(tester, const Size(1000, 700), mostPlayed: [for (var i = 0; i < 20; i++) 'Most $i']);
+    expect(find.text('Most 0'), findsOneWidget);
+    expect(find.byTooltip('Próximos'), findsNothing);
+    expect(find.byTooltip('Anteriores'), findsNothing);
+    await tester.drag(find.text('Most 0'), const Offset(-2000, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('Most 0'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  }, variant: TargetPlatformVariant.mobile());
+
+  testWidgets('on a TV, which has no touch screen, a row has its arrows', (tester) async {
+    await pumpHome(
+      tester,
+      const Size(960, 540),
+      mostPlayed: [for (var i = 0; i < 20; i++) 'Most $i'],
+      television: true,
+    );
+    expect(find.byTooltip('Próximos'), findsOneWidget);
+    expect(find.byTooltip('Anteriores'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   testWidgets('a row\'s title opens the albums tab, in the row\'s order', (tester) async {
     final asked = await pumpHome(tester, const Size(1000, 700));
@@ -933,7 +960,7 @@ void main() {
     expect(find.byTooltip('Próximos'), findsNothing);
     expect(find.byTooltip('Anteriores'), findsNothing);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.linux));
 
   testWidgets('a row has 30 albums at most, even from a server that sends more', (tester) async {
     final asked = await pumpHome(

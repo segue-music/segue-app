@@ -8,7 +8,8 @@ import '../l10n/app_localizations.dart';
 import 'text_link.dart';
 import 'themed_icon.dart';
 
-/// A titled row of tiles (albums, artists), which scrolls sideways: by the arrows in its right corner, or dragged.
+/// A titled row of tiles (albums, artists), which scrolls sideways: dragged, or, on a computer and a TV, by the arrows in
+/// its right corner.
 class TileRow extends StatefulWidget {
   const TileRow({
     required this.title,
@@ -85,6 +86,13 @@ class _TileRowState extends State<TileRow> {
     final text = Theme.of(context).textTheme;
     final strings = AppLocalizations.of(context);
     final tiles = widget.tiles;
+    // By the platform, not by whether a mouse is connected: on a computer the system says the mouse is
+    // gone whenever the pointer leaves the window. A TV has no touch screen.
+    final touch = switch (Theme.of(context).platform) {
+      TargetPlatform.android || TargetPlatform.iOS || TargetPlatform.fuchsia => true,
+      TargetPlatform.linux || TargetPlatform.macOS || TargetPlatform.windows => false,
+    };
+    final television = MediaQuery.navigationModeOf(context) == NavigationMode.directional;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -105,7 +113,7 @@ class _TileRowState extends State<TileRow> {
                     ),
                   ),
                 ),
-                _arrows(),
+                if (!touch || television) _arrows(),
               ],
             ),
           ),
@@ -115,10 +123,10 @@ class _TileRowState extends State<TileRow> {
     );
   }
 
-  /// Back and forward, each while there are tiles that way; none when they all fit. Out of the
-  /// focus's way: the keyboard and the remote go along the tiles themselves. Close together, as the
-  /// top bar's: smaller buttons than the rest, without the room Material leaves around them on a
-  /// touch screen.
+  /// Back and forward, each while there are tiles that way; none when they all fit, nor on a touch screen, where a
+  /// finger drags the row. Out of the focus's way: the keyboard and the remote go along the tiles themselves. Close
+  /// together, as the top bar's: smaller buttons than the rest, without the room Material leaves around them on a TV,
+  /// as on a touch screen.
   Widget _arrows() => ListenableBuilder(
     listenable: Listenable.merge([_scroll, _metrics]),
     builder: (context, _) {
