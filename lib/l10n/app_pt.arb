@@ -1136,6 +1136,63 @@
       }
     }
   },
+  "equalizer": "Equalizador",
+  "@equalizer": {
+    "description": "The equalizer of this device's player, which raises or lowers the sound's bands of frequencies: its line in the settings, which opens its page, and that page's title."
+  },
+  "equalizerOff": "Desligado",
+  "@equalizerOff": {
+    "description": "Under the equalizer's line in the settings, while it is off."
+  },
+  "useEqualizer": "Usar o equalizador",
+  "@useEqualizer": {
+    "description": "The switch at the top of the equalizer's page that turns it on and off."
+  },
+  "equalizerPreset": "{preset, select, flat{Normal} rock{Rock} pop{Pop} jazz{Jazz} classical{Clássica} electronic{Eletrônica} hipHop{Hip-hop} vocal{Voz} bassBoost{Mais graves} trebleBoost{Mais agudos} other{Personalizado}}",
+  "@equalizerPreset": {
+    "description": "A curve of the equalizer's bands, as a chip on its page and under its line in the settings: flat (every band as it is), one made for a kind of music (rock, pop, jazz, classical, electronic, hip-hop), voices forward (vocal), the bass up, the treble up, or the user's own (other), as they moved the bands.",
+    "placeholders": {
+      "preset": {
+        "type": "String"
+      }
+    }
+  },
+  "kilohertzShort": "{kilohertz}k",
+  "@kilohertzShort": {
+    "description": "Under one of the equalizer's bands, its frequency, of 1000 Hz or more, in kilohertz, as short as it can be: 1k, 16k.",
+    "placeholders": {
+      "kilohertz": {
+        "type": "int"
+      }
+    }
+  },
+  "hertz": "{hertz} Hz",
+  "@hertz": {
+    "description": "What a screen reader says of one of the equalizer's bands, of less than 1000 Hz: its frequency.",
+    "placeholders": {
+      "hertz": {
+        "type": "int"
+      }
+    }
+  },
+  "kilohertz": "{kilohertz} kHz",
+  "@kilohertz": {
+    "description": "What a screen reader says of one of the equalizer's bands, of 1000 Hz or more: its frequency, in kilohertz.",
+    "placeholders": {
+      "kilohertz": {
+        "type": "int"
+      }
+    }
+  },
+  "decibels": "{decibels} dB",
+  "@decibels": {
+    "description": "What a screen reader says of one of the equalizer's bands' gain: how much it raises its frequencies, with its sign (+3, 0, −3), in decibels.",
+    "placeholders": {
+      "decibels": {
+        "type": "String"
+      }
+    }
+  },
   "artistOnDevice": "{artist} (em {device})",
   "@artistOnDevice": {
     "description": "The artist line of the system's media controls for a song playing on another device, with the artist and the device's name.",

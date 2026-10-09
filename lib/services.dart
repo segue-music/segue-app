@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import 'connect/connect.dart';
+import 'equalizer_choice.dart';
 import 'lyrics/lrclib.dart';
 import 'mobile_data.dart';
 import 'player/engine.dart';
@@ -36,13 +37,14 @@ class Services {
   });
 
   /// Starts a session: the API, this device's player, which streams in the quality picked ([quality]; the automatic one,
-  /// with none) and levels the songs' loudness the way picked ([replayGain]; not at all, with none), and, if a hub is
-  /// found, the connection to it.
+  /// with none), levels the songs' loudness the way picked ([replayGain]; not at all, with none) and plays them through
+  /// the equalizer as set ([equalizer]; as they are, with none), and, if a hub is found, the connection to it.
   static Future<Services> start(
     Session session, {
     AudioEngine? engine,
     ValueListenable<StreamQuality>? quality,
     ValueListenable<ReplayGainMode>? replayGain,
+    ValueListenable<EqualizerSettings>? equalizer,
   }) async {
     final api = openServer(
       session.server,
@@ -56,6 +58,7 @@ class Services {
       api,
       quality: () => (quality?.value ?? StreamQuality.automatic).inUse(onMobileData: mobileData.value),
       replayGain: replayGain,
+      equalizer: equalizer,
     );
     final hubUrl = await discoverHub(session.server, hub: session.hub);
     final client = hubUrl == null

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:segue/equalizer_choice.dart';
 import 'package:segue/player/engine.dart';
 import 'package:segue/player/player.dart';
 import 'package:segue/quality_choice.dart';
@@ -201,6 +202,41 @@ void main() {
       choice.value = ReplayGainMode.off;
       await pumpEventQueue();
       expect(engine.gain, isNull);
+    });
+  });
+
+  group('equalizer', () {
+    test('the songs play through the equalizer as set, from the start, and as it changes', () async {
+      final choice = EqualizerChoice(const EqualizerSettings(on: true, preset: EqualizerPreset.rock));
+      addTearDown(choice.dispose);
+      player = PlayerController(engine, api, equalizer: choice);
+      await pumpEventQueue();
+      expect(engine.equalizer, {31: 5, 63: 5, 125: 4, 250: 3, 500: 1, 1000: -1, 2000: 1, 4000: 3, 8000: 4, 16000: 5});
+
+      choice.value = choice.value.copyWith(preset: EqualizerPreset.custom, custom: [5, 5, 4, 3, 1, 6, 1, 3, 4, 5]);
+      await pumpEventQueue();
+      expect(engine.equalizer, containsPair(1000, 6), reason: 'the band moved');
+      expect(engine.equalizer, containsPair(31, 5), reason: 'the others as they were');
+
+      choice.value = choice.value.copyWith(on: false);
+      await pumpEventQueue();
+      expect(engine.equalizer, isEmpty, reason: 'off, the songs as they are');
+    });
+
+    test('with no equalizer given, the engine is never asked', () async {
+      await player.playQueue(songs);
+      expect(engine.equalizer, isNull);
+    });
+
+    test('a player gone no longer follows the equalizer', () async {
+      final choice = EqualizerChoice();
+      addTearDown(choice.dispose);
+      player = PlayerController(engine, api, equalizer: choice);
+      await pumpEventQueue();
+      await player.dispose();
+      choice.value = choice.value.copyWith(on: true);
+      await pumpEventQueue();
+      expect(engine.equalizer, isEmpty);
     });
   });
 

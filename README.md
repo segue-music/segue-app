@@ -21,8 +21,8 @@ the device it runs on.
   `ND_JELLYFIN_ENABLED=true`). The password isn't kept: the system's secure storage gets a Subsonic
   token, or Jellyfin's access token, which signing out ends on a Jellyfin server (Navidrome's keeps
   it until the password changes). Signing out is at the end of the settings (a page the top bar's
-  button opens, with the theme, the language, the quality, the volume's normalization, the app's version and the open
-  source licenses), under the user and the server it signs out of;
+  button opens, with the theme, the language, the quality, the volume's normalization, the equalizer, the app's version
+  and the open source licenses), under the user and the server it signs out of;
 - the open source licenses: the app's own, Flutter's and the Dart packages', and, where the app
   brings them (Android, iOS, macOS, Windows), those of libmpv, FFmpeg and Mbed TLS, the native
   libraries it plays with, which Flutter's list leaves out; a package a line, each opening its
@@ -198,6 +198,12 @@ the device it runs on.
   for it). Where the server gives none (a song another device sent, a server without them), the file's own tags, which
   a file as it is has, but not one Jellyfin transcodes. A gain never makes a song clip: no louder than its peak lets it,
   or, where the server doesn't say its peak, as Jellyfin doesn't, no louder than it is;
+- an equalizer of ten bands, from 31 Hz to 16 kHz, for the songs this device plays, on its page from the settings:
+  off, as it is until it is turned on, a curve made for a kind of music (rock, pop, jazz, classical, electronic,
+  hip-hop, voices, more bass, more treble, Android's presets spread over ten bands), or the user's own, by moving the
+  bands up and down 12 dB (a double tap takes one back to 0 dB), which the app keeps, and which holds at once, for the song that plays too. The bands never
+  make a song clip: with them on, the whole goes down by as much as they raise the frequency they raise most. On a TV,
+  the D-pad's up and down move a band once the center button has taken it;
 
 - the system's media controls (through `audio_service`) show and command what the now-playing bar
   shows, the device it follows included: on Linux (MPRIS) the media keys, the desktop's player
@@ -235,7 +241,7 @@ has been tried on a tablet and on an Android TV; the iOS build has not been trie
 | `lib/subsonic/` | The Subsonic API: token sign-in, albums, artists, songs, playlists, search, stream and cover URLs |
 | `lib/jellyfin/` | The Jellyfin API: sign-in by name for this device, the same library calls, and signing out |
 | `lib/segue/` | The Segue protocol in Dart (its `SPEC.md` is in the segue repository), the hub client (reconnects by itself) and hub discovery |
-| `lib/player/` | `PlayerController` (queue, commands, state reports, each song's ReplayGain) over an `AudioEngine`; `MediaKitEngine` is the real one. `MediaControls`: the system's media controls. `AudioInterruptions`: calls and the like pausing the music, on iOS |
+| `lib/player/` | `PlayerController` (queue, commands, state reports, each song's ReplayGain, the equalizer) over an `AudioEngine`; `MediaKitEngine` is the real one. `MediaControls`: the system's media controls. `AudioInterruptions`: calls and the like pausing the music, on iOS |
 | `lib/connect/` | `ConnectController`: which device the app controls, and moving the music between devices |
 | `lib/lyrics/` | LRCLIB (lrclib.net), where lyrics come from when the media server has none, and LRC |
 | `lib/pictures/` | fanart.tv, where more pictures of an artist than the media server's one come from, for their biography |

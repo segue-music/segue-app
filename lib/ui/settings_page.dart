@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../equalizer_choice.dart';
 import '../l10n/app_localizations.dart';
 import '../language_choice.dart';
 import '../quality_choice.dart';
 import '../replay_gain_choice.dart';
 import '../services.dart';
 import '../theme_choice.dart';
+import 'equalizer_page.dart';
 import 'language_button.dart';
 import 'licenses_page.dart';
 import 'page_area.dart';
@@ -15,10 +17,10 @@ import 'theme_fade.dart';
 import 'themed_icon.dart';
 
 /// What the user picks for the app, and signing out: the theme (the system's again too), the language, the quality, the
-/// volume's normalization, the app's version, the licenses' page and, last, signing out, under the account it signs out
-/// of. Each kind of choice a group of its own, under its name, the one picked with a check, as the devices' sheet has
-/// the one the app controls; a line between the groups, and between the last and signing out. In the page area, from
-/// the top bar's button; a choice missing (none given), its group too, and the version with none.
+/// volume's normalization, the equalizer's page, the app's version, the licenses' page and, last, signing out, under the
+/// account it signs out of. Each kind of choice a group of its own, under its name, the one picked with a check, as the
+/// devices' sheet has the one the app controls; a line between the groups, and between the last and signing out. In the
+/// page area, from the top bar's button; a choice missing (none given), its group too, and the version with none.
 class SettingsPage extends StatelessWidget {
   const SettingsPage({
     required this.onSignOut,
@@ -26,6 +28,7 @@ class SettingsPage extends StatelessWidget {
     this.languageChoice,
     this.qualityChoice,
     this.replayGainChoice,
+    this.equalizerChoice,
     this.packageInfo,
     super.key,
   });
@@ -35,6 +38,7 @@ class SettingsPage extends StatelessWidget {
   final LanguageChoice? languageChoice;
   final QualityChoice? qualityChoice;
   final ReplayGainChoice? replayGainChoice;
+  final EqualizerChoice? equalizerChoice;
 
   /// The app's version and build number, as the build stamped them.
   final PackageInfo? packageInfo;
@@ -55,11 +59,12 @@ class SettingsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context);
     final session = ServicesScope.of(context).session;
-    final (themeChoice, languageChoice, qualityChoice, replayGainChoice) = (
+    final (themeChoice, languageChoice, qualityChoice, replayGainChoice, equalizerChoice) = (
       this.themeChoice,
       this.languageChoice,
       this.qualityChoice,
       this.replayGainChoice,
+      this.equalizerChoice,
     );
     final packageInfo = this.packageInfo;
     return Scaffold(
@@ -73,7 +78,7 @@ class SettingsPage extends StatelessWidget {
       // of them, by the room MediaQuery says they take.
       body: ListenableBuilder(
         // The check moves to the one picked.
-        listenable: Listenable.merge([themeChoice, languageChoice, qualityChoice, replayGainChoice]),
+        listenable: Listenable.merge([themeChoice, languageChoice, qualityChoice, replayGainChoice, equalizerChoice]),
         builder: (context, _) {
           final groups = [
             if (themeChoice != null)
@@ -126,6 +131,22 @@ class SettingsPage extends StatelessWidget {
                     picked: mode == replayGainChoice.value,
                     onTap: () => replayGainChoice.pick(mode),
                   ),
+              ],
+            // The equalizer, a page of its own in the page area, with the curve it plays with under its name.
+            if (equalizerChoice != null)
+              [
+                ListTile(
+                  leading: const ThemedIcon(HugeIcons.strokeRoundedSlidersVertical),
+                  title: Text(strings.equalizer),
+                  subtitle: Text(
+                    equalizerChoice.value.on
+                        ? strings.equalizerPreset(equalizerChoice.value.preset.name)
+                        : strings.equalizerOff,
+                  ),
+                  onTap: () =>
+                      Navigator.of(context)
+                          .push(MaterialPageRoute<void>(builder: (_) => EqualizerPage(choice: equalizerChoice))),
+                ),
               ],
             // The app's version, and its licenses and those of what it is made with, a page of their own in the page area.
             [

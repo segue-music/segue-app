@@ -25,6 +25,9 @@ class FakeEngine implements AudioEngine {
   /// The current track's gain, as [updateGain] last asked it; null before it did.
   TrackGain? gain;
 
+  /// The equalizer's gains, as [setEqualizer] last set them; null before it did.
+  Map<int, double>? equalizer;
+
   @override
   Stream<void> get changes => _changes.stream;
 
@@ -156,6 +159,9 @@ class FakeEngine implements AudioEngine {
 
   @override
   Future<void> updateGain() async => gain = opened.isEmpty ? null : opened[_order[_index]].gain();
+
+  @override
+  Future<void> setEqualizer(Map<int, double> gains) async => equalizer = gains;
 
   @override
   Future<void> dispose() => _changes.close();

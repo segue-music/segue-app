@@ -103,6 +103,12 @@ abstract class AudioEngine {
   /// are levelled changes. The others are asked as they load.
   Future<void> updateGain();
 
+  /// Plays every track through an equalizer of [gains]: by each band's center frequency, in Hz, how much louder it
+  /// makes the frequencies around it, an octave wide, in dB, or, below zero, quieter. Lowered as a whole by as much as
+  /// the bands raise the frequency they raise most, so that they never make a track clip. None, the tracks as they are.
+  /// It holds at once, for the track that plays too.
+  Future<void> setEqualizer(Map<int, double> gains);
+
   Future<void> setRepeat(Repeat mode);
 
   /// On, shuffles the tracks, the current one still playing; off, back to the order [open] got.
@@ -764,6 +770,76 @@ class MediaKitEngine implements AudioEngine {
     // mpv takes fallbacks from -200 dB to 60 dB.
     await native.setProperty('replaygain-fallback', '${gain.decibels.clamp(-200, 60)}');
   }
+
+  /// The equalizer is mpv's audio filters (af), FFmpeg's: none while it is off, and on, one for each band, so that mpv,
+  /// given them again with a band moved, makes only that one anew, the others going on as they were
+  /// (mp_output_chain_update_filters, in its filters/f_output_chain.c). Before them, the audio goes to 48 kHz, in
+  /// floats: FFmpeg's equalizer leaves out a band past half a track's sample rate, but one at half of it (16 kHz, in a
+  /// track of 32 kHz) silences the track. And it goes down there by as much as the bands raise the frequency they raise
+  /// most, by aresample's rematrix_volume: iOS's libavfilter has no volume filter. Turning it on or off changes what mpv
+  /// sends to the audio output, which starts again: the sound stops for a moment.
+  @override
+  Future<void> setEqualizer(Map<int, double> gains) async {
+    await _ready;
+
+    if (_disposed) {
+      return;
+    }
+
+    final volume = pow(10, -_loudestBoost(gains) / 20);
+    final filters = [
+      if (gains.isNotEmpty) 'lavfi=[aresample=$_equalizerRate:osf=fltp:rematrix_volume=${volume.toStringAsFixed(6)}]',
+      for (final MapEntry(key: frequency, value: gain) in gains.entries)
+        'lavfi=[equalizer=f=$frequency:t=o:w=1:g=${gain.toStringAsFixed(2)}]',
+    ];
+    await (_player.platform as NativePlayer).setProperty('af', filters.join(','));
+  }
+
+  /// The sample rate the equalizer works at.
+  static const _equalizerRate = 48000;
+
+  /// How much louder, in dB, the bands [gains] (as [setEqualizer] has them) make the frequency they raise most, of those
+  /// heard (20 Hz to 20 kHz); none where they raise none. Each band is FFmpeg's equalizer (its af_biquads.c), the Audio
+  /// EQ Cookbook's peaking filter, an octave wide, and their gains, in dB, add up: the frequencies looked at are the
+  /// bands' own and every 48th of an octave.
+  static double _loudestBoost(Map<int, double> gains) {
+    final bands = [
+      for (final MapEntry(key: frequency, value: gain) in gains.entries)
+        if (gain != 0) _peakingFilter(frequency, gain),
+    ];
+    final frequencies = [
+      ...gains.keys.map((frequency) => frequency.toDouble()),
+      for (var i = 0; i <= 480; i++) 20 * pow(2, i / 48).toDouble(),
+    ];
+    var loudest = 0.0;
+
+    for (final frequency in frequencies) {
+      loudest = max(loudest, bands.fold(0.0, (sum, band) => sum + band(frequency)));
+    }
+
+    return loudest;
+  }
+
+  /// A band of [gain] dB at [center] Hz, as FFmpeg's equalizer makes it at the equalizer's sample rate, an octave
+  /// wide: how much louder it makes a frequency, in Hz, in dB.
+  static double Function(double frequency) _peakingFilter(int center, double gain) {
+    final a = pow(10, gain / 40);
+    final w0 = 2 * pi * center / _equalizerRate;
+    final alpha = sin(w0) * _sinh(log(2) / 2 * w0 / sin(w0));
+    final (b0, b1, b2) = (1 + alpha * a, -2 * cos(w0), 1 - alpha * a);
+    final (a0, a1, a2) = (1 + alpha / a, -2 * cos(w0), 1 - alpha / a);
+
+    // The squared magnitude of c0 + c1 z⁻¹ + c2 z⁻² on the unit circle, at w.
+    double squared(double c0, double c1, double c2, double w) =>
+        c0 * c0 + c1 * c1 + c2 * c2 + 2 * (c0 * c1 + c1 * c2) * cos(w) + 2 * c0 * c2 * cos(2 * w);
+
+    return (frequency) {
+      final w = 2 * pi * frequency / _equalizerRate;
+      return 10 * log(squared(b0, b1, b2, w) / squared(a0, a1, a2, w)) / ln10;
+    };
+  }
+
+  static double _sinh(double x) => (exp(x) - exp(-x)) / 2;
 
   @override
   Future<void> dispose() async {

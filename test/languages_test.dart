@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:segue/connect/connect.dart';
+import 'package:segue/equalizer_choice.dart';
 import 'package:segue/l10n/app_localizations.dart';
 import 'package:segue/language_choice.dart';
 import 'package:segue/player/player.dart';
@@ -207,6 +208,15 @@ Future<void> pumpHome(WidgetTester tester, Locale language, Size size) async {
   addTearDown(qualityChoice.dispose);
   final replayGainChoice = ReplayGainChoice();
   addTearDown(replayGainChoice.dispose);
+  // Its bands as far as they go, with the widest numbers.
+  final equalizerChoice = EqualizerChoice(
+    const EqualizerSettings(
+      on: true,
+      preset: EqualizerPreset.custom,
+      custom: [-12, 12, -12, 12, -12, 12, -12, 12, -12, 12],
+    ),
+  );
+  addTearDown(equalizerChoice.dispose);
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -223,6 +233,7 @@ Future<void> pumpHome(WidgetTester tester, Locale language, Size size) async {
         languageChoice: languageChoice,
         qualityChoice: qualityChoice,
         replayGainChoice: replayGainChoice,
+        equalizerChoice: equalizerChoice,
         packageInfo: PackageInfo(appName: 'Segue', packageName: 'segue', version: '0.1.0', buildNumber: '214'),
       ),
     ),
@@ -251,10 +262,11 @@ void main() {
 
         await tap(tester, find.byTooltip(strings.settings));
         expect(find.text(strings.systemTheme), findsOneWidget, reason: 'the settings');
-        // Down past the qualities and the volume's normalization, to their end.
+        // Down past the qualities and the volume's normalization, to their end, by way of the equalizer's page.
         for (final text in [
           strings.automaticQualityDetail(160),
           strings.replayGainModeDetail('off'),
+          strings.equalizer,
           strings.signedInAs('a', 'music.test'),
         ]) {
           await tester.scrollUntilVisible(
@@ -262,6 +274,18 @@ void main() {
             100,
             scrollable: find.descendant(of: find.byType(SettingsPage), matching: find.byType(Scrollable)),
           );
+
+          if (text == strings.equalizer) {
+            await tap(tester, find.text(text));
+            expect(find.text(strings.useEqualizer), findsOneWidget);
+
+            for (final preset in EqualizerPreset.values) {
+              expect(find.widgetWithText(ChoiceChip, strings.equalizerPreset(preset.name)), findsOneWidget);
+            }
+
+            expect(find.text(strings.kilohertzShort(16)), findsOneWidget);
+            await tap(tester, narrow ? find.byType(BackButton).hitTestable() : find.byTooltip(strings.back));
+          }
         }
 
         expect(find.text(strings.appVersionNumber('0.1.0', '214')), findsOneWidget);

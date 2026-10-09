@@ -10,6 +10,7 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:http/testing.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:segue/connect/connect.dart';
+import 'package:segue/equalizer_choice.dart';
 import 'package:segue/l10n/app_localizations.dart';
 import 'package:segue/language_choice.dart';
 import 'package:segue/player/player.dart';
@@ -67,6 +68,7 @@ Future<List<Map<String, String>>> pumpHome(
   LanguageChoice? languageChoice,
   QualityChoice? qualityChoice,
   ReplayGainChoice? replayGainChoice,
+  EqualizerChoice? equalizerChoice,
   PackageInfo? packageInfo,
   VoidCallback? onSignOut,
 }) async {
@@ -132,6 +134,7 @@ Future<List<Map<String, String>>> pumpHome(
       languageChoice: languageChoice,
       qualityChoice: qualityChoice,
       replayGainChoice: replayGainChoice,
+      equalizerChoice: equalizerChoice,
       packageInfo: packageInfo,
     ),
   );
@@ -710,6 +713,47 @@ void main() {
     expect([checked('Desligada'), checked('Por álbum')], [false, true]);
     await tester.pumpWidget(const SizedBox());
   });
+
+  testWidgets(
+    'on a phone, the equalizer is in the settings, after the volume\'s normalization, with the curve it plays '
+    'with, and opens its page, whose changes it shows',
+    (tester) async {
+      final (replayGainChoice, equalizerChoice) = (ReplayGainChoice(), EqualizerChoice());
+      addTearDown(replayGainChoice.dispose);
+      addTearDown(equalizerChoice.dispose);
+      await pumpHome(
+        tester,
+        const Size(360, 640),
+        replayGainChoice: replayGainChoice,
+        equalizerChoice: equalizerChoice,
+      );
+
+      await openSettings(tester);
+      final list = find.descendant(of: find.byType(SettingsPage), matching: find.byType(Scrollable));
+      // To the end, so that the bars at the bottom leave it in sight.
+      await tester.scrollUntilVisible(settingsItem('Sair'), 100, scrollable: list);
+      expect(
+        tester.getTopLeft(find.text('Equalizador')).dy,
+        greaterThan(tester.getTopLeft(find.text('Cada música no volume do seu arquivo')).dy),
+        reason: 'after the volume\'s normalization',
+      );
+      expect(find.descendant(of: settingsItem('Equalizador'), matching: find.text('Desligado')), findsOneWidget);
+
+      await tester.tap(settingsItem('Equalizador'));
+      await tester.pumpAndSettle();
+      expect(title('Equalizador'), findsOneWidget);
+      await tester.tap(find.byType(Switch));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(ChoiceChip, 'Jazz'));
+      await tester.pumpAndSettle();
+      expect(equalizerChoice.value, const EqualizerSettings(on: true, preset: EqualizerPreset.jazz));
+
+      await tester.tap(find.byTooltip('Voltar'));
+      await tester.pumpAndSettle();
+      expect(find.descendant(of: settingsItem('Equalizador'), matching: find.text('Jazz')), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
 
   testWidgets('on a phone, the settings sign out, and with nothing else to pick have only that and the licenses', (
     tester,

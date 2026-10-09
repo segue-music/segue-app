@@ -8,6 +8,7 @@ import 'player/libmpv_licenses.dart';
 import 'player/media_controls.dart';
 import 'session.dart';
 import 'device.dart';
+import 'equalizer_choice.dart';
 import 'language_choice.dart';
 import 'quality_choice.dart';
 import 'replay_gain_choice.dart';
@@ -27,6 +28,7 @@ Future<void> main() async {
       languageChoice: await LanguageChoice.load(),
       qualityChoice: await QualityChoice.load(),
       replayGainChoice: await ReplayGainChoice.load(),
+      equalizerChoice: await EqualizerChoice.load(),
       mediaControls: controls,
       interruptions: interruptions,
       television: television,

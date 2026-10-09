@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import 'l10n/app_localizations.dart';
+import 'equalizer_choice.dart';
 import 'language_choice.dart';
 import 'player/audio_interruptions.dart';
 import 'player/media_controls.dart';
@@ -26,6 +27,7 @@ class SegueApp extends StatefulWidget {
     this.languageChoice,
     this.qualityChoice,
     this.replayGainChoice,
+    this.equalizerChoice,
     this.mediaControls,
     this.interruptions,
     this.television = false,
@@ -47,6 +49,9 @@ class SegueApp extends StatefulWidget {
 
   /// How the player levels the songs' loudness; with none, not at all, until a pick.
   final ReplayGainChoice? replayGainChoice;
+
+  /// The equalizer the player plays through; with none, off, until it is turned on.
+  final EqualizerChoice? equalizerChoice;
 
   /// The system's media controls, where the platform has them.
   final MediaControls? mediaControls;
@@ -81,6 +86,9 @@ class _SegueAppState extends State<SegueApp> {
   /// [SegueApp.replayGainChoice], or one of its own, off until a pick.
   late final _replayGainChoice = widget.replayGainChoice ?? ReplayGainChoice();
 
+  /// [SegueApp.equalizerChoice], or one of its own, off until it is turned on.
+  late final _equalizerChoice = widget.equalizerChoice ?? EqualizerChoice();
+
   @override
   void initState() {
     super.initState();
@@ -98,7 +106,12 @@ class _SegueAppState extends State<SegueApp> {
     });
 
     try {
-      final services = await Services.start(session, quality: _qualityChoice, replayGain: _replayGainChoice);
+      final services = await Services.start(
+        session,
+        quality: _qualityChoice,
+        replayGain: _replayGainChoice,
+        equalizer: _equalizerChoice,
+      );
 
       if (!mounted) {
         await services.dispose();
@@ -148,6 +161,10 @@ class _SegueAppState extends State<SegueApp> {
 
     if (widget.replayGainChoice == null) {
       _replayGainChoice.dispose();
+    }
+
+    if (widget.equalizerChoice == null) {
+      _equalizerChoice.dispose();
     }
 
     super.dispose();
@@ -208,6 +225,7 @@ class _SegueAppState extends State<SegueApp> {
               languageChoice: _languageChoice,
               qualityChoice: _qualityChoice,
               replayGainChoice: _replayGainChoice,
+              equalizerChoice: _equalizerChoice,
               packageInfo: widget.packageInfo,
             )
           : _starting

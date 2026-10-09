@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../equalizer_choice.dart';
 import '../quality_choice.dart';
 import '../replay_gain_choice.dart';
 import '../segue/client.dart';
@@ -13,16 +14,23 @@ import 'engine.dart';
 /// This device's player: the queue, playback, and the commands other devices send it.
 class PlayerController extends ChangeNotifier {
   /// Streams each song in the quality that [quality] gives as it loads; with none, the files as they are. Levels their
-  /// loudness [replayGain]'s way, the one that plays too as it changes; with none, not at all.
-  PlayerController(this._engine, this._api, {this._quality, this._replayGain}) {
+  /// loudness [replayGain]'s way, the one that plays too as it changes; with none, not at all. Plays them through
+  /// [equalizer], as it changes too; with none, as they are.
+  PlayerController(this._engine, this._api, {this._quality, this._replayGain, this._equalizer}) {
     _subscription = _engine.changes.listen((_) => _changed());
     _replayGain?.addListener(_updateGain);
+
+    if (_equalizer != null) {
+      _equalizer.addListener(_equalize);
+      _equalize();
+    }
   }
 
   final AudioEngine _engine;
   final MediaServer _api;
   final StreamQuality Function()? _quality;
   final ValueListenable<ReplayGainMode>? _replayGain;
+  final ValueListenable<EqualizerSettings>? _equalizer;
   late final StreamSubscription<void> _subscription;
   // The songs as playQueue got them, and _queue: them in the engine's play order (shuffled, or not).
   List<Song> _opened = const [];
@@ -99,6 +107,9 @@ class PlayerController extends ChangeNotifier {
 
   /// The way the songs are levelled changed: the song that plays changes with it.
   void _updateGain() => unawaited(_engine.updateGain());
+
+  /// The equalizer changed: the songs play through it as it is now, the one that plays too.
+  void _equalize() => unawaited(_engine.setEqualizer(_equalizer!.value.bandGains));
 
   /// Where the song whose id is [songId] streams from, from [from] on ([TrackSource.resolved]), in the quality picked as it
   /// loads.
@@ -264,6 +275,7 @@ class PlayerController extends ChangeNotifier {
   @override
   Future<void> dispose() async {
     _replayGain?.removeListener(_updateGain);
+    _equalizer?.removeListener(_equalize);
     await _subscription.cancel();
     await _engine.dispose();
     super.dispose();

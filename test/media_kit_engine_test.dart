@@ -30,10 +30,10 @@ const rate = 8000;
 /// How loud the tones are: their loudest sample.
 const loudness = 8000;
 
-/// A short tone as a WAV file's bytes, [tags] in an ID3 tag (as TXXX frames, which ReplayGain's are) where it has
-/// some.
-Uint8List wav(int n, {double seconds = 4, Map<String, String> tags = const {}}) {
-  final samples = (rate * seconds).round();
+/// A short tone as a WAV file's bytes, of 300 + 100 [n] Hz, or [hertz], at [sampleRate], [tags] in an ID3 tag (as TXXX
+/// frames, which ReplayGain's are) where it has some.
+Uint8List wav(int n, {double seconds = 4, Map<String, String> tags = const {}, double? hertz, int sampleRate = rate}) {
+  final samples = (sampleRate * seconds).round();
   final id3 = _id3(tags);
   // An ID3 tag's chunk before the samples', of an even size.
   final id3Chunk = id3.isEmpty ? 0 : 8 + id3.length + id3.length % 2;
@@ -48,8 +48,8 @@ Uint8List wav(int n, {double seconds = 4, Map<String, String> tags = const {}}) 
     ..setUint32(16, 16, Endian.little)
     ..setUint16(20, 1, Endian.little)
     ..setUint16(22, 1, Endian.little)
-    ..setUint32(24, rate, Endian.little)
-    ..setUint32(28, rate * 2, Endian.little)
+    ..setUint32(24, sampleRate, Endian.little)
+    ..setUint32(28, sampleRate * 2, Endian.little)
     ..setUint16(32, 2, Endian.little)
     ..setUint16(34, 16, Endian.little);
 
@@ -63,8 +63,10 @@ Uint8List wav(int n, {double seconds = 4, Map<String, String> tags = const {}}) 
   text(samplesAt, 'data');
   data.setUint32(samplesAt + 4, samples * 2, Endian.little);
 
+  final pitch = hertz ?? 300 + 100 * n;
+
   for (var i = 0; i < samples; i++) {
-    data.setInt16(samplesAt + 8 + i * 2, (sin(2 * pi * (300 + 100 * n) * i / rate) * loudness).round(), Endian.little);
+    data.setInt16(samplesAt + 8 + i * 2, (sin(2 * pi * pitch * i / sampleRate) * loudness).round(), Endian.little);
   }
 
   return data.buffer.asUint8List();
@@ -111,16 +113,23 @@ TrackSource tone(
   gain: gain,
 );
 
-/// The loudest sample in each second of [file], raw samples as [MediaKitEngine]'s audioFile has them, but at its edges,
-/// where one track's gain may still hold for the next.
-List<int> loudestBySecond(File file) {
+/// The loudest sample in each second of [file], raw samples as [MediaKitEngine]'s audioFile has them, at [sampleRate],
+/// but at its edges, where one track's gain may still hold for the next.
+List<int> loudestBySecond(File file, {int sampleRate = rate}) {
   final samples = ByteData.sublistView(file.readAsBytesSync());
   return [
-    for (var start = 0; start + rate * 2 <= samples.lengthInBytes; start += rate * 2)
-      [for (var i = start + rate ~/ 2; i < start + rate * 3 ~/ 2; i += 2) samples.getInt16(i, Endian.little).abs()]
-          .reduce(max),
+    for (var start = 0; start + sampleRate * 2 <= samples.lengthInBytes; start += sampleRate * 2)
+      [
+        for (var i = start + sampleRate ~/ 2; i < start + sampleRate * 3 ~/ 2; i += 2)
+          samples.getInt16(i, Endian.little).abs(),
+      ].reduce(max),
   ];
 }
+
+/// The equalizer's ten bands, each at 0 dB but for [gains], or all at [all].
+Map<int, double> bands(Map<int, double> gains, {double all = 0}) => {
+  for (final frequency in [31, 63, 125, 250, 500, 1000, 2000, 4000, 8000, 16000]) frequency: gains[frequency] ?? all,
+};
 
 /// A tone's loudest sample with [decibels] of gain.
 Matcher withGain(double decibels) => closeTo(loudness * pow(10, decibels / 20), loudness / 100);
@@ -203,6 +212,32 @@ void main() {
     expect(engine.index, 2);
     expect(engine.playing, isTrue);
   }, skip: hasLibmpv ? false : 'needs libmpv');
+
+  test(
+    'the equalizer changes as a track plays, which goes on from where it was, though its stream can\'t seek',
+    () async {
+      final server = await TrackServer.start();
+      addTearDown(server.close);
+      await engine.open([server.track('ok0')], index: 0, position: Duration.zero, play: true);
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+
+      // On, a band moved, and off.
+      for (final gains in [
+        bands({1000: 6}),
+        bands({1000: 3}),
+        const <int, double>{},
+      ]) {
+        final before = engine.position;
+        await engine.setEqualizer(gains);
+        await Future<void>.delayed(const Duration(milliseconds: 600));
+        expect(engine.playing, isTrue);
+        expect(engine.position, greaterThan(before + const Duration(milliseconds: 300)));
+      }
+
+      expect(server.requests, ['/ok0'], reason: 'never loaded again');
+    },
+    skip: hasLibmpv ? false : 'needs libmpv',
+  );
 
   test('jumping and moving on by itself announce the new track', () async {
     final tracks = [tone(dir, 0, seconds: 1), tone(dir, 1), tone(dir, 2)];
@@ -326,6 +361,72 @@ void main() {
       await listened.play();
       await Future<void>.delayed(const Duration(milliseconds: 500));
       expect(loudestBySecond(heard).take(1), [withGain(-12)]);
+    });
+
+    group('through the equalizer', () {
+      /// A tone of [hertz], at [sampleRate].
+      TrackSource tone(int n, double hertz, {double seconds = 1, int sampleRate = rate}) => TrackSource(
+        (File(
+          '${dir.path}/eq$n.wav',
+        )..writeAsBytesSync(wav(0, hertz: hertz, seconds: seconds, sampleRate: sampleRate))).uri,
+      );
+
+      /// The loudest sample in each second, at the equalizer's sample rate.
+      List<int> heardAt48kHz() => loudestBySecond(heard, sampleRate: 48000);
+
+      // What FFmpeg's bands make of these tones, in dB, as the engine reckons it.
+
+      test(
+        'a band raises or lowers its frequencies, the whole lowered by as much as the bands raise the most',
+        () async {
+          await listened.setEqualizer(bands({63: 6, 1000: -6}));
+          await listened.open(
+            [tone(0, 63), tone(1, 1000), tone(2, 300, seconds: 2)],
+            index: 0,
+            position: Duration.zero,
+            play: true,
+          );
+          await Future<void>.delayed(const Duration(seconds: 1));
+          expect(heardAt48kHz().take(3), [
+            withGain(0), // +6, and the whole -6
+            withGain(-11.97),
+            withGain(-6.17), // a little of each band
+          ]);
+        },
+      );
+
+      test('every band raised, the tracks play no louder than they were', () async {
+        await listened.setEqualizer(bands({}, all: 12));
+        await listened.open(
+          [tone(0, 63), tone(1, 250), tone(2, 1000, seconds: 2)],
+          index: 0,
+          position: Duration.zero,
+          play: true,
+        );
+        await Future<void>.delayed(const Duration(seconds: 1));
+        // Each a little under the loudest, some 4 kHz, which plays as loud as it was.
+        expect(heardAt48kHz().take(3), [withGain(-1.46), withGain(-0.75), withGain(-0.62)]);
+      });
+
+      test('a track of 32 kHz plays with the band at its half, 16 kHz, which FFmpeg alone would make silent', () async {
+        await listened.setEqualizer(bands({16000: 6}));
+        await listened.open(
+          [tone(0, 1000, seconds: 2, sampleRate: 32000)],
+          index: 0,
+          position: Duration.zero,
+          play: true,
+        );
+        await Future<void>.delayed(const Duration(seconds: 1));
+        expect(heardAt48kHz().take(1), [withGain(-5.97)]);
+      });
+
+      test('off, the tracks play as they are', () async {
+        await listened.setEqualizer(bands({1000: -6}));
+        await listened.setEqualizer(const {});
+        await listened.open([tone(0, 1000, seconds: 2)], index: 0, position: Duration.zero, play: true);
+        await Future<void>.delayed(const Duration(milliseconds: 500));
+        expect(loudestBySecond(heard).take(1), [withGain(0)], reason: 'at the track\'s own sample rate');
+      });
     });
   }, skip: hasLibmpv ? false : 'needs libmpv');
 

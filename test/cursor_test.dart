@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:segue/connect/connect.dart';
+import 'package:segue/equalizer_choice.dart';
 import 'package:segue/l10n/app_localizations.dart';
 import 'package:segue/language_choice.dart';
 import 'package:segue/player/player.dart';
@@ -14,6 +15,7 @@ import 'package:segue/server/models.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
+import 'package:segue/ui/equalizer_page.dart';
 import 'package:segue/ui/home_page.dart';
 import 'package:segue/ui/login_page.dart';
 import 'package:segue/ui/theme.dart';
@@ -114,6 +116,8 @@ Future<TestGesture> pumpApp(WidgetTester tester) async {
   );
   final languageChoice = LanguageChoice();
   addTearDown(languageChoice.dispose);
+  final equalizerChoice = EqualizerChoice(const EqualizerSettings(on: true));
+  addTearDown(equalizerChoice.dispose);
   tester.view.physicalSize = const Size(1000, 700);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -123,7 +127,7 @@ Future<TestGesture> pumpApp(WidgetTester tester) async {
       supportedLocales: const [Locale('pt')],
       theme: segueTheme(Brightness.light),
       builder: (context, child) => ServicesScope(services: services, child: child!),
-      home: HomePage(onSignOut: () {}, languageChoice: languageChoice),
+      home: HomePage(onSignOut: () {}, languageChoice: languageChoice, equalizerChoice: equalizerChoice),
     ),
   );
   await tester.pumpAndSettle();
@@ -171,6 +175,13 @@ void main() {
     await tester.tap(find.byTooltip('Configurações'));
     await tester.pumpAndSettle();
     await expectHand('a language in the settings', find.text('English'));
+    await tester.scrollUntilVisible(find.text('Equalizador'), 100, scrollable: find.byType(Scrollable).last);
+    await expectHand('the equalizer in the settings', find.text('Equalizador'));
+    await tester.tap(find.text('Equalizador'));
+    await tester.pumpAndSettle();
+    await expectHand('the equalizer\'s switch', find.byType(Switch));
+    await expectHand('a curve', find.widgetWithText(ChoiceChip, 'Rock'));
+    await expectHand('a band', find.byType(EqualizerBand).first);
     await tester.tap(find.byTooltip('Início'));
     await tester.pumpAndSettle();
     await expectArrow('the side rail\'s empty part', find.byType(VerticalDivider));

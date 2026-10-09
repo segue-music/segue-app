@@ -192,5 +192,13 @@
   "volumeNormalization": "Normalización del volumen",
   "replayGainMode": "{mode, select, automatic{Automática} track{Por canción} album{Por álbum} other{Desactivada}}",
   "replayGainModeDetail": "{mode, select, automatic{Por álbum cuando un álbum suena en orden, por canción en los demás casos} track{Todas las canciones al mismo volumen} album{Todos los álbumes al mismo volumen, y sus canciones como son entre sí} other{Cada canción al volumen de su archivo}}",
+  "equalizer": "Ecualizador",
+  "equalizerOff": "Desactivado",
+  "useEqualizer": "Usar el ecualizador",
+  "equalizerPreset": "{preset, select, flat{Normal} rock{Rock} pop{Pop} jazz{Jazz} classical{Clásica} electronic{Electrónica} hipHop{Hip-hop} vocal{Voz} bassBoost{Más graves} trebleBoost{Más agudos} other{Personalizado}}",
+  "kilohertzShort": "{kilohertz}k",
+  "hertz": "{hertz} Hz",
+  "kilohertz": "{kilohertz} kHz",
+  "decibels": "{decibels} dB",
   "artistOnDevice": "{artist} (en {device})"
 }
