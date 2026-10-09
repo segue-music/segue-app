@@ -137,6 +137,8 @@
   "couldNotStart": "Error al abrir: {error}",
   "signOut": "Cerrar sesión",
   "signedInAs": "{user} en {server}",
+  "appVersion": "Versión",
+  "appVersionNumber": "{version} ({build})",
   "openSourceLicenses": "Licencias de código abierto",
   "licenses": "Licencias",
   "licenseCount": "{count, plural, =1{1 licencia} other{{count} licencias}}",

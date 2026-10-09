@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../l10n/app_localizations.dart';
 import '../language_choice.dart';
@@ -28,7 +29,14 @@ import 'shortcuts.dart';
 import 'themed_icon.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({required this.onSignOut, this.themeChoice, this.languageChoice, this.qualityChoice, super.key});
+  const HomePage({
+    required this.onSignOut,
+    this.themeChoice,
+    this.languageChoice,
+    this.qualityChoice,
+    this.packageInfo,
+    super.key,
+  });
 
   final VoidCallback onSignOut;
 
@@ -40,6 +48,9 @@ class HomePage extends StatefulWidget {
 
   /// The quality the player streams in, picked in the settings; none, no choice of it.
   final QualityChoice? qualityChoice;
+
+  /// The app's version and build number, in the settings; none, no line of them.
+  final PackageInfo? packageInfo;
 
   /// How long typing in the search bar has to stop before the search goes out, so that it isn't one
   /// per key.
@@ -131,6 +142,7 @@ class _HomePageState extends State<HomePage> {
           themeChoice: widget.themeChoice,
           languageChoice: widget.languageChoice,
           qualityChoice: widget.qualityChoice,
+          packageInfo: widget.packageInfo,
           onSignOut: widget.onSignOut,
         ),
       ),

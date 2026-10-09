@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import 'l10n/app_localizations.dart';
 import 'language_choice.dart';
@@ -26,6 +27,7 @@ class SegueApp extends StatefulWidget {
     this.mediaControls,
     this.interruptions,
     this.television = false,
+    this.packageInfo,
     super.key,
   });
 
@@ -49,6 +51,9 @@ class SegueApp extends StatefulWidget {
 
   /// Whether it runs on a TV, driven by a remote's D-pad.
   final bool television;
+
+  /// The app's version and build number, which the settings show; none, no line of them.
+  final PackageInfo? packageInfo;
 
   @override
   State<SegueApp> createState() => _SegueAppState();
@@ -189,6 +194,7 @@ class _SegueAppState extends State<SegueApp> {
               themeChoice: _themeChoice,
               languageChoice: _languageChoice,
               qualityChoice: _qualityChoice,
+              packageInfo: widget.packageInfo,
             )
           : _starting
           ? const Scaffold(body: Center(child: Spinner()))

@@ -35,6 +35,8 @@ dependencies:
   connectivity_plus: ^7.3.1
   # Opens what is outside the app: where an artist comes from, on a map (lib/ui/maps.dart).
   url_launcher: ^6.3.3
+  # The app's version and build number, as the build stamped them, which the settings show.
+  package_info_plus: ^10.2.2
 
 dev_dependencies:
   flutter_test:

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:segue/connect/connect.dart';
 import 'package:segue/l10n/app_localizations.dart';
 import 'package:segue/language_choice.dart';
@@ -175,7 +176,7 @@ http.Response server(http.Request request) {
   };
 }
 
-/// The home on a screen of [size], in [language], with Sweet Emotion in the player.
+/// The home on a screen of [size], in [language], with Sweet Emotion in the player and the app's version in the settings.
 Future<void> pumpHome(WidgetTester tester, Locale language, Size size) async {
   final api = SubsonicApi(Uri.parse('https://music.test'), credentials, client: MockClient((r) async => server(r)));
   final player = PlayerController(FakeEngine(), api);
@@ -218,6 +219,7 @@ Future<void> pumpHome(WidgetTester tester, Locale language, Size size) async {
         themeChoice: themeChoice,
         languageChoice: languageChoice,
         qualityChoice: qualityChoice,
+        packageInfo: PackageInfo(appName: 'Segue', packageName: 'segue', version: '0.1.0', buildNumber: '214'),
       ),
     ),
   );
@@ -252,6 +254,7 @@ void main() {
           scrollable: find.descendant(of: find.byType(SettingsPage), matching: find.byType(Scrollable)),
         );
         expect(find.text(strings.automaticQualityDetail(160)), findsOneWidget, reason: 'the qualities');
+        expect(find.text(strings.appVersionNumber('0.1.0', '214')), findsOneWidget);
         expect(find.text(strings.openSourceLicenses), findsOneWidget);
         expect(find.text(strings.signOut), findsOneWidget);
         // On a phone the page's arrow; on a wide screen the top bar's.

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../l10n/app_localizations.dart';
 import '../language_choice.dart';
@@ -13,17 +14,27 @@ import 'theme_fade.dart';
 import 'themed_icon.dart';
 
 /// What the user picks for the app, and signing out: the theme (the system's again too), the language, the quality, the
-/// licenses' page and, last, signing out, under the account it signs out of. Each kind
+/// app's version, the licenses' page and, last, signing out, under the account it signs out of. Each kind
 /// of choice a group of its own, under its name, the one picked with a check, as the devices' sheet has the one the app
 /// controls; a line between the groups, and between the last and signing out. In the page area, from the top bar's
-/// button; a choice missing (none given), its group too.
+/// button; a choice missing (none given), its group too, and the version with none.
 class SettingsPage extends StatelessWidget {
-  const SettingsPage({required this.onSignOut, this.themeChoice, this.languageChoice, this.qualityChoice, super.key});
+  const SettingsPage({
+    required this.onSignOut,
+    this.themeChoice,
+    this.languageChoice,
+    this.qualityChoice,
+    this.packageInfo,
+    super.key,
+  });
 
   final VoidCallback onSignOut;
   final ThemeChoice? themeChoice;
   final LanguageChoice? languageChoice;
   final QualityChoice? qualityChoice;
+
+  /// The app's version and build number, as the build stamped them.
+  final PackageInfo? packageInfo;
 
   /// The qualities to pick from, each by its name, and the automatic one with what it does.
   static List<({StreamQuality quality, String name, String? detail})> _qualities(AppLocalizations strings) => [
@@ -42,6 +53,7 @@ class SettingsPage extends StatelessWidget {
     final strings = AppLocalizations.of(context);
     final session = ServicesScope.of(context).session;
     final (themeChoice, languageChoice, qualityChoice) = (this.themeChoice, this.languageChoice, this.qualityChoice);
+    final packageInfo = this.packageInfo;
     return Scaffold(
       appBar: AppBar(
         // Under a wide screen's top bar, whose arrow goes back: no arrow of its own.
@@ -95,8 +107,14 @@ class SettingsPage extends StatelessWidget {
                     onTap: () => qualityChoice.pick(quality),
                   ),
               ],
-            // The app's licenses and those of what it is made with, a page of their own in the page area.
+            // The app's version, and its licenses and those of what it is made with, a page of their own in the page area.
             [
+              if (packageInfo != null)
+                ListTile(
+                  leading: const ThemedIcon(HugeIcons.strokeRoundedInformationCircle),
+                  title: Text(strings.appVersion),
+                  subtitle: Text(strings.appVersionNumber(packageInfo.version, packageInfo.buildNumber)),
+                ),
               ListTile(
                 leading: const ThemedIcon(HugeIcons.strokeRoundedLicense),
                 title: Text(strings.openSourceLicenses),

@@ -845,6 +845,24 @@
       }
     }
   },
+  "appVersion": "Versão",
+  "@appVersion": {
+    "description": "The settings' item that shows the app's version, over its number."
+  },
+  "appVersionNumber": "{version} ({build})",
+  "@appVersionNumber": {
+    "description": "In the settings, under the app's version: its number and, in parentheses, the build's, which goes up with each build.",
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "0.1.0"
+      },
+      "build": {
+        "type": "String",
+        "example": "214"
+      }
+    }
+  },
   "openSourceLicenses": "Licenças de código aberto",
   "@openSourceLicenses": {
     "description": "The settings' item that opens the licenses: the app's and those of the software it is made with."

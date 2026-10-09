@@ -137,6 +137,8 @@
   "couldNotStart": "Error while opening: {error}",
   "signOut": "Sign out",
   "signedInAs": "{user} on {server}",
+  "appVersion": "Version",
+  "appVersionNumber": "{version} ({build})",
   "openSourceLicenses": "Open source licenses",
   "licenses": "Licenses",
   "licenseCount": "{count, plural, =1{1 license} other{{count} licenses}}",

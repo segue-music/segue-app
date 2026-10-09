@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import 'app.dart';
 import 'player/audio_interruptions.dart';
@@ -27,6 +28,7 @@ Future<void> main() async {
       mediaControls: controls,
       interruptions: interruptions,
       television: television,
+      packageInfo: await PackageInfo.fromPlatform(),
     ),
   );
 }

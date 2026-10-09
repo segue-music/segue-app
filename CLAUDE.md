@@ -51,9 +51,10 @@ it to TestFlight. It starts from Codemagic's page or with a tag: `git tag ios-<n
 ios-<n>`. Nothing iOS-specific can run here: `Info.plist` and the Xcode project are only checked by
 that build.
 
-Both builds number themselves with `tool/build-number.sh`: the commit count, plus the commits the
-segue repository had without the app when it moved out, so that build numbers keep rising for
-TestFlight and Android.
+The builds (iOS, Android, Linux's package) number themselves with `tool/build-number.sh`: the commit
+count, plus the commits the segue repository had without the app when it moved out, so that build
+numbers keep rising for TestFlight and Android. The settings show it beside the version
+(`package_info_plus`); `flutter run` doesn't take one, so there it is pubspec's, 1.
 
 With Flutter installed locally, the same commands work as `flutter ...` (`flutter run -d linux`).
 The container keeps its own `.dart_tool` (in `~/.cache/segue-flutter/dart_tool`), whose paths are
