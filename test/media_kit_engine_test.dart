@@ -1,5 +1,6 @@
 // MediaKitEngine on the real libmpv, with the audio sent nowhere. Pins media_kit behaviour the app
 // depends on, so that an upgrade that changes it shows up here. Needs libmpv (the dev image has it).
+import 'dart:convert';
 import 'dart:ffi';
 import 'dart:io';
 import 'dart:math';
@@ -23,16 +24,25 @@ bool get hasLibmpv {
   return false;
 }
 
-/// A short tone as a WAV file's bytes.
-Uint8List wav(int n, {double seconds = 4}) {
-  const rate = 8000;
+/// The tones' sample rate.
+const rate = 8000;
+
+/// How loud the tones are: their loudest sample.
+const loudness = 8000;
+
+/// A short tone as a WAV file's bytes, [tags] in an ID3 tag (as TXXX frames, which ReplayGain's are) where it has
+/// some.
+Uint8List wav(int n, {double seconds = 4, Map<String, String> tags = const {}}) {
   final samples = (rate * seconds).round();
-  final data = ByteData(44 + samples * 2);
+  final id3 = _id3(tags);
+  // An ID3 tag's chunk before the samples', of an even size.
+  final id3Chunk = id3.isEmpty ? 0 : 8 + id3.length + id3.length % 2;
+  final data = ByteData(44 + id3Chunk + samples * 2);
 
   void text(int offset, String s) => s.codeUnits.asMap().forEach((i, c) => data.setUint8(offset + i, c));
 
   text(0, 'RIFF');
-  data.setUint32(4, 36 + samples * 2, Endian.little);
+  data.setUint32(4, 36 + id3Chunk + samples * 2, Endian.little);
   text(8, 'WAVEfmt ');
   data
     ..setUint32(16, 16, Endian.little)
@@ -42,19 +52,78 @@ Uint8List wav(int n, {double seconds = 4}) {
     ..setUint32(28, rate * 2, Endian.little)
     ..setUint16(32, 2, Endian.little)
     ..setUint16(34, 16, Endian.little);
-  text(36, 'data');
-  data.setUint32(40, samples * 2, Endian.little);
+
+  if (id3.isNotEmpty) {
+    text(36, 'id3 ');
+    data.setUint32(40, id3.length, Endian.little);
+    data.buffer.asUint8List().setAll(44, id3);
+  }
+
+  final samplesAt = 36 + id3Chunk;
+  text(samplesAt, 'data');
+  data.setUint32(samplesAt + 4, samples * 2, Endian.little);
 
   for (var i = 0; i < samples; i++) {
-    data.setInt16(44 + i * 2, (sin(2 * pi * (300 + 100 * n) * i / rate) * 8000).round(), Endian.little);
+    data.setInt16(samplesAt + 8 + i * 2, (sin(2 * pi * (300 + 100 * n) * i / rate) * loudness).round(), Endian.little);
   }
 
   return data.buffer.asUint8List();
 }
 
-/// A short tone as a WAV file.
-TrackSource tone(Directory dir, int n, {double seconds = 4}) =>
-    TrackSource((File('${dir.path}/t$n.wav')..writeAsBytesSync(wav(n, seconds: seconds))).uri);
+/// An ID3v2.3 tag with [tags], each as a TXXX frame (its name, then its value, in Latin-1); none for no tags.
+Uint8List _id3(Map<String, String> tags) {
+  final frames = BytesBuilder();
+
+  for (final MapEntry(:key, :value) in tags.entries) {
+    final content = [0, ...latin1.encode(key), 0, ...latin1.encode(value)];
+    frames
+      ..add(ascii.encode('TXXX'))
+      ..add((ByteData(4)..setUint32(0, content.length)).buffer.asUint8List())
+      ..add([0, 0])
+      ..add(content);
+  }
+
+  if (frames.isEmpty) {
+    return Uint8List(0);
+  }
+
+  // Its size in 7 bits a byte.
+  final size = frames.length;
+  return Uint8List.fromList([
+    ...ascii.encode('ID3'),
+    3,
+    0,
+    0,
+    for (final shift in [21, 14, 7, 0]) (size >> shift) & 0x7f,
+    ...frames.takeBytes(),
+  ]);
+}
+
+/// A short tone as a WAV file, with [gain], and the ReplayGain [tags] where it has some.
+TrackSource tone(
+  Directory dir,
+  int n, {
+  double seconds = 4,
+  TrackGain gain = TrackGain.none,
+  Map<String, String> tags = const {},
+}) => TrackSource(
+  (File('${dir.path}/t$n.wav')..writeAsBytesSync(wav(n, seconds: seconds, tags: tags))).uri,
+  gain: gain,
+);
+
+/// The loudest sample in each second of [file], raw samples as [MediaKitEngine]'s audioFile has them, but at its edges,
+/// where one track's gain may still hold for the next.
+List<int> loudestBySecond(File file) {
+  final samples = ByteData.sublistView(file.readAsBytesSync());
+  return [
+    for (var start = 0; start + rate * 2 <= samples.lengthInBytes; start += rate * 2)
+      [for (var i = start + rate ~/ 2; i < start + rate * 3 ~/ 2; i += 2) samples.getInt16(i, Endian.little).abs()]
+          .reduce(max),
+  ];
+}
+
+/// A tone's loudest sample with [decibels] of gain.
+Matcher withGain(double decibels) => closeTo(loudness * pow(10, decibels / 20), loudness / 100);
 
 /// Tracks over HTTP, as a media server gives them: `ok<n>` a tone of 4 s, `short<n>` one of 1 s and
 /// `slow<n>` the tone of 4 s half a second late; `fail<n>` an error 500, as for a file the server
@@ -191,6 +260,73 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 300));
     expect(engine.index, 2);
     expect(engine.playing, isTrue);
+  }, skip: hasLibmpv ? false : 'needs libmpv');
+
+  group('heard', () {
+    late File heard;
+    late MediaKitEngine listened;
+
+    setUp(() {
+      heard = File('${dir.path}/heard.raw');
+      listened = MediaKitEngine(audioFile: heard.path);
+    });
+    tearDown(() => listened.dispose());
+
+    /// The same tone each time (a tone's loudest sample depends on its pitch), with [gain] and [tags].
+    TrackSource track(
+      int n, {
+      double seconds = 1,
+      TrackGain gain = TrackGain.none,
+      Map<String, String> tags = const {},
+    }) => TrackSource(
+      (File('${dir.path}/heard$n.wav')..writeAsBytesSync(wav(0, seconds: seconds, tags: tags))).uri,
+      gain: gain,
+    );
+
+    // These tracks play in a moment, their audio written as fast as mpv decodes it, but for the end of the last one,
+    // which mpv may keep until the queue ends: the last a second longer, for the seconds heard to be whole.
+
+    test(
+      'each track plays with its gain, asked for as it loads: the one given, or its file\'s ReplayGain tags',
+      () async {
+        const tags = {'REPLAYGAIN_TRACK_GAIN': '-12.00 dB', 'REPLAYGAIN_ALBUM_GAIN': '-6.00 dB'};
+        final tracks = [
+          track(0, gain: const TrackGain(-12)),
+          track(1, gain: const TrackGain(-6)),
+          track(2),
+          track(3, gain: const TrackGain.tagged(album: false), tags: tags),
+          track(4, gain: const TrackGain.tagged(album: true), tags: tags),
+          track(5, gain: const TrackGain.tagged(album: false)),
+          track(6, gain: const TrackGain(-3), tags: tags),
+          track(7, seconds: 2, gain: const TrackGain(3), tags: tags),
+        ];
+        await listened.open(tracks, index: 0, position: Duration.zero, play: true);
+        await Future<void>.delayed(const Duration(seconds: 1));
+        expect(loudestBySecond(heard).take(8), [
+          withGain(-12),
+          withGain(-6),
+          withGain(0),
+          withGain(-12),
+          withGain(-6),
+          withGain(0), // no tags
+          withGain(-3), // the gain given, whatever the tags say
+          withGain(3),
+        ]);
+      },
+    );
+
+    test('a new gain holds at once for the track that plays', () async {
+      var gain = TrackGain.none;
+      final file = File('${dir.path}/t0.wav')..writeAsBytesSync(wav(0, seconds: 2));
+      final source = TrackSource.resolved((from) async => file.uri, gain: () => gain);
+      await listened.open([source], index: 0, position: Duration.zero, play: false);
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      gain = const TrackGain(-12);
+      await listened.updateGain();
+      await listened.play();
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      expect(loudestBySecond(heard).take(1), [withGain(-12)]);
+    });
   }, skip: hasLibmpv ? false : 'needs libmpv');
 
   // The player reports its position to the hub right after each of these: a position still at the

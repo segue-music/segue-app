@@ -10,6 +10,7 @@ import 'package:segue/l10n/app_localizations.dart';
 import 'package:segue/language_choice.dart';
 import 'package:segue/player/player.dart';
 import 'package:segue/quality_choice.dart';
+import 'package:segue/replay_gain_choice.dart';
 import 'package:segue/server/models.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
@@ -204,6 +205,8 @@ Future<void> pumpHome(WidgetTester tester, Locale language, Size size) async {
   addTearDown(languageChoice.dispose);
   final qualityChoice = QualityChoice();
   addTearDown(qualityChoice.dispose);
+  final replayGainChoice = ReplayGainChoice();
+  addTearDown(replayGainChoice.dispose);
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -219,6 +222,7 @@ Future<void> pumpHome(WidgetTester tester, Locale language, Size size) async {
         themeChoice: themeChoice,
         languageChoice: languageChoice,
         qualityChoice: qualityChoice,
+        replayGainChoice: replayGainChoice,
         packageInfo: PackageInfo(appName: 'Segue', packageName: 'segue', version: '0.1.0', buildNumber: '214'),
       ),
     ),
@@ -247,13 +251,19 @@ void main() {
 
         await tap(tester, find.byTooltip(strings.settings));
         expect(find.text(strings.systemTheme), findsOneWidget, reason: 'the settings');
-        // To their end, past the qualities.
-        await tester.scrollUntilVisible(
-          find.text(strings.signedInAs('a', 'music.test')),
-          100,
-          scrollable: find.descendant(of: find.byType(SettingsPage), matching: find.byType(Scrollable)),
-        );
-        expect(find.text(strings.automaticQualityDetail(160)), findsOneWidget, reason: 'the qualities');
+        // Down past the qualities and the volume's normalization, to their end.
+        for (final text in [
+          strings.automaticQualityDetail(160),
+          strings.replayGainModeDetail('off'),
+          strings.signedInAs('a', 'music.test'),
+        ]) {
+          await tester.scrollUntilVisible(
+            find.text(text),
+            100,
+            scrollable: find.descendant(of: find.byType(SettingsPage), matching: find.byType(Scrollable)),
+          );
+        }
+
         expect(find.text(strings.appVersionNumber('0.1.0', '214')), findsOneWidget);
         expect(find.text(strings.openSourceLicenses), findsOneWidget);
         expect(find.text(strings.signOut), findsOneWidget);

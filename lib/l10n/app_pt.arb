@@ -1114,6 +1114,28 @@
       }
     }
   },
+  "volumeNormalization": "Normalização do volume",
+  "@volumeNormalization": {
+    "description": "The settings' heading over the ways the player levels the songs' loudness, so that they play about as loud as one another (ReplayGain)."
+  },
+  "replayGainMode": "{mode, select, automatic{Automática} track{Por música} album{Por álbum} other{Desligada}}",
+  "@replayGainMode": {
+    "description": "A way the player levels the songs' loudness, in the settings: automatic (by album or by song, as the queue is), by song, by album, or off.",
+    "placeholders": {
+      "mode": {
+        "type": "String"
+      }
+    }
+  },
+  "replayGainModeDetail": "{mode, select, automatic{Por álbum quando um álbum toca em ordem, por música nas outras vezes} track{Todas as músicas no mesmo volume} album{Todos os álbuns no mesmo volume, e as músicas de cada um como são entre si} other{Cada música no volume do seu arquivo}}",
+  "@replayGainModeDetail": {
+    "description": "Under a way of levelling the songs' loudness, in the settings, what it does: automatic, by album when the songs of an album play one after another in their order, and by song otherwise; by song, every song as loud as the others; by album, every album as loud as the others, its songs as loud as they are against one another; off, each song as loud as its file is.",
+    "placeholders": {
+      "mode": {
+        "type": "String"
+      }
+    }
+  },
   "artistOnDevice": "{artist} (em {device})",
   "@artistOnDevice": {
     "description": "The artist line of the system's media controls for a song playing on another device, with the artist and the device's name.",

@@ -22,6 +22,9 @@ class FakeEngine implements AudioEngine {
   DateTime _since = clock.now();
   bool _failed = false;
 
+  /// The current track's gain, as [updateGain] last asked it; null before it did.
+  TrackGain? gain;
+
   @override
   Stream<void> get changes => _changes.stream;
 
@@ -150,6 +153,9 @@ class FakeEngine implements AudioEngine {
     _volume = volume;
     _changes.add(null);
   }
+
+  @override
+  Future<void> updateGain() async => gain = opened.isEmpty ? null : opened[_order[_index]].gain();
 
   @override
   Future<void> dispose() => _changes.close();

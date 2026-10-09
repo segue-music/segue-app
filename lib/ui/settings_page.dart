@@ -5,6 +5,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../l10n/app_localizations.dart';
 import '../language_choice.dart';
 import '../quality_choice.dart';
+import '../replay_gain_choice.dart';
 import '../services.dart';
 import '../theme_choice.dart';
 import 'language_button.dart';
@@ -14,16 +15,17 @@ import 'theme_fade.dart';
 import 'themed_icon.dart';
 
 /// What the user picks for the app, and signing out: the theme (the system's again too), the language, the quality, the
-/// app's version, the licenses' page and, last, signing out, under the account it signs out of. Each kind
-/// of choice a group of its own, under its name, the one picked with a check, as the devices' sheet has the one the app
-/// controls; a line between the groups, and between the last and signing out. In the page area, from the top bar's
-/// button; a choice missing (none given), its group too, and the version with none.
+/// volume's normalization, the app's version, the licenses' page and, last, signing out, under the account it signs out
+/// of. Each kind of choice a group of its own, under its name, the one picked with a check, as the devices' sheet has
+/// the one the app controls; a line between the groups, and between the last and signing out. In the page area, from
+/// the top bar's button; a choice missing (none given), its group too, and the version with none.
 class SettingsPage extends StatelessWidget {
   const SettingsPage({
     required this.onSignOut,
     this.themeChoice,
     this.languageChoice,
     this.qualityChoice,
+    this.replayGainChoice,
     this.packageInfo,
     super.key,
   });
@@ -32,6 +34,7 @@ class SettingsPage extends StatelessWidget {
   final ThemeChoice? themeChoice;
   final LanguageChoice? languageChoice;
   final QualityChoice? qualityChoice;
+  final ReplayGainChoice? replayGainChoice;
 
   /// The app's version and build number, as the build stamped them.
   final PackageInfo? packageInfo;
@@ -52,7 +55,12 @@ class SettingsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context);
     final session = ServicesScope.of(context).session;
-    final (themeChoice, languageChoice, qualityChoice) = (this.themeChoice, this.languageChoice, this.qualityChoice);
+    final (themeChoice, languageChoice, qualityChoice, replayGainChoice) = (
+      this.themeChoice,
+      this.languageChoice,
+      this.qualityChoice,
+      this.replayGainChoice,
+    );
     final packageInfo = this.packageInfo;
     return Scaffold(
       appBar: AppBar(
@@ -65,7 +73,7 @@ class SettingsPage extends StatelessWidget {
       // of them, by the room MediaQuery says they take.
       body: ListenableBuilder(
         // The check moves to the one picked.
-        listenable: Listenable.merge([themeChoice, languageChoice, qualityChoice]),
+        listenable: Listenable.merge([themeChoice, languageChoice, qualityChoice, replayGainChoice]),
         builder: (context, _) {
           final groups = [
             if (themeChoice != null)
@@ -105,6 +113,18 @@ class SettingsPage extends StatelessWidget {
                     detail: detail,
                     picked: quality == qualityChoice.value,
                     onTap: () => qualityChoice.pick(quality),
+                  ),
+              ],
+            // Each way with what it does, under it.
+            if (replayGainChoice != null)
+              [
+                _Heading(strings.volumeNormalization),
+                for (final mode in ReplayGainMode.values)
+                  _Option(
+                    strings.replayGainMode(mode.name),
+                    detail: strings.replayGainModeDetail(mode.name),
+                    picked: mode == replayGainChoice.value,
+                    onTap: () => replayGainChoice.pick(mode),
                   ),
               ],
             // The app's version, and its licenses and those of what it is made with, a page of their own in the page area.

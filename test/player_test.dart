@@ -3,8 +3,10 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:segue/player/engine.dart';
 import 'package:segue/player/player.dart';
 import 'package:segue/quality_choice.dart';
+import 'package:segue/replay_gain_choice.dart';
 import 'package:segue/segue/client.dart';
 import 'package:segue/segue/protocol.dart';
 import 'package:segue/server/models.dart';
@@ -90,6 +92,116 @@ void main() {
 
     quality = StreamQuality.original;
     expect(await engine.opened.first.address(const Duration(seconds: 42)), isNull);
+  });
+
+  group('ReplayGain', () {
+    // Two songs of an album, its third, another album's, and a song with no gain from the server.
+    const queue = [
+      Song(id: 's1', title: 'One', albumId: 'a1', replayGain: ReplayGain(trackGain: -8, albumGain: -6)),
+      Song(id: 's2', title: 'Two', albumId: 'a1', replayGain: ReplayGain(trackGain: -4, albumGain: -6)),
+      Song(id: 's3', title: 'Three', albumId: 'a2', replayGain: ReplayGain(trackGain: -10, albumGain: -9)),
+      Song(id: 's4', title: 'Four', albumId: 'a2'),
+      Song(id: 's5', title: 'Five', albumId: 'a3', replayGain: ReplayGain(trackGain: -3, albumGain: -5)),
+    ];
+
+    List<TrackGain> gains() => [for (final track in engine.opened) track.gain()];
+
+    test('the automatic way levels a song by its album\'s gain where it plays among its album\'s, in their order, and '
+        'by its own otherwise; a song the server gave no gain for, by its file\'s tags', () async {
+      final choice = ReplayGainChoice(ReplayGainMode.automatic);
+      addTearDown(choice.dispose);
+      player = PlayerController(engine, api, replayGain: choice);
+      await player.playQueue(queue);
+      expect(gains(), const [
+        TrackGain(-6),
+        TrackGain(-6),
+        TrackGain(-9),
+        TrackGain.tagged(album: true),
+        TrackGain(-3),
+      ]);
+
+      await player.setShuffle(true);
+      expect(gains(), const [
+        TrackGain(-8),
+        TrackGain(-4),
+        TrackGain(-10),
+        TrackGain.tagged(album: false),
+        TrackGain(-3),
+      ], reason: 'shuffled, a song plays among others');
+    });
+
+    test('by song, by album, or not at all, as picked; a pick holds at once for the song that plays', () async {
+      final choice = ReplayGainChoice(ReplayGainMode.track);
+      addTearDown(choice.dispose);
+      player = PlayerController(engine, api, replayGain: choice);
+      await player.playQueue(queue, index: 1);
+      expect(gains(), const [
+        TrackGain(-8),
+        TrackGain(-4),
+        TrackGain(-10),
+        TrackGain.tagged(album: false),
+        TrackGain(-3),
+      ]);
+
+      choice.value = ReplayGainMode.album;
+      await pumpEventQueue();
+      expect(engine.gain, const TrackGain(-6), reason: 'the song that plays, at once');
+      expect(gains(), const [
+        TrackGain(-6),
+        TrackGain(-6),
+        TrackGain(-9),
+        TrackGain.tagged(album: true),
+        TrackGain(-5),
+      ]);
+
+      choice.value = ReplayGainMode.off;
+      await pumpEventQueue();
+      expect(engine.gain, TrackGain.none);
+      expect(gains(), everyElement(TrackGain.none));
+    });
+
+    test('songs another device sent, which have no album ids, play among their album\'s by its name', () async {
+      final choice = ReplayGainChoice(ReplayGainMode.automatic);
+      addTearDown(choice.dispose);
+      player = PlayerController(engine, api, replayGain: choice);
+      await player.obey(
+        const Command.setQueue(
+          queue: [
+            QueueItem(id: 's1', title: 'One', album: 'Toys in the Attic'),
+            QueueItem(id: 's2', title: 'Two', album: 'Toys in the Attic'),
+            QueueItem(id: 's3', title: 'Three', album: 'Rocks'),
+            QueueItem(id: 's4', title: 'Four'),
+            QueueItem(id: 's5', title: 'Five'),
+          ],
+          index: 0,
+          positionMs: 0,
+          play: true,
+        ),
+      );
+      expect(gains(), const [
+        TrackGain.tagged(album: true),
+        TrackGain.tagged(album: true),
+        TrackGain.tagged(album: false),
+        TrackGain.tagged(album: false),
+        TrackGain.tagged(album: false),
+      ], reason: 'songs of no album aren\'t of the same one');
+    });
+
+    test('with no way given, the songs play as they are', () async {
+      await player.playQueue(queue);
+      expect(gains(), everyElement(TrackGain.none));
+    });
+
+    test('a player gone no longer follows the way picked', () async {
+      final choice = ReplayGainChoice(ReplayGainMode.automatic);
+      addTearDown(choice.dispose);
+      player = PlayerController(engine, api, replayGain: choice);
+      await player.playQueue(queue);
+      await player.dispose();
+      choice.value = ReplayGainMode.off;
+      await pumpEventQueue();
+      expect(engine.gain, isNull);
+    });
   });
 
   test('a seek is reported, though the engine says nothing', () async {

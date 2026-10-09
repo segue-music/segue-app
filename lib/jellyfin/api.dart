@@ -186,7 +186,8 @@ class JellyfinApi implements MediaServer {
   /// An album and its songs. Jellyfin has no record labels: an album's studios stand for them, where someone set them
   /// (it reads no label from the tags of songs, only of audiobooks). It gives them, and the album's MusicBrainz id
   /// among its other ids (ProviderIds), only when asked (Fields), as it does the songs' credits (People) and
-  /// MusicBrainz ids.
+  /// MusicBrainz ids. The album's normalization gain is its songs' album gain, which a Jellyfin before 12.0 doesn't
+  /// give with each song.
   @override
   Future<(Album, List<Song>)> album(String id) async {
     // Future.wait throws the first failure as it came, where a record's wait would wrap it.
@@ -199,7 +200,8 @@ class JellyfinApi implements MediaServer {
         'Fields': 'People,ProviderIds',
       }),
     ]);
-    return (_album(_only(albums, id)), [for (final json in songs) _song(json)]);
+    final album = _only(albums, id);
+    return (_album(album), [for (final json in songs) _song(json, albumGain: _number(album['NormalizationGain']))]);
   }
 
   @override
@@ -540,6 +542,12 @@ List<Artist> _namesWithIds(Object? items) => [
 int _playCount(Map<String, dynamic> json) =>
     ((json['UserData'] as Map<String, dynamic>?)?['PlayCount'] as num?)?.toInt() ?? 0;
 
+/// A number Jellyfin gives, as a double; null where it gives none.
+double? _number(Object? json) => switch (json) {
+  final num number => number.toDouble(),
+  _ => null,
+};
+
 Duration? _duration(Map<String, dynamic> json) {
   final ticks = json['RunTimeTicks'] as num?; // 10 million to the second
   return ticks == null ? null : Duration(microseconds: ticks.toInt() ~/ 10);
@@ -587,8 +595,10 @@ Album _album(Map<String, dynamic> json) => Album(
 /// A song's cover is its own image or else its album's, as Jellyfin's apps show it. Its artists are
 /// the album's when it has none of its own, both in its artist's name and in its list of artists. Its MusicBrainz id
 /// and its credits come only where asked for (Fields: ProviderIds, People): the people Jellyfin reads from the file's
-/// tags (a composer, a conductor, a producer), whose ids are people's, not artists'.
-Song _song(Map<String, dynamic> json) => Song(
+/// tags (a composer, a conductor, a producer), whose ids are people's, not artists'. Its ReplayGain is its
+/// normalization gain, with no peak, and its album's (AlbumNormalizationGain, which Jellyfin gives from 12.0 on, as
+/// does Navidrome's Jellyfin API), or else [albumGain], the album's own.
+Song _song(Map<String, dynamic> json, {double? albumGain}) => Song(
   id: json['Id'] as String,
   title: json['Name'] as String? ?? '',
   artist: _joined(json['Artists']) ?? json['AlbumArtist'] as String?,
@@ -610,6 +620,10 @@ Song _song(Map<String, dynamic> json) => Song(
       if (person case {'Name': final String name, 'Type': final String type})
         if (CreditRole.named(type) case final role?) Credit(name, role),
   ],
+  replayGain: switch ((_number(json['NormalizationGain']), _number(json['AlbumNormalizationGain']) ?? albumGain)) {
+    (null, null) => null,
+    (final trackGain, final albumGain) => ReplayGain(trackGain: trackGain, albumGain: albumGain),
+  },
 );
 
 Artist _artist(Map<String, dynamic> json) => Artist(

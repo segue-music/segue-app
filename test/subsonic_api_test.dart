@@ -402,6 +402,38 @@ void main() {
     },
   );
 
+  test(
+    'a song\'s ReplayGain is OpenSubsonic\'s replayGain, with only the values it has; one without a gain, or a plain '
+    'Subsonic server\'s, has none',
+    () async {
+      final api = SubsonicApi(
+        Uri.parse('https://music.test'),
+        credentials,
+        client: MockClient(
+          (request) async => subsonic({
+            'status': 'ok',
+            'song': {
+              'id': request.url.queryParameters['id'],
+              'title': 'Dream On',
+              'replayGain': ?switch (request.url.queryParameters['id']) {
+                's1' => {'trackGain': -7.5, 'albumGain': -6, 'trackPeak': 0.98, 'albumPeak': 1},
+                's2' => {'albumGain': -6.2},
+                's3' => {'trackPeak': 1, 'albumPeak': 1},
+                _ => null,
+              },
+            },
+          }),
+        ),
+      );
+      final tagged = (await api.song('s1')).replayGain!;
+      expect((tagged.trackGain, tagged.albumGain, tagged.trackPeak, tagged.albumPeak), (-7.5, -6, 0.98, 1));
+      final albumOnly = (await api.song('s2')).replayGain!;
+      expect((albumOnly.trackGain, albumOnly.albumGain, albumOnly.trackPeak), (null, -6.2, null));
+      expect((await api.song('s3')).replayGain, isNull, reason: 'peaks, but no gain');
+      expect((await api.song('s4')).replayGain, isNull);
+    },
+  );
+
   test('albums by name are getAlbumList2\'s alphabeticalByName, and the latest added its newest', () async {
     final asked = <Uri>[];
     final api = SubsonicApi(

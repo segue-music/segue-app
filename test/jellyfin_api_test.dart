@@ -534,6 +534,48 @@ void main() {
     },
   );
 
+  test('a song\'s ReplayGain is its normalization gain, and its album\'s; one without a gain has none', () async {
+    final api = jellyfin(
+      (request) => switch (request.url.queryParameters['Ids']) {
+        's1' => items([
+          {...song, 'NormalizationGain': -8.25, 'AlbumNormalizationGain': -7.5},
+        ]),
+        's2' => items([
+          {...song, 'Id': 's2', 'NormalizationGain': 2},
+        ]),
+        _ => items([
+          {...song, 'Id': 's3'},
+        ]),
+      },
+    );
+    final both = (await api.song('s1')).replayGain!;
+    expect((both.trackGain, both.albumGain, both.trackPeak, both.albumPeak), (-8.25, -7.5, null, null));
+    final own = (await api.song('s2')).replayGain!;
+    expect((own.trackGain, own.albumGain), (2, null), reason: 'a Jellyfin before 12.0 gives no album gain with a song');
+    expect((await api.song('s3')).replayGain, isNull, reason: 'Jellyfin hasn\'t measured it, nor read its tags');
+  });
+
+  test(
+    'on an album\'s page, its songs\' album gain is the album\'s normalization gain, where they come without it',
+    () async {
+      final (_, songs) = await jellyfin(
+        (request) => request.url.queryParameters['ParentId'] == 'a1'
+            ? items([
+                {...song, 'NormalizationGain': -9},
+                {...song, 'Id': 's2', 'NormalizationGain': -6, 'AlbumNormalizationGain': -7.25},
+                {...song, 'Id': 's3'},
+              ])
+            : items([
+                {...album, 'NormalizationGain': -7.5},
+              ]),
+      ).album('a1');
+      expect(
+        [for (final song in songs) (song.replayGain?.trackGain, song.replayGain?.albumGain)],
+        [(-9, -7.5), (-6, -7.25), (null, -7.5)],
+      );
+    },
+  );
+
   test('a song comes with the ids of its album and its first artist, or its album artist\'s', () async {
     final duet = {
       ...song,

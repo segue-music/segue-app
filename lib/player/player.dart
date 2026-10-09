@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../quality_choice.dart';
+import '../replay_gain_choice.dart';
 import '../segue/client.dart';
 import '../segue/protocol.dart';
 import '../server/models.dart';
@@ -11,14 +12,17 @@ import 'engine.dart';
 
 /// This device's player: the queue, playback, and the commands other devices send it.
 class PlayerController extends ChangeNotifier {
-  /// Streams each song in the quality that [quality] gives as it loads; with none, the files as they are.
-  PlayerController(this._engine, this._api, {this._quality}) {
+  /// Streams each song in the quality that [quality] gives as it loads; with none, the files as they are. Levels their
+  /// loudness [replayGain]'s way, the one that plays too as it changes; with none, not at all.
+  PlayerController(this._engine, this._api, {this._quality, this._replayGain}) {
     _subscription = _engine.changes.listen((_) => _changed());
+    _replayGain?.addListener(_updateGain);
   }
 
   final AudioEngine _engine;
   final MediaServer _api;
   final StreamQuality Function()? _quality;
+  final ValueListenable<ReplayGainMode>? _replayGain;
   late final StreamSubscription<void> _subscription;
   // The songs as playQueue got them, and _queue: them in the engine's play order (shuffled, or not).
   List<Song> _opened = const [];
@@ -52,13 +56,49 @@ class PlayerController extends ChangeNotifier {
     _order = const []; // so that the engine's order, shuffled or not, is taken up
     _queueChanged = true;
     await _engine.open(
-      [for (final song in songs) TrackSource.resolved((from) => _stream(song.id, from))],
+      [
+        for (final (i, song) in songs.indexed)
+          TrackSource.resolved((from) => _stream(song.id, from), gain: () => _gain(songs, i)),
+      ],
       index: index,
       position: position,
       play: play,
     );
     _changed();
   }
+
+  /// How loud the song at [index] of [songs], as playQueue got them, plays, as it loads: by the gain the media server
+  /// gives for it, or else by its file's tags; its album's or its own, as the way picked says.
+  TrackGain _gain(List<Song> songs, int index) {
+    final mode = _replayGain?.value ?? ReplayGainMode.off;
+
+    if (mode == ReplayGainMode.off) {
+      return TrackGain.none;
+    }
+
+    final album = switch (mode) {
+      ReplayGainMode.album => true,
+      ReplayGainMode.automatic => !shuffle && _amongItsAlbum(songs, index),
+      _ => false,
+    };
+    final replayGain = songs[index].replayGain;
+    return replayGain == null ? TrackGain.tagged(album: album) : TrackGain(replayGain.decibels(album: album));
+  }
+
+  /// Whether the song at [index] of [songs] plays among its album's: the song before or after it is of the same album,
+  /// by its id, or by its name where the songs have no album ids, as those another device sent.
+  static bool _amongItsAlbum(List<Song> songs, int index) {
+    final song = songs[index];
+
+    bool sameAlbum(Song other) => song.albumId != null && other.albumId != null
+        ? song.albumId == other.albumId
+        : (song.album ?? '').isNotEmpty && song.album == other.album;
+
+    return (index > 0 && sameAlbum(songs[index - 1])) || (index + 1 < songs.length && sameAlbum(songs[index + 1]));
+  }
+
+  /// The way the songs are levelled changed: the song that plays changes with it.
+  void _updateGain() => unawaited(_engine.updateGain());
 
   /// Where the song whose id is [songId] streams from, from [from] on ([TrackSource.resolved]), in the quality picked as it
   /// loads.
@@ -223,6 +263,7 @@ class PlayerController extends ChangeNotifier {
 
   @override
   Future<void> dispose() async {
+    _replayGain?.removeListener(_updateGain);
     await _subscription.cancel();
     await _engine.dispose();
     super.dispose();

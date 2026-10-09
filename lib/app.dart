@@ -6,6 +6,7 @@ import 'language_choice.dart';
 import 'player/audio_interruptions.dart';
 import 'player/media_controls.dart';
 import 'quality_choice.dart';
+import 'replay_gain_choice.dart';
 import 'services.dart';
 import 'session.dart';
 import 'theme_choice.dart';
@@ -24,6 +25,7 @@ class SegueApp extends StatefulWidget {
     this.themeChoice,
     this.languageChoice,
     this.qualityChoice,
+    this.replayGainChoice,
     this.mediaControls,
     this.interruptions,
     this.television = false,
@@ -42,6 +44,9 @@ class SegueApp extends StatefulWidget {
 
   /// The quality the player streams in; with none, the original, until a pick.
   final QualityChoice? qualityChoice;
+
+  /// How the player levels the songs' loudness; with none, not at all, until a pick.
+  final ReplayGainChoice? replayGainChoice;
 
   /// The system's media controls, where the platform has them.
   final MediaControls? mediaControls;
@@ -73,6 +78,9 @@ class _SegueAppState extends State<SegueApp> {
   /// [SegueApp.qualityChoice], or one of its own, the original until a pick.
   late final _qualityChoice = widget.qualityChoice ?? QualityChoice();
 
+  /// [SegueApp.replayGainChoice], or one of its own, off until a pick.
+  late final _replayGainChoice = widget.replayGainChoice ?? ReplayGainChoice();
+
   @override
   void initState() {
     super.initState();
@@ -90,7 +98,7 @@ class _SegueAppState extends State<SegueApp> {
     });
 
     try {
-      final services = await Services.start(session, quality: _qualityChoice);
+      final services = await Services.start(session, quality: _qualityChoice, replayGain: _replayGainChoice);
 
       if (!mounted) {
         await services.dispose();
@@ -136,6 +144,10 @@ class _SegueAppState extends State<SegueApp> {
 
     if (widget.qualityChoice == null) {
       _qualityChoice.dispose();
+    }
+
+    if (widget.replayGainChoice == null) {
+      _replayGainChoice.dispose();
     }
 
     super.dispose();
@@ -194,6 +206,7 @@ class _SegueAppState extends State<SegueApp> {
               themeChoice: _themeChoice,
               languageChoice: _languageChoice,
               qualityChoice: _qualityChoice,
+              replayGainChoice: _replayGainChoice,
               packageInfo: widget.packageInfo,
             )
           : _starting

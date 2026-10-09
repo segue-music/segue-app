@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import '../segue/protocol.dart';
 
 /// The library's items, whichever API they came from. Ids and cover ids are the media server's, in
@@ -99,6 +101,7 @@ class Song {
     this.artists = const [],
     this.musicBrainzId,
     this.credits = const [],
+    this.replayGain,
   });
 
   /// A song another device sent, by its id in this device's API. The cover goes by the song id:
@@ -140,8 +143,36 @@ class Song {
   /// song another device sent, as for [albumId].
   final List<Credit> credits;
 
+  /// How much louder or quieter it plays, so that the songs play about as loud as one another; null where the server
+  /// gives no gain for it, and for a song another device sent, as for [albumId].
+  final ReplayGain? replayGain;
+
   QueueItem toQueueItem() =>
       QueueItem(id: id, title: title, artist: artist, album: album, durationMs: duration?.inMilliseconds);
+}
+
+/// A song's ReplayGain, as the media server gives it: OpenSubsonic's, which Navidrome reads from the file's tags, or
+/// Jellyfin's normalization gain, which it measures itself (to -18 LUFS) where the file has no tags. In dB, its own
+/// gain, against every song, and its album's, which keeps the album's songs as loud as they are against one another;
+/// each with its peak, where the server says it: its loudest sample, 1 being the loudest a file holds.
+class ReplayGain {
+  const ReplayGain({this.trackGain, this.albumGain, this.trackPeak, this.albumPeak});
+
+  final double? trackGain;
+  final double? albumGain;
+  final double? trackPeak;
+  final double? albumPeak;
+
+  /// The gain to play the song with, in dB: its album's ([album]) or its own, the other where the server gives only
+  /// that one. No more than takes its peak to the loudest a file holds, or, where the server doesn't say the peak, no
+  /// more than 0 dB, as mpv does with a file's tags: a gain never makes it clip.
+  double decibels({required bool album}) {
+    final (gain, peak) = (album && albumGain != null) || trackGain == null
+        ? (albumGain, albumPeak)
+        : (trackGain, trackPeak);
+    final headroom = peak != null && peak > 0 ? -20 * log(peak) / ln10 : 0.0;
+    return min(gain ?? 0, headroom);
+  }
 }
 
 /// Someone credited on a song, by name, and what they did in it ([role]); a musician with what they played or sang

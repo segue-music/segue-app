@@ -11,6 +11,7 @@ import 'player/play_counter.dart';
 import 'pictures/fanart_tv.dart';
 import 'player/player.dart';
 import 'quality_choice.dart';
+import 'replay_gain_choice.dart';
 import 'releases/musicbrainz.dart';
 import 'segue/client.dart';
 import 'segue/discovery.dart';
@@ -35,8 +36,14 @@ class Services {
   });
 
   /// Starts a session: the API, this device's player, which streams in the quality picked ([quality]; the automatic one,
-  /// with none) and, if a hub is found, the connection to it.
-  static Future<Services> start(Session session, {AudioEngine? engine, ValueListenable<StreamQuality>? quality}) async {
+  /// with none) and levels the songs' loudness the way picked ([replayGain]; not at all, with none), and, if a hub is
+  /// found, the connection to it.
+  static Future<Services> start(
+    Session session, {
+    AudioEngine? engine,
+    ValueListenable<StreamQuality>? quality,
+    ValueListenable<ReplayGainMode>? replayGain,
+  }) async {
     final api = openServer(
       session.server,
       session.credentials,
@@ -48,6 +55,7 @@ class Services {
       engine ?? MediaKitEngine(),
       api,
       quality: () => (quality?.value ?? StreamQuality.automatic).inUse(onMobileData: mobileData.value),
+      replayGain: replayGain,
     );
     final hubUrl = await discoverHub(session.server, hub: session.hub);
     final client = hubUrl == null

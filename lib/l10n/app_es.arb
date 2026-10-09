@@ -189,5 +189,8 @@
   "audioQuality": "Calidad del audio",
   "streamQuality": "{quality, select, automatic{Calidad automática} high{Calidad alta · {bitRate} kbps} normal{Calidad normal · {bitRate} kbps} low{Calidad baja · {bitRate} kbps} other{Calidad original}}",
   "automaticQualityDetail": "Original con Wi-Fi, {bitRate} kbps con datos móviles",
+  "volumeNormalization": "Normalización del volumen",
+  "replayGainMode": "{mode, select, automatic{Automática} track{Por canción} album{Por álbum} other{Desactivada}}",
+  "replayGainModeDetail": "{mode, select, automatic{Por álbum cuando un álbum suena en orden, por canción en los demás casos} track{Todas las canciones al mismo volumen} album{Todos los álbumes al mismo volumen, y sus canciones como son entre sí} other{Cada canción al volumen de su archivo}}",
   "artistOnDevice": "{artist} (en {device})"
 }

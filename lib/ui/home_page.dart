@@ -9,6 +9,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../l10n/app_localizations.dart';
 import '../language_choice.dart';
 import '../quality_choice.dart';
+import '../replay_gain_choice.dart';
 import '../segue/client.dart';
 import '../segue/protocol.dart';
 import '../server/models.dart';
@@ -34,6 +35,7 @@ class HomePage extends StatefulWidget {
     this.themeChoice,
     this.languageChoice,
     this.qualityChoice,
+    this.replayGainChoice,
     this.packageInfo,
     super.key,
   });
@@ -48,6 +50,9 @@ class HomePage extends StatefulWidget {
 
   /// The quality the player streams in, picked in the settings; none, no choice of it.
   final QualityChoice? qualityChoice;
+
+  /// How the player levels the songs' loudness, picked in the settings; none, no choice of it.
+  final ReplayGainChoice? replayGainChoice;
 
   /// The app's version and build number, in the settings; none, no line of them.
   final PackageInfo? packageInfo;
@@ -142,6 +147,7 @@ class _HomePageState extends State<HomePage> {
           themeChoice: widget.themeChoice,
           languageChoice: widget.languageChoice,
           qualityChoice: widget.qualityChoice,
+          replayGainChoice: widget.replayGainChoice,
           packageInfo: widget.packageInfo,
           onSignOut: widget.onSignOut,
         ),
@@ -298,9 +304,9 @@ class _HomePageState extends State<HomePage> {
       icon: Image.asset('assets/logo.png', width: 32, height: 32),
       onPressed: () => _select(_Section.home),
     );
-    // The theme, the language, the quality and signing out are in the settings, a page of their own, whose button comes
-    // after the hub's status, which stays in sight: signing out, which forgets the token, two clicks away rather than
-    // one in the corner.
+    // The theme, the language, the quality, the volume's normalization and signing out are in the settings, a page of
+    // their own, whose button comes after the hub's status, which stays in sight: signing out, which forgets the token,
+    // two clicks away rather than one in the corner.
     final actions = [
       _HubStatus(client: services.connect.client),
       IconButton(

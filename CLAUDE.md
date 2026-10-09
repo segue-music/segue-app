@@ -115,7 +115,11 @@ Running two app instances on one machine as different devices:
   (one a Subsonic server transcodes as it goes) seeks by loading its track again from that point (`timeOffset`), the
   engine adding where the stream starts to mpv's positions. That a track has loaded it learns by asking mpv for its
   duration after each "Playing:" in the log: mpv's own notice says nothing for a track as long as the one before.
-  Until then the position stays where the track is to start, and a seek waits for it.
+  Until then the position stays where the track is to start, and a seek waits for it. The on_load hook also plays the
+  track with its gain (`TrackGain`, ReplayGain): the file's tags, through mpv's `replaygain`, or a gain in dB, which
+  goes in `replaygain-fallback` with `replaygain` off: mpv then applies it to every track, as a volume of its own
+  (`compute_replaygain` in its `player/audio.c`). `PlayerController` picks each song's (`ReplayGainChoice`,
+  `lib/replay_gain_choice.dart`): the media server's gain, or, where it gives none, the file's tags.
 - `ConnectController` (`lib/connect/`) follows the Connect model: the app controls one device at a
   time (`activeId`, null meaning this device). UI actions go through it (`playSongs`, `toggle`,
   `seek`, ...): it either runs them on the local player or sends them as hub commands. The UI should

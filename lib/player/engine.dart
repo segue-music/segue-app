@@ -6,18 +6,56 @@ import 'package:media_kit/media_kit.dart';
 
 import '../segue/protocol.dart';
 
-/// Where a track's stream is, for [AudioEngine.open]: the engine asks for it as the track loads.
+/// Where a track's stream is, for [AudioEngine.open], and how loud it plays: the engine asks for them as the track
+/// loads.
 class TrackSource {
-  /// At [url], whenever it loads.
-  TrackSource(Uri url) : address = ((from) async => from == Duration.zero ? url : null);
+  /// At [url], whenever it loads, with [gain].
+  TrackSource(Uri url, {TrackGain gain = TrackGain.none})
+    : address = ((from) async => from == Duration.zero ? url : null),
+      gain = (() => gain);
 
   /// At the address that [address] gives as the track loads, so that what it asks the media server for (its quality)
   /// can change from one track to the next: the stream from its start ([Duration.zero]), or, to seek in a stream that
   /// can't (one the media server transcodes as it goes), from that point, in whole seconds, where null says the stream
-  /// can't start there.
-  TrackSource.resolved(this.address);
+  /// can't start there. With the gain that [gain] gives then, and again as [AudioEngine.updateGain] asks for it.
+  TrackSource.resolved(this.address, {this.gain = _asItIs});
 
   final Future<Uri?> Function(Duration from) address;
+  final TrackGain Function() gain;
+
+  static TrackGain _asItIs() => TrackGain.none;
+}
+
+/// How loud a track plays, so that the tracks play about as loud as one another (ReplayGain).
+@immutable
+class TrackGain {
+  /// [decibels] louder, or, below zero, quieter.
+  const TrackGain(this.decibels) : tagged = false, album = false;
+
+  /// As the file's own ReplayGain tags say: its album's gain ([album]), or its own, the other where it has only that
+  /// one, lowered where the tags' peak says it would clip; none where it has no tags.
+  const TrackGain.tagged({required this.album}) : decibels = 0, tagged = true;
+
+  /// The track as it is.
+  static const none = TrackGain(0);
+
+  final double decibels;
+
+  /// Whether it is the file's tags that say, rather than [decibels].
+  final bool tagged;
+
+  /// Whether the tags' gain is the album's.
+  final bool album;
+
+  @override
+  bool operator ==(Object other) =>
+      other is TrackGain && other.decibels == decibels && other.tagged == tagged && other.album == album;
+
+  @override
+  int get hashCode => Object.hash(decibels, tagged, album);
+
+  @override
+  String toString() => tagged ? 'TrackGain.tagged(album: $album)' : 'TrackGain($decibels)';
 }
 
 /// What [PlayerController] needs from an audio backend. [MediaKitEngine] is the real one; the tests
@@ -60,6 +98,11 @@ abstract class AudioEngine {
 
   Future<void> seek(Duration position);
   Future<void> setVolume(int volume);
+
+  /// Asks the current track for its gain again ([TrackSource.gain]), and plays it so from now on: as the way the tracks
+  /// are levelled changes. The others are asked as they load.
+  Future<void> updateGain();
+
   Future<void> setRepeat(Repeat mode);
 
   /// On, shuffles the tracks, the current one still playing; off, back to the order [open] got.
@@ -73,13 +116,20 @@ abstract class AudioEngine {
 ///
 /// mpv's playlist has a name for each track (`segue://track/<open>/<track>`), not its stream: as mpv is about to load
 /// one, its on_load hook asks the track where its stream is ([TrackSource.address]) and points mpv there
-/// (stream-open-filename). So the stream can change between two loads of a track, and a stream that can't seek, one the
-/// media server transcodes as it goes, seeks by loading its track again, from the point sought ([_startOver]).
+/// (stream-open-filename), and how loud it plays ([TrackSource.gain]). So the stream can change between two loads of a
+/// track, and a stream that can't seek, one the media server transcodes as it goes, seeks by loading its track again,
+/// from the point sought ([_startOver]).
 class MediaKitEngine implements AudioEngine {
-  /// [silent] sends the audio nowhere: for tests on a machine without sound.
-  MediaKitEngine({@visibleForTesting bool silent = false}) {
+  /// [silent] sends the audio nowhere: for tests on a machine without sound. [audioFile] writes it to that file
+  /// instead, as raw samples (16 bits, in the tracks' channels and sample rate), as fast as mpv decodes them: for tests
+  /// that listen to it.
+  MediaKitEngine({@visibleForTesting bool silent = false, @visibleForTesting String? audioFile}) {
     final native = _player.platform as NativePlayer;
-    _ready = silent ? native.setProperty('ao', 'null') : Future.value();
+    _ready = audioFile != null
+        ? _writeAudioTo(native, audioFile)
+        : silent
+        ? native.setProperty('ao', 'null')
+        : Future.value();
     native.onLoadHooks.add(_pointAtStream);
     final stream = _player.stream;
     _subscriptions = [
@@ -137,6 +187,16 @@ class MediaKitEngine implements AudioEngine {
       }),
       stream.log.listen(_logged),
     ];
+  }
+
+  /// Has mpv write the audio to [file], for the constructor's audioFile.
+  static Future<void> _writeAudioTo(NativePlayer native, String file) async {
+    await native.setProperty('ao', 'pcm');
+    await native.setProperty('ao-pcm-file', file);
+    await native.setProperty('ao-pcm-waveheader', 'no');
+    // Each track after the one before, should mpv open the file again for one.
+    await native.setProperty('ao-pcm-append', 'yes');
+    await native.setProperty('audio-format', 's16');
   }
 
   // At the info level, for each track's "Playing:" in the log.
@@ -361,9 +421,10 @@ class MediaKitEngine implements AudioEngine {
     }
   }
 
-  /// mpv's on_load hook: points mpv, about to load one of the tracks, at its stream. The one the track gives now, or,
-  /// loading it again to start later, the one [_startOver] got. A track of another open is left as it is, which mpv
-  /// fails to open, and a failure the engine ignores, as it does of a track it no longer has.
+  /// mpv's on_load hook: points mpv, about to load one of the tracks, at its stream, and plays it with its gain. The
+  /// stream the track gives now, or, loading it again to start later, the one [_startOver] got. A track of another open
+  /// is left as it is, which mpv fails to open, and a failure the engine ignores, as it does of a track it no longer
+  /// has.
   Future<void> _pointAtStream() async {
     final native = _player.platform as NativePlayer;
     final track = await native.getProperty('path');
@@ -373,6 +434,8 @@ class MediaKitEngine implements AudioEngine {
       return;
     }
 
+    // As open got it: another open may come while it gives its stream.
+    final source = _tracks[i];
     final restart = _restart;
     Uri? address;
 
@@ -383,7 +446,7 @@ class MediaKitEngine implements AudioEngine {
       _offset = Duration.zero;
 
       try {
-        address = await _tracks[i].address(Duration.zero);
+        address = await source.address(Duration.zero);
       } on Object catch (e) {
         debugPrint('no stream for $track: $e'); // which mpv then fails to open
       }
@@ -391,6 +454,10 @@ class MediaKitEngine implements AudioEngine {
 
     if (address != null && !_disposed) {
       await native.setProperty('stream-open-filename', '$address');
+    }
+
+    if (!_disposed) {
+      await _playWith(source.gain());
     }
   }
 
@@ -675,6 +742,28 @@ class MediaKitEngine implements AudioEngine {
 
   @override
   Future<void> setVolume(int volume) => _player.setVolume(volume.toDouble());
+
+  @override
+  Future<void> updateGain() async {
+    await _ready;
+    final track = _at(_inOrder, _index);
+    final i = track == null ? -1 : _opened.indexOf(track);
+
+    if (i >= 0 && !_disposed) {
+      await _playWith(_tracks[i].gain());
+    }
+  }
+
+  /// Plays the current track, and the next until another gain, with [gain]. mpv's ReplayGain reads a file's tags, and
+  /// lowers the gain where their peak says it would clip; with it off, or for a file without them, it plays every track
+  /// with its fallback gain (player/audio.c, compute_replaygain), which then gives [TrackGain.decibels]. It reckons
+  /// the gain again as each track's audio starts, and right away as these change.
+  Future<void> _playWith(TrackGain gain) async {
+    final native = _player.platform as NativePlayer;
+    await native.setProperty('replaygain', gain.tagged ? (gain.album ? 'album' : 'track') : 'no');
+    // mpv takes fallbacks from -200 dB to 60 dB.
+    await native.setProperty('replaygain-fallback', '${gain.decibels.clamp(-200, 60)}');
+  }
 
   @override
   Future<void> dispose() async {

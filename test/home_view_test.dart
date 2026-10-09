@@ -14,6 +14,7 @@ import 'package:segue/l10n/app_localizations.dart';
 import 'package:segue/language_choice.dart';
 import 'package:segue/player/player.dart';
 import 'package:segue/quality_choice.dart';
+import 'package:segue/replay_gain_choice.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
@@ -65,6 +66,7 @@ Future<List<Map<String, String>>> pumpHome(
   ThemeChoice? themeChoice,
   LanguageChoice? languageChoice,
   QualityChoice? qualityChoice,
+  ReplayGainChoice? replayGainChoice,
   PackageInfo? packageInfo,
   VoidCallback? onSignOut,
 }) async {
@@ -129,6 +131,7 @@ Future<List<Map<String, String>>> pumpHome(
       themeChoice: themeChoice,
       languageChoice: languageChoice,
       qualityChoice: qualityChoice,
+      replayGainChoice: replayGainChoice,
       packageInfo: packageInfo,
     ),
   );
@@ -635,6 +638,50 @@ void main() {
     expect(qualityChoice.value, StreamQuality.normal);
     expect((await QualityChoice.load()).value, StreamQuality.normal);
     expect([checked('Qualidade automática'), checked('Qualidade normal · 160 kbps')], [false, true]);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a phone, the volume\'s normalization is in the settings, after the qualities, each way with what it '
+      'does; a pick holds, and is kept', (tester) async {
+    final (qualityChoice, replayGainChoice) = (QualityChoice(), ReplayGainChoice());
+    addTearDown(qualityChoice.dispose);
+    addTearDown(replayGainChoice.dispose);
+    await pumpHome(tester, const Size(360, 640), qualityChoice: qualityChoice, replayGainChoice: replayGainChoice);
+
+    await openSettings(tester);
+    final list = find.descendant(of: find.byType(SettingsPage), matching: find.byType(Scrollable));
+    await tester.scrollUntilVisible(settingsItem('Desligada'), 100, scrollable: list);
+    double top(String text) => tester.getTopLeft(find.text(text)).dy;
+    final texts = [
+      'Qualidade baixa · 96 kbps',
+      'Normalização do volume',
+      'Automática',
+      'Por música',
+      'Por álbum',
+      'Desligada',
+    ];
+    final tops = [for (final text in texts) top(text)];
+    expect([...tops]..sort(), tops, reason: 'in this order, top to bottom, after the qualities');
+    expect(checked('Desligada'), isTrue, reason: 'until a pick');
+
+    for (final (name, detail) in [
+      ('Automática', 'Por álbum quando um álbum toca em ordem, por música nas outras vezes'),
+      ('Por música', 'Todas as músicas no mesmo volume'),
+      ('Por álbum', 'Todos os álbuns no mesmo volume, e as músicas de cada um como são entre si'),
+      ('Desligada', 'Cada música no volume do seu arquivo'),
+    ]) {
+      expect(
+        find.descendant(of: settingsItem(name), matching: find.text(detail)),
+        findsOneWidget,
+        reason: name,
+      );
+    }
+
+    await tester.tap(settingsItem('Por álbum'));
+    await tester.pumpAndSettle();
+    expect(replayGainChoice.value, ReplayGainMode.album);
+    expect((await ReplayGainChoice.load()).value, ReplayGainMode.album);
+    expect([checked('Desligada'), checked('Por álbum')], [false, true]);
     await tester.pumpWidget(const SizedBox());
   });
 

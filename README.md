@@ -21,8 +21,8 @@ the device it runs on.
   `ND_JELLYFIN_ENABLED=true`). The password isn't kept: the system's secure storage gets a Subsonic
   token, or Jellyfin's access token, which signing out ends on a Jellyfin server (Navidrome's keeps
   it until the password changes). Signing out is at the end of the settings (a page the top bar's
-  button opens, with the theme, the language, the quality, the app's version and the open source
-  licenses), under the user and the server it signs out of;
+  button opens, with the theme, the language, the quality, the volume's normalization, the app's version and the open
+  source licenses), under the user and the server it signs out of;
 - the open source licenses: the app's own, Flutter's and the Dart packages', and, where the app
   brings them (Android, iOS, macOS, Windows), those of libmpv, FFmpeg and Mbed TLS, the native
   libraries it plays with, which Flutter's list leaves out; a package a line, each opening its
@@ -188,6 +188,16 @@ the device it runs on.
   which holds, as a change of connection does, from the next song on. A song a Subsonic server transcodes as it
   goes can't seek, so a seek asks for it again from that point (OpenSubsonic's transcodeOffset, which Navidrome
   has), as does opening on the last playback; a Jellyfin server sends it as HLS, which can seek;
+- the volume's normalization (ReplayGain), so that the songs this device plays play about as loud as one another:
+  automatic (by album where a song plays among its album's, in their order, unshuffled; by song otherwise), by song, by
+  album, or off, as it is until the settings pick another, which the app keeps, and which holds at once, for the song
+  that plays too.
+  The gains are the media server's, whatever the quality: OpenSubsonic's replayGain, which Navidrome reads from the
+  files' tags, or Jellyfin's normalization gain, which it measures itself where a file has no tags (the album's comes
+  with each song from Jellyfin 12.0 on, and before that only on the album's page, elsewhere the song's own standing in
+  for it). Where the server gives none (a song another device sent, a server without them), the file's own tags, which
+  a file as it is has, but not one Jellyfin transcodes. A gain never makes a song clip: no louder than its peak lets it,
+  or, where the server doesn't say its peak, as Jellyfin doesn't, no louder than it is;
 
 - the system's media controls (through `audio_service`) show and command what the now-playing bar
   shows, the device it follows included: on Linux (MPRIS) the media keys, the desktop's player
@@ -225,7 +235,7 @@ has been tried on a tablet and on an Android TV; the iOS build has not been trie
 | `lib/subsonic/` | The Subsonic API: token sign-in, albums, artists, songs, playlists, search, stream and cover URLs |
 | `lib/jellyfin/` | The Jellyfin API: sign-in by name for this device, the same library calls, and signing out |
 | `lib/segue/` | The Segue protocol in Dart (its `SPEC.md` is in the segue repository), the hub client (reconnects by itself) and hub discovery |
-| `lib/player/` | `PlayerController` (queue, commands, state reports) over an `AudioEngine`; `MediaKitEngine` is the real one. `MediaControls`: the system's media controls. `AudioInterruptions`: calls and the like pausing the music, on iOS |
+| `lib/player/` | `PlayerController` (queue, commands, state reports, each song's ReplayGain) over an `AudioEngine`; `MediaKitEngine` is the real one. `MediaControls`: the system's media controls. `AudioInterruptions`: calls and the like pausing the music, on iOS |
 | `lib/connect/` | `ConnectController`: which device the app controls, and moving the music between devices |
 | `lib/lyrics/` | LRCLIB (lrclib.net), where lyrics come from when the media server has none, and LRC |
 | `lib/pictures/` | fanart.tv, where more pictures of an artist than the media server's one come from, for their biography |

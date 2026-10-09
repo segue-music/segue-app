@@ -519,8 +519,8 @@ Set<String> _albumArtists(Map<String, dynamic> json) => {
 /// How many times the user played an album or a song; none when the server doesn't say.
 int _playCount(Map<String, dynamic> json) => (json['playCount'] as num?)?.toInt() ?? 0;
 
-/// A song's MusicBrainz id and credits are OpenSubsonic's: in Navidrome, its recording's id, and its contributors, from
-/// the file's tags (a composer, a performer with their instrument, a producer).
+/// A song's MusicBrainz id, credits and ReplayGain are OpenSubsonic's: in Navidrome, its recording's id, its contributors
+/// (a composer, a performer with their instrument, a producer) and its gains, from the file's tags.
 Song _song(Map<String, dynamic> json) => Song(
   id: json['id'] as String,
   title: json['title'] as String? ?? '',
@@ -553,7 +553,30 @@ Song _song(Map<String, dynamic> json) => Song(
             },
           ),
   ],
+  replayGain: _replayGain(json['replayGain']),
 );
+
+/// OpenSubsonic's replayGain, whose values are there only where the server knows them; null where it has no gain.
+ReplayGain? _replayGain(Object? json) {
+  if (json is! Map<String, dynamic>) {
+    return null;
+  }
+
+  double? value(String key) => switch (json[key]) {
+    final num value => value.toDouble(),
+    _ => null,
+  };
+
+  final (trackGain, albumGain) = (value('trackGain'), value('albumGain'));
+  return trackGain == null && albumGain == null
+      ? null
+      : ReplayGain(
+          trackGain: trackGain,
+          albumGain: albumGain,
+          trackPeak: value('trackPeak'),
+          albumPeak: value('albumPeak'),
+        );
+}
 
 /// A song's artists: OpenSubsonic's artists, all of them, or else Subsonic's one, artistId, whom its artist names.
 List<Artist> _songArtists(Map<String, dynamic> json) => switch (json['artists']) {
