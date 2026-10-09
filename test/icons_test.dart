@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -124,8 +125,12 @@ void main() {
     expect(otherIcons, findsNothing, reason: 'the home, with the player bar');
 
     await tap(tester, find.byTooltip('Configurações'));
-    expect(find.text('English'), findsOneWidget);
     expect(otherIcons, findsNothing, reason: 'the settings');
+    await tap(tester, find.text('Idioma'));
+    expect(find.text('English'), findsOneWidget);
+    expect(otherIcons, findsNothing, reason: 'a choice\'s sheet, with the check of the one picked');
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
     await tap(tester, find.byTooltip('Voltar'));
 
     await tap(tester, find.text('Toys in the Attic').first);
@@ -150,7 +155,7 @@ void main() {
     expect(otherIcons, findsNothing);
 
     await tap(tester, find.byTooltip('Configurações'));
-    expect(find.text('English'), findsOneWidget);
+    expect(find.text('Idioma'), findsOneWidget);
     expect(otherIcons, findsNothing, reason: 'the settings, with the back arrow');
     await tap(tester, find.byType(BackButton));
 

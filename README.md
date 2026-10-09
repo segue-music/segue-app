@@ -21,8 +21,9 @@ the device it runs on.
   `ND_JELLYFIN_ENABLED=true`). The password isn't kept: the system's secure storage gets a Subsonic
   token, or Jellyfin's access token, which signing out ends on a Jellyfin server (Navidrome's keeps
   it until the password changes). Signing out is at the end of the settings (a page the top bar's
-  button opens, with the theme, the language, the quality, the volume's normalization, the equalizer, the app's version
-  and the open source licenses), under the user and the server it signs out of;
+  button opens, in groups: the appearance, with the theme and the language, the playback, with the quality, the volume's
+  normalization and the equalizer, and about the app, its version and the open source licenses; each choice a line that
+  says the option picked and opens a sheet of them all), under the user and the server it signs out of;
 - the open source licenses: the app's own, Flutter's and the Dart packages', and, where the app
   brings them (Android, iOS, macOS, Windows), those of libmpv, FFmpeg and Mbed TLS, the native
   libraries it plays with, which Flutter's list leaves out; a package a line, each opening its

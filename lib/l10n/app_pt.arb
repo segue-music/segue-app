@@ -894,9 +894,21 @@
   "@settings": {
     "description": "On a phone, the tooltip of the top bar's button that opens the settings (the theme, the language, the quality, signing out), and their page's title."
   },
+  "appearance": "Aparência",
+  "@appearance": {
+    "description": "The settings' heading over the theme and the language."
+  },
+  "playback": "Reprodução",
+  "@playback": {
+    "description": "The settings' heading over the quality, the volume's normalization and the equalizer."
+  },
+  "about": "Sobre",
+  "@about": {
+    "description": "The settings' heading over the app's version and the licenses."
+  },
   "theme": "Tema",
   "@theme": {
-    "description": "The settings' heading over the choices of theme."
+    "description": "In the settings, the line of the choice of theme, and the title of its sheet."
   },
   "home": "Início",
   "@home": {
@@ -1123,7 +1135,7 @@
   },
   "language": "Idioma",
   "@language": {
-    "description": "The tooltip of the button that opens the language menu, and on a phone the settings' heading over the languages."
+    "description": "The tooltip of the button that opens the language menu, and in the settings the line of the choice of language, and the title of its sheet."
   },
   "systemLanguage": "Idioma do sistema",
   "@systemLanguage": {
@@ -1135,7 +1147,7 @@
   },
   "audioQuality": "Qualidade do áudio",
   "@audioQuality": {
-    "description": "The tooltip of the button that opens the menu of the quality the player streams songs in, and on a phone the settings' heading over the qualities."
+    "description": "The tooltip of the button that opens the menu of the quality the player streams songs in, and in the settings the line of the choice of quality, and the title of its sheet."
   },
   "streamQuality": "{quality, select, automatic{Qualidade automática} high{Qualidade alta · {bitRate} kbps} normal{Qualidade normal · {bitRate} kbps} low{Qualidade baixa · {bitRate} kbps} other{Qualidade original}}",
   "@streamQuality": {
@@ -1160,7 +1172,7 @@
   },
   "volumeNormalization": "Normalização do volume",
   "@volumeNormalization": {
-    "description": "The settings' heading over the ways the player levels the songs' loudness, so that they play about as loud as one another (ReplayGain)."
+    "description": "In the settings, the line of the choice of the way the player levels the songs' loudness, so that they play about as loud as one another (ReplayGain), and the title of its sheet."
   },
   "replayGainMode": "{mode, select, automatic{Automática} track{Por música} album{Por álbum} other{Desligada}}",
   "@replayGainMode": {

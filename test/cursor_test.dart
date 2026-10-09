@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -174,7 +175,12 @@ void main() {
     await expectArrow('the hub\'s status, which only tells', find.byTooltip('Sem hub: só toca neste aparelho'));
     await tester.tap(find.byTooltip('Configurações'));
     await tester.pumpAndSettle();
-    await expectHand('a language in the settings', find.text('English'));
+    await expectHand('a choice in the settings', find.text('Idioma'));
+    await tester.tap(find.text('Idioma'));
+    await tester.pumpAndSettle();
+    await expectHand('a language in its sheet', find.text('English'));
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('Equalizador'), 100, scrollable: find.byType(Scrollable).last);
     await expectHand('the equalizer in the settings', find.text('Equalizador'));
     await tester.tap(find.text('Equalizador'));

@@ -151,11 +151,41 @@ Future<List<Map<String, String>>> pumpHome(
 final settingsButton = find.byTooltip('Configurações');
 
 /// In the settings, the item that says [text].
-Finder settingsItem(String text) => find.widgetWithText(ListTile, text);
+Finder settingsItem(String text) =>
+    find.descendant(of: find.byType(SettingsPage), matching: find.widgetWithText(ListTile, text));
 
-/// Whether the settings' item that says [text] has the check of the one picked.
+/// In the settings, the option that says [text], in the sheet of a choice's options.
+Finder option(String text) =>
+    find.descendant(of: find.byType(BottomSheet), matching: find.widgetWithText(ListTile, text));
+
+/// Whether the option that says [text] has the check of the one picked.
 bool checked(String text) =>
-    find.descendant(of: settingsItem(text), matching: themedIcon(HugeIcons.strokeRoundedTick02)).evaluate().isNotEmpty;
+    find.descendant(of: option(text), matching: themedIcon(HugeIcons.strokeRoundedTick02)).evaluate().isNotEmpty;
+
+/// Whether the settings' choice [choice] says that [picked] is the option picked, under its name.
+bool says(String choice, String picked) =>
+    find.descendant(of: settingsItem(choice), matching: find.text(picked)).evaluate().isNotEmpty;
+
+/// In the settings, opens the sheet of the choice [choice]'s options.
+Future<void> openChoice(WidgetTester tester, String choice) async {
+  await tester.tap(settingsItem(choice));
+  await tester.pumpAndSettle();
+  expect(find.byType(BottomSheet), findsOneWidget, reason: choice);
+}
+
+/// Picks the option that says [text] in a choice's sheet, which closes.
+Future<void> pick(WidgetTester tester, String text) async {
+  await tester.tap(option(text));
+  await tester.pumpAndSettle();
+  expect(find.byType(BottomSheet), findsNothing, reason: 'a pick closes the sheet');
+}
+
+/// Closes a choice's sheet without a pick, as Esc does.
+Future<void> closeChoice(WidgetTester tester) async {
+  await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+  await tester.pumpAndSettle();
+  expect(find.byType(BottomSheet), findsNothing);
+}
 
 /// Opens the settings, from the top bar's button.
 Future<void> openSettings(WidgetTester tester) async {
@@ -303,7 +333,8 @@ void main() {
     double opacity() => tester.widget<FadeTransition>(old).opacity.value;
 
     await openSettings(tester);
-    await tester.tap(settingsItem('Tema escuro'));
+    await openChoice(tester, 'Tema');
+    await tester.tap(option('Tema escuro'));
     await tester.pump();
     expect(Theme.of(tester.element(find.byType(HomePage))).brightness, Brightness.dark, reason: 'at once, under it');
     expect(old, findsOneWidget, reason: 'the app as it was, in the light theme');
@@ -329,7 +360,8 @@ void main() {
     addTearDown(choice.dispose);
     await pumpHome(tester, const Size(1000, 700), themeChoice: choice);
     await openSettings(tester);
-    await tester.tap(settingsItem('Tema escuro'));
+    await openChoice(tester, 'Tema');
+    await tester.tap(option('Tema escuro'));
     await tester.pump();
     expect(find.byKey(ThemeFade.oldThemeKey), findsNothing);
     expect(Theme.of(tester.element(find.byType(HomePage))).brightness, Brightness.dark);
@@ -338,7 +370,7 @@ void main() {
 
   testWidgets(
     'on a phone, the theme, the language, the version and signing out are in the settings, a page whose button '
-    'comes after the hub\'s status',
+    'comes after the hub\'s status; each choice says the option picked, and opens a sheet of them all',
     (tester) async {
       final (themeChoice, languageChoice) = (ThemeChoice(), LanguageChoice());
       addTearDown(themeChoice.dispose);
@@ -368,15 +400,12 @@ void main() {
       expect(find.byType(BackButton).hitTestable(), findsOneWidget, reason: 'a page of its own, which goes back');
       expect(find.byType(NavigationBar).hitTestable(), findsOneWidget, reason: 'in the page area, over the section');
       final texts = [
+        'Aparência',
         'Tema',
         'Tema do sistema',
-        'Tema claro',
-        'Tema escuro',
         'Idioma',
         'Idioma do sistema',
-        'English',
-        'Español',
-        'Português',
+        'Sobre',
         'Versão',
         '0.1.0 (214)',
         'Licenças de código aberto',
@@ -384,53 +413,59 @@ void main() {
       ];
       final tops = [for (final text in texts) tester.getTopLeft(find.text(text)).dy];
       expect([...tops]..sort(), tops, reason: 'in this order, top to bottom');
+      expect(find.text('Reprodução'), findsNothing, reason: 'with nothing in it to pick');
+      expect(find.text('Tema claro'), findsNothing, reason: 'in the sheet of the themes alone');
       final lines = find.descendant(of: find.byType(SettingsPage), matching: find.byType(Divider));
-      expect(lines, findsNWidgets(3), reason: 'a line after each group');
+      expect(lines, findsNWidgets(2), reason: 'a line after each group');
       expect(
         tester.getCenter(lines.at(0)).dy,
-        inExclusiveRange(tops[texts.indexOf('Tema escuro')], tops[texts.indexOf('Idioma')]),
-        reason: 'between the themes and the languages',
+        inExclusiveRange(tops[texts.indexOf('Idioma do sistema')], tops[texts.indexOf('Sobre')]),
+        reason: 'between the appearance and the app\'s version, over the licenses',
       );
       expect(
         tester.getCenter(lines.at(1)).dy,
-        inExclusiveRange(tops[texts.indexOf('Português')], tops[texts.indexOf('Versão')]),
-        reason: 'between the languages and the version, over the licenses',
-      );
-      expect(
-        tester.getCenter(lines.at(2)).dy,
         inExclusiveRange(tops[texts.indexOf('Licenças de código aberto')], tops[texts.indexOf('Sair')]),
         reason: 'as before signing out',
       );
-      expect(
-        find.descendant(of: settingsItem('Versão'), matching: themedIcon(HugeIcons.strokeRoundedInformationCircle)),
-        findsOneWidget,
-      );
+
+      for (final (item, data) in [
+        ('Tema', HugeIcons.strokeRoundedContrast),
+        ('Idioma', HugeIcons.strokeRoundedTranslate),
+        ('Versão', HugeIcons.strokeRoundedInformationCircle),
+        ('Licenças de código aberto', HugeIcons.strokeRoundedLicense),
+        ('Sair', HugeIcons.strokeRoundedLogout01),
+      ]) {
+        expect(
+          find.descendant(of: settingsItem(item), matching: themedIcon(data)),
+          findsOneWidget,
+          reason: item,
+        );
+      }
+
       expect(tester.widget<ListTile>(settingsItem('Versão')).onTap, isNull, reason: 'only shown');
-      expect(
-        find.descendant(
-          of: settingsItem('Licenças de código aberto'),
-          matching: themedIcon(HugeIcons.strokeRoundedLicense),
-        ),
-        findsOneWidget,
-      );
-      final options = texts
-          .where((text) => !{'Tema', 'Idioma', 'Versão', '0.1.0 (214)', 'Licenças de código aberto'}.contains(text))
-          .toList();
-      expect(
-        [for (final text in options) checked(text)],
-        [true, false, false, true, false, false, false, false],
-        reason: 'the system\'s theme and language, until a pick',
-      );
-      expect(
-        tester.widget<ListTile>(settingsItem('Tema do sistema')).selected,
-        isTrue,
-        reason: 'in the theme\'s color',
-      );
-      expect(tester.widget<ListTile>(settingsItem('Tema claro')).selected, isFalse);
-      expect(
-        find.descendant(of: settingsItem('Sair'), matching: themedIcon(HugeIcons.strokeRoundedLogout01)),
-        findsOneWidget,
-      );
+      expect(says('Tema', 'Tema do sistema'), isTrue, reason: 'the system\'s theme and language, until a pick');
+      expect(says('Idioma', 'Idioma do sistema'), isTrue);
+
+      // The themes, in a sheet over the window, under the choice's name.
+      await openChoice(tester, 'Tema');
+      final sheet = find.byType(BottomSheet);
+      expect(find.descendant(of: sheet, matching: find.text('Tema')), findsOneWidget);
+      expect(tester.getRect(sheet).bottom, 800, reason: 'over the bars at the bottom too');
+      final themes = ['Tema do sistema', 'Tema claro', 'Tema escuro'];
+      final themeTops = [for (final text in themes) tester.getTopLeft(option(text)).dy];
+      expect([...themeTops]..sort(), themeTops, reason: 'in this order, top to bottom');
+      expect([for (final text in themes) checked(text)], [true, false, false]);
+      expect(tester.widget<ListTile>(option('Tema do sistema')).selected, isTrue, reason: 'in the theme\'s color');
+      expect(tester.widget<ListTile>(option('Tema claro')).selected, isFalse);
+      await closeChoice(tester);
+
+      await openChoice(tester, 'Idioma');
+      final languages = ['Idioma do sistema', 'English', 'Español', 'Português'];
+      final languageTops = [for (final text in languages) tester.getTopLeft(option(text)).dy];
+      expect([...languageTops]..sort(), languageTops, reason: 'in this order, top to bottom');
+      expect([for (final text in languages) checked(text)], [true, false, false, false]);
+      await closeChoice(tester);
+
       expect(
         find.descendant(of: settingsItem('Sair'), matching: find.text('a em music.test')),
         findsOneWidget,
@@ -484,15 +519,19 @@ void main() {
     expect(page.top, greaterThanOrEqualTo(tester.getRect(settingsButton).bottom), reason: 'under the top bar');
     expect(page.left, greaterThanOrEqualTo(tester.getRect(find.byType(VerticalDivider)).right), reason: 'by the rail');
     expect(find.byType(BackButton), findsNothing, reason: 'the top bar\'s arrow goes back');
-    expect(checked('Tema do sistema'), isTrue, reason: 'which the button had no way back to');
-    final list = find.descendant(of: find.byType(SettingsPage), matching: find.byType(Scrollable));
-    await tester.scrollUntilVisible(settingsItem('Qualidade baixa · 96 kbps'), 100, scrollable: list);
+    expect(says('Tema', 'Tema do sistema'), isTrue, reason: 'which the button had no way back to');
+    expect(says('Qualidade do áudio', 'Qualidade original'), isTrue);
+    await openChoice(tester, 'Qualidade do áudio');
     expect(checked('Qualidade original'), isTrue);
+    expect(option('Qualidade baixa · 96 kbps'), findsOneWidget);
     expect(
       find.text('Qualidade automática', skipOffstage: false),
       findsNothing,
       reason: 'a computer has no mobile data, where it would stream other than the original',
     );
+    await closeChoice(tester);
+    expect(find.byType(SettingsPage), findsOneWidget, reason: 'Esc closes the sheet alone');
+    final list = find.descendant(of: find.byType(SettingsPage), matching: find.byType(Scrollable));
 
     await tester.tap(find.byTooltip('Voltar'));
     await tester.pumpAndSettle();
@@ -603,27 +642,30 @@ void main() {
     Brightness shown() => Theme.of(tester.element(find.byType(HomePage))).brightness;
 
     await openSettings(tester);
-    await tester.tap(settingsItem('Tema escuro'));
+    await openChoice(tester, 'Tema');
+    await tester.tap(option('Tema escuro'));
     await tester.pump();
     expect(shown(), Brightness.dark);
     expect(find.byKey(ThemeFade.oldThemeKey), findsOneWidget, reason: 'the app as it was, in the light theme');
     await tester.pumpAndSettle();
     expect(find.byKey(ThemeFade.oldThemeKey), findsNothing, reason: 'faded away');
+    expect(find.byType(BottomSheet), findsNothing, reason: 'the pick closed the sheet');
     expect((await ThemeChoice.load()).value, ThemeMode.dark, reason: 'kept for the next launch');
     expect(find.byType(SettingsPage), findsOneWidget, reason: 'still open');
-    expect([checked('Tema do sistema'), checked('Tema escuro')], [false, true], reason: 'the check moved');
+    expect(says('Tema', 'Tema escuro'), isTrue);
 
-    await tester.tap(settingsItem('Tema do sistema'));
-    await tester.pumpAndSettle();
+    await openChoice(tester, 'Tema');
+    expect([checked('Tema do sistema'), checked('Tema escuro')], [false, true], reason: 'the check moved');
+    await pick(tester, 'Tema do sistema');
     expect(shown(), Brightness.light, reason: 'the system\'s again');
     expect((await ThemeChoice.load()).value, ThemeMode.system);
-    expect([checked('Tema do sistema'), checked('Tema escuro')], [true, false]);
+    expect(says('Tema', 'Tema do sistema'), isTrue);
     await tester.pumpWidget(const SizedBox());
   });
 
   testWidgets(
-    'on a phone, the quality is in the settings, after the languages, before signing out: the original first, '
-    'picked until another is, then the automatic one, which a phone has mobile data for',
+    'on a phone, the quality is in the settings, after the language, under the playback, before signing out: the '
+    'original first, picked until another is, then the automatic one, which a phone has mobile data for',
     (tester) async {
       final (themeChoice, languageChoice, qualityChoice) = (
         ThemeChoice(),
@@ -643,50 +685,58 @@ void main() {
       expect(find.byTooltip('Qualidade do áudio'), findsNothing, reason: 'no button of its own');
 
       await openSettings(tester);
-      // More than a phone's screen: down to the qualities.
-      final list = find.descendant(of: find.byType(SettingsPage), matching: find.byType(Scrollable));
-      await tester.scrollUntilVisible(settingsItem('Qualidade automática'), 100, scrollable: list);
       double top(String text) => tester.getTopLeft(find.text(text)).dy;
-      expect(top('Português'), lessThan(top('Qualidade do áudio')), reason: 'after the languages');
-      expect(top('Qualidade do áudio'), lessThan(top('Qualidade original')), reason: 'under its name');
-      expect(top('Qualidade original'), lessThan(top('Qualidade automática')), reason: 'the original first');
-      expect(checked('Qualidade original'), isTrue);
+      expect(top('Idioma'), lessThan(top('Reprodução')), reason: 'after the language');
+      expect(top('Reprodução'), lessThan(top('Qualidade do áudio')), reason: 'under the playback');
+      expect(says('Qualidade do áudio', 'Qualidade original'), isTrue);
       expect(
         find.descendant(
-          of: settingsItem('Qualidade automática'),
-          matching: find.text('Original no Wi-Fi, 160 kbps nos dados móveis'),
+          of: settingsItem('Qualidade do áudio'),
+          matching: themedIcon(HugeIcons.strokeRoundedAudioWave01),
         ),
         findsOneWidget,
-        reason: 'what it does, under it',
       );
 
       // To its end, which stays clear of the bars at the bottom.
+      final list = find.descendant(of: find.byType(SettingsPage), matching: find.byType(Scrollable));
       await tester.fling(list, const Offset(0, -1000), 3000);
       await tester.pumpAndSettle();
       expect(
         tester.getRect(settingsItem('Sair')).bottom,
         lessThanOrEqualTo(tester.getRect(find.byType(NavigationBar)).top),
       );
+
+      await openChoice(tester, 'Qualidade do áudio');
       final texts = [
+        'Qualidade original',
         'Qualidade automática',
         'Qualidade alta · 320 kbps',
         'Qualidade normal · 160 kbps',
         'Qualidade baixa · 96 kbps',
-        'Sair',
       ];
-      final tops = [for (final text in texts) top(text)];
-      expect([...tops]..sort(), tops, reason: 'in this order, top to bottom, signing out last');
+      final tops = [for (final text in texts) tester.getTopLeft(option(text)).dy];
+      expect([...tops]..sort(), tops, reason: 'in this order, top to bottom, the original first');
+      expect([for (final text in texts) checked(text)], [true, false, false, false, false]);
+      expect(
+        find.descendant(
+          of: option('Qualidade automática'),
+          matching: find.text('Original no Wi-Fi, 160 kbps nos dados móveis'),
+        ),
+        findsOneWidget,
+        reason: 'what it does, under it',
+      );
 
-      await tester.tap(settingsItem('Qualidade normal · 160 kbps'));
-      await tester.pumpAndSettle();
+      await pick(tester, 'Qualidade normal · 160 kbps');
       expect(qualityChoice.value, StreamQuality.normal);
       expect((await QualityChoice.load(mobileData: true)).value, StreamQuality.normal);
+      expect(says('Qualidade do áudio', 'Qualidade normal · 160 kbps'), isTrue);
+      await openChoice(tester, 'Qualidade do áudio');
       expect([checked('Qualidade original'), checked('Qualidade normal · 160 kbps')], [false, true]);
       await tester.pumpWidget(const SizedBox());
     },
   );
 
-  testWidgets('on a phone, the volume\'s normalization is in the settings, after the qualities, each way with what it '
+  testWidgets('on a phone, the volume\'s normalization is in the settings, after the quality, each way with what it '
       'does; a pick holds, and is kept', (tester) async {
     final (qualityChoice, replayGainChoice) = (QualityChoice(), ReplayGainChoice());
     addTearDown(qualityChoice.dispose);
@@ -694,40 +744,44 @@ void main() {
     await pumpHome(tester, const Size(360, 640), qualityChoice: qualityChoice, replayGainChoice: replayGainChoice);
 
     await openSettings(tester);
-    final list = find.descendant(of: find.byType(SettingsPage), matching: find.byType(Scrollable));
-    await tester.scrollUntilVisible(settingsItem('Por álbum'), 100, scrollable: list);
-    double top(String text) => tester.getTopLeft(find.text(text)).dy;
-    final texts = [
-      'Qualidade baixa · 96 kbps',
-      'Normalização do volume',
-      'Desligada',
-      'Automática',
-      'Por música',
-      'Por álbum',
-    ];
-    final tops = [for (final text in texts) top(text)];
-    expect([...tops]..sort(), tops, reason: 'in this order, top to bottom, after the qualities, off first');
-    expect(checked('Desligada'), isTrue, reason: 'until a pick');
+    expect(
+      tester.getTopLeft(find.text('Qualidade do áudio')).dy,
+      lessThan(tester.getTopLeft(find.text('Normalização do volume')).dy),
+      reason: 'after the quality',
+    );
+    expect(
+      find.descendant(
+        of: settingsItem('Normalização do volume'),
+        matching: themedIcon(HugeIcons.strokeRoundedVolumeHigh),
+      ),
+      findsOneWidget,
+    );
+    expect(says('Normalização do volume', 'Desligada'), isTrue, reason: 'until a pick');
 
-    for (final (name, detail) in [
+    await openChoice(tester, 'Normalização do volume');
+    final ways = [
       ('Desligada', 'Cada música no volume do seu arquivo'),
       ('Automática', 'Por álbum quando um álbum toca em ordem, por música nas outras vezes'),
       ('Por música', 'Todas as músicas no mesmo volume'),
       ('Por álbum', 'Todos os álbuns no mesmo volume, e as músicas de cada um como são entre si'),
-    ]) {
+    ];
+    final tops = [for (final (name, _) in ways) tester.getTopLeft(option(name)).dy];
+    expect([...tops]..sort(), tops, reason: 'in this order, top to bottom, off first');
+    expect(checked('Desligada'), isTrue);
+
+    for (final (name, detail) in ways) {
       expect(
-        find.descendant(of: settingsItem(name), matching: find.text(detail)),
+        find.descendant(of: option(name), matching: find.text(detail)),
         findsOneWidget,
         reason: name,
       );
     }
 
-    // To the end, so that the bars at the bottom leave the last way in sight.
-    await tester.scrollUntilVisible(settingsItem('Sair'), 100, scrollable: list);
-    await tester.tap(settingsItem('Por álbum'));
-    await tester.pumpAndSettle();
+    await pick(tester, 'Por álbum');
     expect(replayGainChoice.value, ReplayGainMode.album);
     expect((await ReplayGainChoice.load()).value, ReplayGainMode.album);
+    expect(says('Normalização do volume', 'Por álbum'), isTrue);
+    await openChoice(tester, 'Normalização do volume');
     expect([checked('Desligada'), checked('Por álbum')], [false, true]);
     await tester.pumpWidget(const SizedBox());
   });
@@ -752,10 +806,8 @@ void main() {
       await tester.scrollUntilVisible(settingsItem('Sair'), 100, scrollable: list);
       expect(
         tester.getTopLeft(find.text('Equalizador')).dy,
-        greaterThan(
-          tester.getTopLeft(find.text('Todos os álbuns no mesmo volume, e as músicas de cada um como são entre si')).dy,
-        ),
-        reason: 'after the volume\'s normalization, whose last way is by album',
+        greaterThan(tester.getTopLeft(find.text('Normalização do volume')).dy),
+        reason: 'after the volume\'s normalization',
       );
       expect(find.descendant(of: settingsItem('Equalizador'), matching: find.text('Desligado')), findsOneWidget);
 

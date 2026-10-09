@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -263,36 +264,44 @@ void main() {
         expect(find.text(strings.orderReleased), findsOneWidget, reason: 'the home\'s first row');
 
         await tap(tester, find.byTooltip(strings.settings));
-        expect(find.text(strings.systemTheme), findsOneWidget, reason: 'the settings');
-        // Down past the qualities and the volume's normalization, to their end, by way of the equalizer's page.
-        for (final text in [
-          strings.automaticQualityDetail(160),
-          strings.replayGainModeDetail('off'),
-          strings.equalizer,
-          strings.signedInAs('a', 'music.test'),
+        expect(find.text(strings.appearance), findsOneWidget, reason: 'the settings');
+        // Each choice's sheet, with all its options and what they do.
+        for (final (choice, options) in [
+          (strings.theme, [strings.systemTheme, strings.lightTheme, strings.darkTheme]),
+          (strings.language, [strings.systemLanguage, 'English', 'Español', 'Português']),
+          (strings.audioQuality, [strings.streamQuality('original', 0), strings.automaticQualityDetail(160)]),
+          (
+            strings.volumeNormalization,
+            [for (final mode in ReplayGainMode.values) strings.replayGainModeDetail(mode.name)],
+          ),
         ]) {
-          await tester.scrollUntilVisible(
-            find.text(text),
-            100,
-            scrollable: find.descendant(of: find.byType(SettingsPage), matching: find.byType(Scrollable)),
-          );
+          await tap(tester, find.widgetWithText(ListTile, choice));
 
-          if (text == strings.equalizer) {
-            await tap(tester, find.text(text));
-            expect(find.text(strings.useEqualizer), findsOneWidget);
-
-            for (final preset in EqualizerPreset.values) {
-              expect(find.widgetWithText(ChoiceChip, strings.equalizerPreset(preset.name)), findsOneWidget);
-            }
-
-            expect(find.text(strings.kilohertzShort(16)), findsOneWidget);
-            await tap(tester, narrow ? find.byType(BackButton).hitTestable() : find.byTooltip(strings.back));
+          for (final text in options) {
+            expect(find.descendant(of: find.byType(BottomSheet), matching: find.text(text)), findsOneWidget);
           }
+
+          await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+          await tester.pumpAndSettle();
         }
 
+        expect(find.text(strings.playback), findsOneWidget);
+        // Down to the end, clear of a phone's bars at the bottom, and from there to the equalizer's page.
+        final list = find.descendant(of: find.byType(SettingsPage), matching: find.byType(Scrollable));
+        await tester.scrollUntilVisible(find.text(strings.signedInAs('a', 'music.test')), 100, scrollable: list);
+        expect(find.text(strings.about), findsOneWidget);
         expect(find.text(strings.appVersionNumber('0.1.0', '214')), findsOneWidget);
         expect(find.text(strings.openSourceLicenses), findsOneWidget);
         expect(find.text(strings.signOut), findsOneWidget);
+        await tap(tester, find.text(strings.equalizer).hitTestable());
+        expect(find.text(strings.useEqualizer), findsOneWidget);
+
+        for (final preset in EqualizerPreset.values) {
+          expect(find.widgetWithText(ChoiceChip, strings.equalizerPreset(preset.name)), findsOneWidget);
+        }
+
+        expect(find.text(strings.kilohertzShort(16)), findsOneWidget);
+        await tap(tester, narrow ? find.byType(BackButton).hitTestable() : find.byTooltip(strings.back));
         // On a phone the page's arrow; on a wide screen the top bar's.
         await tap(tester, narrow ? find.byType(BackButton).hitTestable() : find.byTooltip(strings.back));
 

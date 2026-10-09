@@ -16,11 +16,12 @@ import 'page_area.dart';
 import 'theme_fade.dart';
 import 'themed_icon.dart';
 
-/// What the user picks for the app, and signing out: the theme (the system's again too), the language, the quality, the
-/// volume's normalization, the equalizer's page, the app's version, the licenses' page and, last, signing out, under the
-/// account it signs out of. Each kind of choice a group of its own, under its name, the one picked with a check, as the
-/// devices' sheet has the one the app controls; a line between the groups, and between the last and signing out. In the
-/// page area, from the top bar's button; a choice missing (none given), its group too, and the version with none.
+/// What the user picks for the app, and signing out, in groups under their names: the appearance (the theme, the
+/// language), the playback (the quality, the volume's normalization, the equalizer's page) and the app itself (its
+/// version, the licenses' page); a line between the groups, and after the last, signing out, under the account it signs
+/// out of. Each choice is a line that says the option picked, which opens a sheet of them all ([_Choice]). In the page
+/// area, from the top bar's button; a choice missing (none given), its line too, a group left with none too, and the
+/// version with none.
 class SettingsPage extends StatelessWidget {
   const SettingsPage({
     required this.onSignOut,
@@ -42,21 +43,6 @@ class SettingsPage extends StatelessWidget {
 
   /// The app's version and build number, as the build stamped them.
   final PackageInfo? packageInfo;
-
-  /// The qualities to pick from ([QualityChoice.options]), each by its name, and the automatic one with what it does.
-  static List<({StreamQuality quality, String name, String? detail})> _qualities(
-    QualityChoice choice,
-    AppLocalizations strings,
-  ) => [
-    for (final quality in choice.options)
-      (
-        quality: quality,
-        name: strings.streamQuality(quality.name, quality.maxBitRate ?? 0),
-        detail: quality == StreamQuality.automatic
-            ? strings.automaticQualityDetail(StreamQuality.automatic.inUse(onMobileData: true).maxBitRate!)
-            : null,
-      ),
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -80,95 +66,127 @@ class SettingsPage extends StatelessWidget {
       // In the page area, which has no player bar of its own: the home's bars stay under the page, the list ending clear
       // of them, by the room MediaQuery says they take.
       body: ListenableBuilder(
-        // The check moves to the one picked.
+        // A line says the option picked last.
         listenable: Listenable.merge([themeChoice, languageChoice, qualityChoice, replayGainChoice, equalizerChoice]),
         builder: (context, _) {
           final groups = [
-            if (themeChoice != null)
+            (
+              strings.appearance,
               [
-                _Heading(strings.theme),
-                for (final (mode, name) in [
-                  (ThemeMode.system, strings.systemTheme),
-                  (ThemeMode.light, strings.lightTheme),
-                  (ThemeMode.dark, strings.darkTheme),
-                ])
-                  _Option(
-                    name,
-                    picked: mode == themeChoice.value,
-                    // The old theme fades into the new one.
-                    onTap: () {
-                      ThemeFade.start(context);
-                      themeChoice.pick(mode);
-                    },
+                if (themeChoice != null)
+                  _Choice(
+                    icon: HugeIcons.strokeRoundedContrast,
+                    title: strings.theme,
+                    options: [
+                      for (final (mode, name) in [
+                        (ThemeMode.system, strings.systemTheme),
+                        (ThemeMode.light, strings.lightTheme),
+                        (ThemeMode.dark, strings.darkTheme),
+                      ])
+                        (
+                          name: name,
+                          detail: null,
+                          picked: mode == themeChoice.value,
+                          // The old theme fades into the new one.
+                          onPicked: () {
+                            ThemeFade.start(context);
+                            themeChoice.pick(mode);
+                          },
+                        ),
+                    ],
+                  ),
+                if (languageChoice != null)
+                  _Choice(
+                    icon: HugeIcons.strokeRoundedTranslate,
+                    title: strings.language,
+                    options: [
+                      for (final (language, name) in LanguageButton.options(strings))
+                        (
+                          name: name,
+                          detail: null,
+                          picked: language?.languageCode == languageChoice.value?.languageCode,
+                          onPicked: () => languageChoice.pick(language),
+                        ),
+                    ],
                   ),
               ],
-            if (languageChoice != null)
+            ),
+            (
+              strings.playback,
               [
-                _Heading(strings.language),
-                for (final (language, name) in LanguageButton.options(strings))
-                  _Option(
-                    name,
-                    picked: language?.languageCode == languageChoice.value?.languageCode,
-                    onTap: () => languageChoice.pick(language),
+                // The automatic quality with what it does, under it.
+                if (qualityChoice != null)
+                  _Choice(
+                    icon: HugeIcons.strokeRoundedAudioWave01,
+                    title: strings.audioQuality,
+                    options: [
+                      for (final quality in qualityChoice.options)
+                        (
+                          name: strings.streamQuality(quality.name, quality.maxBitRate ?? 0),
+                          detail: quality == StreamQuality.automatic
+                              ? strings.automaticQualityDetail(
+                                  StreamQuality.automatic.inUse(onMobileData: true).maxBitRate!,
+                                )
+                              : null,
+                          picked: quality == qualityChoice.value,
+                          onPicked: () => qualityChoice.pick(quality),
+                        ),
+                    ],
+                  ),
+                // Each way with what it does, under it.
+                if (replayGainChoice != null)
+                  _Choice(
+                    icon: HugeIcons.strokeRoundedVolumeHigh,
+                    title: strings.volumeNormalization,
+                    options: [
+                      for (final mode in ReplayGainMode.values)
+                        (
+                          name: strings.replayGainMode(mode.name),
+                          detail: strings.replayGainModeDetail(mode.name),
+                          picked: mode == replayGainChoice.value,
+                          onPicked: () => replayGainChoice.pick(mode),
+                        ),
+                    ],
+                  ),
+                // The equalizer, a page of its own in the page area, with the curve it plays with under its name.
+                if (equalizerChoice != null)
+                  ListTile(
+                    leading: const ThemedIcon(HugeIcons.strokeRoundedSlidersVertical),
+                    title: Text(strings.equalizer),
+                    subtitle: Text(
+                      equalizerChoice.value.on
+                          ? strings.equalizerPreset(equalizerChoice.value.preset.name)
+                          : strings.equalizerOff,
+                    ),
+                    onTap: () =>
+                        Navigator.of(context)
+                            .push(MaterialPageRoute<void>(builder: (_) => EqualizerPage(choice: equalizerChoice))),
                   ),
               ],
-            if (qualityChoice != null)
-              [
-                _Heading(strings.audioQuality),
-                for (final (:quality, :name, :detail) in _qualities(qualityChoice, strings))
-                  _Option(
-                    name,
-                    detail: detail,
-                    picked: quality == qualityChoice.value,
-                    onTap: () => qualityChoice.pick(quality),
-                  ),
-              ],
-            // Each way with what it does, under it.
-            if (replayGainChoice != null)
-              [
-                _Heading(strings.volumeNormalization),
-                for (final mode in ReplayGainMode.values)
-                  _Option(
-                    strings.replayGainMode(mode.name),
-                    detail: strings.replayGainModeDetail(mode.name),
-                    picked: mode == replayGainChoice.value,
-                    onTap: () => replayGainChoice.pick(mode),
-                  ),
-              ],
-            // The equalizer, a page of its own in the page area, with the curve it plays with under its name.
-            if (equalizerChoice != null)
-              [
-                ListTile(
-                  leading: const ThemedIcon(HugeIcons.strokeRoundedSlidersVertical),
-                  title: Text(strings.equalizer),
-                  subtitle: Text(
-                    equalizerChoice.value.on
-                        ? strings.equalizerPreset(equalizerChoice.value.preset.name)
-                        : strings.equalizerOff,
-                  ),
-                  onTap: () =>
-                      Navigator.of(context)
-                          .push(MaterialPageRoute<void>(builder: (_) => EqualizerPage(choice: equalizerChoice))),
-                ),
-              ],
+            ),
             // The app's version, and its licenses and those of what it is made with, a page of their own in the page area.
-            [
-              if (packageInfo != null)
+            (
+              strings.about,
+              [
+                if (packageInfo != null)
+                  ListTile(
+                    leading: const ThemedIcon(HugeIcons.strokeRoundedInformationCircle),
+                    title: Text(strings.appVersion),
+                    subtitle: Text(strings.appVersionNumber(packageInfo.version, packageInfo.buildNumber)),
+                  ),
                 ListTile(
-                  leading: const ThemedIcon(HugeIcons.strokeRoundedInformationCircle),
-                  title: Text(strings.appVersion),
-                  subtitle: Text(strings.appVersionNumber(packageInfo.version, packageInfo.buildNumber)),
+                  leading: const ThemedIcon(HugeIcons.strokeRoundedLicense),
+                  title: Text(strings.openSourceLicenses),
+                  onTap: () =>
+                      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const LicensesPage())),
                 ),
-              ListTile(
-                leading: const ThemedIcon(HugeIcons.strokeRoundedLicense),
-                title: Text(strings.openSourceLicenses),
-                onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const LicensesPage())),
-              ),
-            ],
+              ],
+            ),
           ];
           return ListView(
             children: [
-              for (final group in groups) ...[...group, const Divider(height: 33)],
+              for (final (name, lines) in groups)
+                if (lines.isNotEmpty) ...[_Heading(name), ...lines, const Divider(height: 33)],
               ListTile(
                 leading: const ThemedIcon(HugeIcons.strokeRoundedLogout01),
                 title: Text(strings.signOut),
@@ -183,7 +201,62 @@ class SettingsPage extends StatelessWidget {
   }
 }
 
-/// The name over a group of choices.
+/// An option of a [_Choice]: its name, what it does where it says, whether it is the one picked, and what picks it.
+typedef _ChoiceOption = ({String name, String? detail, bool picked, VoidCallback onPicked});
+
+/// A choice: a line with its [icon] and [title], which says the option picked, under it. A tap opens a sheet of its
+/// [options] over the window, under its title, each with what it does under it where it says, the one picked with a
+/// check, as the devices' sheet has the one the app controls. A pick closes it.
+class _Choice extends StatelessWidget {
+  const _Choice({required this.icon, required this.title, required this.options});
+
+  final HugeIconData icon;
+  final String title;
+  final List<_ChoiceOption> options;
+
+  @override
+  Widget build(BuildContext context) {
+    final picked = options.where((option) => option.picked).firstOrNull;
+    return ListTile(
+      leading: ThemedIcon(icon),
+      title: Text(title),
+      subtitle: picked == null ? null : Text(picked.name),
+      onTap: () => _open(context),
+    );
+  }
+
+  /// The sheet, over the window, also from the home's page area.
+  void _open(BuildContext context) => showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    useRootNavigator: true,
+    // As tall as its options, up to the whole screen, where they scroll.
+    isScrollControlled: true,
+    useSafeArea: true,
+    builder: (sheet) => ListView(
+      shrinkWrap: true,
+      padding: const EdgeInsets.only(bottom: 16),
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Text(title, style: Theme.of(sheet).textTheme.titleLarge),
+        ),
+        for (final (:name, :detail, :picked, :onPicked) in options)
+          _Option(
+            name,
+            detail: detail,
+            picked: picked,
+            onTap: () {
+              onPicked();
+              Navigator.of(sheet).pop();
+            },
+          ),
+      ],
+    ),
+  );
+}
+
+/// The name over a group of lines.
 class _Heading extends StatelessWidget {
   const _Heading(this.text);
 
@@ -202,7 +275,8 @@ class _Heading extends StatelessWidget {
   }
 }
 
-/// One of a group's choices, the one [picked] with a check and in the theme's color; [detail] under it, what it does.
+/// One of a choice's options, in its sheet, the one [picked] with a check and in the theme's color; [detail] under it,
+/// what it does.
 class _Option extends StatelessWidget {
   const _Option(this.name, {required this.picked, required this.onTap, this.detail});
 
