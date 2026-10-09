@@ -34,6 +34,7 @@ import 'package:shared_preferences_platform_interface/in_memory_shared_preferenc
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 import 'fakes.dart';
+import 'sections.dart';
 import 'side_rail.dart';
 import 'themed_icons.dart';
 
@@ -481,7 +482,7 @@ void main() {
       await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Biblioteca')));
       await tester.pumpAndSettle();
       expect(find.byType(SettingsPage), findsNothing, reason: 'a section picked closes it');
-      expect(title('Biblioteca'), findsOneWidget);
+      expect(find.descendant(of: find.byType(AppBar), matching: find.byType(TabBar)), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
     },
   );
@@ -880,23 +881,32 @@ void main() {
     });
   }
 
-  testWidgets('on a phone, the app\'s icon is in the top left corner too, and the bar at the bottom keeps the home', (
-    tester,
-  ) async {
+  testWidgets('on a phone, the app\'s icon is in the top left corner too, on the home, and the bar at the bottom keeps '
+      'the home', (tester) async {
     await pumpHome(tester, const Size(360, 640));
     final logo = find.descendant(of: find.byType(AppBar), matching: find.byTooltip('Início'));
     final bar = find.byType(NavigationBar);
     expect(tester.getRect(logo).left, lessThan(16));
     expect(find.descendant(of: bar, matching: find.text('Início')), findsOneWidget);
 
+    expect(title('Início'), findsOneWidget);
+
+    // Elsewhere, what there is to use there takes its place, and the bar's home opens the home.
     await tester.tap(find.descendant(of: bar, matching: find.text('Biblioteca')));
     await tester.pumpAndSettle();
-    expect(title('Biblioteca'), findsOneWidget);
+    expect(logo, findsNothing);
+    expect(title('Biblioteca'), findsNothing);
+    expect(find.descendant(of: find.byType(AppBar), matching: find.byType(TabBar)), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.descendant(of: find.byType(TabBar), matching: find.text('Álbuns'))).dx,
+      16,
+      reason: 'the first tab\'s name lined up with what the library shows under it',
+    );
 
-    await tester.tap(logo);
+    await tester.tap(find.descendant(of: bar, matching: find.text('Início')));
     await tester.pumpAndSettle();
     expect(title('Início'), findsOneWidget);
-    expect(tester.widget<NavigationBar>(bar).selectedIndex, 0);
+    expect(tester.getRect(logo).left, lessThan(16));
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -923,8 +933,7 @@ void main() {
     expect(tester.widget<TabBar>(tabs).controller?.index, 0, reason: 'the albums first');
     expect(find.byType(AlbumsView), findsOneWidget);
 
-    await tester.tap(find.descendant(of: tabs, matching: find.text('Artistas')));
-    await tester.pumpAndSettle();
+    await tapLibraryTab(tester, 'Artistas');
     expect(find.byType(AlbumsView), findsNothing);
     expect(find.byType(ArtistsView), findsOneWidget);
 
@@ -1070,8 +1079,7 @@ void main() {
     final bar = find.byType(NavigationBar);
     await tester.tap(find.descendant(of: bar, matching: find.text('Biblioteca')));
     await tester.pumpAndSettle();
-    await tester.tap(find.descendant(of: find.byType(TabBar), matching: find.text('Artistas')));
-    await tester.pumpAndSettle();
+    await tapLibraryTab(tester, 'Artistas');
     await tester.tap(find.descendant(of: bar, matching: find.text('Início')));
     await tester.pumpAndSettle();
 

@@ -742,7 +742,11 @@ void main() {
     expect(find.byType(NavigationBar), findsOneWidget);
     expect(find.byTooltip('Artistas'), findsNothing, reason: 'with no side rail');
     await openSection(tester, 'Artistas');
-    expect(title('Biblioteca'), findsOneWidget);
+    expect(
+      find.descendant(of: find.byType(AppBar), matching: find.byType(TabBar)),
+      findsOneWidget,
+      reason: 'the library\'s tabs in the top bar',
+    );
     expect(find.text('Cheap Trick'), findsOneWidget);
     // The orders in icons, their names in tooltips, as on an artist's page: A to Z, and headphones for what the user
     // listens to.

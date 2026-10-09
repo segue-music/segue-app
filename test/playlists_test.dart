@@ -352,7 +352,11 @@ void main() {
       'playlist\'s page', (tester) async {
     await pumpHome(tester, const Size(360, 640));
     await openPlaylists(tester);
-    expect(find.descendant(of: find.byType(AppBar), matching: find.text('Biblioteca')), findsOneWidget);
+    expect(
+      find.descendant(of: find.byType(AppBar), matching: find.byType(TabBar)),
+      findsOneWidget,
+      reason: 'the library\'s tabs in the top bar',
+    );
 
     await tester.tap(tile('Road trip'));
     await tester.pumpAndSettle();

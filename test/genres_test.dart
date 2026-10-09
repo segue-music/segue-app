@@ -273,8 +273,7 @@ void main() {
     await pumpHome(tester, const Size(360, 640));
     await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Buscar')));
     await tester.pumpAndSettle();
-    expect(title('Buscar'), findsOneWidget);
-    expect(find.byType(SearchBar), findsOneWidget);
+    expect(find.descendant(of: find.byType(AppBar), matching: find.byType(SearchBar)), findsOneWidget);
     expect(tile('hard rock'), findsOneWidget);
 
     await tester.tap(tile('hard rock'));

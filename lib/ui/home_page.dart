@@ -150,6 +150,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   /// On a phone, the library's tabs: the one picked, which the library opens on again.
   late final _libraryTabs = TabController(length: _Destination.libraryTabs.length, vsync: this);
 
+  /// The room on either side of a library tab's name, less than Material's 16, for the three to fit in the top bar,
+  /// beside its buttons.
+  static const _libraryTabPadding = 12.0;
+
   /// On a wide screen, the page area's navigator, and the pages opened in it.
   final _pages = GlobalKey<NavigatorState>();
   final _history = PageHistory();
@@ -311,8 +315,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     // Shown in another's place, as the window changes width, a section loads too.
     _opened.add(shown);
     final television = MediaQuery.maybeNavigationModeOf(context) == NavigationMode.directional;
-    // On a phone, on a line of its own, as wide as the screen; on a wide one, at most 600 and two fifths of the window,
-    // which on a TV's (960 wide) leaves the top bar more than the search.
+    // On a phone, as wide as the top bar leaves it; on a wide screen, at most 600 and two fifths of the window, which on
+    // a TV's (960 wide) leaves the top bar more than the search.
     final searchWidth = narrow ? width : min(600.0, width * 0.4);
     // Esc, as the clear button, staying in the bar for another search; with nothing typed, out of it, as Esc goes out
     // of anything else (UnfocusShortcut).
@@ -338,7 +342,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           // A tap anywhere else closes the keyboard: Flutter leaves the field focused on a touch, on a phone or a
           // tablet, unfocusing it only for a mouse.
           onTapOutside: (_) => _searchFocus.unfocus(),
-          hintText: strings.searchHint,
+          // On a phone, in the top bar, the search's name, in the room its name would take, rather than what it finds,
+          // which wouldn't fit beside the top bar's buttons.
+          hintText: narrow ? strings.search : strings.searchHint,
           leading: const ThemedIcon(HugeIcons.strokeRoundedSearch01),
           trailing: [
             ListenableBuilder(
@@ -428,9 +434,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     );
 
     // On a phone the bars at the bottom stay, the player's and the destinations', and pages open over the rest, in the
-    // page area, each with its own top bar and back arrow: over the section, under its destination's name, and in the
-    // search the search bar, on a line of its own, in the library its tabs. The full-screen player and the queue cover
-    // everything.
+    // page area, each with its own top bar and back arrow, over the section, which has the home's name in its top bar,
+    // the search bar, or the library's tabs. The full-screen player and the queue cover everything.
     if (narrow) {
       final destination = _Destination.of(shown);
       return SearchShortcut(
@@ -445,22 +450,33 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             extendBody: true,
             body: pageArea(
               Scaffold(
+                // On the home, the app's icon and the home's name; in the search and the library, what there is to use
+                // there, in their place: the bar at the bottom says where it is, and opens the home.
                 appBar: AppBar(
-                  // The app's icon, which opens the home, 16 from the edge, lined up with what the sections show under
-                  // it: in the middle of a slot 64 wide, rather than Material's 56, which would leave it at 12.
-                  leading: logo,
+                  // The app's icon, 16 from the edge, lined up with what the home shows under it: in the middle of a
+                  // slot 64 wide, rather than Material's 56, which would leave it at 12.
+                  leading: destination == _Destination.home ? logo : null,
                   leadingWidth: 64,
-                  // The destination's name where a page's is, after its back arrow: 72 from the edge.
-                  titleSpacing: 8,
-                  title: Text(destination.label(strings)),
-                  bottom: switch (destination) {
-                    _Destination.home => null,
-                    _Destination.search => PreferredSize(
-                      preferredSize: const Size.fromHeight(56),
-                      child: Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 12), child: searchBar),
-                    ),
+                  titleSpacing: switch (destination) {
+                    // The home's name where a page's is, after its back arrow: 72 from the edge.
+                    _Destination.home => 8,
+                    // The search bar 16 from the edge, lined up with what the search shows under it.
+                    _Destination.search => 16,
+                    // The first tab's name 16 from the edge, past the room around it.
+                    _Destination.library => 16 - _libraryTabPadding,
+                  },
+                  title: switch (destination) {
+                    _Destination.home => Text(destination.label(strings)),
+                    _Destination.search => searchBar,
+                    // As wide as their names, from the left, scrolling sideways where they don't fit; with no line under
+                    // them across the bar, which has none.
                     _Destination.library => TabBar(
                       controller: _libraryTabs,
+                      isScrollable: true,
+                      tabAlignment: TabAlignment.start,
+                      padding: EdgeInsets.zero,
+                      labelPadding: const EdgeInsets.symmetric(horizontal: _libraryTabPadding),
+                      dividerHeight: 0,
                       tabs: [for (final section in _Destination.libraryTabs) Tab(text: section.label(strings))],
                       onTap: (index) => _select(_Destination.libraryTabs[index]),
                     ),

@@ -122,11 +122,12 @@ void main() {
     await tester.tap(find.byType(TextField));
     await tester.pump();
     expect(tester.testTextInput.isVisible, isTrue);
-    // The bar has a line of its own, under the title.
-    expect(
-      tester.getCenter(find.byType(TextField)).dy,
-      greaterThan(tester.getBottomLeft(find.descendant(of: find.byType(AppBar), matching: find.text('Buscar'))).dy),
-    );
+    // In the top bar, 16 from the edge, in the place of the app's icon and the search's name, which its hint says.
+    final searchBar = find.descendant(of: find.byType(AppBar), matching: find.byType(SearchBar));
+    expect(searchBar, findsOneWidget);
+    expect(tester.getTopLeft(searchBar).dx, 16);
+    expect(find.descendant(of: searchBar, matching: find.text('Buscar')), findsOneWidget);
+    expect(find.descendant(of: find.byType(AppBar), matching: find.byTooltip('Início')), findsNothing);
 
     await tester.enterText(find.byType(TextField), 'dre');
     await tester.pump(const Duration(milliseconds: 100));
