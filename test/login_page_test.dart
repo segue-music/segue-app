@@ -95,6 +95,29 @@ void main() {
     expect(focused(tester, 'Usuário'), isTrue);
   });
 
+  testWidgets('on a phone, a touch off the fields closes the keyboard, and one on another field keeps it open', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: const [Locale('pt')],
+        home: LoginPage(onSignedIn: (_) {}),
+      ),
+    );
+    await tester.tap(find.widgetWithText(TextFormField, 'Servidor'));
+    await tester.pump();
+    await tester.tap(find.widgetWithText(TextFormField, 'Usuário'));
+    await tester.pump();
+    expect(focused(tester, 'Usuário'), isTrue);
+    expect(tester.testTextInput.isVisible, isTrue);
+
+    await tester.tap(find.bySemanticsLabel('Segue'));
+    await tester.pump();
+    expect(focused(tester, 'Usuário'), isFalse);
+    expect(tester.testTextInput.isVisible, isFalse);
+  });
+
   testWidgets('in the app, the arrows down and up (a TV remote\'s) go from field to field', (tester) async {
     // The system in Portuguese, which the app follows.
     tester.platformDispatcher.localesTestValue = const [Locale('pt', 'BR')];

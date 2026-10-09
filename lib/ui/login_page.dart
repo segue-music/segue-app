@@ -102,6 +102,10 @@ class _LoginPageState extends State<LoginPage> {
 
   String? _required(String? value) => (value ?? '').trim().isEmpty ? AppLocalizations.of(context).required : null;
 
+  /// A touch off the fields closes the keyboard: Flutter leaves a field focused on a touch, on a phone or a tablet,
+  /// unfocusing it only for a mouse. One on another field moves to it, the keyboard staying open.
+  void _closeKeyboard(PointerDownEvent event) => FocusManager.instance.primaryFocus?.unfocus();
+
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context);
@@ -125,12 +129,14 @@ class _LoginPageState extends State<LoginPage> {
                   // The keyboard's button goes on to the next field (a TV's keyboard has no other way).
                   textInputAction: TextInputAction.next,
                   validator: _required,
+                  onTapOutside: _closeKeyboard,
                 ),
                 TextFormField(
                   controller: _username,
                   decoration: InputDecoration(labelText: strings.username),
                   textInputAction: TextInputAction.next,
                   validator: _required,
+                  onTapOutside: _closeKeyboard,
                 ),
                 TextFormField(
                   controller: _password,
@@ -138,6 +144,7 @@ class _LoginPageState extends State<LoginPage> {
                   obscureText: true,
                   textInputAction: TextInputAction.done,
                   validator: _required,
+                  onTapOutside: _closeKeyboard,
                   onFieldSubmitted: (_) => _submit(),
                 ),
                 ExpansionTile(
@@ -149,6 +156,7 @@ class _LoginPageState extends State<LoginPage> {
                       decoration: InputDecoration(labelText: strings.hubAddress, helperText: strings.hubAddressHelp),
                       keyboardType: TextInputType.url,
                       textInputAction: TextInputAction.done,
+                      onTapOutside: _closeKeyboard,
                       onFieldSubmitted: (_) => _submit(),
                     ),
                   ],
