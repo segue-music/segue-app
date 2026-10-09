@@ -19,6 +19,7 @@ import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/album_page.dart';
+import 'package:segue/ui/albums_view.dart';
 import 'package:segue/ui/artist_page.dart';
 import 'package:segue/ui/cover.dart';
 import 'package:segue/ui/home_page.dart';
@@ -1635,7 +1636,8 @@ void main() {
     await tester.tap(onPage(find.text('Run-DMC')));
     await tester.pumpAndSettle();
     expect(find.byType(ArtistPage), findsOneWidget);
-    expect(find.descendant(of: find.byType(ArtistPage), matching: find.text('Run-DMC')), findsOneWidget);
+    // On the page itself, not in its bar, where it comes as it scrolls.
+    expect(find.descendant(of: find.byType(AlbumGrid), matching: find.text('Run-DMC')), findsOneWidget);
     expect(find.text('Raising Hell'), findsOneWidget);
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
@@ -1643,7 +1645,7 @@ void main() {
     await openPlayer(tester);
     await tester.tap(onPage(find.text('Aerosmith')));
     await tester.pumpAndSettle();
-    expect(find.descendant(of: find.byType(ArtistPage), matching: find.text('Aerosmith')), findsOneWidget);
+    expect(find.descendant(of: find.byType(AlbumGrid), matching: find.text('Aerosmith')), findsOneWidget);
     expect(find.text('Get Your Wings'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });

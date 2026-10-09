@@ -11,12 +11,16 @@ import 'package:flutter/services.dart';
 /// or, for a page that goes on under the bar ([Scaffold.extendBodyBehindAppBar]), with as much of that color as [shade]
 /// says, as the page scrolls; the title then has a halo, which keeps it easy to read over what passes under it while
 /// the bar has little of it: of the page's color, or of its text's where the arrow and the title take the page's color
-/// to stand out from what the bar is over ([under]).
+/// to stand out from what the bar is over ([under]). A page that shows its name itself, at its top, has the title come
+/// in as that goes up under the bar ([titleOpacity]).
 class PageBar extends StatelessWidget implements PreferredSizeWidget {
-  const PageBar({this.title, this.shade, this.under, super.key});
+  const PageBar({this.title, this.shade, this.titleOpacity, this.under, super.key});
 
   /// The page's name, on one line, cut short where it's longer; none where the page shows it by its picture.
   final String? title;
+
+  /// How much of [title] shows, from none (0) to all of it (1); all of it where null.
+  final ValueListenable<double>? titleOpacity;
 
   /// How much of the page's color the bar has, from none (0) to all of it (1); all of it where null.
   final ValueListenable<double>? shade;
@@ -31,18 +35,22 @@ class PageBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    final shade = this.shade;
+    final (shade, titleOpacity) = (this.shade, this.titleOpacity);
 
-    if (shade == null) {
-      return _bar(context, 1);
+    if (shade == null && titleOpacity == null) {
+      return _bar(context, 1, 1);
     }
 
-    return ValueListenableBuilder(valueListenable: shade, builder: (context, shade, _) => _bar(context, shade));
+    return ListenableBuilder(
+      listenable: Listenable.merge([shade, titleOpacity]),
+      builder: (context, _) => _bar(context, shade?.value ?? 1, titleOpacity?.value ?? 1),
+    );
   }
 
-  /// The bar, with [shade] of the page's color. Over the page, the system's icons over it take their brightness from
-  /// that color, whatever of it there is; over [under], they stand out from what shows, as the arrow and the title do.
-  Widget _bar(BuildContext context, double shade) {
+  /// The bar, with [shade] of the page's color, and [titleOpacity] of its title. Over the page, the system's icons over
+  /// it take their brightness from that color, whatever of it there is; over [under], they stand out from what shows, as
+  /// the arrow and the title do.
+  Widget _bar(BuildContext context, double shade, double titleOpacity) {
     final title = this.title;
     final colors = Theme.of(context).colorScheme;
     final background = colors.surface.withValues(alpha: shade);
@@ -59,11 +67,14 @@ class PageBar extends StatelessWidget implements PreferredSizeWidget {
       centerTitle: true,
       title: title == null
           ? null
-          : Text(
-              title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(shadows: this.shade == null ? null : [Shadow(color: halo, blurRadius: 8)]),
+          : Opacity(
+              opacity: titleOpacity,
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(shadows: this.shade == null ? null : [Shadow(color: halo, blurRadius: 8)]),
+              ),
             ),
       // As much room at the end as the arrow takes at the start, so that the title is in the middle of the page, not of
       // the room the arrow leaves.

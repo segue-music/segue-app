@@ -3,6 +3,7 @@ import 'dart:math';
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../l10n/app_localizations.dart';
@@ -77,11 +78,18 @@ class _ArtistPageState extends State<ArtistPage> {
   /// their singles and EPs (1).
   int _section = 0;
 
-  /// How much of the page's color its bar has. On a phone, over the artist's picture: none at the top of the page, where
-  /// the name has its halo, and more as the page scrolls, all of it once half the picture has gone up under the bar, so
-  /// that the name stays as easy to read over what passes under it. On a wide screen, how much of the bar shows, which
-  /// comes in as the picture goes ([PageBarSliver.shadeAt]).
+  /// How much of the page's color its bar has. On a phone, over the artist's picture: none at the top of the page, and
+  /// more as the page scrolls, all of it once their name, over the bottom of the picture ([_name]), reaches the bar, which
+  /// then takes it ([_titleOpacity]). On a wide screen, how much of the bar shows, which comes in as the picture goes
+  /// ([PageBarSliver.shadeAt]).
   final _shade = ValueNotifier<double>(0);
+
+  /// On a phone, the artist's name over the bottom of their picture.
+  final _name = GlobalKey();
+
+  /// On a phone, how much of the artist's name the page's bar shows: none while the page shows it over their picture,
+  /// and all of it once that has gone up under the bar, coming in as it goes.
+  final _titleOpacity = ValueNotifier<double>(0);
 
   /// On a phone, the color of the artist's picture under the page's bar, on average, with what it was found for: the
   /// picture, how big it shows, and how far down the bar goes, with the system's above it. What the arrow and the name
@@ -110,6 +118,7 @@ class _ArtistPageState extends State<ArtistPage> {
   @override
   void dispose() {
     _shade.dispose();
+    _titleOpacity.dispose();
     super.dispose();
   }
 
@@ -128,13 +137,14 @@ class _ArtistPageState extends State<ArtistPage> {
         return FanartPicture(
           data?.$1 ?? widget.artist,
           builder: (context, otherPicture) => Scaffold(
-            // On a phone with the name, the link's until the artist comes, then over their picture; under a wide
-            // screen's top bar, none.
+            // On a phone with the name, the link's until the artist comes, then once the page's own has gone up under
+            // it; under a wide screen's top bar, none.
             appBar: PageArea.holdsUnderTopBar(context)
                 ? null
                 : PageBar(
                     title: narrow ? data?.$1.name ?? widget.artist.name : null,
                     shade: narrow && data != null ? _shade : null,
+                    titleOpacity: narrow && data != null ? _titleOpacity : null,
                     under: narrow && data != null
                         ? _colorUnderBar(data.$1.coverArt ?? widget.artist.coverArt, otherPicture)
                         : null,
@@ -178,18 +188,26 @@ class _ArtistPageState extends State<ArtistPage> {
   /// In how many steps the artist's picture fades into the page at its bottom.
   static const _fadeSteps = 12;
 
-  /// The page's color over the artist's picture, from [opacity] of it [start] of the way down to all of it at the
-  /// bottom: eased at both ends, in steps the gradient joins, so that neither shows where the picture starts to fade
-  /// nor where the page goes on, as one.
-  static LinearGradient _fade(Color surface, {required double start, double opacity = 0}) => LinearGradient(
+  /// The page's color over the artist's picture, from [from] of it at the top to [to] of it at the bottom: eased at both
+  /// ends, in steps the gradient joins, so that neither shows where the picture starts to fade nor where the page goes
+  /// on, as one.
+  static LinearGradient _fade(Color surface, {double from = 0, double to = 1}) => LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
     colors: [
       for (var step = 0; step <= _fadeSteps; step++)
-        surface.withValues(alpha: opacity + (1 - opacity) * Curves.easeInOut.transform(step / _fadeSteps)),
+        surface.withValues(alpha: from + (to - from) * Curves.easeInOut.transform(step / _fadeSteps)),
     ],
-    stops: [for (var step = 0; step <= _fadeSteps; step++) start + (1 - start) * step / _fadeSteps],
+    stops: [for (var step = 0; step <= _fadeSteps; step++) step / _fadeSteps],
   );
+
+  /// On a phone, how far above the artist's name their picture starts fading into the page.
+  static const _fadeRoom = 72.0;
+
+  /// On a phone, how much of the page's color is over the artist's picture behind their name: enough that the name, in
+  /// the page's text color, reads over any picture, a black one in the light theme or a white one in the dark, with no
+  /// halo; the picture still shows through.
+  static const _underName = 0.6;
 
   /// How tall the artist's picture is on a phone, under the system's bar: as tall as it's wide, as an artist's picture
   /// mostly is, but half a short window at most.
@@ -241,7 +259,7 @@ class _ArtistPageState extends State<ArtistPage> {
   }
 
   /// Follows the page as it scrolls, and as it's laid out anew (as the window narrows or widens), for its bar's color
-  /// ([_shade]), letting the notification go on.
+  /// ([_shade]) and, on a phone, its title ([_titleOpacity]), letting the notification go on.
   bool _followScroll(Notification notification) {
     final offset = switch (notification) {
       ScrollNotification(depth: 0, :final metrics) ||
@@ -249,10 +267,26 @@ class _ArtistPageState extends State<ArtistPage> {
       _ => null,
     };
 
-    if (offset != null) {
-      _shade.value = MediaQuery.sizeOf(context).width < 600
-          ? (offset / (_pictureHeight / 2)).clamp(0, 1)
-          : PageBarSliver.shadeAt(offset, pictureBottom: 16 + _widePicture);
+    if (offset == null) {
+      return false;
+    }
+
+    if (MediaQuery.sizeOf(context).width >= 600) {
+      _shade.value = PageBarSliver.shadeAt(offset, pictureBottom: 16 + _widePicture);
+      return false;
+    }
+
+    final name = _name.currentContext?.findRenderObject();
+
+    if (name is RenderBox && name.hasSize) {
+      // How far the page scrolls before the name's top reaches the bar's bottom: from where it is at the top of the page,
+      // under the system's bar and the page's.
+      final reach =
+          RenderAbstractViewport.of(name).getOffsetToReveal(name, 0).offset -
+          MediaQuery.paddingOf(context).top -
+          kToolbarHeight;
+      _shade.value = reach <= 0 ? 1 : (offset / reach).clamp(0, 1);
+      _titleOpacity.value = ((offset - reach) / name.size.height).clamp(0, 1);
     }
 
     return false;
@@ -291,10 +325,10 @@ class _ArtistPageState extends State<ArtistPage> {
   /// The top of the page, down to the artist's [songs] and the choice of their lists, or its title ([heading]). On a
   /// wide screen the picture is round, the name beside it, with how many albums they have and their genres, and behind
   /// them the picture again, blurred, across the page. On a narrow one ([narrow]) it goes across the page from the top
-  /// of the screen, under the page's bar, which has the name (a [PageBar]), and the system's; the heading is over its
-  /// bottom, with how many albums they have at the end of its line, where it fades to the page's color (darker in the
-  /// dark theme, lighter in the light one), and their genres over it. The picture is the server's or, where it has
-  /// none, [otherPicture], fanart.tv's ([FanartPicture]).
+  /// of the screen, under the page's bar (a [PageBar]) and the system's; the heading is over its bottom, with how many
+  /// albums they have at the end of its line, where it fades to the page's color (darker in the dark theme, lighter in
+  /// the light one), their genres over it, and their name over them, in bold, bigger than the bar has it ([_name]). The
+  /// picture is the server's or, where it has none, [otherPicture], fanart.tv's ([FanartPicture]).
   Widget _header(
     Artist artist,
     List<Album> albums,
@@ -306,17 +340,13 @@ class _ArtistPageState extends State<ArtistPage> {
     final text = Theme.of(context).textTheme;
     final picture = artist.coverArt ?? widget.artist.coverArt;
     final count = _counts(artist, albums, end: narrow);
-    final genres = _genres(albums, overPicture: narrow);
+    final genres = _genres(albums);
 
     if (narrow) {
       // The system's bar, which the picture goes on under, as under the page's.
       final top = MediaQuery.paddingOf(context).top;
       final height = top + _pictureHeight;
-      final theme = Theme.of(context);
-      final surface = theme.colorScheme.surface;
-      // Where the picture starts fading into the page: lower down in the light theme, whose color would wash it out,
-      // than in the dark one, whose color only darkens it.
-      final fade = theme.brightness == Brightness.light ? 0.72 : 0.6;
+      final surface = Theme.of(context).colorScheme.surface;
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -325,17 +355,13 @@ class _ArtistPageState extends State<ArtistPage> {
               SizedBox(
                 width: double.infinity,
                 height: height,
-                child: DecoratedBox(
-                  position: DecorationPosition.foreground,
-                  // The picture as it is down to [fade], then more and more of the page's color, to all of it at the
-                  // bottom, under the heading.
-                  decoration: BoxDecoration(gradient: _fade(surface, start: fade)),
-                  // Asked of the server as many pixels across as a phone's screen has.
-                  child: LargeCover(picture, url: otherPicture, size: 1200, icon: HugeIcons.strokeRoundedUser),
-                ),
+                // Asked of the server as many pixels across as a phone's screen has.
+                child: LargeCover(picture, url: otherPicture, size: 1200, icon: HugeIcons.strokeRoundedUser),
               ),
               // The heading over the picture's bottom, with how many albums they have at the end of its line; with no
-              // heading, that alone at the end. Their genres over it.
+              // heading, that alone at the end. Their genres over it, and their name over them. The picture as it is
+              // down to [_fadeRoom] above the name, then more and more of the page's color, [_underName] of it at the
+              // name, to all of it at the bottom, under the heading.
               Positioned(
                 left: 0,
                 right: 0,
@@ -344,13 +370,38 @@ class _ArtistPageState extends State<ArtistPage> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    if (genres != null)
-                      Padding(padding: EdgeInsets.fromLTRB(16, 0, 16, heading == null ? 4 : 0), child: genres),
-                    heading ??
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                          child: Align(alignment: AlignmentDirectional.centerEnd, child: count),
-                        ),
+                    SizedBox(
+                      height: _fadeRoom,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(gradient: _fade(surface, to: _underName)),
+                      ),
+                    ),
+                    DecoratedBox(
+                      decoration: BoxDecoration(gradient: _fade(surface, from: _underName)),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Text(
+                              artist.name,
+                              key: _name,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: text.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          if (genres != null)
+                            Padding(padding: EdgeInsets.fromLTRB(16, 0, 16, heading == null ? 4 : 0), child: genres),
+                          heading ??
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                                child: Align(alignment: AlignmentDirectional.centerEnd, child: count),
+                              ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -374,7 +425,7 @@ class _ArtistPageState extends State<ArtistPage> {
                 child: ClipRect(
                   child: DecoratedBox(
                     position: DecorationPosition.foreground,
-                    decoration: BoxDecoration(gradient: _fade(surface, start: 0, opacity: 0.5)),
+                    decoration: BoxDecoration(gradient: _fade(surface, from: 0.5)),
                     // As the artists' grid has asked for it, which the blur leaves nothing more to see in.
                     child: ImageFiltered(
                       imageFilter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
@@ -518,12 +569,10 @@ class _ArtistPageState extends State<ArtistPage> {
   static const _genreCount = 3;
 
   /// The genres most of [albums] are in, the one most are in first, [_genreCount] at most, each a link to its page
-  /// ([GenrePage]), apart by dots: "Hard rock · Blues rock · Rock". Over the picture, on a phone ([overPicture]), with a
-  /// halo of the page's color, which keeps them easy to read where the picture has yet to fade into the page, as the
-  /// page's bar does its title. On a material of their own, over the picture (blurred, on a wide screen), where the ink
-  /// of the focus, a hover and a tap shows on them: on the page's, it was under the picture. None where the server
-  /// gives their albums none.
-  Widget? _genres(List<Album> albums, {bool overPicture = false}) {
+  /// ([GenrePage]), apart by dots: "Hard rock · Blues rock · Rock". On a material of their own, over the picture
+  /// (blurred, on a wide screen; on a phone, where it fades into the page), where the ink of the focus, a hover and a tap
+  /// shows on them: on the page's, it was under the picture. None where the server gives their albums none.
+  Widget? _genres(List<Album> albums) {
     final genres = <String, Genre>{};
     final counts = <String, int>{};
 
@@ -540,10 +589,7 @@ class _ArtistPageState extends State<ArtistPage> {
 
     final theme = Theme.of(context);
     final strings = AppLocalizations.of(context);
-    final style = theme.textTheme.bodyMedium?.copyWith(
-      color: theme.colorScheme.onSurfaceVariant,
-      shadows: overPicture ? [Shadow(color: theme.colorScheme.surface, blurRadius: 8)] : null,
-    );
+    final style = theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant);
     return Material(
       type: MaterialType.transparency,
       child: Wrap(

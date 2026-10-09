@@ -770,8 +770,8 @@ void main() {
   });
 
   testWidgets('on a phone, an artist\'s picture goes across the top of their page, under the system\'s bar and the '
-      'page\'s, which has their name, centered, and stays as the page scrolls; the choice of their songs is over its '
-      'bottom, in icons, with how many albums they have at the end of its line', (tester) async {
+      'page\'s, which stays as the page scrolls; their name, the choice of their songs, in icons, and how many albums '
+      'they have, at the end of its line, are over its bottom, where it fades into the page', (tester) async {
     // A system's bar at the top of the screen.
     tester.view.padding = const FakeViewPadding(top: 24);
     tester.view.viewPadding = const FakeViewPadding(top: 24);
@@ -789,16 +789,29 @@ void main() {
     expect(find.descendant(of: find.byType(ArtistPage), matching: find.byType(ClipOval)), findsNothing);
     expect(artistPictureAt(1200), findsOneWidget, reason: 'asked of the server as many pixels across as a phone has');
     expect(artistPictureAt(300), findsOneWidget, reason: 'under it, as it comes');
-    final title = find.descendant(of: find.byType(AppBar), matching: find.text('Cheap Trick'));
+    final appBar = find.descendant(of: find.byType(ArtistPage), matching: find.byType(AppBar));
+    final title = find.descendant(of: appBar, matching: find.text('Cheap Trick'));
     final (arrow, name) = (tester.getRect(find.byType(BackButton)), tester.getRect(title));
-    expect(find.descendant(of: find.byType(ArtistPage), matching: find.text('Cheap Trick')), findsOneWidget);
     expect(arrow.center.dy, 24 + kToolbarHeight / 2, reason: 'over the picture, under the system\'s bar');
     expect(name.left, greaterThanOrEqualTo(arrow.right));
     expect(name.center.dx, moreOrLessEquals(180, epsilon: 1), reason: 'centered on the page');
     expect(name.center.dy, moreOrLessEquals(arrow.center.dy, epsilon: 1), reason: 'on the arrow\'s line');
+    double titleOpacity() =>
+        tester.widget<Opacity>(find.ancestor(of: title, matching: find.byType(Opacity)).first).opacity;
+    expect(titleOpacity(), 0, reason: 'the page shows it');
+    // The page's own, over the bottom of the picture, in bold, bigger than the bar has it.
+    final heading = find.descendant(
+      of: find.byType(ArtistPage),
+      matching: find.byWidgetPredicate(
+        (widget) => widget is Text && widget.data == 'Cheap Trick' && widget.style?.fontWeight == FontWeight.bold,
+      ),
+    );
+    expect(tester.getRect(heading).left, 16);
+    expect(tester.getRect(heading).top, greaterThan(picture.center.dy));
+    expect(tester.getSize(heading).height, greaterThan(tester.getSize(title).height));
     final choice = tester.getRect(find.byWidgetPredicate((widget) => widget is SegmentedChoice));
     expect(choice.bottom, lessThanOrEqualTo(picture.bottom));
-    expect(choice.top, greaterThan(picture.center.dy), reason: 'over the bottom of the picture');
+    expect(choice.top, greaterThan(tester.getRect(heading).bottom), reason: 'under the name');
     final count = tester.getRect(find.text('1 álbum'));
     expect(count.center.dy, moreOrLessEquals(choice.center.dy, epsilon: 1), reason: 'on the choice\'s line');
     expect(count.right, moreOrLessEquals(360 - 16, epsilon: 1), reason: 'at its end, the page\'s margin from the edge');
@@ -821,40 +834,47 @@ void main() {
       tester.getSemantics(find.byTooltip('Suas mais tocadas')),
       isSemantics(label: 'Suas mais tocadas', isButton: true),
     );
-    // The picture is as it is at the top, under the system's bar and the name, and fades to the page's color, all of it
-    // at the bottom.
+    // The picture is as it is at the top, under the system's bar, and fades to the page's color from a little above
+    // the name, more than half of it behind the name, so that it reads over any picture, and all of it at the bottom.
     final surface = Theme.of(tester.element(find.byType(ArtistPage))).colorScheme.surface;
-    final fade = find.descendant(
+    Finder fade({required double from, required double to}) => find.descendant(
       of: find.byType(ArtistPage),
       matching: find.byWidgetPredicate(
         (widget) => switch (widget) {
           DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(:final colors))) =>
-            colors.first == surface.withValues(alpha: 0) && colors.last == surface,
+            colors.first == surface.withValues(alpha: from) && colors.last == surface.withValues(alpha: to),
           _ => false,
         },
       ),
     );
-    expect(tester.getRect(fade), picture);
-    // The bar, clear over the picture, takes more of the page's color as the page scrolls under it, all of it once half
-    // the picture has gone up, so that what passes under the name doesn't hide it.
-    final appBar = find.descendant(of: find.byType(ArtistPage), matching: find.byType(AppBar));
+    final above = tester.getRect(fade(from: 0, to: 0.6));
+    final under = tester.getRect(fade(from: 0.6, to: 1));
+    expect(above.bottom, under.top);
+    expect(above.top, greaterThan(24 + kToolbarHeight), reason: 'the picture as it is under the bars');
+    expect(under.top, lessThanOrEqualTo(tester.getRect(heading).top), reason: 'behind the name');
+    expect(under.bottom, picture.bottom);
+    // The bar, clear over the picture, takes more of the page's color as the page scrolls under it, all of it once the
+    // name reaches it, and takes the name as that goes up under it.
     Color bar() => tester.widget<Material>(find.descendant(of: appBar, matching: find.byType(Material)).first).color!;
     expect(bar().a, 0);
 
     await tester.drag(find.byType(AlbumGrid), const Offset(0, -100));
     await tester.pumpAndSettle();
     expect(bar().a, inExclusiveRange(0, 1), reason: 'some of it');
+    expect(titleOpacity(), 0, reason: 'the name still under the bar');
 
     await tester.drag(find.byType(AlbumGrid), const Offset(0, -300));
     await tester.pumpAndSettle();
     expect(tester.getRect(artistPicture()).bottom, lessThanOrEqualTo(24 + kToolbarHeight), reason: 'gone up past it');
     expect(bar().a, 1, reason: 'all of it');
+    expect(titleOpacity(), 1, reason: 'the name gone up under it');
     expect((tester.getRect(find.byType(BackButton)), tester.getRect(title)), (arrow, name), reason: 'the bar stays');
 
     await tester.drag(find.byType(AlbumGrid), const Offset(0, 500));
     await tester.pumpAndSettle();
     expect(tester.getRect(artistPicture()).top, 0);
     expect(bar().a, 0, reason: 'clear again');
+    expect(titleOpacity(), 0);
 
     await tester.tap(find.byTooltip('Populares'));
     await tester.pumpAndSettle();
@@ -1270,8 +1290,8 @@ void main() {
     },
   );
 
-  testWidgets('on a phone, an artist\'s genres are over the bottom of their picture, over the choice of their songs, '
-      'with a halo', (tester) async {
+  testWidgets('on a phone, an artist\'s genres are over the bottom of their picture, between their name and the choice '
+      'of their songs, with no halo', (tester) async {
     await pumpHome(tester, const Size(360, 640));
     await tester.tap(find.text('Artistas'));
     await tester.pumpAndSettle();
@@ -1280,11 +1300,14 @@ void main() {
     final page = find.byType(ArtistPage);
     final genre = find.descendant(of: page, matching: find.text('Power Pop'));
     final choice = find.descendant(of: page, matching: orders());
+    // The page's, not the bar's.
+    final name = find.descendant(of: find.byType(AlbumGrid), matching: find.text('Cheap Trick'));
     expect(tester.getTopLeft(genre).dx, 16);
+    expect(tester.getTopLeft(genre).dy, greaterThanOrEqualTo(tester.getBottomLeft(name).dy));
     expect(tester.getBottomLeft(genre).dy, lessThanOrEqualTo(tester.getTopLeft(choice).dy));
     expect(tester.getBottomLeft(genre).dy, lessThan(tester.getBottomLeft(artistPicture()).dy));
     final link = tester.widget<TextLink>(find.ancestor(of: genre, matching: find.byType(TextLink)));
-    expect(link.style?.shadows, isNotEmpty);
+    expect(link.style?.shadows, isNull);
     await tester.pumpWidget(const SizedBox());
   });
 
