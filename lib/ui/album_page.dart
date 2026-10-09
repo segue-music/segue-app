@@ -9,6 +9,8 @@ import '../releases/musicbrainz.dart';
 import '../server/models.dart';
 import '../server/server.dart';
 import '../services.dart';
+import 'album_row.dart';
+import 'albums_view.dart';
 import 'artist_link.dart';
 import 'artist_page.dart';
 import 'cover.dart';
@@ -26,6 +28,7 @@ import 'song_list_header.dart';
 import 'song_menu.dart';
 import 'spinner.dart';
 import 'themed_icon.dart';
+import 'tile_row.dart';
 
 class AlbumPage extends StatefulWidget {
   const AlbumPage(this.album, {super.key});
@@ -38,6 +41,9 @@ class AlbumPage extends StatefulWidget {
 
 class _AlbumPageState extends State<AlbumPage> {
   Future<(Album, List<Song>)>? _album;
+
+  /// The album's artist, with their albums, for the row of their others.
+  Future<(Artist, List<Album>)?>? _artistAlbums;
 
   /// The album's artist, for their picture.
   Future<Artist?>? _artist;
@@ -61,7 +67,8 @@ class _AlbumPageState extends State<AlbumPage> {
     super.didChangeDependencies();
     final services = ServicesScope.of(context);
     final album = _album ??= services.api.album(widget.album.id);
-    _artist ??= _artistOf(services.api, widget.album.artistId, album);
+    final artist = _artistAlbums ??= _artistOf(services.api, widget.album.artistId, album);
+    _artist ??= artist.then((found) => found?.$1);
     _release ??= _releaseOf(album, musicBrainz: services.musicBrainz);
     _credits ??= _creditsOf(album, musicBrainz: services.musicBrainz);
   }
@@ -94,9 +101,13 @@ class _AlbumPageState extends State<AlbumPage> {
     }
   }
 
-  /// The album's artist, [artistId] or, when the page opened without it, the one [album] names: none when it names
-  /// none, or the server fails, and their picture stays a placeholder.
-  static Future<Artist?> _artistOf(MediaServer api, String? artistId, Future<(Album, List<Song>)> album) async {
+  /// The album's artist, [artistId] or, when the page opened without it, the one [album] names, with their albums: none
+  /// when it names none, or the server fails, and their picture stays a placeholder, with no row of their albums.
+  static Future<(Artist, List<Album>)?> _artistOf(
+    MediaServer api,
+    String? artistId,
+    Future<(Album, List<Song>)> album,
+  ) async {
     try {
       final id = artistId ?? (await album).$1.artistId;
 
@@ -104,8 +115,7 @@ class _AlbumPageState extends State<AlbumPage> {
         return null;
       }
 
-      final (artist, _) = await api.artist(id);
-      return artist;
+      return await api.artist(id);
     } on Object {
       return null;
     }
@@ -215,6 +225,7 @@ class _AlbumPageState extends State<AlbumPage> {
                             )
                           else
                             _song(songs, i, narrow: narrow),
+                        _moreByArtist(),
                       ],
                     ),
                   ),
@@ -348,6 +359,44 @@ class _AlbumPageState extends State<AlbumPage> {
       return const {};
     }
   }
+
+  /// The artist's other albums, in the order of their page ([ArtistPage.sections]: their albums, newest first, then their
+  /// singles and EPs), in a row under their name ("Mais de Aerosmith"), which opens their page; each with its year and
+  /// its type where it isn't an album, as there. Nothing until they come, nor where they have no other, or the server
+  /// fails. As far under its covers' lines as the albums are from an artist's page's end.
+  Widget _moreByArtist() => FutureBuilder(
+    future: _artistAlbums,
+    builder: (context, snapshot) {
+      final strings = AppLocalizations.of(context);
+
+      if (snapshot.data case (final artist, final albums)) {
+        final others = [
+          for (final section in ArtistPage.sections(strings, albums))
+            for (final album in section.albums)
+              if (album.id != widget.album.id) album,
+        ];
+
+        if (others.isNotEmpty) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 16 - AlbumTile.padding),
+            child: TileRow(
+              title: strings.moreByArtist(artist.name),
+              onShowAll: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ArtistPage(artist))),
+              tiles: [
+                for (final album in others.take(AlbumRow.maxAlbums))
+                  AlbumTile(album, subtitle: yearAndReleaseType(strings, album)),
+              ],
+              tileSize: AlbumRow.tileSize,
+              previousLabel: strings.previousAlbums,
+              nextLabel: strings.nextAlbums,
+            ),
+          );
+        }
+      }
+
+      return const SizedBox.shrink();
+    },
+  );
 
   /// The button that plays the album, of [type], from its first song: just the icon, its name in the tooltip, as the play
   /// button on the albums' covers.

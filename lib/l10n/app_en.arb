@@ -87,6 +87,7 @@
   "previousPicture": "Previous photo",
   "nextPicture": "Next photo",
   "similarArtists": "Similar artists",
+  "moreByArtist": "More by {artist}",
   "albums": "Albums",
   "artists": "Artists",
   "songs": "Songs",

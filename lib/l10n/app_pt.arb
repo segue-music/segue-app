@@ -509,6 +509,16 @@
   "@similarArtists": {
     "description": "The title of the row of artists like this one, at the end of an artist's page."
   },
+  "moreByArtist": "Mais de {artist}",
+  "@moreByArtist": {
+    "description": "The title of the row of the artist's other albums, at the end of an album's page, which opens the artist's page.",
+    "placeholders": {
+      "artist": {
+        "type": "String",
+        "example": "Aerosmith"
+      }
+    }
+  },
   "albums": "Álbuns",
   "@albums": {
     "description": "The albums section, and the heading of a list of albums."

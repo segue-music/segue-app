@@ -17,6 +17,7 @@ import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/album_page.dart';
+import 'package:segue/ui/albums_view.dart';
 import 'package:segue/ui/artist_page.dart';
 import 'package:segue/ui/cover.dart';
 import 'package:segue/ui/cover_page.dart';
@@ -24,6 +25,7 @@ import 'package:segue/ui/credits_page.dart';
 import 'package:segue/ui/now_playing_bar.dart';
 import 'package:segue/ui/page_bar.dart';
 import 'package:segue/ui/text_link.dart';
+import 'package:segue/ui/tile_row.dart';
 
 import 'fakes.dart';
 
@@ -44,7 +46,7 @@ const libraryArtists = [
 /// The page of Toys in the Attic, with the cover [coverArt], two songs by Aerosmith, `s1` and `s2`, with their
 /// [contributors], by their ids, and then [more] songs and [others], the release date [releaseDate], the record labels
 /// [recordLabels], the release types [releaseTypes] and the MusicBrainz id [musicBrainzId], on a screen of [size], with
-/// what [musicBrainz] adds. Returns the player's engine.
+/// what [musicBrainz] adds. Aerosmith's albums are this one and [moreByArtist]. Returns the player's engine.
 Future<FakeEngine> pumpAlbum(
   WidgetTester tester, {
   String? coverArt = 'al-a1',
@@ -56,6 +58,7 @@ Future<FakeEngine> pumpAlbum(
   List<String>? releaseTypes,
   String? musicBrainzId,
   MusicBrainz? musicBrainz,
+  List<Map<String, Object?>> moreByArtist = const [],
   Size size = const Size(1000, 700),
 }) async {
   const credentials = SubsonicCredentials(username: 'a', token: 't', salt: 's');
@@ -65,8 +68,16 @@ Future<FakeEngine> pumpAlbum(
     client: MockClient((request) async {
       if (request.url.path.endsWith('getArtist.view')) {
         final id = request.url.queryParameters['id'];
+        final artist = libraryArtists.firstWhere((artist) => artist['id'] == id, orElse: () => libraryArtists.first);
         return subsonic({
-          'artist': libraryArtists.firstWhere((artist) => artist['id'] == id, orElse: () => libraryArtists.first),
+          'artist': {
+            ...artist,
+            if (artist['id'] == 'ar1')
+              'album': [
+                {'id': 'a1', 'name': 'Toys in the Attic', 'artist': 'Aerosmith', 'artistId': 'ar1', 'year': 1975},
+                ...moreByArtist,
+              ],
+          },
         });
       }
 
@@ -1173,6 +1184,59 @@ void main() {
     expect(inPage('música (faixa 2)'), findsOneWidget, reason: 'the server\'s writers');
     expect(inPage('letra (faixa 1)'), findsNothing, reason: 'not MusicBrainz\'s');
     expect(inPage('Com dados do MusicBrainz'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  /// One of Aerosmith's albums, [name], whose id is [id], from [year], of [releaseTypes].
+  Map<String, Object?> aerosmithAlbum(String id, String name, int year, {List<String>? releaseTypes}) => {
+    'id': id,
+    'name': name,
+    'artist': 'Aerosmith',
+    'artistId': 'ar1',
+    'year': year,
+    'releaseTypes': ?releaseTypes,
+  };
+
+  testWidgets('after the songs and the release, a row of the artist\'s other albums under "Mais de" and their name, '
+      'which opens their page: their albums, newest first, then their singles and EPs, as their page has them, each '
+      'with its year and its type where it isn\'t an album; with no other, no row', (tester) async {
+    await pumpAlbum(
+      tester,
+      recordLabels: ['Columbia'],
+      moreByArtist: [
+        aerosmithAlbum('a2', 'Dream On', 1973, releaseTypes: ['EP']),
+        aerosmithAlbum('a3', 'Get Your Wings', 1974),
+        aerosmithAlbum('a4', 'Pump', 1989),
+        aerosmithAlbum('a5', 'Rocks', 1976, releaseTypes: ['album']),
+      ],
+      size: const Size(1000, 1000),
+    );
+    final title = find.text('Mais de Aerosmith');
+    expect(tester.getRect(title).top, greaterThan(tester.getRect(find.text('Columbia')).bottom));
+    final row = find.ancestor(of: title, matching: find.byType(TileRow));
+    final names = [
+      for (final tile in find.descendant(of: row, matching: find.byType(AlbumTile)).evaluate())
+        (tile.widget as AlbumTile).album.name,
+    ];
+    expect(names, ['Pump', 'Rocks', 'Get Your Wings', 'Dream On'], reason: 'not this one');
+    Finder inTile(String name, String text) =>
+        find.descendant(of: find.widgetWithText(AlbumTile, name), matching: find.text(text));
+    expect(inTile('Pump', '1989'), findsOneWidget);
+    expect(inTile('Rocks', '1976'), findsOneWidget);
+    expect(inTile('Dream On', '1973 · EP'), findsOneWidget);
+    expect(
+      find.descendant(of: row, matching: find.text('Aerosmith')),
+      findsNothing,
+      reason: 'the title says whose',
+    );
+
+    await tester.tap(title);
+    await tester.pumpAndSettle();
+    expect(tester.widget<ArtistPage>(find.byType(ArtistPage)).artist.id, 'ar1');
+    await tester.pumpWidget(const SizedBox());
+
+    await pumpAlbum(tester, size: const Size(1000, 1000));
+    expect(title, findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
 

@@ -22,9 +22,9 @@ class AlbumRow extends StatelessWidget {
   /// How many albums it shows at most.
   static const maxAlbums = 30;
 
-  /// Covers of 160 pixels, with the tiles' room inside ([AlbumTile.padding]); as tall as a tile of the album grid this
-  /// wide.
-  static const _tileSize = Size(160 + 2 * AlbumTile.padding, (160 + 2 * AlbumTile.padding) / 0.75);
+  /// How big each tile is: covers of 160 pixels, with the tiles' room inside ([AlbumTile.padding]); as tall as a tile of
+  /// the album grid this wide.
+  static const tileSize = Size(160 + 2 * AlbumTile.padding, (160 + 2 * AlbumTile.padding) / 0.75);
 
   @override
   Widget build(BuildContext context) => FutureBuilder(
@@ -42,7 +42,7 @@ class AlbumRow extends StatelessWidget {
       return TileRow(
         title: title,
         onShowAll: onShowAll,
-        tileSize: _tileSize,
+        tileSize: tileSize,
         previousLabel: strings.previousAlbums,
         nextLabel: strings.nextAlbums,
         // Also from a server that sends more than it was asked for.
@@ -52,7 +52,7 @@ class AlbumRow extends StatelessWidget {
         instead: switch (albums) {
           _ when snapshot.hasError => note(strings.couldNotListAlbums('${snapshot.error}')),
           null => SizedBox(
-            height: _tileSize.height,
+            height: tileSize.height,
             child: const Center(child: Spinner()),
           ),
           _ => switch (empty) {

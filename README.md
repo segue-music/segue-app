@@ -178,6 +178,9 @@ the device it runs on.
   fevereiro de 1975"), then where it was mixed and mastered ("mixagem, março de 1975"), and, last,
   who made its cover and booklet (art direction, design, illustration, photography, liner notes),
   which the media servers never say;
+- at the end of the album page, the artist's other albums in a row, under "Mais de" and their name ("Mais de
+  Aerosmith"), which opens their page: their albums, newest first, then their singles and EPs, as their page lists
+  them, each with its year and its type where it isn't an album;
 - on the album page, a playlist's and in search, the current song (on whichever device the app controls) stands
   out in the theme's color, with an equalizer in place of its number, or over its cover, while it
   plays, its bars moving (still where the system asks for less motion);

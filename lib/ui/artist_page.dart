@@ -36,6 +36,25 @@ class ArtistPage extends StatefulWidget {
 
   final Artist artist;
 
+  /// [albums], newest first, in sections: the artist's albums (with those the server says no type of), then their
+  /// singles and EPs. A section of none isn't there, nor its title, even with the songs above.
+  static List<AlbumSection> sections(AppLocalizations strings, List<Album> albums) {
+    const short = {ReleaseType.single, ReleaseType.ep};
+    final newest = [...albums]..sort((a, b) => (b.year ?? 0).compareTo(a.year ?? 0));
+    final full = [
+      for (final album in newest)
+        if (!short.contains(album.releaseType)) album,
+    ];
+    final singles = [
+      for (final album in newest)
+        if (short.contains(album.releaseType)) album,
+    ];
+    return [
+      if (full.isNotEmpty) (title: strings.albums, albums: full),
+      if (singles.isNotEmpty) (title: strings.singlesAndEps, albums: singles),
+    ];
+  }
+
   @override
   State<ArtistPage> createState() => _ArtistPageState();
 }
@@ -120,13 +139,8 @@ class _ArtistPageState extends State<ArtistPage> {
               (final artist, final albums) => NotificationListener(
                 onNotification: _followScroll,
                 child: AlbumGrid.sections(
-                  _sections(strings, albums),
-                  // Its year, and its type where it isn't an album: "2020 · EP".
-                  subtitle: (album) => [
-                    if (album.year case final year?) '$year',
-                    if (album.releaseType case final type? when type != ReleaseType.album)
-                      releaseTypeName(strings, type),
-                  ].join(' · '),
+                  ArtistPage.sections(strings, albums),
+                  subtitle: (album) => yearAndReleaseType(strings, album),
                   // On a wide screen, where the name is by the picture, and stays in sight once that has gone.
                   bar: narrow ? null : PageBarSliver(title: artist.name, shade: _shade),
                   header: _ArtistSongs(
@@ -524,25 +538,6 @@ class _ArtistPageState extends State<ArtistPage> {
       _ => strings.singleAndEpCount(singles + eps),
     };
     return [if (full > 0 || short == null) albumCount(strings, full), ?short].join(' · ');
-  }
-
-  /// [albums], newest first, in sections: the artist's albums (with those the server says no type of), then their
-  /// singles and EPs. A section of none isn't there, nor its title, even with the songs above.
-  static List<AlbumSection> _sections(AppLocalizations strings, List<Album> albums) {
-    const short = {ReleaseType.single, ReleaseType.ep};
-    final newest = [...albums]..sort((a, b) => (b.year ?? 0).compareTo(a.year ?? 0));
-    final full = [
-      for (final album in newest)
-        if (!short.contains(album.releaseType)) album,
-    ];
-    final singles = [
-      for (final album in newest)
-        if (short.contains(album.releaseType)) album,
-    ];
-    return [
-      if (full.isNotEmpty) (title: strings.albums, albums: full),
-      if (singles.isNotEmpty) (title: strings.singlesAndEps, albums: singles),
-    ];
   }
 }
 
