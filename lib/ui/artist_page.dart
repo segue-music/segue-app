@@ -768,7 +768,7 @@ class _ArtistSongsState extends State<_ArtistSongs> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         SizedBox(width: SongListHeader.numberWidth, child: SongNumber(i + 1)),
-                        const SizedBox(width: 16),
+                        const SizedBox(width: SongListHeader.numberGap),
                         Thumbnail(song.coverArt, playing: playing),
                       ],
                     ),

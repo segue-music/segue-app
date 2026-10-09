@@ -24,6 +24,7 @@ import 'package:segue/ui/cover_page.dart';
 import 'package:segue/ui/credits_page.dart';
 import 'package:segue/ui/now_playing_bar.dart';
 import 'package:segue/ui/page_bar.dart';
+import 'package:segue/ui/song_list_header.dart';
 import 'package:segue/ui/text_link.dart';
 import 'package:segue/ui/tile_row.dart';
 
@@ -540,10 +541,21 @@ void main() {
     await pumpAlbum(tester);
     final first = song('Walk This Way');
     expect(
-      tester.getRect(find.text('#')).right,
-      tester.getRect(find.descendant(of: first, matching: find.text('1'))).right,
+      tester.getRect(find.text('#')).left,
+      tester.getRect(find.descendant(of: first, matching: find.text('1'))).left,
+    );
+    expect(tester.getRect(find.text('#')).left, 16, reason: 'at the start of the column, the page\'s margin');
+    expect(
+      tester.getRect(find.descendant(of: song('Sweet Emotion'), matching: find.text('2'))).left,
+      16,
+      reason: 'each number',
     );
     expect(tester.getRect(find.text('Título')).left, tester.getRect(find.text('Walk This Way')).left);
+    expect(
+      tester.getRect(find.text('Walk This Way')).left,
+      16 + SongListHeader.numberWidth + SongListHeader.numberGap,
+      reason: 'the room after the number, narrower than Material\'s',
+    );
     expect(
       tester.getRect(find.byTooltip('Duração')).right,
       moreOrLessEquals(tester.getRect(find.text('3:40')).right, epsilon: 1),

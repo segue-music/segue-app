@@ -14,15 +14,17 @@ import 'themed_icon.dart';
 TextStyle? _columnStyle(BuildContext context) =>
     Theme.of(context).textTheme.bodyMedium?.copyWith(color: DefaultTextStyle.of(context).style.color);
 
-/// A song's number in its list, in the first column: on its album, under the header's "#", or its place among an
-/// artist's most played.
+/// A song's number in its list, in the first column, at its start, as the page's margin: on its album, under the
+/// header's "#", or its place among an artist's most played. One of three digits, wider than the column
+/// ([SongListHeader.numberWidth]), goes on into the room after it ([SongListHeader.numberGap]).
 class SongNumber extends StatelessWidget {
   const SongNumber(this.number, {super.key});
 
   final int number;
 
   @override
-  Widget build(BuildContext context) => Text('$number', textAlign: TextAlign.end, style: _columnStyle(context));
+  Widget build(BuildContext context) =>
+      Text('$number', softWrap: false, overflow: TextOverflow.visible, style: _columnStyle(context));
 }
 
 /// A song's duration, in the last column of a list of songs, under the header's clock, or before its menu
@@ -106,8 +108,12 @@ class SongListHeader extends StatelessWidget {
   /// as near the end as the songs do ([SongTrailing.tilePadding]).
   final bool menus;
 
-  /// How wide a numbered song's number is.
-  static const numberWidth = 24.0;
+  /// How wide a numbered song's number is: as two digits. Its list tile's [ListTile.minLeadingWidth], which in Material 3
+  /// is wider.
+  static const numberWidth = 20.0;
+
+  /// The room after a song's number, before what follows it on its line: its title, or its cover.
+  static const numberGap = 8.0;
 
   @override
   Widget build(BuildContext context) {
@@ -121,9 +127,11 @@ class SongListHeader extends StatelessWidget {
           enabled: false,
           minTileHeight: 36,
           contentPadding: menus ? SongTrailing.tilePadding : null,
+          horizontalTitleGap: numbered ? numberGap : null,
+          minLeadingWidth: numbered ? numberWidth : null,
           leading: SizedBox(
             width: numbered ? numberWidth : Thumbnail.size,
-            child: numbered ? Text('#', style: style, textAlign: TextAlign.end) : null,
+            child: numbered ? Text('#', style: style) : null,
           ),
           title: Text(strings.songTitle, style: style),
           trailing: Row(
