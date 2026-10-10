@@ -31,7 +31,8 @@ http.Response subsonic(Map<String, Object?> body) => http.Response(
 
 /// A server whose genres come out of order, one of them only on songs. Rock has two albums, one of them
 /// among the most played (with [played]), with one of hard rock, played less; Blues has one, never
-/// played. [asked] gets the queries of the album lists asked for.
+/// played. Its songs at random are two of Rock's, and none of another genre. [asked] gets the queries of the album
+/// lists asked for, and of the songs at random.
 http.Response server(http.Request request, List<Map<String, String>> asked, {bool played = true}) {
   final path = request.url.path;
   final query = request.url.queryParameters;
@@ -79,6 +80,20 @@ http.Response server(http.Request request, List<Map<String, String>> asked, {boo
                 {'name': 'Rock'},
               ],
             },
+          ],
+        ],
+      },
+    });
+  }
+
+  if (path.endsWith('getRandomSongs.view')) {
+    asked.add(query);
+    return subsonic({
+      'randomSongs': {
+        'song': [
+          if (query['genre'] == 'Rock') ...[
+            {'id': 's2', 'title': 'Back in the Saddle', 'artist': 'Aerosmith', 'albumId': 'a1'},
+            {'id': 's1', 'title': 'Walk This Way', 'artist': 'Aerosmith', 'albumId': 'a2'},
           ],
         ],
       },
@@ -166,6 +181,9 @@ void main() {
     expect(find.text('Toys in the Attic'), findsWidgets);
     expect(asked, contains(allOf(containsPair('type', 'byGenre'), containsPair('offset', '0'))));
 
+    // In the grid, under the button that plays a mix and the row of the most played.
+    await tester.ensureVisible(find.text('Toys in the Attic').last);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Toys in the Attic').last);
     await tester.pumpAndSettle();
     expect(find.text('Walk This Way'), findsOneWidget);
@@ -240,6 +258,27 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('a genre\'s page starts with a button that plays a mix of its songs, at random', (tester) async {
+    final asked = await pumpHome(tester, const Size(1000, 700));
+    await tester.tap(find.byTooltip('Gêneros'));
+    await tester.pumpAndSettle();
+    await tester.tap(tile('Rock'));
+    await tester.pumpAndSettle();
+    expect(
+      tester.getRect(find.text('Tocar um mix')).bottom,
+      lessThan(tester.getRect(find.text('Mais tocados')).top),
+      reason: 'above the most played',
+    );
+
+    await tester.tap(find.text('Tocar um mix'));
+    await tester.pumpAndSettle();
+    final player = ServicesScope.of(tester.element(find.byType(GenrePage))).player;
+    expect([for (final song in player.queue) song.title], ['Back in the Saddle', 'Walk This Way']);
+    expect(player.playing, isTrue);
+    expect(asked.last, allOf(containsPair('genre', 'Rock'), containsPair('size', '100')));
+    await tester.pumpWidget(const SizedBox()); // stops the player bar's timers
+  });
+
   testWidgets('a genre with nothing played has no row of the most played, just its albums', (tester) async {
     await pumpHome(tester, const Size(1000, 700));
     await tester.tap(find.byTooltip('Gêneros'));
@@ -256,14 +295,15 @@ void main() {
     final asked = await pumpHome(tester, const Size(360, 640));
     await openSection(tester, 'Gêneros');
 
-    // The genres' most played come from the 500 most played albums, which the home's row isn't.
+    // The genres' most played come from the 500 most played albums, as the home's mixes do, which the home's row of
+    // the most played isn't.
     int mostPlayed() => asked.where((query) => query['type'] == 'frequent' && query['size'] == '500').length;
 
-    expect(mostPlayed(), 1);
+    final before = mostPlayed();
     final list = find.descendant(of: find.byType(GenresView), matching: find.byType(Scrollable));
     await tester.dragFrom(tester.getTopLeft(list) + const Offset(100, 20), const Offset(0, 300));
     await tester.pumpAndSettle();
-    expect(mostPlayed(), 2);
+    expect(mostPlayed(), before + 1);
     expect(tile('Blues'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });

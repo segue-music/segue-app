@@ -60,7 +60,8 @@ http.Response albumList(List<String> names) => subsonic({
 /// whose most played are [mostPlayed] (null: it fails to list them) and whose latest added are
 /// [latest], however many are asked for. In the app's themes, as [themeChoice] picks them, which the home switches, as
 /// the app does (ThemeFade). [languageChoice] is the home's to pick, though the app stays in Portuguese. [packageInfo]
-/// is the version the settings show. Returns the queries of the album lists asked for.
+/// is the version the settings show. Returns the queries of the album lists the rows asked for; not the mixes', which
+/// count the 500 most played (and find no genres there, nor any of the library's: the home has no mixes).
 Future<List<Map<String, String>>> pumpHome(
   WidgetTester tester,
   Size size, {
@@ -85,7 +86,10 @@ Future<List<Map<String, String>>> pumpHome(
       final query = request.url.queryParameters;
 
       if (request.url.path.endsWith('getAlbumList2.view')) {
-        asked.add(query);
+        if (query['size'] != '500') {
+          asked.add(query);
+        }
+
         return switch (query['type']) {
           'frequent' when mostPlayed != null => albumList(mostPlayed),
           'newest' => albumList(latest),

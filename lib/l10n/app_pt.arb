@@ -1415,5 +1415,52 @@
         "type": "String"
       }
     }
+  },
+  "mixes": "Mixes",
+  "@mixes": {
+    "description": "The home's row of mixes: songs of the library at random, of a genre or of a decade, each a tile that plays them at once."
+  },
+  "previousMixes": "Anteriores",
+  "@previousMixes": {
+    "description": "The tooltip of the row of mixes' arrow that scrolls back (masculine in Portuguese and Spanish: o mix)."
+  },
+  "nextMixes": "Próximos",
+  "@nextMixes": {
+    "description": "The tooltip of the row of mixes' arrow that scrolls forward."
+  },
+  "decade": "{decade, select, 1920{Anos 20} 1930{Anos 30} 1940{Anos 40} 1950{Anos 50} 1960{Anos 60} 1970{Anos 70} 1980{Anos 80} 1990{Anos 90} other{Anos {decade}}}",
+  "@decade": {
+    "description": "A decade, the name of its mix, by its first year (decade: 1980 for the 1980s), as it's usually said: by its last two digits from the 1920s to the 1990s, and otherwise by its first year (the 1910s' two digits would be the 2010s').",
+    "placeholders": {
+      "decade": {
+        "type": "String"
+      }
+    }
+  },
+  "playMix": "Tocar um mix",
+  "@playMix": {
+    "description": "The button on a genre's page that plays its songs at random (a mix), a different few each time."
+  },
+  "mixEmpty": "Esse mix não tem músicas.",
+  "@mixEmpty": {
+    "description": "A mix that has no songs to play."
+  },
+  "couldNotPlayMix": "Não consegui tocar o mix: {error}",
+  "@couldNotPlayMix": {
+    "description": "A mix that couldn't start playing, with the error.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "mixArtists": "{artists} e mais",
+  "@mixArtists": {
+    "description": "Under a mix's picture: the first few artists of its first songs (artists, named one after another, apart by commas), and that it has more.",
+    "placeholders": {
+      "artists": {
+        "type": "String"
+      }
+    }
   }
 }

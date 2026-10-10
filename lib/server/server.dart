@@ -77,6 +77,14 @@ abstract interface class MediaServer {
   /// The genres the user plays most, the most played first; none before anything has played.
   Future<List<Genre>> mostPlayedGenres({int size = 10});
 
+  /// The decades the user plays most, each by its first year (1980 for the 1980s), the most played first; none before
+  /// anything has played.
+  Future<List<int>> mostPlayedDecades({int size = 10});
+
+  /// Songs of the library at random, a different few each time: [size] at most, of the genre whose id is [genre] and
+  /// from [years], the first and the last of them, where given.
+  Future<List<Song>> randomSongs({int size = 100, String? genre, ({int from, int to})? years});
+
   /// The songs of the artist whose id is [artistId] that the user plays most, the most played first;
   /// none before any of theirs has played.
   Future<List<Song>> mostPlayedSongs(String artistId, {int size = 10});

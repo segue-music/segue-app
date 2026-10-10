@@ -413,6 +413,21 @@ void main() {
       expect(server.requests.where((request) => !request.startsWith('stream') && !request.startsWith('get')), isEmpty);
     });
 
+    test('out of reach, a mix\'s songs are those of the downloaded albums of its genre and its years', () async {
+      server.reachable = false;
+      await reachability.check();
+      Future<Set<String>> ids({String? genre, ({int from, int to})? years}) async => {
+        for (final song in await api.randomSongs(genre: genre, years: years)) song.id,
+      };
+
+      expect(await ids(), {'s1', 's2'}, reason: 'not again for the playlist');
+      expect(await ids(genre: 'Rock', years: (from: 1970, to: 1979)), {'s1', 's2'});
+      expect(await ids(genre: 'Jazz'), isEmpty);
+      expect(await ids(years: (from: 1980, to: 1989)), isEmpty);
+      expect(await api.randomSongs(size: 1), hasLength(1));
+      expect(await api.mostPlayedDecades(), isEmpty);
+    });
+
     test(
       'a request that fails for the network takes the downloads, and the server is out of reach from then',
       () async {

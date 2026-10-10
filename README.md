@@ -28,7 +28,15 @@ the device it runs on.
   brings them (Android, iOS, macOS, Windows), those of libmpv, FFmpeg and Mbed TLS, the native
   libraries it plays with, which Flutter's list leaves out; a package a line, each opening its
   licenses' text;
-- a home, where the app opens, with a row of the latest released albums (by release date, or by
+- a home, where the app opens, with a row of mixes first: songs of the library at random (getRandomSongs; on Jellyfin
+  its items sorted at random), 100, of a genre or of a decade, two genres, then a decade, and so on: six of the twelve
+  genres the user plays most (before anything has played, of those with the most albums) and three of the six decades,
+  picked at random as the home loads, so that pulling it down shows others, in another order, the more played the
+  likelier and the more often first; each the picture
+  of the artist of its first song (or, where neither the server nor fanart.tv has one, the song's cover) with the
+  mix's name over it ("Rock", "Anos 70"), and under it the artists of its first songs ("Aerosmith, Boston, Kiss e
+  mais"), which plays the mix as it's picked, those songs first, autoplay going on after its last (out of the server's
+  reach, no mixes); then a row of the latest released albums (by release date, or by
   year where the server has no more), one of the albums the user plays most and one of the latest
   added to the library, 30 each, with arrows in each row's corner to go a screenful forward and
   back (on a computer and a TV; on a touch screen a finger drags the row), and a title that opens
@@ -69,7 +77,8 @@ the device it runs on.
   a Subsonic server learns from Last.fm (getTopSongs), picked over them where there are both (a
   thumb sliding to the one picked), and these alone before any of the user's has played),
   genres (by name, each with its number of albums, under the ten the user listens to
-  most, and its albums by name, under a row of those the user plays most: on a Subsonic server,
+  most, and its albums by name, under a button that plays a mix of its songs, at random, and a row of those the user
+  plays most: on a Subsonic server,
   which counts no plays by genre, both come from the 500 most played albums) and playlists (the
   user's and those shared with them, by name, each with its picture and how many songs it has; its
   page, laid out as an album's, has its picture, how many songs it has and how long they last, a button

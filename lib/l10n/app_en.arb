@@ -242,5 +242,13 @@
   "favoriteAlbumsEmpty": "No favorite albums yet. The heart on an album's page puts it here.",
   "favoriteArtistsEmpty": "No favorite artists yet. The heart on an artist's page puts them here.",
   "couldNotListFavorites": "Couldn't load the favorites: {error}",
-  "couldNotChangeFavorites": "Couldn't change the favorites: {error}"
+  "couldNotChangeFavorites": "Couldn't change the favorites: {error}",
+  "mixes": "Mixes",
+  "previousMixes": "Previous mixes",
+  "nextMixes": "Next mixes",
+  "decade": "{decade}s",
+  "playMix": "Play a mix",
+  "mixEmpty": "This mix has no songs.",
+  "couldNotPlayMix": "Couldn't play the mix: {error}",
+  "mixArtists": "{artists} and more"
 }

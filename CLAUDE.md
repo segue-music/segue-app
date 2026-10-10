@@ -224,6 +224,18 @@ Running two app instances on one machine as different devices:
   song, so `moveInPlaylist` sends the playlist's songs back in their new order (`createPlaylist` with its id), in a
   form's body where the server has OpenSubsonic's formPost; Jellyfin removes and moves by the entry's id
   (`PlaylistItemId`, from `Playlists/{id}/Items`), so the API asks for the entries first.
+- Mixes (`lib/mixes.dart`): a `Mix` is songs of the library at random (`MediaServer.randomSongs`: Subsonic's
+  getRandomSongs, Jellyfin's `Items` sorted `Random`, out of reach the downloaded albums'), of a genre (`GenreMix`) or
+  a decade (`DecadeMix`), 100 of them, after which autoplay goes on from the last. `SuggestedMixes` are the home's
+  (`MixRow`, `lib/ui/mix_row.dart`, above the albums' rows): two genres, then a decade, and so on, 6 of the 12 genres
+  the user plays most (before anything has played, of those with the most albums) and 3 of the 6 decades
+  (`MediaServer.mostPlayedDecades`), picked at random each time the home loads, the higher one ranks the likelier
+  (`_pickedByRank`; the tests give it a seeded `Random`); each with its first songs and their first artist, asked for
+  once, as its tile shows, which
+  shows that artist's picture and plays those songs first (`playMix`). On Subsonic the genres and decades played most
+  share one request for the 500 most played albums, and on Jellyfin one for the most played songs, while it's under
+  way. A genre's page has a button that plays its mix (`MixButton`). The mix goes to the hub as any queue does: the
+  protocol knows nothing of it.
 - `Favorites` (`lib/server/favorites.dart`, `Services.favorites`) holds the user's favorite songs, albums and artists:
   as the media server last gave them (`MediaServer.favorites`: Subsonic's getStarred2, the latest starred first;
   Jellyfin's items marked `IsFavorite`, by name, since it doesn't say when), with the changes made here since, which

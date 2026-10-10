@@ -2,15 +2,18 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
+import '../mixes.dart';
 import '../server/models.dart';
 import '../server/server.dart';
 import '../services.dart';
 import 'album_row.dart';
 import 'albums_view.dart';
+import 'mix_row.dart';
 
-/// The first section: the latest released albums, the albums the user plays most and the latest added
-/// to the library, each in a row that scrolls sideways, whose title opens all of them. With the media server out of
-/// reach, the albums downloaded, the latest first, alone.
+/// The first section: mixes of the genres and the decades the user plays most, which play as they're picked, then the
+/// latest released albums, the albums the user plays most and the latest added to the library, each in a row that
+/// scrolls sideways, whose title opens all of them. With the media server out of reach, the albums downloaded, the
+/// latest first, alone.
 class HomeView extends StatefulWidget {
   const HomeView({this.onShowAll, super.key});
 
@@ -26,6 +29,10 @@ class _HomeViewState extends State<HomeView> {
   static const _rows = [AlbumOrder.released, AlbumOrder.mostPlayed, AlbumOrder.latest];
 
   late Map<AlbumOrder, Future<List<Album>>> _albums;
+
+  /// None out of reach: a mix's songs are the server's to pick.
+  SuggestedMixes? _mixes;
+
   bool _loaded = false;
 
   /// Whether the media server was out of reach as the rows loaded.
@@ -46,6 +53,7 @@ class _HomeViewState extends State<HomeView> {
     // Out of reach, the server's albums are the downloaded ones, the latest downloaded first.
     final rows = _offline ? const [AlbumOrder.latest] : _rows;
     _albums = {for (final order in rows) order: services.api.albums(order: order, size: AlbumRow.maxAlbums)};
+    _mixes = _offline ? null : SuggestedMixes(services.api);
     _loaded = true;
   }
 
@@ -67,6 +75,7 @@ class _HomeViewState extends State<HomeView> {
           // At the end, clear of the bars a phone's home has over it.
           padding: EdgeInsets.only(bottom: 16 + MediaQuery.paddingOf(context).bottom),
           children: [
+            if (_mixes case final mixes?) MixRow(mixes, key: ObjectKey(mixes)),
             for (final MapEntry(key: order, value: albums) in _albums.entries)
               AlbumRow(
                 title: _offline ? strings.downloadedAlbums : order.label(strings),

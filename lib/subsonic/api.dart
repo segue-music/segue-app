@@ -46,6 +46,9 @@ class SubsonicApi implements MediaServer {
   // The requests under way that more than one method makes ([_shared]), by their endpoint and the id they ask for.
   final _sharedRequests = <(String, String), Future<Map<String, dynamic>>>{};
 
+  // The request under way for the 500 most played albums ([_mostPlayedAlbumItems]).
+  Future<List<Map<String, dynamic>>>? _mostPlayedRequest;
+
   @override
   Api get api => Api.subsonic;
 
@@ -79,12 +82,21 @@ class SubsonicApi implements MediaServer {
       return albums(order: AlbumOrder.mostPlayed, size: size);
     }
 
-    final mostPlayed = await _albumListItems({'type': 'frequent'}, size: 500);
+    final mostPlayed = await _mostPlayedAlbumItems();
     return [
       for (final json in mostPlayed)
         if (_albumGenres(json).contains(genre)) _album(json),
     ].take(size).toList();
   }
+
+  /// The 500 most played albums (getAlbumList2's frequent), as many as a list gives at once (Navidrome's limit), which
+  /// the genres, the decades and the artists the user plays most are counted from, as the server sends them. The home
+  /// asks for the genres and the decades at once: a request under way answers both. One that has answered isn't kept,
+  /// as the plays change.
+  Future<List<Map<String, dynamic>>> _mostPlayedAlbumItems() =>
+      _mostPlayedRequest ??= _albumListItems({'type': 'frequent'}, size: 500).whenComplete(() {
+        _mostPlayedRequest = null;
+      });
 
   /// Albums in a list of getAlbumList2, which [query] names: its type (newest, recent, frequent, byYear,
   /// alphabeticalByName…) and the type's parameters.
@@ -122,13 +134,44 @@ class SubsonicApi implements MediaServer {
   Future<List<Genre>> mostPlayedGenres({int size = 10}) async {
     final plays = <String, int>{};
 
-    for (final album in await _albumListItems({'type': 'frequent'}, size: 500)) {
+    for (final album in await _mostPlayedAlbumItems()) {
       for (final genre in _albumGenres(album)) {
         plays[genre] = (plays[genre] ?? 0) + ((album['playCount'] as num?)?.toInt() ?? 1);
       }
     }
 
     return [for (final name in rankedByCount(plays).take(size)) Genre(id: name, name: name)];
+  }
+
+  /// A decade's plays are those of its albums, by their year, among the 500 most played, added up, as a genre's are. An
+  /// album without a year is in none.
+  @override
+  Future<List<int>> mostPlayedDecades({int size = 10}) async {
+    final plays = <int, int>{};
+
+    for (final album in await _mostPlayedAlbumItems()) {
+      if (album['year'] case final num year when year > 0) {
+        final decade = year.toInt() ~/ 10 * 10;
+        plays[decade] = (plays[decade] ?? 0) + ((album['playCount'] as num?)?.toInt() ?? 1);
+      }
+    }
+
+    return rankedByCount(plays).take(size).toList();
+  }
+
+  /// getRandomSongs, which takes 500 at most, of the genre by its name, and from the songs' years.
+  @override
+  Future<List<Song>> randomSongs({int size = 100, String? genre, ({int from, int to})? years}) async {
+    final body = await _get('getRandomSongs', {
+      'size': '$size',
+      'genre': ?genre,
+      'fromYear': ?years?.from.toString(),
+      'toYear': ?years?.to.toString(),
+    });
+    return [
+      for (final json in (body['randomSongs'] as Map<String, dynamic>?)?['song'] as List? ?? const [])
+        _song(json as Map<String, dynamic>),
+    ];
   }
 
   /// Subsonic lists no songs by plays: an artist's most played are the songs of their albums
@@ -324,7 +367,7 @@ class SubsonicApi implements MediaServer {
   Future<List<Artist>> mostPlayedArtists({int size = 100}) async {
     final plays = <String, int>{};
 
-    for (final album in await _albumListItems({'type': 'frequent'}, size: 500)) {
+    for (final album in await _mostPlayedAlbumItems()) {
       for (final artist in _albumArtists(album)) {
         plays[artist] = (plays[artist] ?? 0) + ((album['playCount'] as num?)?.toInt() ?? 1);
       }

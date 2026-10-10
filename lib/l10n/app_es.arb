@@ -242,5 +242,13 @@
   "favoriteAlbumsEmpty": "Aún no hay álbumes favoritos. El corazón en la página de un álbum lo pone aquí.",
   "favoriteArtistsEmpty": "Aún no hay artistas favoritos. El corazón en la página de un artista lo pone aquí.",
   "couldNotListFavorites": "No pude cargar los favoritos: {error}",
-  "couldNotChangeFavorites": "No pude cambiar los favoritos: {error}"
+  "couldNotChangeFavorites": "No pude cambiar los favoritos: {error}",
+  "mixes": "Mixes",
+  "previousMixes": "Anteriores",
+  "nextMixes": "Siguientes",
+  "decade": "{decade, select, 1920{Años 20} 1930{Años 30} 1940{Años 40} 1950{Años 50} 1960{Años 60} 1970{Años 70} 1980{Años 80} 1990{Años 90} other{Años {decade}}}",
+  "playMix": "Reproducir un mix",
+  "mixEmpty": "Este mix no tiene canciones.",
+  "couldNotPlayMix": "No pude reproducir el mix: {error}",
+  "mixArtists": "{artists} y más"
 }

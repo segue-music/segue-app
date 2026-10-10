@@ -894,6 +894,101 @@ void main() {
     expect(await api.mostPlayedGenres(), hasLength(4));
   });
 
+  test('the most played decades add up the plays of the 500 most played albums, by their years', () async {
+    late Uri asked;
+    final api = SubsonicApi(
+      Uri.parse('https://music.test'),
+      credentials,
+      client: MockClient((request) async {
+        asked = request.url;
+        return subsonic({
+          'status': 'ok',
+          'albumList2': {
+            'album': [
+              {'id': 'a1', 'name': 'Pump', 'year': 1989, 'playCount': 10},
+              {'id': 'a2', 'name': 'Toys in the Attic', 'year': 1975, 'playCount': 6},
+              {'id': 'a3', 'name': 'Aerosmith', 'year': 1973, 'playCount': 5},
+              // Without a year, in none.
+              {'id': 'a4', 'name': 'Live Bootleg', 'playCount': 30},
+              // A server that doesn't say counts each album once.
+              {'id': 'a5', 'name': 'Just Push Play', 'year': 2001},
+            ],
+          },
+        });
+      }),
+    );
+    expect(await api.mostPlayedDecades(), [1970, 1980, 2000]);
+    expect(asked.queryParameters, containsPair('type', 'frequent'));
+    expect(asked.queryParameters, containsPair('size', '500'));
+    expect(await api.mostPlayedDecades(size: 1), [1970]);
+  });
+
+  test('the most played genres and decades, asked at once, share one list of the most played albums, which is asked '
+      'again later', () async {
+    var asked = 0;
+    final api = SubsonicApi(
+      Uri.parse('https://music.test'),
+      credentials,
+      client: MockClient((request) async {
+        asked++;
+        return subsonic({
+          'status': 'ok',
+          'albumList2': {
+            'album': [
+              {'id': 'a1', 'name': 'Pump', 'year': 1989, 'genre': 'Rock', 'playCount': 10},
+            ],
+          },
+        });
+      }),
+    );
+    final (genres, decades) = await (api.mostPlayedGenres(), api.mostPlayedDecades()).wait;
+    expect([for (final genre in genres) genre.name], ['Rock']);
+    expect(decades, [1980]);
+    expect(asked, 1);
+
+    await api.mostPlayedGenres();
+    expect(asked, 2, reason: 'the plays change');
+  });
+
+  test('songs at random are getRandomSongs\', of a genre by its name and from a range of years', () async {
+    final asked = <Map<String, String>>[];
+    final api = SubsonicApi(
+      Uri.parse('https://music.test'),
+      credentials,
+      client: MockClient((request) async {
+        expect(request.url.path, '/rest/getRandomSongs.view');
+        asked.add(request.url.queryParameters);
+        return subsonic({
+          'status': 'ok',
+          'randomSongs': {
+            'song': [
+              {'id': 's1', 'title': 'Sweet Emotion', 'artist': 'Aerosmith', 'albumId': 'a2', 'coverArt': 'al-a2'},
+              {'id': 's2', 'title': 'Love in an Elevator', 'artist': 'Aerosmith', 'albumId': 'a1'},
+            ],
+          },
+        });
+      }),
+    );
+    final songs = await api.randomSongs(size: 50, genre: 'Rock', years: (from: 1970, to: 1979));
+    expect([for (final song in songs) song.title], ['Sweet Emotion', 'Love in an Elevator']);
+    expect(songs.first.coverArt, 'al-a2');
+    expect(asked.single, allOf(containsPair('size', '50'), containsPair('genre', 'Rock')));
+    expect(asked.single, allOf(containsPair('fromYear', '1970'), containsPair('toYear', '1979')));
+
+    await api.randomSongs();
+    expect(asked.last, containsPair('size', '100'));
+    expect(asked.last.keys, isNot(anyOf(contains('genre'), contains('fromYear'), contains('toYear'))));
+  });
+
+  test('a server with no songs at random has none', () async {
+    final api = SubsonicApi(
+      Uri.parse('https://music.test'),
+      credentials,
+      client: MockClient((request) async => subsonic({'status': 'ok', 'randomSongs': <String, Object?>{}})),
+    );
+    expect(await api.randomSongs(genre: 'Polka'), isEmpty);
+  });
+
   test('an artist\'s most played songs are their albums\' songs, by plays, from the albums that have played', () async {
     final asked = <Uri>[];
     final api = SubsonicApi(

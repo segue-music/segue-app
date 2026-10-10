@@ -71,6 +71,9 @@ class JellyfinApi implements MediaServer {
   final String deviceName;
   final http.Client _http;
 
+  // The request under way for the user's most played songs with their genres ([_mostPlayedSongsWithGenres]).
+  Future<List<Map<String, dynamic>>>? _mostPlayedRequest;
+
   @override
   Api get api => Api.jellyfin;
 
@@ -140,7 +143,7 @@ class JellyfinApi implements MediaServer {
     final plays = <String, int>{};
     final names = <String, String>{};
 
-    for (final song in await _mostPlayedSongs({'Fields': 'Genres'})) {
+    for (final song in await _mostPlayedSongsWithGenres()) {
       for (final genre in song['GenreItems'] as List? ?? const []) {
         if (genre case {'Id': final String id, 'Name': final String name}) {
           plays[id] = (plays[id] ?? 0) + _playCount(song);
@@ -151,6 +154,35 @@ class JellyfinApi implements MediaServer {
 
     return [for (final id in rankedByCount(plays).take(size)) Genre(id: id, name: names[id]!)];
   }
+
+  /// A decade's plays are those of its songs, by their year (ProductionYear), added up, among the user's most played
+  /// songs, as a genre's are. A song without a year is in none.
+  @override
+  Future<List<int>> mostPlayedDecades({int size = 10}) async {
+    final plays = <int, int>{};
+
+    for (final song in await _mostPlayedSongsWithGenres()) {
+      if (song['ProductionYear'] case final num year when year > 0) {
+        final decade = year.toInt() ~/ 10 * 10;
+        plays[decade] = (plays[decade] ?? 0) + _playCount(song);
+      }
+    }
+
+    return rankedByCount(plays).take(size).toList();
+  }
+
+  /// The user's songs at random (SortBy Random), of the genre by its id (GenreIds), and from each of [years] (Years).
+  @override
+  Future<List<Song>> randomSongs({int size = 100, String? genre, ({int from, int to})? years}) async => [
+    for (final json in await _items({
+      'IncludeItemTypes': 'Audio',
+      'SortBy': 'Random',
+      'Limit': '$size',
+      'GenreIds': ?genre,
+      if (years != null) 'Years': [for (var year = years.from; year <= years.to; year++) year].join(','),
+    }))
+      _song(json),
+  ];
 
   /// The user's most played songs that have the artist among their artists or as their album artist
   /// (ArtistIds), also on another artist's album.
@@ -518,6 +550,14 @@ class JellyfinApi implements MediaServer {
     'Limit': '1000',
     ...query,
   });
+
+  /// The user's most played songs, with their genres, which the genres and the decades the user plays most are counted
+  /// from. The home asks for both at once: a request under way answers both. One that has answered isn't kept, as the
+  /// plays change.
+  Future<List<Map<String, dynamic>>> _mostPlayedSongsWithGenres() =>
+      _mostPlayedRequest ??= _mostPlayedSongs({'Fields': 'Genres'}).whenComplete(() {
+        _mostPlayedRequest = null;
+      });
 
   /// Artists come from their own endpoint: Jellyfin's Items doesn't list them.
   Future<List<Map<String, dynamic>>> _albumArtists(Map<String, String> query) => _list('Artists/AlbumArtists', query);

@@ -97,7 +97,7 @@ const songs = [
 ];
 
 /// A library of an album and an EP by one artist, in one genre, whose songs have lyrics, one of them played, and are
-/// the artist's popular ones, and a playlist of them. The artist has a biography, Last.fm's, and an artist like them.
+/// the artist's popular ones, and its mixes', and a playlist of them. The artist has a biography, Last.fm's, and an artist like them.
 http.Response server(http.Request request) {
   final path = request.url.path;
 
@@ -150,6 +150,9 @@ http.Response server(http.Request request) {
     }),
     'getTopSongs.view' => subsonic({
       'topSongs': {'song': songs},
+    }),
+    'getRandomSongs.view' => subsonic({
+      'randomSongs': {'song': songs},
     }),
     'getGenres.view' => subsonic({
       'genres': {
@@ -266,7 +269,9 @@ void main() {
       ) async {
         final narrow = size.width < 600;
         await pumpHome(tester, language, size);
-        expect(find.text(strings.orderReleased), findsOneWidget, reason: 'the home\'s first row');
+        expect(find.text(strings.mixes), findsOneWidget, reason: 'the home\'s first row');
+        expect(find.text(strings.decade('1970')), findsOneWidget, reason: 'the album\'s, played');
+        expect(find.text(strings.orderReleased), findsOneWidget);
 
         await tap(tester, find.byTooltip(strings.settings));
         expect(find.text(strings.appearance), findsOneWidget, reason: 'the settings');
@@ -339,6 +344,9 @@ void main() {
         await tap(tester, find.text(strings.cancel));
 
         await tap(tester, find.byTooltip(strings.home).first);
+        // Under the mixes.
+        await tester.ensureVisible(find.text('Toys in the Attic').first);
+        await tester.pumpAndSettle();
         await tap(tester, find.text('Toys in the Attic').first);
         expect(find.byTooltip(strings.playRelease('album')), findsOneWidget);
         expect(find.textContaining(strings.trackCount(2)), findsOneWidget);

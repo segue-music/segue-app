@@ -399,6 +399,58 @@ void main() {
     expect(songs['Fields'], contains('Genres'));
   });
 
+  test('the most played decades add up the plays of the most played songs, by their years', () async {
+    Map<String, Object?> played(String id, int plays, int? year) => {
+      ...song,
+      'Id': id,
+      'ProductionYear': year,
+      'UserData': {'PlayCount': plays, 'Played': true},
+    };
+
+    final asked = <http.Request>[];
+    final api = jellyfin(
+      (_) => items([
+        played('s1', 12, 1989),
+        played('s2', 9, 1975),
+        played('s3', 5, 1973),
+        // Without a year, in none.
+        played('s4', 30, null),
+      ]),
+      asked,
+    );
+    final (genres, decades) = await (api.mostPlayedGenres(), api.mostPlayedDecades()).wait;
+    expect(decades, [1970, 1980]);
+    expect(genres, isEmpty);
+    expect(asked, hasLength(1), reason: 'asked at once, the genres and the decades share the most played songs');
+    final songs = asked.single.url.queryParameters;
+    expect(songs, containsPair('Filters', 'IsPlayed'));
+    expect(songs, containsPair('SortBy', 'PlayCount'));
+  });
+
+  test('songs at random are the songs sorted at random, of a genre by its id and from each year of a range', () async {
+    final asked = <http.Request>[];
+    final songs = await jellyfin(
+      (_) => items([
+        {...song, 'Id': 's1', 'Name': 'Sweet Emotion'},
+      ]),
+      asked,
+    ).randomSongs(size: 50, genre: 'g1', years: (from: 1970, to: 1979));
+    expect([for (final song in songs) song.title], ['Sweet Emotion']);
+    final query = asked.single.url.queryParameters;
+    expect(asked.single.url.path, '/jellyfin/Items');
+    expect(query, containsPair('IncludeItemTypes', 'Audio'));
+    expect(query, containsPair('SortBy', 'Random'));
+    expect(query, containsPair('Recursive', 'true'));
+    expect(query, containsPair('Limit', '50'));
+    expect(query, containsPair('GenreIds', 'g1'));
+    expect(query, containsPair('Years', '1970,1971,1972,1973,1974,1975,1976,1977,1978,1979'));
+
+    asked.clear();
+    await jellyfin((_) => items([]), asked).randomSongs();
+    expect(asked.single.url.queryParameters, containsPair('Limit', '100'));
+    expect(asked.single.url.queryParameters.keys, isNot(anyOf(contains('GenreIds'), contains('Years'))));
+  });
+
   test('an artist\'s most played songs are the most played songs they are an artist or the album artist of', () async {
     final asked = <http.Request>[];
     final songs = await jellyfin(

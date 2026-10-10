@@ -20,6 +20,9 @@ Future<PlayerController> pumpWide(WidgetTester tester) async {
 }
 
 Future<void> tapAndSettle(WidgetTester tester, Finder finder) async {
+  // The album is in the home's last row, under its mixes, which may take it past the bottom of the screen.
+  await tester.ensureVisible(finder);
+  await tester.pumpAndSettle();
   await tester.tap(finder);
   await tester.pumpAndSettle();
 }

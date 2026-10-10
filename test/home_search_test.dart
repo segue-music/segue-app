@@ -61,6 +61,11 @@ Future<(PlayerController, List<String?>)> pumpHome(WidgetTester tester, Size siz
         });
       }
 
+      // The first songs of the home's mix, of the genre: none.
+      if (request.url.path.endsWith('getRandomSongs.view')) {
+        return subsonic({'randomSongs': <String, Object?>{}});
+      }
+
       queries.add(request.url.queryParameters['query']);
       return subsonic({
         'searchResult3': {

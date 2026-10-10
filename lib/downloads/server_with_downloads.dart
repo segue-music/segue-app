@@ -146,6 +146,28 @@ class ServerWithDownloads implements MediaServer {
       _either(() => server.mostPlayedGenres(size: size), () => const []);
 
   @override
+  Future<List<int>> mostPlayedDecades({int size = 10}) =>
+      _either(() => server.mostPlayedDecades(size: size), () => const []);
+
+  /// Out of reach, the songs of the downloaded albums of the genre and from the years, by the album's: a downloaded
+  /// playlist says neither of its songs.
+  @override
+  Future<List<Song>> randomSongs({int size = 100, String? genre, ({int from, int to})? years}) =>
+      _either(() => server.randomSongs(size: size, genre: genre, years: years), () {
+        bool chosen(Album album) {
+          final year = album.year ?? album.releaseDate?.year;
+          return (genre == null || album.genres.any((other) => other.id == genre)) &&
+              (years == null || (year != null && year >= years.from && year <= years.to));
+        }
+
+        final songs = [
+          for (final download in downloads.all)
+            if (download.album case final album? when chosen(album)) ...download.songs,
+        ]..shuffle();
+        return songs.take(size).toList();
+      });
+
+  @override
   Future<List<Song>> mostPlayedSongs(String artistId, {int size = 10}) =>
       _either(() => server.mostPlayedSongs(artistId, size: size), () => const []);
 
