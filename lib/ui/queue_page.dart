@@ -142,6 +142,7 @@ class _QueuePageState extends State<QueuePage> {
               appBar: AppBar(
                 // Under a wide screen's top bar, whose arrow goes back: no arrow of its own.
                 automaticallyImplyLeading: !PageArea.holdsUnderTopBar(context),
+                centerTitle: true,
                 title: Text(switch (now?.device) {
                   null => strings.queue,
                   final device => strings.queueOn(device),
