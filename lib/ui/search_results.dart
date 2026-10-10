@@ -7,7 +7,6 @@ import 'album_page.dart';
 import 'album_play_button.dart';
 import 'artist_link.dart';
 import 'artist_page.dart';
-import 'artists_view.dart';
 import 'cover.dart';
 import 'current_song.dart';
 import 'errors.dart';
@@ -59,8 +58,8 @@ class SearchResultsList extends StatelessWidget {
           for (final artist in artists)
             ListTile(
               leading: Thumbnail.artist(artist),
+              // No count of their albums, as on their tile in the artists' grid (ArtistTile).
               title: Text(artist.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-              subtitle: Text(albumCount(strings, artist.albumCount)),
               onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ArtistPage(artist))),
             ),
           if (albums.isNotEmpty) _Heading(strings.albums),

@@ -184,19 +184,20 @@ class _ArtistGrid extends StatelessWidget {
   );
 }
 
-/// An artist's picture, with their name and how many albums they have, which opens their page. While the pointer is
-/// over the artist, the picture darkens a little, as an album's cover does under its play button.
+/// An artist's picture, with their name, which opens their page. No count of their albums: the media servers count only
+/// those they are the album artist of, not those they sing on. While the pointer is over the artist, the picture
+/// darkens a little, as an album's cover does under its play button.
 class ArtistTile extends StatefulWidget {
   const ArtistTile(this.artist, {super.key});
 
   final Artist artist;
 
-  /// The room inside, around the picture and the lines under it, where the tint (the pointer's, the focus's) shows, as
+  /// The room inside, around the picture and the line under it, where the tint (the pointer's, the focus's) shows, as
   /// an album has (`AlbumTile.padding`). The grid takes it from the room around the artists.
   static const padding = 8.0;
 
-  /// How wide it is for how tall, with room for the picture and the two lines under it.
-  static const aspectRatio = 0.74;
+  /// How wide it is for how tall, with room for the picture and the line under it.
+  static const aspectRatio = 0.79;
 
   @override
   State<ArtistTile> createState() => _ArtistTileState();
@@ -242,7 +243,6 @@ class _ArtistTileState extends State<ArtistTile> {
                 ),
                 const SizedBox(height: 6),
                 Text(artist.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: text.titleSmall),
-                Text(albumCount(AppLocalizations.of(context), artist.albumCount), maxLines: 1, style: text.bodySmall),
               ],
             ),
           ),

@@ -309,7 +309,7 @@ void main() {
         expect(find.widgetWithText(ChoiceChip, strings.orderLatest), findsOneWidget);
 
         await openSection(tester, strings.artists, strings: strings);
-        expect(find.text(strings.albumCount(2)), findsOneWidget);
+        expect(find.widgetWithText(ChoiceChip, strings.orderName).hitTestable(), findsOneWidget);
 
         await openSection(tester, strings.genres, strings: strings);
         expect(find.text(strings.albumCount(2)), findsOneWidget);

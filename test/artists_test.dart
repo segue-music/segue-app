@@ -458,8 +458,8 @@ void main() {
     expect(selectedInRail('Artistas'), findsOneWidget);
     expect(find.text('Aerosmith'), findsOneWidget);
     expect(find.text('Cheap Trick'), findsOneWidget);
-    expect(find.text('2 álbuns'), findsOneWidget);
-    expect(find.text('1 álbum'), findsOneWidget);
+    expect(find.text('2 álbuns'), findsNothing, reason: 'no count of their albums, which the server gets wrong');
+    expect(find.text('1 álbum'), findsNothing);
 
     await tester.tap(find.text('Aerosmith'));
     await tester.pumpAndSettle();
@@ -503,7 +503,6 @@ void main() {
     expect(picked(tester, 'Mais tocados'), isTrue);
     expect(picked(tester, 'Nome'), isFalse);
     expect(find.text('Cheap Trick'), findsOneWidget, reason: 'their songs have played');
-    expect(find.text('1 álbum'), findsOneWidget, reason: 'as the tab lists them by name');
     expect(find.text('Aerosmith'), findsNothing, reason: 'none of theirs has');
     expect(find.text('Ramones'), findsNothing);
 
@@ -960,12 +959,13 @@ void main() {
     },
   );
 
-  testWidgets('search finds artists too, and one opens their page', (tester) async {
+  testWidgets('search finds artists too, with no count of their albums, and one opens their page', (tester) async {
     await pumpHome(tester, const Size(1000, 700));
     await tester.enterText(find.byType(TextField), 'aero');
     await tester.pump(HomePage.searchTypingPause);
     await tester.pumpAndSettle();
     expect(find.text('Artistas'), findsWidgets);
+    expect(find.text('2 álbuns'), findsNothing, reason: 'which the server gets wrong');
     await tester.tap(find.text('Aerosmith'));
     await tester.pumpAndSettle();
     expect(artistName('Aerosmith'), findsOneWidget);
