@@ -382,3 +382,9 @@ class Playlist {
 
 /// What a search found.
 typedef SearchResults = ({List<Artist> artists, List<Album> albums, List<Song> songs});
+
+/// What the user can keep among their favorites: a song, an album, an artist.
+enum FavoriteKind { song, album, artist }
+
+/// The user's favorites, of each kind.
+typedef FavoriteItems = ({List<Artist> artists, List<Album> albums, List<Song> songs});

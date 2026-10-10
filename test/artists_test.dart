@@ -54,9 +54,24 @@ http.Response subsonic(Map<String, Object?> body) => http.Response(
 /// Unless [played], nothing has played: not even Cheap Trick's songs. Cheap Trick's popular songs are three of that
 /// album's, Big Eyes first; the others' fail, as on a server that has none to give. Aerosmith has a biography, Last.fm's,
 /// a MusicBrainz id, and Cheap Trick and Ramones as the artists like them; the others have neither, which fails too.
+/// Ramones is the user's favorite artist.
 http.Response server(http.Request request, {bool played = true}) {
   final path = request.url.path;
   final id = request.url.queryParameters['id'];
+
+  if (path.endsWith('getStarred2.view')) {
+    return subsonic({
+      'starred2': {
+        'artist': [
+          {'id': 'ar3', 'name': 'Ramones', 'albumCount': 0, 'starred': '2026-10-01T12:00:00Z'},
+        ],
+      },
+    });
+  }
+
+  if (path.endsWith('star.view') || path.endsWith('unstar.view')) {
+    return subsonic({});
+  }
 
   if (path.endsWith('getTopSongs.view') && request.url.queryParameters['artist'] == 'Cheap Trick') {
     return subsonic({
@@ -464,7 +479,7 @@ void main() {
     await tester.pumpWidget(const SizedBox()); // stops the player bar's timers
   });
 
-  testWidgets('the artists tab lists them by name, or the most played first, as picked in a choice above them', (
+  testWidgets('the artists tab lists them by name, the most played first, or the favorites, as picked above them', (
     tester,
   ) async {
     await pumpHome(tester, const Size(1000, 700));
@@ -491,7 +506,15 @@ void main() {
     expect(find.text('Aerosmith'), findsNothing, reason: 'none of theirs has');
     expect(find.text('Ramones'), findsNothing);
 
-    await tester.tap(order('Nome'));
+    // A tap picks the next.
+    await tester.tap(order('Mais tocados'));
+    await tester.pumpAndSettle();
+    expect(tester.getSemantics(order('Favoritos')), isSemantics(label: 'Favoritos'));
+    expect(find.text('Ramones'), findsOneWidget, reason: 'the user\'s favorite');
+    expect(find.text('Aerosmith'), findsNothing);
+    expect(find.text('Cheap Trick'), findsNothing);
+
+    await tester.tap(order('Favoritos'));
     await tester.pumpAndSettle();
     expect(find.text('Aerosmith'), findsOneWidget);
     expect(find.text('Ramones'), findsOneWidget);
@@ -817,7 +840,10 @@ void main() {
     expect(choice.top, greaterThan(tester.getRect(heading).bottom), reason: 'under the name');
     final count = tester.getRect(find.text('1 álbum'));
     expect(count.center.dy, moreOrLessEquals(choice.center.dy, epsilon: 1), reason: 'on the choice\'s line');
-    expect(count.right, moreOrLessEquals(360 - 16, epsilon: 1), reason: 'at its end, the page\'s margin from the edge');
+    final heart = tester.getRect(find.byTooltip('Adicionar aos favoritos'));
+    expect(heart.center.dy, moreOrLessEquals(choice.center.dy, epsilon: 1), reason: 'on the choice\'s line');
+    expect(heart.right, moreOrLessEquals(360 - 16, epsilon: 1), reason: 'at its end, the page\'s margin from the edge');
+    expect(count.right, lessThanOrEqualTo(heart.left), reason: 'the heart after it');
     expect(
       tester.getRect(find.text('I Want You to Want Me')).top,
       greaterThanOrEqualTo(picture.bottom),

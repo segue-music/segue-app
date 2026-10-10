@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../l10n/app_localizations.dart';
+import '../server/favorites.dart';
 import '../server/models.dart';
 import '../services.dart';
 import 'artist_page.dart';
@@ -14,30 +15,35 @@ import 'themed_icon.dart';
 /// "1 álbum", "5 álbuns"; empty when the server didn't say.
 String albumCount(AppLocalizations strings, int? count) => count == null ? '' : strings.albumCount(count);
 
-/// Orders the library's artists come in: what the choice above them says of one, the icon it can show instead, and what
-/// a list in it says when it has none.
+/// Orders the library's artists come in, or the user's favorite ones alone: what the choice above them says of one, the
+/// icon it can show instead, and what a list in it says when it has none.
 enum _ArtistOrder {
   name,
-  mostPlayed;
+  mostPlayed,
+  favorites;
 
   String label(AppLocalizations strings) => switch (this) {
     name => strings.orderName,
     mostPlayed => strings.mostPlayed,
+    favorites => strings.favorites,
   };
 
-  /// From A to Z; what the user listens to, as an artist's page has it.
+  /// From A to Z; what the user listens to, as an artist's page has it; the heart that makes one a favorite.
   HugeIconData get icon => switch (this) {
     name => HugeIcons.strokeRoundedSortingAZ02,
     mostPlayed => HugeIcons.strokeRoundedHeadphones,
+    favorites => HugeIcons.strokeRoundedFavourite,
   };
 
   String emptyMessage(AppLocalizations strings) => switch (this) {
     name => strings.libraryEmpty,
     mostPlayed => strings.mostPlayedArtistsEmpty,
+    favorites => strings.favoriteArtistsEmpty,
   };
 }
 
-/// The library's artists, by name or the most played first, as picked in a [SegmentedChoice] above them.
+/// The library's artists, by name or the most played first, or the user's favorite ones alone, as they change, as
+/// picked in a [SegmentedChoice] above them.
 class ArtistsView extends StatefulWidget {
   const ArtistsView({super.key});
 
@@ -49,19 +55,61 @@ class _ArtistsViewState extends State<ArtistsView> {
   _ArtistOrder _order = _ArtistOrder.name;
   Future<List<Artist>>? _artists;
 
+  /// The user's favorites, which [_ArtistOrder.favorites] lists as they change.
+  Favorites? _favorites;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _artists ??= _load();
+    final favorites = ServicesScope.of(context).favorites;
+
+    if (favorites != _favorites) {
+      _favorites?.removeListener(_favoritesChanged);
+      _favorites = favorites..addListener(_favoritesChanged);
+    }
   }
 
-  /// The artists, in the order picked.
-  Future<List<Artist>> _load() {
-    final api = ServicesScope.of(context).api;
+  @override
+  void dispose() {
+    _favorites?.removeListener(_favoritesChanged);
+    super.dispose();
+  }
+
+  /// The favorites changed: listing them, once they have come, the list follows them.
+  void _favoritesChanged() {
+    final favorites = _favorites!;
+
+    if (_order == _ArtistOrder.favorites && favorites.loaded) {
+      // In braces: setState takes no callback that returns a future, as the assignment would.
+      setState(() {
+        _artists = Future.value(favorites.artists);
+      });
+    }
+  }
+
+  /// The artists, in the order picked; the favorites as the server has them now, or as they were, where it can't say
+  /// and they came before.
+  Future<List<Artist>> _load() async {
+    final services = ServicesScope.of(context);
+    final api = services.api;
     return switch (_order) {
       _ArtistOrder.name => api.artists(),
       _ArtistOrder.mostPlayed => api.mostPlayedArtists(),
+      _ArtistOrder.favorites => _loadFavorites(services.favorites),
     };
+  }
+
+  static Future<List<Artist>> _loadFavorites(Favorites favorites) async {
+    try {
+      await favorites.load();
+    } on Object {
+      if (!favorites.loaded) {
+        rethrow;
+      }
+    }
+
+    return favorites.artists;
   }
 
   /// Another order lists them again, from the start.

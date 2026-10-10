@@ -215,6 +215,16 @@ Running two app instances on one machine as different devices:
   song, so `moveInPlaylist` sends the playlist's songs back in their new order (`createPlaylist` with its id), in a
   form's body where the server has OpenSubsonic's formPost; Jellyfin removes and moves by the entry's id
   (`PlaylistItemId`, from `Playlists/{id}/Items`), so the API asks for the entries first.
+- `Favorites` (`lib/server/favorites.dart`, `Services.favorites`) holds the user's favorite songs, albums and artists:
+  as the media server last gave them (`MediaServer.favorites`: Subsonic's getStarred2, the latest starred first;
+  Jellyfin's items marked `IsFavorite`, by name, since it doesn't say when), with the changes made here since, which
+  show at once and go to the server one after another (`setFavorite`: star and unstar; `UserFavoriteItems/{id}`), a
+  refused one undone; once none is left, they load again. `Services.start` loads them, and again as the server comes
+  back in reach; the pages that list them (`FavoriteSongsPage`, first among the playlists, the albums' "Favoritos"
+  chip, the artists' third choice) load them as they open. `FavoriteButton` (`lib/ui/favorite_button.dart`) is the
+  heart, filled (`filledHeart`, Hugeicons' outline with a fill, as its free icons have no filled heart) while the item
+  is a favorite: on an album's page, an artist's, the phone's full-screen player (by the title) and the wide player
+  bar; a song's menu has it as an item.
 - `lib/lyrics/lrclib.dart`: LRCLIB, where the full-screen player's lyrics (`LyricsView`) come from
   when the media server has none, by the song's title, artist, album and length. `Services.start`
   gives it one; tests leave `Services.lrclib` null, so that none goes out to the internet.

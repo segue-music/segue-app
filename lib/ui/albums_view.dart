@@ -6,6 +6,7 @@ import 'package:flutter/rendering.dart';
 
 import '../downloads/downloads.dart';
 import '../l10n/app_localizations.dart';
+import '../server/favorites.dart';
 import '../server/models.dart';
 import '../server/server.dart';
 import '../services.dart';
@@ -30,17 +31,20 @@ extension AlbumOrderText on AlbumOrder {
       this == AlbumOrder.mostPlayed ? strings.mostPlayedAlbumsEmpty : strings.libraryEmpty;
 }
 
+/// Which albums the albums tab shows: the library's, in an order, the downloaded alone, or the user's favorites alone.
+enum AlbumsShown { library, downloaded, favorites }
+
 /// The library's albums in [order], or a genre's by name, a page at a time: the next as the grid nears
-/// its end; or the albums downloaded ([downloaded]). Above the library's, chips pick the order, and after them, where the
-/// app downloads, "Baixados", the downloaded alone.
+/// its end; or the albums downloaded, or the user's favorite ones ([shown]). Above the library's, chips pick the order,
+/// and after them "Favoritos", the favorites alone, and, where the app downloads, "Baixados", the downloaded alone.
 class AlbumsView extends StatefulWidget {
   const AlbumsView({
     this.genre,
     this.header,
     this.order = AlbumOrder.name,
     this.onOrder,
-    this.downloaded = false,
-    this.onDownloaded,
+    this.shown = AlbumsShown.library,
+    this.onShown,
     super.key,
   });
 
@@ -56,12 +60,12 @@ class AlbumsView extends StatefulWidget {
   /// Picks another order, from the chips; null, no chips.
   final ValueChanged<AlbumOrder>? onOrder;
 
-  /// Whether it shows the albums downloaded alone, the latest downloaded first, as they come and go, rather than the
-  /// library's in [order].
-  final bool downloaded;
+  /// Whether it shows the library's albums in [order], the albums downloaded alone, the latest downloaded first, or the
+  /// user's favorite albums alone, as the media server lists them; these as they come and go.
+  final AlbumsShown shown;
 
-  /// Shows the downloaded alone, from the chips' last; null, no such chip.
-  final VoidCallback? onDownloaded;
+  /// Shows the downloaded alone, or the favorites alone, from the chips after the orders'; null, no such chips.
+  final ValueChanged<AlbumsShown>? onShown;
 
   @override
   State<AlbumsView> createState() => _AlbumsViewState();
@@ -89,17 +93,26 @@ class _AlbumsViewState extends State<AlbumsView> {
   /// Counts the starts over, so that a page asked for before one is dropped.
   int _generation = 0;
 
-  /// What was downloaded, which [AlbumsView.downloaded] lists as it changes.
+  /// What was downloaded, which [AlbumsShown.downloaded] lists as it changes.
   Downloads? _downloads;
+
+  /// The user's favorites, which [AlbumsShown.favorites] lists as they change.
+  Favorites? _favorites;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final downloads = ServicesScope.of(context).downloads;
+    final services = ServicesScope.of(context);
+    final downloads = services.downloads;
 
     if (downloads != _downloads) {
       _downloads?.removeListener(_downloadsChanged);
       _downloads = downloads?..addListener(_downloadsChanged);
+    }
+
+    if (services.favorites != _favorites) {
+      _favorites?.removeListener(_favoritesChanged);
+      _favorites = services.favorites..addListener(_favoritesChanged);
     }
 
     if (!_started) {
@@ -111,6 +124,7 @@ class _AlbumsViewState extends State<AlbumsView> {
   @override
   void dispose() {
     _downloads?.removeListener(_downloadsChanged);
+    _favorites?.removeListener(_favoritesChanged);
     super.dispose();
   }
 
@@ -119,9 +133,23 @@ class _AlbumsViewState extends State<AlbumsView> {
 
   /// A download came or went: listing the downloaded, the list follows it.
   void _downloadsChanged() {
-    final albums = _downloadedAlbums;
+    if (widget.shown == AlbumsShown.downloaded) {
+      _show(_downloadedAlbums);
+    }
+  }
 
-    if (widget.downloaded && !_sameAlbums(albums, _albums)) {
+  /// The favorites changed: listing them, once they have come, the list follows them.
+  void _favoritesChanged() {
+    final favorites = _favorites;
+
+    if (widget.shown == AlbumsShown.favorites && favorites != null && favorites.loaded) {
+      _show(favorites.albums);
+    }
+  }
+
+  /// Shows [albums], where they aren't those shown.
+  void _show(List<Album> albums) {
+    if (!_sameAlbums(albums, _albums)) {
       setState(() {
         _albums
           ..clear()
@@ -138,7 +166,7 @@ class _AlbumsViewState extends State<AlbumsView> {
   void didUpdateWidget(AlbumsView oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    if (widget.order != oldWidget.order || widget.downloaded != oldWidget.downloaded) {
+    if (widget.order != oldWidget.order || widget.shown != oldWidget.shown) {
       _albums.clear();
       _done = false;
       _error = null;
@@ -156,7 +184,7 @@ class _AlbumsViewState extends State<AlbumsView> {
     final api = ServicesScope.of(context).api;
 
     // The downloaded, all at once: they are on the device.
-    if (widget.downloaded) {
+    if (widget.shown == AlbumsShown.downloaded) {
       setState(() {
         _albums
           ..clear()
@@ -165,6 +193,12 @@ class _AlbumsViewState extends State<AlbumsView> {
         _loading = false;
         _error = null;
       });
+      return;
+    }
+
+    // The favorites, all at once, as the server has them now; as they were, where it can't say and they came before.
+    if (widget.shown == AlbumsShown.favorites) {
+      await _loadFavorites(generation);
       return;
     }
 
@@ -205,6 +239,39 @@ class _AlbumsViewState extends State<AlbumsView> {
     }
   }
 
+  /// Loads the favorites, and shows their albums, unless another start over, after the [generation]th, came first.
+  Future<void> _loadFavorites(int generation) async {
+    final favorites = ServicesScope.of(context).favorites;
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    Object? error;
+
+    try {
+      await favorites.load();
+    } on Object catch (e) {
+      error = e;
+    }
+
+    if (!mounted || generation != _generation) {
+      return;
+    }
+
+    setState(() {
+      if (favorites.loaded) {
+        _albums
+          ..clear()
+          ..addAll(favorites.albums);
+      } else {
+        _error = error;
+      }
+
+      _done = true;
+      _loading = false;
+    });
+  }
+
   void _retry() {
     _error = null; // which keeps _load from asking by itself
     _load();
@@ -233,25 +300,30 @@ class _AlbumsViewState extends State<AlbumsView> {
     }
 
     final strings = AppLocalizations.of(context);
-    final onDownloaded = widget.onDownloaded;
+    final onShown = widget.onShown;
+
+    Widget chip(AlbumsShown shown, String label) => ChoiceChip(
+      label: Text(label),
+      selected: widget.shown == shown,
+      onSelected: (_) => onShown!(shown),
+      mouseCursor: WidgetStateMouseCursor.clickable,
+    );
+
     // The chips stay at the top, also while another order's albums come. Their line takes the whole width, the chips
     // starting at its left, lined up with the albums.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         OrderChips(
-          widget.downloaded ? null : widget.order,
+          widget.shown == AlbumsShown.library ? widget.order : null,
           orders: _orders,
           label: (order) => order.label(strings),
           onOrder: onOrder,
           more: [
-            if (_downloads != null && onDownloaded != null)
-              ChoiceChip(
-                label: Text(strings.downloadedAlbums),
-                selected: widget.downloaded,
-                onSelected: (_) => onDownloaded(),
-                mouseCursor: WidgetStateMouseCursor.clickable,
-              ),
+            if (onShown != null) ...[
+              chip(AlbumsShown.favorites, strings.favorites),
+              if (_downloads != null) chip(AlbumsShown.downloaded, strings.downloadedAlbums),
+            ],
           ],
         ),
         Expanded(child: _albumsGrid()),
@@ -291,10 +363,11 @@ class _AlbumsViewState extends State<AlbumsView> {
               ? Center(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Text(
-                      widget.downloaded ? strings.nothingDownloaded : widget.order.emptyMessage(strings),
-                      textAlign: TextAlign.center,
-                    ),
+                    child: Text(switch (widget.shown) {
+                      AlbumsShown.library => widget.order.emptyMessage(strings),
+                      AlbumsShown.downloaded => strings.nothingDownloaded,
+                      AlbumsShown.favorites => strings.favoriteAlbumsEmpty,
+                    }, textAlign: TextAlign.center),
                   ),
                 )
               : null,

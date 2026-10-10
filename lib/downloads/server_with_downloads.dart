@@ -201,6 +201,14 @@ class ServerWithDownloads implements MediaServer {
   @override
   Future<Lyrics?> lyrics(String songId) => _either(() => server.lyrics(songId), () => downloads.lyrics(songId));
 
+  /// From the server alone: what was downloaded doesn't say which are favorites.
+  @override
+  Future<FavoriteItems> favorites() => _only(server.favorites);
+
+  @override
+  Future<void> setFavorite(FavoriteKind kind, String id, {required bool favorite}) =>
+      _only(() => server.setFavorite(kind, id, favorite: favorite));
+
   @override
   Future<SearchResults> search(String query, {int artists = 5, int albums = 10, int songs = 50}) =>
       _either(() => server.search(query, artists: artists, albums: albums, songs: songs), () {

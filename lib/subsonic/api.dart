@@ -224,6 +224,37 @@ class SubsonicApi implements MediaServer {
     await _post('createPlaylist', {'playlistId': id, 'songId': ids});
   }
 
+  /// getStarred2, whose items say when the user starred them (starred), by which they come here, the latest first.
+  @override
+  Future<FavoriteItems> favorites() async {
+    final starred = (await _get('getStarred2'))['starred2'] as Map<String, dynamic>? ?? const {};
+
+    List<Map<String, dynamic>> latestFirst(String key) {
+      DateTime when(Map<String, dynamic> json) =>
+          DateTime.tryParse(json['starred'] as String? ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0);
+
+      return [for (final json in starred[key] as List? ?? const []) json as Map<String, dynamic>]
+        ..sort((a, b) => when(b).compareTo(when(a)));
+    }
+
+    return (
+      artists: [for (final json in latestFirst('artist')) _artist(json)],
+      albums: [for (final json in latestFirst('album')) _album(json)],
+      songs: [for (final json in latestFirst('song')) _song(json)],
+    );
+  }
+
+  /// star and unstar, which name an album and an artist by their own parameters.
+  @override
+  Future<void> setFavorite(FavoriteKind kind, String id, {required bool favorite}) =>
+      _get(favorite ? 'star' : 'unstar', {
+        switch (kind) {
+          FavoriteKind.song => 'id',
+          FavoriteKind.album => 'albumId',
+          FavoriteKind.artist => 'artistId',
+        }: id,
+      });
+
   /// OpenSubsonic's getLyricsBySongId (its songLyrics extension, which Navidrome has, from the file's
   /// tags or a .lrc next to it): the first synced lyrics, else the first. Their offset shifts every line,
   /// a positive one sooner. They come from the server, by the name OpenSubsonic gives it (navidrome).

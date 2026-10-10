@@ -274,6 +274,31 @@ class JellyfinApi implements MediaServer {
     await _send('POST', 'Playlists/${Uri.encodeComponent(id)}/Items/${Uri.encodeComponent(entry)}/Move/$to');
   }
 
+  /// The items the user marked as favorites (IsFavorite), by name: Jellyfin doesn't say when they were. Artists of any
+  /// kind (Artists), not only album artists: a song's artist can be one too. With their MusicBrainz ids, as [search] has
+  /// them.
+  @override
+  Future<FavoriteItems> favorites() async {
+    final [artists, albums, songs] = await Future.wait([
+      _list('Artists', {'IsFavorite': 'true', 'SortBy': 'SortName', 'Fields': 'ProviderIds'}),
+      _items({'IncludeItemTypes': 'MusicAlbum', 'Filters': 'IsFavorite', 'SortBy': 'SortName'}),
+      _items({'IncludeItemTypes': 'Audio', 'Filters': 'IsFavorite', 'SortBy': 'SortName'}),
+    ]);
+    return (
+      artists: [for (final json in artists) _artist(json)],
+      albums: [for (final json in albums) _album(json)],
+      songs: [for (final json in songs) _song(json)],
+    );
+  }
+
+  /// UserFavoriteItems/{id}, whatever the item is: a POST makes it a favorite, a DELETE no longer one.
+  @override
+  Future<void> setFavorite(FavoriteKind kind, String id, {required bool favorite}) => _send(
+    favorite ? 'POST' : 'DELETE',
+    'UserFavoriteItems/${Uri.encodeComponent(id)}',
+    query: {'userId': credentials.userId},
+  );
+
   /// Jellyfin's lyrics of a song (Audio/{id}/Lyrics), from the file's tags or a .lrc next to it: a 404
   /// when it has none. Their starts are in ticks, of 100 ns.
   @override

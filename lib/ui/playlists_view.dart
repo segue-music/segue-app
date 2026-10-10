@@ -9,6 +9,7 @@ import '../server/models.dart';
 import '../server/playlist_editor.dart';
 import '../services.dart';
 import 'cover.dart';
+import 'favorite_songs_page.dart';
 import 'order_chips.dart';
 import 'playlist_dialogs.dart';
 import 'playlist_menu.dart';
@@ -16,7 +17,7 @@ import 'playlist_page.dart';
 import 'spinner.dart';
 
 /// The user's playlists, and those others share with them, by name, each with its picture and how many songs it has,
-/// opening its page, under a button that makes a new one. Held, one opens its menu, which plays it next or adds it to
+/// opening its page, under a button that makes a new one and the user's favorite songs ([FavoriteSongsPage]). Held, one opens its menu, which plays it next or adds it to
 /// the queue, and renames and deletes one the user can change. They load again as the app changes any. Where the app
 /// downloads, chips over them show them all, or the downloaded alone, as these come and go.
 class PlaylistsView extends StatefulWidget {
@@ -134,12 +135,16 @@ class _PlaylistsViewState extends State<PlaylistsView> {
           child: ListView.builder(
             // At the end, clear of the bars a phone's home has over it.
             padding: EdgeInsets.only(top: 8, bottom: 8 + MediaQuery.paddingOf(context).bottom),
-            // The button that makes one first; with none, a line that says so under it, which a drag down loads again,
-            // as it does the list.
-            itemCount: 1 + (playlists.isEmpty ? 1 : playlists.length),
+            // The button that makes one first, then the favorite songs; with no playlists, a line that says so under
+            // them, which a drag down loads again, as it does the list.
+            itemCount: 2 + (playlists.isEmpty ? 1 : playlists.length),
             itemBuilder: (context, i) {
               if (i == 0) {
                 return const NewPlaylistTile();
+              }
+
+              if (i == 1) {
+                return const _FavoritesTile();
               }
 
               if (playlists.isEmpty) {
@@ -149,13 +154,34 @@ class _PlaylistsViewState extends State<PlaylistsView> {
                 );
               }
 
-              return _PlaylistTile(playlists[i - 1]);
+              return _PlaylistTile(playlists[i - 2]);
             },
           ),
         ),
       );
     },
   );
+}
+
+/// The user's favorite songs, as a playlist in the list, with how many they are once they have come: a tap opens their
+/// page.
+class _FavoritesTile extends StatelessWidget {
+  const _FavoritesTile();
+
+  @override
+  Widget build(BuildContext context) {
+    final favorites = ServicesScope.of(context).favorites;
+    final strings = AppLocalizations.of(context);
+    return ListenableBuilder(
+      listenable: favorites,
+      builder: (context, _) => ListTile(
+        leading: const SizedBox.square(dimension: Thumbnail.size, child: FavoritesPicture(radius: 4)),
+        title: Text(strings.favoriteSongs, maxLines: 1, overflow: TextOverflow.ellipsis),
+        subtitle: favorites.loaded ? Text(strings.trackCount(favorites.songs.length)) : null,
+        onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const FavoriteSongsPage())),
+      ),
+    );
+  }
 }
 
 /// A playlist in the list: a tap opens its page. A long press (held, with a finger or the mouse) opens its menu where it

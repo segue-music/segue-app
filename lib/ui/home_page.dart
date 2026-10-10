@@ -154,8 +154,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   /// The order of the albums tab: by name, or a home row's, whose title opened it.
   AlbumOrder _albumOrder = AlbumOrder.name;
 
-  /// Whether the albums tab shows the downloaded alone, rather than the library's in [_albumOrder].
-  bool _albumsDownloaded = false;
+  /// Whether the albums tab shows the library's in [_albumOrder], or the downloaded or the favorites alone.
+  AlbumsShown _albumsShown = AlbumsShown.library;
 
   /// The sections opened so far: each loads the first time it is opened. On a phone the pages a swipe goes through
   /// build each as it first comes into sight.
@@ -300,7 +300,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   void _showAlbums(AlbumOrder order) {
     setState(() {
       _albumOrder = order;
-      _albumsDownloaded = false;
+      _albumsShown = AlbumsShown.library;
     });
     _select(_Section.albums);
   }
@@ -471,10 +471,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           order: _albumOrder,
           onOrder: (order) => setState(() {
             _albumOrder = order;
-            _albumsDownloaded = false;
+            _albumsShown = AlbumsShown.library;
           }),
-          downloaded: _albumsDownloaded,
-          onDownloaded: () => setState(() => _albumsDownloaded = true),
+          shown: _albumsShown,
+          onShown: (shown) => setState(() => _albumsShown = shown),
         ),
         _Section.artists => const ArtistsView(),
         _Section.genres => const GenresView(),

@@ -1363,4 +1363,65 @@ void main() {
     expect(albums, isEmpty);
     expect(songs, isEmpty);
   });
+
+  test('the favorites are getStarred2\'s, of each kind the latest starred first', () async {
+    final api = SubsonicApi(
+      Uri.parse('https://music.test'),
+      credentials,
+      client: MockClient((request) async {
+        expect(request.url.path, '/rest/getStarred2.view');
+        return subsonic({
+          'status': 'ok',
+          'starred2': {
+            'artist': [
+              {'id': 'ar1', 'name': 'Aerosmith', 'starred': '2026-01-02T10:00:00Z'},
+            ],
+            'album': [
+              {'id': 'a1', 'name': 'Toys in the Attic', 'starred': '2025-06-01T10:00:00Z'},
+              {'id': 'a2', 'name': 'Rocks', 'starred': '2026-03-01T10:00:00.123Z'},
+            ],
+            'song': [
+              {'id': 's1', 'title': 'Walk This Way', 'starred': '2026-02-01T10:00:00Z'},
+              {'id': 's2', 'title': 'Sweet Emotion', 'starred': '2026-09-01T10:00:00Z'},
+              {'id': 's3', 'title': 'Dream On'},
+            ],
+          },
+        });
+      }),
+    );
+    final (:artists, :albums, :songs) = await api.favorites();
+    expect([for (final artist in artists) artist.name], ['Aerosmith']);
+    expect([for (final album in albums) album.id], ['a2', 'a1']);
+    expect([for (final song in songs) song.id], ['s2', 's1', 's3'], reason: 'one that doesn\'t say when, last');
+  });
+
+  test('none starred, there are no favorites', () async {
+    final api = SubsonicApi(
+      Uri.parse('https://music.test'),
+      credentials,
+      client: MockClient((request) async => subsonic({'status': 'ok', 'starred2': <String, Object?>{}})),
+    );
+    final (:artists, :albums, :songs) = await api.favorites();
+    expect([artists, albums, songs], everyElement(isEmpty));
+  });
+
+  test('a favorite is starred, and unstarred, by the parameter of its kind', () async {
+    final asked = <Uri>[];
+    final api = SubsonicApi(
+      Uri.parse('https://music.test'),
+      credentials,
+      client: MockClient((request) async {
+        asked.add(request.url);
+        return subsonic({'status': 'ok'});
+      }),
+    );
+    await api.setFavorite(FavoriteKind.song, 's1', favorite: true);
+    await api.setFavorite(FavoriteKind.album, 'a1', favorite: true);
+    await api.setFavorite(FavoriteKind.artist, 'ar1', favorite: false);
+    expect([for (final url in asked) url.path], ['/rest/star.view', '/rest/star.view', '/rest/unstar.view']);
+    expect(asked[0].queryParameters, containsPair('id', 's1'));
+    expect(asked[1].queryParameters, containsPair('albumId', 'a1'));
+    expect(asked[2].queryParameters, containsPair('artistId', 'ar1'));
+    expect(asked[1].queryParameters.containsKey('id'), isFalse);
+  });
 }

@@ -851,4 +851,41 @@ void main() {
     expect(asked.single.headers['Authorization'], contains('Token="tok"'));
     await jellyfin((_) => throw http.ClientException('offline')).signOut();
   });
+
+  test('the favorites are the items marked IsFavorite, by name: artists of any kind, albums and songs', () async {
+    final asked = <http.Request>[];
+    final api = jellyfin(
+      (request) => switch (request.url.path) {
+        '/jellyfin/Artists' => items([
+          {'Id': 'ar1', 'Name': 'Aerosmith', 'Type': 'MusicArtist'},
+        ]),
+        _ when request.url.queryParameters['IncludeItemTypes'] == 'MusicAlbum' => items([album]),
+        _ => items([song]),
+      },
+      asked,
+    );
+    final (:artists, :albums, :songs) = await api.favorites();
+    expect([for (final artist in artists) artist.id], ['ar1']);
+    expect([for (final album in albums) album.id], ['a1']);
+    expect([for (final song in songs) song.id], ['s1']);
+    final artistsAsked = asked.firstWhere((request) => request.url.path == '/jellyfin/Artists').url;
+    expect(artistsAsked.queryParameters, allOf(containsPair('IsFavorite', 'true'), containsPair('userId', 'u1')));
+
+    for (final request in asked.where((request) => request.url.path == '/jellyfin/Items')) {
+      expect(
+        request.url.queryParameters,
+        allOf(containsPair('Filters', 'IsFavorite'), containsPair('SortBy', 'SortName')),
+      );
+    }
+  });
+
+  test('a favorite is UserFavoriteItems/{id}: POST makes it one, DELETE no longer one', () async {
+    final asked = <http.Request>[];
+    final api = jellyfin((_) => json({'IsFavorite': true}), asked);
+    await api.setFavorite(FavoriteKind.album, 'a1', favorite: true);
+    expect((asked.last.method, asked.last.url.path), ('POST', '/jellyfin/UserFavoriteItems/a1'));
+    expect(asked.last.url.queryParameters, containsPair('userId', 'u1'));
+    await api.setFavorite(FavoriteKind.song, 's1', favorite: false);
+    expect((asked.last.method, asked.last.url.path), ('DELETE', '/jellyfin/UserFavoriteItems/s1'));
+  });
 }

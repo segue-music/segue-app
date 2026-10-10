@@ -167,6 +167,14 @@ the device it runs on.
   and what shows the playlists then loads them again as the server has them; one the server refuses
   says so. On a Subsonic server a song moves as the playlist's songs go back in their new order, which
   a server with OpenSubsonic's formPost (Navidrome) takes in a form's body, rather than in the URL;
+- favorites: a heart makes a song, an album or an artist one of the user's favorites (Subsonic's star, Jellyfin's
+  favorite), and filled, takes it out of them: on an album's page beside its play button, on an artist's after how many
+  albums they have, in the full-screen player at the end of the song's title (on a phone; on a wider screen, in the
+  player bar), and in a song's menu, as an item. It changes at once, and on the server as it can; one the server
+  refuses goes back, and says so. The favorite songs come first among the playlists ("Músicas favoritas"), laid out as
+  one, which plays them, with how many they are; the albums tab has a chip, "Favoritos", and the artists tab a third
+  choice, that show the favorite ones alone. On a Subsonic server the latest made a favorite come first; on Jellyfin,
+  which doesn't say when, by name;
 - downloads, to listen without the media server: an album or a playlist, from the button beside its
   play button, which shows how far it has got and, once all its songs are on the device, that it is
   downloaded; pressed then, it takes it off the device, once asked. The songs come as their files are,

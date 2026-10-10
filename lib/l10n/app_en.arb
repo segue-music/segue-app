@@ -231,5 +231,14 @@
   "hertz": "{hertz} Hz",
   "kilohertz": "{kilohertz} kHz",
   "decibels": "{decibels} dB",
-  "artistOnDevice": "{artist} (on {device})"
+  "artistOnDevice": "{artist} (on {device})",
+  "addToFavorites": "Add to favorites",
+  "removeFromFavorites": "Remove from favorites",
+  "favoriteSongs": "Favorite songs",
+  "favorites": "Favorites",
+  "favoriteSongsEmpty": "No favorite songs yet. A song's heart, in the player or in its menu, puts it here.",
+  "favoriteAlbumsEmpty": "No favorite albums yet. The heart on an album's page puts it here.",
+  "favoriteArtistsEmpty": "No favorite artists yet. The heart on an artist's page puts them here.",
+  "couldNotListFavorites": "Couldn't load the favorites: {error}",
+  "couldNotChangeFavorites": "Couldn't change the favorites: {error}"
 }

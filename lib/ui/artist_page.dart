@@ -17,6 +17,7 @@ import 'biography_page.dart';
 import 'cover.dart';
 import 'current_song.dart';
 import 'errors.dart';
+import 'favorite_button.dart';
 import 'genre_page.dart';
 import 'now_playing_bar.dart';
 import 'page_area.dart';
@@ -468,7 +469,8 @@ class _ArtistPageState extends State<ArtistPage> {
   }
 
   /// How many albums they have ([_count]), then, once the server has given their biography, a button that opens it
-  /// ([BiographyPage]), beside it: at the end of the line, where the page has it there ([end]).
+  /// ([BiographyPage]), and the heart that makes them one of the user's favorites, beside it: at the end of the line,
+  /// where the page has it there ([end]).
   Widget _counts(Artist artist, List<Album> albums, {bool end = false}) {
     final strings = AppLocalizations.of(context);
     final count = Text(
@@ -476,15 +478,24 @@ class _ArtistPageState extends State<ArtistPage> {
       style: Theme.of(context).textTheme.bodyMedium,
       textAlign: end ? TextAlign.end : null,
     );
+    final favorite = FavoriteButton(FavoriteKind.artist, widget.artist.id, compact: true);
     return FutureBuilder(
       future: _biography,
       builder: (context, snapshot) => switch (snapshot.data) {
-        null => count,
+        null => Row(
+          mainAxisAlignment: end ? MainAxisAlignment.end : MainAxisAlignment.start,
+          children: [
+            Flexible(child: count),
+            const SizedBox(width: 4),
+            favorite,
+          ],
+        ),
         final biography => Row(
           mainAxisAlignment: end ? MainAxisAlignment.end : MainAxisAlignment.start,
           children: [
             Flexible(child: count),
             const SizedBox(width: 4),
+            favorite,
             IconButton(
               tooltip: strings.showBiography,
               icon: const ThemedIcon(HugeIcons.strokeRoundedBookUser),

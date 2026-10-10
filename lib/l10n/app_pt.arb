@@ -1361,5 +1361,51 @@
         "type": "String"
       }
     }
+  },
+  "addToFavorites": "Adicionar aos favoritos",
+  "@addToFavorites": {
+    "description": "The heart's tooltip, and the item of a song's menu, that makes the song, album or artist one of the user's favorites."
+  },
+  "removeFromFavorites": "Remover dos favoritos",
+  "@removeFromFavorites": {
+    "description": "The filled heart's tooltip, and the item of a song's menu, that takes the song, album or artist out of the user's favorites."
+  },
+  "favoriteSongs": "Músicas favoritas",
+  "@favoriteSongs": {
+    "description": "The list of the user's favorite songs, first among the playlists, and its page's title."
+  },
+  "favorites": "Favoritos",
+  "@favorites": {
+    "description": "The chip over the albums, and the choice over the artists, that shows the user's favorite ones alone."
+  },
+  "favoriteSongsEmpty": "Nenhuma música favorita ainda. O coração de uma música, no player ou no menu dela, a põe aqui.",
+  "@favoriteSongsEmpty": {
+    "description": "The favorite songs' page when the user has none, saying how to add one."
+  },
+  "favoriteAlbumsEmpty": "Nenhum álbum favorito ainda. O coração na página de um álbum o põe aqui.",
+  "@favoriteAlbumsEmpty": {
+    "description": "The albums' favorites when the user has none, saying how to add one."
+  },
+  "favoriteArtistsEmpty": "Nenhum artista favorito ainda. O coração na página de um artista o põe aqui.",
+  "@favoriteArtistsEmpty": {
+    "description": "The artists' favorites when the user has none, saying how to add one."
+  },
+  "couldNotListFavorites": "Não consegui listar os favoritos: {error}",
+  "@couldNotListFavorites": {
+    "description": "The user's favorites (songs, albums or artists) that the server didn't give, with the error.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "couldNotChangeFavorites": "Não consegui alterar os favoritos: {error}",
+  "@couldNotChangeFavorites": {
+    "description": "A song, album or artist the server didn't make one of the user's favorites, or didn't take out of them, with the error.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
   }
 }

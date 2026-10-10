@@ -117,6 +117,13 @@ abstract interface class MediaServer {
   /// up or down to make room; both from 0, in its order as [playlist] gives it.
   Future<void> moveInPlaylist(String id, {required int from, required int to});
 
+  /// The user's favorite artists, albums and songs: on a server that says when the user made each one a favorite
+  /// (Subsonic's), the latest first, and otherwise (Jellyfin) by name.
+  Future<FavoriteItems> favorites();
+
+  /// Makes the [kind] whose id is [id] one of the user's favorites, or, unless [favorite], no longer one.
+  Future<void> setFavorite(FavoriteKind kind, String id, {required bool favorite});
+
   /// A song's lyrics, the synced ones where the server has both; null when it has none.
   Future<Lyrics?> lyrics(String songId);
 

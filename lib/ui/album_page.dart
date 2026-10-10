@@ -21,6 +21,7 @@ import 'dates.dart';
 import 'download_button.dart';
 import 'equalizer.dart';
 import 'errors.dart';
+import 'favorite_button.dart';
 import 'now_playing_bar.dart';
 import 'page_area.dart';
 import 'page_bar.dart';
@@ -246,7 +247,7 @@ class _AlbumPageState extends State<AlbumPage> {
   }
 
   /// The top of the page: the album's cover, its type (album, EP, ...), its name and byline, and the buttons that play
-  /// it and add it (its menu: to the queue, or to a playlist). On a wide screen the name is beside the cover, the type
+  /// it, make it one of the user's favorites, and add it (its menu: to the queue, or to a playlist). On a wide screen the name is beside the cover, the type
   /// above it, the buttons under them; on a narrow one ([narrow]) the name is in the page's bar (a [PageBar]), over the
   /// cover, which is centered, and the byline under the cover, from the page's margin as the songs are, with the buttons
   /// at the end of its line, the play button last ([SongListTopLine]), and the type before the year.
@@ -288,7 +289,10 @@ class _AlbumPageState extends State<AlbumPage> {
           ),
           SongListTopLine(
             details: byline,
-            button: Row(mainAxisSize: MainAxisSize.min, children: [DownloadButton.album(album, songs), add]),
+            button: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [FavoriteButton(FavoriteKind.album, album.id), DownloadButton.album(album, songs), add],
+            ),
             play: play,
           ),
         ],
@@ -318,7 +322,13 @@ class _AlbumPageState extends State<AlbumPage> {
                   const SizedBox(height: 12),
                   Row(
                     mainAxisSize: MainAxisSize.min,
-                    children: [play, const SizedBox(width: 8), add, DownloadButton.album(album, songs)],
+                    children: [
+                      play,
+                      const SizedBox(width: 8),
+                      FavoriteButton(FavoriteKind.album, album.id),
+                      add,
+                      DownloadButton.album(album, songs),
+                    ],
                   ),
                 ],
               ),

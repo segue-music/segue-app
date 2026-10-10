@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../l10n/app_localizations.dart';
+import '../server/models.dart';
 import 'cover.dart';
 import 'devices_sheet.dart';
+import 'favorite_button.dart';
 import 'focus_ring.dart';
 import 'page_area.dart';
 import 'player_controls.dart';
@@ -152,6 +154,9 @@ class NowPlayingBar extends StatelessWidget {
                                 ),
                               ),
                             ),
+                            // On a wide screen, the heart that makes the song one of the user's favorites, by it; on a
+                            // phone, the full-screen player's title has it.
+                            if (wide && now.songId != null) FavoriteButton(FavoriteKind.song, now.songId!),
                             if (wide) ShuffleButton(now),
                             IconButton(
                               tooltip: strings.previous,

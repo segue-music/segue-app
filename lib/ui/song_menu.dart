@@ -7,19 +7,21 @@ import '../segue/protocol.dart';
 import '../server/models.dart';
 import '../services.dart';
 import 'errors.dart';
+import 'favorite_button.dart';
 import 'menu_item_label.dart';
 import 'playlist_dialogs.dart';
 import 'themed_icon.dart';
 
 /// What a menu of songs does: a song's, or an album's with all of its songs.
-enum SongAction { playNext, addToQueue, addToPlaylist, remove }
+enum SongAction { playNext, addToQueue, addToPlaylist, favorite, unfavorite, remove }
 
 /// The list a song's menu takes it out of ([SongAction.remove]).
 enum SongList { playlist, queue }
 
 /// The items of a menu of songs: playing them next and adding them to the queue, where the device the app controls
-/// takes it, and adding them to a playlist; with [removableFrom], taking the song out of that list.
-List<PopupMenuEntry<SongAction>> songMenuItems(BuildContext context, {SongList? removableFrom}) {
+/// takes it, and adding them to a playlist; a song's, with whether it is one of the user's favorites ([favorite]),
+/// making it one or no longer one; with [removableFrom], taking the song out of that list.
+List<PopupMenuEntry<SongAction>> songMenuItems(BuildContext context, {bool? favorite, SongList? removableFrom}) {
   final strings = AppLocalizations.of(context);
   return [
     if (ServicesScope.of(context).connect.canAddToQueue) ...[
@@ -36,6 +38,16 @@ List<PopupMenuEntry<SongAction>> songMenuItems(BuildContext context, {SongList? 
       value: SongAction.addToPlaylist,
       child: MenuItemLabel(strings.addToPlaylist, icon: HugeIcons.strokeRoundedPlaylist01),
     ),
+    if (favorite != null)
+      favorite
+          ? PopupMenuItem(
+              value: SongAction.unfavorite,
+              child: MenuItemLabel(strings.removeFromFavorites, icon: filledHeart),
+            )
+          : PopupMenuItem(
+              value: SongAction.favorite,
+              child: MenuItemLabel(strings.addToFavorites, icon: HugeIcons.strokeRoundedFavourite),
+            ),
     if (removableFrom != null)
       PopupMenuItem(
         value: SongAction.remove,
@@ -56,6 +68,10 @@ void runSongAction(BuildContext context, SongAction action, List<Song> songs, {V
       addToQueue(context, songs, next: false);
     case SongAction.addToPlaylist:
       addToPlaylist(context, songs);
+    case SongAction.favorite || SongAction.unfavorite:
+      for (final song in songs) {
+        setFavorite(context, FavoriteKind.song, song.id, favorite: action == SongAction.favorite);
+      }
     case SongAction.remove:
       onRemove?.call();
   }
@@ -78,7 +94,8 @@ Future<bool> addToQueue(BuildContext context, List<Song> songs, {required bool n
 }
 
 /// A song's menu, at the end of its line in a list, after its duration: what can be done with it besides playing it,
-/// playing it next, adding it to the queue or to a playlist, and, in a list that the user can change ([onRemove]), a
+/// playing it next, adding it to the queue or to a playlist, making it one of the user's favorites or no longer one,
+/// and, in a list that the user can change ([onRemove]), a
 /// playlist or the queue ([list]), taking it out. Its button takes no focus: for the keyboard and the remote the song stays one stop, where the menu
 /// key, or Shift+F10, opens the menu. [builder] makes the song's line, with the button ([SongMenu.width] wide) where it
 /// goes.
@@ -120,7 +137,11 @@ class _SongMenuState extends State<SongMenu> {
           // As big as the room it has, without Material's padding for a touch screen around it.
           style: IconButton.styleFrom(tapTargetSize: MaterialTapTargetSize.shrinkWrap),
           onSelected: (action) => runSongAction(context, action, [widget.song], onRemove: widget.onRemove),
-          itemBuilder: (context) => songMenuItems(context, removableFrom: widget.onRemove == null ? null : widget.list),
+          itemBuilder: (context) => songMenuItems(
+            context,
+            favorite: ServicesScope.of(context).favorites.contains(FavoriteKind.song, widget.song.id),
+            removableFrom: widget.onRemove == null ? null : widget.list,
+          ),
         ),
       ),
     );

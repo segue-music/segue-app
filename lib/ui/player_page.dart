@@ -8,9 +8,11 @@ import 'package:flutter/services.dart';
 import '../connect/connect.dart';
 import '../l10n/app_localizations.dart';
 import '../segue/protocol.dart';
+import '../server/models.dart';
 import '../services.dart';
 import 'cover.dart';
 import 'devices_sheet.dart';
+import 'favorite_button.dart';
 import 'lyrics_page.dart';
 import 'lyrics_view.dart';
 import 'now_playing_bar.dart';
@@ -744,6 +746,14 @@ class _Player extends StatelessWidget {
     final alone = min(width, height).clamp(96.0, _maxCover);
     final withLyrics = min(width, height * 2 / 5).clamp(96.0, _maxCover);
     final side = beside ? alone : alone + (withLyrics - alone) * shown;
+    final title = SongLink.title(
+      now,
+      style: text.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+      maxLines: 2,
+      textAlign: TextAlign.center,
+      replace: true,
+    );
+    final songId = now.songId;
     // As wide as the cover alone: the rest keeps its width as the lyrics make the cover smaller.
     final player = SizedBox(
       width: max(alone, 280),
@@ -752,13 +762,19 @@ class _Player extends StatelessWidget {
         children: [
           Center(child: _SwipeToSkip(now.coverArt, side: side)),
           const SizedBox(height: 24),
-          SongLink.title(
-            now,
-            style: text.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
-            maxLines: 2,
-            textAlign: TextAlign.center,
-            replace: true,
-          ),
+          // On a phone, at the end of the title's line, the heart that makes the song one of the user's favorites, with
+          // as much room at its start, so that the title stays in the middle; on a wider screen the bar under the player
+          // has it.
+          if (controls && songId != null)
+            Row(
+              children: [
+                const SizedBox(width: kMinInteractiveDimension),
+                Expanded(child: title),
+                FavoriteButton(FavoriteKind.song, songId),
+              ],
+            )
+          else
+            title,
           SongLink.artist(
             now,
             style: text.titleLarge?.copyWith(color: muted),

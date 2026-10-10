@@ -24,6 +24,7 @@ import 'releases/musicbrainz.dart';
 import 'segue/client.dart';
 import 'segue/discovery.dart';
 import 'segue/protocol.dart';
+import 'server/favorites.dart';
 import 'server/models.dart';
 import 'server/playlist_editor.dart';
 import 'server/reachability.dart';
@@ -140,6 +141,12 @@ class Services {
       downloadHold: downloadHold,
     );
     unawaited(client?.start());
+    unawaited(services._loadFavorites());
+    reachability.addListener(() {
+      if (reachability.value) {
+        unawaited(services._loadFavorites());
+      }
+    });
     return services;
   }
 
@@ -178,6 +185,10 @@ class Services {
   /// What the app changes the user's playlists through.
   late final playlistEditor = PlaylistEditor(api);
 
+  /// The user's favorite songs, albums and artists, which the app changes through it too. [start] loads them, and loads
+  /// them again as the media server comes back in reach.
+  late final favorites = Favorites(api);
+
   /// Where lyrics come from when the media server has none; null, nowhere.
   final Lrclib? lrclib;
 
@@ -203,6 +214,15 @@ class Services {
 
   /// Whether the downloads wait for Wi-Fi or a cable; null, they never do.
   final DownloadHold? downloadHold;
+
+  /// Loads the favorites, where the media server gives them.
+  Future<void> _loadFavorites() async {
+    try {
+      await favorites.load();
+    } on Object catch (e) {
+      debugPrint('favorites unknown: $e');
+    }
+  }
 
   /// The hub last found next to [server] ([Session.foundHub]); null where none was, or the preferences can't be read.
   static Future<Uri?> _rememberedHub(Uri server) async {
@@ -234,6 +254,7 @@ class Services {
   Future<void> dispose() async {
     connect.dispose();
     playlistEditor.dispose();
+    favorites.dispose();
     await connect.client?.close();
     playCounter?.dispose();
     mobileData?.dispose();

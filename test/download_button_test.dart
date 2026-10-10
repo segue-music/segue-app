@@ -166,7 +166,7 @@ void main() {
   testWidgets('the albums tab\'s "Baixados" shows the downloaded albums alone, as they come and go', (tester) async {
     await open(tester);
     await tester.runAsync(() => downloads.addAlbum(album, songs));
-    var downloaded = true;
+    var shown = AlbumsShown.downloaded;
     AlbumOrder? picked;
     await pumpWith(
       tester,
@@ -175,12 +175,12 @@ void main() {
       StatefulBuilder(
         builder: (context, setState) => AlbumsView(
           order: AlbumOrder.name,
-          downloaded: downloaded,
+          shown: shown,
           onOrder: (order) => setState(() {
             picked = order;
-            downloaded = false;
+            shown = AlbumsShown.library;
           }),
-          onDownloaded: () => setState(() => downloaded = true),
+          onShown: (picked) => setState(() => shown = picked),
         ),
       ),
     );
@@ -224,7 +224,7 @@ void main() {
     await pumpWith(tester, server, null, const PlaylistsView());
     await tester.pump();
     expect(find.byType(ChoiceChip), findsNothing);
-    await pumpWith(tester, server, null, AlbumsView(onOrder: (_) {}, onDownloaded: () {}));
+    await pumpWith(tester, server, null, AlbumsView(onOrder: (_) {}, onShown: (_) {}));
     await tester.pump();
     expect(find.widgetWithText(ChoiceChip, 'Baixados'), findsNothing);
     expect(find.widgetWithText(ChoiceChip, 'Nome'), findsOneWidget);
