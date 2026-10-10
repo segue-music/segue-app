@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ENV CC=clang CXX=clang++
 # On a Flutter update, check the Linux renderer: linux/runner/my_application.cc turns Impeller off
 # for Skia, which Flutter may drop on Linux, and the reason may be gone (see CLAUDE.md).
-ARG FLUTTER_VERSION=3.47.6
+ARG FLUTTER_VERSION=3.47.7
 ENV PATH=/opt/flutter/bin:$PATH
 # All in one layer: a precache or chmod in a layer of its own would store the whole SDK twice.
 RUN curl -fsSL "https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_${FLUTTER_VERSION}-stable.tar.xz" \
