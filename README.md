@@ -252,10 +252,10 @@ the device it runs on.
 Not yet: moving a playlist's songs with the remote (a TV has no drag), adding the song that plays to a playlist from
 the player, moving songs in the queue and taking them out, the media controls on the other platforms (Android's media session), on a Jellyfin server the cover of a song that came from another device
 when its file has none of its own (Jellyfin doesn't fall back to the album's) and an artist's popular songs (Jellyfin
-knows only its users' plays), an offline cache, settings, sending the music
+knows only its users' plays), an offline cache, sending the music
 to speakers and TVs that don't run the app (Google Cast, UPnP/DLNA), and CarPlay as an app of its own (browsing the library
 on the car's screen, which needs Apple's CarPlay entitlement and native code). The Android build
-has been tried on a tablet and on an Android TV; the iOS build has not been tried on a device yet.
+has been tried on a tablet and on an Android TV, and the iOS build on an iPhone, with CarPlay's Now Playing screen.
 
 ## Code
 
