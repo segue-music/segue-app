@@ -42,7 +42,7 @@ the device it runs on.
   most played albums; each with their picture, the media server's or, where it has none (on Navidrome, since
   0.64, which before gave its placeholder), the one fanart.tv's users like most, by the artist's MusicBrainz id,
   there too in search, on their page and by their name on an album's; each with their albums or, picked above
-  them as the artists' order is, their singles and EPs, where the
+  them (a thumb sliding to the one picked), their singles and EPs, where the
   server says which are, and at the end a row of the library's artists like them, each opening their page,
   where the server knows them (Navidrome from Last.fm, Jellyfin by their metadata), their genres, the three
   most of their albums are in, each a link to its page (under how many albums they have; on a phone, over the
