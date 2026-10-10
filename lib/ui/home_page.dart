@@ -463,7 +463,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     );
 
     // On a phone the bars at the bottom stay, the player's and the destinations', and pages open over the rest, in the
-    // page area, each with its own top bar and back arrow, over the section, which has the home's name in its top bar,
+    // page area, each with its own top bar and back arrow, over the section, which has the app's name in its top bar,
     // the search bar, or the library's tabs, and which a swipe changes for the next. The full-screen player and the
     // queue cover everything.
     if (narrow) {
@@ -480,7 +480,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             extendBody: true,
             body: pageArea(
               Scaffold(
-                // On the home, the app's icon and the home's name; in the search and the library, what there is to use
+                // On the home, the app's icon and its name; in the search and the library, what there is to use
                 // there, in their place: the bar at the bottom says where it is, and opens the home.
                 appBar: AppBar(
                   // The app's icon, 16 from the edge, lined up with what the home shows under it: in the middle of a
@@ -488,7 +488,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                   leading: destination == _Destination.home ? logo : null,
                   leadingWidth: 64,
                   titleSpacing: switch (destination) {
-                    // The home's name where a page's is, after its back arrow: 72 from the edge.
+                    // The app's name where a page's title is, after its back arrow: 72 from the edge.
                     _Destination.home => 8,
                     // The search bar 16 from the edge, lined up with what the search shows under it.
                     _Destination.search => 16,
@@ -496,7 +496,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     _Destination.library => 16 - _libraryTabPadding,
                   },
                   title: switch (destination) {
-                    _Destination.home => Text(destination.label(strings)),
+                    _Destination.home => Text(strings.appName),
                     _Destination.search => searchBar,
                     // As wide as their names, from the left, scrolling sideways where they don't fit; with no line under
                     // them across the bar, which has none.

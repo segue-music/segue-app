@@ -914,6 +914,10 @@
   "@home": {
     "description": "The first section, of rows of albums."
   },
+  "appName": "Segue Music",
+  "@appName": {
+    "description": "The app's name, the same in every language: on a phone, in the home's top bar, beside its icon."
+  },
   "genres": "Gêneros",
   "@genres": {
     "description": "The genres section."

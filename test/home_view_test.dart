@@ -478,7 +478,7 @@ void main() {
       await tester.tap(find.byType(BackButton));
       await tester.pumpAndSettle();
       expect(find.byType(SettingsPage), findsNothing);
-      expect(title('Início'), findsOneWidget);
+      expect(title('Segue Music'), findsOneWidget);
 
       await openSettings(tester);
       await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Biblioteca')));
@@ -891,7 +891,7 @@ void main() {
     expect(tester.getRect(logo).left, lessThan(16));
     expect(find.descendant(of: bar, matching: find.text('Início')), findsOneWidget);
 
-    expect(title('Início'), findsOneWidget);
+    expect(title('Segue Music'), findsOneWidget);
 
     // Elsewhere, what there is to use there takes its place, and the bar's home opens the home.
     await tester.tap(find.descendant(of: bar, matching: find.text('Biblioteca')));
@@ -907,7 +907,7 @@ void main() {
 
     await tester.tap(find.descendant(of: bar, matching: find.text('Início')));
     await tester.pumpAndSettle();
-    expect(title('Início'), findsOneWidget);
+    expect(title('Segue Music'), findsOneWidget);
     expect(tester.getRect(logo).left, lessThan(16));
     await tester.pumpWidget(const SizedBox());
   });
