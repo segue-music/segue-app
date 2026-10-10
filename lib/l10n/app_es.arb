@@ -66,6 +66,8 @@
   "queue": "Cola",
   "queueOn": "Cola en {device}",
   "queueEmpty": "La cola está vacía.",
+  "autoplay": "Reproducción automática",
+  "autoplayDetail": "Cuando la cola termina, siguen sonando canciones similares.",
   "albumCount": "{count, plural, =1{1 álbum} other{{count} álbumes}}",
   "orderName": "Nombre",
   "orderReleased": "Lanzamientos",

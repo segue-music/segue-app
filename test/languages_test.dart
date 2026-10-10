@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:segue/autoplay_choice.dart';
 import 'package:segue/connect/connect.dart';
 import 'package:segue/equalizer_choice.dart';
 import 'package:segue/l10n/app_localizations.dart';
@@ -23,6 +24,7 @@ import 'package:segue/ui/biography_page.dart';
 import 'package:segue/ui/credits_page.dart';
 import 'package:segue/ui/home_page.dart';
 import 'package:segue/ui/login_page.dart';
+import 'package:segue/ui/queue_page.dart';
 import 'package:segue/ui/settings_page.dart';
 import 'package:segue/ui/theme.dart';
 
@@ -196,11 +198,14 @@ Future<void> pumpHome(WidgetTester tester, Locale language, Size size) async {
         duration: Duration(seconds: song['duration']! as int),
       ),
   ], play: false);
+  final autoplay = AutoplayChoice();
+  addTearDown(autoplay.dispose);
   final services = Services(
     Session(server: Uri.parse('https://music.test'), credentials: credentials, deviceId: 'me', deviceName: 'laptop'),
     api,
     player,
     ConnectController(player: player),
+    autoplay: autoplay,
   );
   final themeChoice = ThemeChoice();
   addTearDown(themeChoice.dispose);
@@ -370,6 +375,12 @@ void main() {
 
         await tap(tester, find.byTooltip(strings.queue));
         expect(find.text(strings.songTitle), findsOneWidget);
+        // After the last song, autoplay's switch.
+        await tester.scrollUntilVisible(
+          find.text(strings.autoplayDetail),
+          100,
+          scrollable: find.descendant(of: find.byType(QueuePage), matching: find.byType(Scrollable)).first,
+        );
         // On a wide screen, the top bar's arrow: the queue is in the page area, under it.
         await tap(tester, narrow ? find.byType(BackButton).hitTestable() : find.byTooltip(strings.back));
 

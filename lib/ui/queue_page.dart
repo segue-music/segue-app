@@ -7,6 +7,7 @@ import '../l10n/app_localizations.dart';
 import '../segue/protocol.dart';
 import '../server/models.dart';
 import '../services.dart';
+import 'autoplay_switch.dart';
 import 'cover.dart';
 import 'now_playing_bar.dart';
 import 'page_area.dart';
@@ -17,7 +18,8 @@ import 'song_menu.dart';
 /// The queue of the device the app controls, in its play order (shuffled, or not): the current
 /// track on top, the next ones under it, and what played before above it. A tap on a track plays it
 /// there. Where the device takes it, the tracks from the one on top down move by dragging them, and any but the
-/// current one goes out of the queue by its menu.
+/// current one goes out of the queue by its menu. After the last, this device's queue has the switch of autoplay, which
+/// goes on with songs like it.
 class QueuePage extends StatefulWidget {
   const QueuePage({super.key});
 
@@ -64,7 +66,8 @@ class _QueuePageState extends State<QueuePage> {
 
   @override
   Widget build(BuildContext context) {
-    final connect = ServicesScope.of(context).connect;
+    final services = ServicesScope.of(context);
+    final (connect, autoplay) = (services.connect, services.autoplay);
     final strings = AppLocalizations.of(context);
     // On a TV the remote starts on the current track. Elsewhere the page itself takes the focus, so
     // that Esc closes it, and no track looks focused.
@@ -181,6 +184,11 @@ class _QueuePageState extends State<QueuePage> {
                                   key: _fromTop,
                                   itemCount: tracks.length - top,
                                   itemBuilder: (_, i) => tile(top + i),
+                                ),
+                              // Another device's goes on, or not, as that device has it.
+                              if (autoplay != null && connect.activeId == null)
+                                SliverToBoxAdapter(
+                                  child: Column(children: [const Divider(height: 17), AutoplaySwitch(autoplay)]),
                                 ),
                             ],
                           ),

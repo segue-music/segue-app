@@ -15,8 +15,10 @@ import 'engine.dart';
 class PlayerController extends ChangeNotifier {
   /// Streams each song in the quality that [quality] gives as it loads; with none, the files as they are. Levels their
   /// loudness [replayGain]'s way, the one that plays too as it changes; with none, not at all. Plays them through
-  /// [equalizer], as it changes too; with none, as they are.
-  PlayerController(this._engine, this._api, {this._quality, this._replayGain, this._equalizer}) {
+  /// [equalizer], as it changes too; with none, as they are. Goes on after the queue's last song with songs like it
+  /// while [autoplay] is on, and takes those that haven't played out of the queue as it goes off; with none, the music
+  /// stops there.
+  PlayerController(this._engine, this._api, {this._quality, this._replayGain, this._equalizer, this._autoplay}) {
     _subscription = _engine.changes.listen((_) {
       if (_editing) {
         _changeHeld = true;
@@ -25,6 +27,7 @@ class PlayerController extends ChangeNotifier {
       }
     });
     _replayGain?.addListener(_updateGain);
+    _autoplay?.addListener(_autoplayTurned);
 
     if (_equalizer != null) {
       _equalizer.addListener(_equalize);
@@ -37,6 +40,7 @@ class PlayerController extends ChangeNotifier {
   final StreamQuality Function()? _quality;
   final ValueListenable<ReplayGainMode>? _replayGain;
   final ValueListenable<EqualizerSettings>? _equalizer;
+  final ValueListenable<bool>? _autoplay;
   late final StreamSubscription<void> _subscription;
   // The songs as playQueue got them, with those addToQueue added among them (their order unshuffled), and their tracks
   // for the engine; and _queue: them in the engine's play order (shuffled, or not).
@@ -53,6 +57,14 @@ class PlayerController extends ChangeNotifier {
   Future<void> _edits = Future.value();
   bool _editing = false;
   bool _changeHeld = false;
+
+  // The last song of the queue that autoplay asked for songs like, as it played: once for each song in a queue, until
+  // it goes off. And the songs it added to the queue, by themselves rather than their ids: the same song added otherwise
+  // isn't one of them.
+  Song? _autoplayedAfter;
+  final _autoplayed = Set<Song>.identity();
+
+  bool _disposed = false;
 
   /// Receives this player's state after every change, for the hub.
   void Function(PlayerState state)? onReport;
@@ -77,6 +89,8 @@ class PlayerController extends ChangeNotifier {
 
   Future<void> playQueue(List<Song> songs, {int index = 0, Duration position = Duration.zero, bool play = true}) async {
     _queue = _opened = List.unmodifiable(songs);
+    _autoplayedAfter = null; // the same songs again, as an album played again, go on again
+    _autoplayed.clear();
     _tracks = [for (final song in songs) _track(song)];
     _order = const []; // so that the engine's order, shuffled or not, is taken up
     _queueChanged = true;
@@ -185,19 +199,27 @@ class PlayerController extends ChangeNotifier {
       throw const CommandFailed('current track');
     }
 
+    if (await _takeOut(index)) {
+      _changed();
+    }
+  }
+
+  /// Takes the song at [index] in [queue] out of the engine's tracks and the songs here, which [queue] follows at the
+  /// next [_changed]: whether it did, which it doesn't where another queue came meanwhile.
+  Future<bool> _takeOut(int index) async {
     final opened = _opened;
     final at = await _engine.remove(index);
 
     // Another queue came meanwhile.
     if (at < 0 || !identical(_opened, opened)) {
-      return;
+      return false;
     }
 
     _opened = List.unmodifiable([..._opened]..removeAt(at));
     _tracks = [..._tracks]..removeAt(at);
     _order = const [];
     _queueChanged = true;
-    _changed();
+    return true;
   }
 
   bool _inQueue(int index) => index >= 0 && index < _queue.length;
@@ -312,6 +334,7 @@ class PlayerController extends ChangeNotifier {
   Future<void> stop() async {
     await _engine.stop();
     _queue = _opened = const [];
+    _autoplayed.clear();
     _tracks = const [];
     _order = const [];
     _queueChanged = true;
@@ -413,6 +436,93 @@ class PlayerController extends ChangeNotifier {
     final state = report();
     _queueChanged = false;
     onReport?.call(state);
+    _autoplayAtEnd();
+  }
+
+  /// Autoplay turned on, the queue goes on from its last song, should it play; off, the songs autoplay added that
+  /// haven't played go out of the queue, and turned on again on the same song, it asks for songs like it again.
+  void _autoplayTurned() {
+    if (_autoplay!.value) {
+      _autoplayAtEnd();
+      return;
+    }
+
+    _autoplayedAfter = null;
+    unawaited(_edit(_removeAutoplayed));
+  }
+
+  /// Takes out of the queue the songs autoplay added after the current one, which play on, with one report.
+  Future<void> _removeAutoplayed() async {
+    final queue = _queue;
+    var removed = false;
+
+    // From the last, so that the places of those before stay as they were. Up to the current song, which may have moved
+    // on to one of them meanwhile.
+    for (var i = queue.length - 1; i > index; i--) {
+      if (!_autoplayed.contains(queue[i])) {
+        continue;
+      }
+
+      if (!await _takeOut(i)) {
+        return; // another queue, which has nothing of autoplay's
+      }
+
+      removed = true;
+    }
+
+    if (removed) {
+      _changed();
+    }
+  }
+
+  /// How many songs autoplay adds at a time: few, so that songs added to the queue after them don't go far behind.
+  static const autoplaySize = 10;
+
+  /// The queue's last song playing, repeat off, with autoplay on: the queue goes on with songs like it, which the media
+  /// server is asked for once for the song, as it starts, so that they are there as it ends, and play right after it.
+  void _autoplayAtEnd() {
+    final song = current;
+
+    if (!(_autoplay?.value ?? false) ||
+        song == null ||
+        !playing ||
+        repeat != Repeat.off ||
+        index != _queue.length - 1 ||
+        identical(song, _autoplayedAfter)) {
+      return;
+    }
+
+    _autoplayedAfter = song;
+    unawaited(_continueAfter(song));
+  }
+
+  /// Adds songs like [song] ([MediaServer.similarSongs]) after it, at the end of the queue, but for those the queue
+  /// already has: [autoplaySize] at most. None where [song] is no longer last (another queue, or songs added after it),
+  /// repeat or autoplay went on or off meanwhile, or the media server can't say: the music then stops after it.
+  Future<void> _continueAfter(Song song) async {
+    final List<Song> similar;
+
+    try {
+      similar = await _api.similarSongs(song);
+    } on Object catch (e) {
+      debugPrint('no songs like ${song.id}: $e');
+      return;
+    }
+
+    await _edit(() async {
+      if (_disposed || !identical(_queue.lastOrNull, song) || repeat != Repeat.off || !(_autoplay?.value ?? false)) {
+        return;
+      }
+
+      final queued = {for (final other in _opened) other.id};
+      final added = [
+        for (final other in similar)
+          if (queued.add(other.id)) other,
+      ];
+      final songs = added.take(autoplaySize).toList();
+      _autoplayed.addAll(songs);
+      await _add(songs, next: false);
+    });
   }
 
   /// Puts [_queue] in the engine's play order, which a shuffle changes.
@@ -430,8 +540,10 @@ class PlayerController extends ChangeNotifier {
 
   @override
   Future<void> dispose() async {
+    _disposed = true;
     _replayGain?.removeListener(_updateGain);
     _equalizer?.removeListener(_equalize);
+    _autoplay?.removeListener(_autoplayTurned);
     await _subscription.cancel();
     await _engine.dispose();
     super.dispose();

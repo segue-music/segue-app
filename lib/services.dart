@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'autoplay_choice.dart';
 import 'connect/connect.dart';
 import 'download_choice.dart';
 import 'downloads/downloads.dart';
@@ -47,13 +48,14 @@ class Services {
     this.downloads,
     this.reachability,
     this.downloadHold,
+    this.autoplay,
   });
 
   /// Starts a session: the API, with what the user downloaded, this device's player, which streams in the quality picked
   /// ([quality]; the original, with none), levels the songs' loudness the way picked ([replayGain]; not at all, with
-  /// none) and plays them through the equalizer as set ([equalizer]; as they are, with none), and, if a hub is found,
-  /// the connection to it. With the media server out of reach, the hub is the one last found next to it, which the
-  /// connection reaches once it can.
+  /// none), plays them through the equalizer as set ([equalizer]; as they are, with none) and goes on after the queue's
+  /// last song while [autoplay] is on (never, with none), and, if a hub is found, the connection to it. With the media
+  /// server out of reach, the hub is the one last found next to it, which the connection reaches once it can.
   static Future<Services> start(
     Session session, {
     AudioEngine? engine,
@@ -61,6 +63,7 @@ class Services {
     ValueListenable<ReplayGainMode>? replayGain,
     ValueListenable<EqualizerSettings>? equalizer,
     ValueListenable<DownloadSettings>? downloadSettings,
+    AutoplayChoice? autoplay,
   }) async {
     final server = openServer(
       session.server,
@@ -104,6 +107,7 @@ class Services {
       quality: () => (quality?.value ?? StreamQuality.original).inUse(onMobileData: mobileData.value),
       replayGain: replayGain,
       equalizer: equalizer,
+      autoplay: autoplay,
     );
     final hubUrl = foundHub ?? (reachable ? null : await _rememberedHub(session.server));
 
@@ -139,6 +143,7 @@ class Services {
       downloads: downloads,
       reachability: reachability,
       downloadHold: downloadHold,
+      autoplay: autoplay,
     );
     unawaited(client?.start());
     unawaited(services._loadFavorites());
@@ -214,6 +219,10 @@ class Services {
 
   /// Whether the downloads wait for Wi-Fi or a cable; null, they never do.
   final DownloadHold? downloadHold;
+
+  /// Whether [player] goes on after the queue's last song with songs like it, which the settings and the queue's page
+  /// turn on and off; null, it never does, nor shows a way to.
+  final AutoplayChoice? autoplay;
 
   /// Loads the favorites, where the media server gives them.
   Future<void> _loadFavorites() async {

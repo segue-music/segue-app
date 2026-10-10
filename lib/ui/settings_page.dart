@@ -10,6 +10,7 @@ import '../quality_choice.dart';
 import '../replay_gain_choice.dart';
 import '../services.dart';
 import '../theme_choice.dart';
+import 'autoplay_switch.dart';
 import 'downloads_page.dart';
 import 'equalizer_page.dart';
 import 'language_button.dart';
@@ -19,11 +20,11 @@ import 'theme_fade.dart';
 import 'themed_icon.dart';
 
 /// What the user picks for the app, and signing out, in groups under their names: the appearance (the theme, the
-/// language), the playback (the quality, the volume's normalization, the equalizer's page) and the app itself (its
-/// version, the licenses' page); a line between the groups, and after the last, signing out, under the account it signs
-/// out of. Each choice is a line that says the option picked, which opens a sheet of them all ([_Choice]). In the page
-/// area, from the top bar's button; a choice missing (none given), its line too, a group left with none too, and the
-/// version with none.
+/// language), the playback (the quality, the volume's normalization, the equalizer's page, autoplay) and the app itself
+/// (its version, the licenses' page); a line between the groups, and after the last, signing out, under the account it
+/// signs out of. Each choice is a line that says the option picked, which opens a sheet of them all ([_Choice]), or, on
+/// or off, a switch. In the page area, from the top bar's button; a choice missing (none given), its line too, a group
+/// left with none too, and the version with none.
 class SettingsPage extends StatelessWidget {
   const SettingsPage({
     required this.onSignOut,
@@ -53,6 +54,7 @@ class SettingsPage extends StatelessWidget {
     final strings = AppLocalizations.of(context);
     final session = ServicesScope.of(context).session;
     final downloads = ServicesScope.of(context).downloads;
+    final autoplay = ServicesScope.of(context).autoplay;
     final (themeChoice, languageChoice, qualityChoice, replayGainChoice, equalizerChoice) = (
       this.themeChoice,
       this.languageChoice,
@@ -175,6 +177,7 @@ class SettingsPage extends StatelessWidget {
                         Navigator.of(context)
                             .push(MaterialPageRoute<void>(builder: (_) => EqualizerPage(choice: equalizerChoice))),
                   ),
+                if (autoplay != null) AutoplaySwitch(autoplay),
               ],
             ),
             // How the app downloads, and what it has downloaded, where it downloads.

@@ -153,6 +153,12 @@ the device it runs on.
   menu key), another user's too. Shuffled, they still play next, and turning shuffle off puts them where they would
   have gone unshuffled. To an empty queue they are the queue, paused at the first. A message at the
   bottom says so;
+- autoplay: as the queue's last song starts playing, repeat off, songs like it go after it, ten at a time, but for those
+  the queue has already, so that the music goes on rather than stop: on a Subsonic server getSimilarSongs2's, by the
+  song (Navidrome mixes them from Last.fm and the like), or by its artist where the server takes only an artist's id;
+  on Jellyfin its instant mix, of the song's genres. It is on until a switch turns it off, in the settings and after
+  the queue's last song, which takes the songs it added that haven't played out of the queue; on again, they come
+  again. It is this device's: another device's queue goes on, or not, as that device has it;
 - the album's songs and the queue have a header naming their columns: the number ("#") or the
   cover, the title, and the duration as a clock; over the queue it stays as the tracks scroll;
 - making and changing playlists: a new one, from a button over the list of them, named in a dialog; a
@@ -294,7 +300,7 @@ the device it runs on.
   On a computer the window opens maximized.
 
 Not yet: moving a playlist's or the queue's songs with the remote (a TV has no drag), adding the song that plays to a
-playlist from the player, the media controls on macOS and Windows, on a Jellyfin server the cover of a song that came from another device
+playlist from the player, turning another device's autoplay on or off from here, the media controls on macOS and Windows, on a Jellyfin server the cover of a song that came from another device
 when its file has none of its own (Jellyfin doesn't fall back to the album's) and an artist's popular songs (Jellyfin
 knows only its users' plays), sending the music
 to speakers and TVs that don't run the app (Google Cast, UPnP/DLNA), and CarPlay as an app of its own (browsing the library

@@ -400,6 +400,14 @@
   "@queueEmpty": {
     "description": "The queue page with no tracks."
   },
+  "autoplay": "Reprodução automática",
+  "@autoplay": {
+    "description": "The switch, in the settings and at the end of the queue, that has the player go on with songs like the queue's last one as the queue ends (autoplay), rather than stop."
+  },
+  "autoplayDetail": "Quando a fila acaba, músicas parecidas continuam tocando.",
+  "@autoplayDetail": {
+    "description": "Under the autoplay switch: what it does on."
+  },
   "albumCount": "{count, plural, =0{0 álbuns} =1{1 álbum} other{{count} álbuns}}",
   "@albumCount": {
     "description": "How many albums an artist or a genre has.",

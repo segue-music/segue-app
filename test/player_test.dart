@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -579,6 +581,205 @@ void main() {
       expect(ids(), ['s1', 's4', 's2', 's3']);
       await player.obey(const Command.removeFromQueue(2));
       expect(ids(), ['s1', 's4', 's3']);
+    });
+  });
+
+  group('autoplay', () {
+    late ValueNotifier<bool> autoplay;
+    late SubsonicApi server;
+
+    // The songs the server gives as like the one asked about, by their ids; until [held] completes, none, and with
+    // [fails], an error.
+    late List<String> similar;
+    late List<String> asked;
+    Completer<void>? held;
+    late bool fails;
+
+    List<String> ids() => [for (final song in player.queue) song.id];
+
+    setUp(() {
+      autoplay = ValueNotifier(true);
+      similar = ['s1', for (var i = 3; i <= 14; i++) 's$i'];
+      asked = [];
+      held = null;
+      fails = false;
+      server = SubsonicApi(
+        Uri.parse('https://music.test'),
+        const SubsonicCredentials(username: 'a', token: 't', salt: 's'),
+        client: MockClient((request) async {
+          asked.add(request.url.queryParameters['id']!);
+          await held?.future;
+          return fails
+              ? http.Response('', 500)
+              : http.Response(
+                  jsonEncode({
+                    'subsonic-response': {
+                      'status': 'ok',
+                      'similarSongs2': {
+                        'song': [
+                          for (final id in similar) {'id': id, 'title': 'Song $id'},
+                        ],
+                      },
+                    },
+                  }),
+                  200,
+                );
+        }),
+      );
+      engine = FakeEngine();
+      player = PlayerController(engine, server, autoplay: autoplay);
+      reports = [];
+      player.onReport = reports.add;
+    });
+
+    test('as the queue\'s last song plays, repeat off, songs like it go after it: those the queue hasn\'t yet, '
+        '${PlayerController.autoplaySize} at most', () async {
+      await player.playQueue(songs);
+      await pumpEventQueue();
+      expect(asked, isEmpty, reason: 'not the last song');
+
+      await player.next();
+      await pumpEventQueue();
+      expect(asked, ['s2'], reason: 'by the last song');
+      expect(ids(), ['s1', 's2', for (var i = 3; i <= 12; i++) 's$i']);
+      expect(engine.tracks.map((track) => track.queryParameters['id']), ids());
+      expect(player.current?.id, 's2');
+      expect(player.playing, isTrue);
+      expect(reports.last.queue?.map((item) => item.id), ids());
+
+      // The last of them goes on in turn.
+      await player.jump(11);
+      await pumpEventQueue();
+      expect(asked, ['s2', 's12']);
+      expect(ids().skip(12), ['s13', 's14']);
+    });
+
+    test('not with repeat on, nor paused, nor with autoplay off; as any of them changes, at once', () async {
+      autoplay.value = false;
+      await player.playQueue(songs, index: 1);
+      await player.setRepeat(Repeat.all);
+      autoplay.value = true;
+      await player.pause();
+      await pumpEventQueue();
+      expect(asked, isEmpty);
+
+      await player.setRepeat(Repeat.off);
+      await pumpEventQueue();
+      expect(asked, isEmpty, reason: 'paused');
+
+      await player.play();
+      await pumpEventQueue();
+      expect(asked, ['s2']);
+      expect(ids(), hasLength(12));
+    });
+
+    test('asked once for a song, which nothing new, or a failure, leaves to end the queue; the same songs played '
+        'again, again', () async {
+      similar = ['s1', 's2'];
+      await player.playQueue(songs, index: 1);
+      await pumpEventQueue();
+      await player.pause();
+      await player.play();
+      await pumpEventQueue();
+      expect(asked, ['s2']);
+      expect(ids(), ['s1', 's2']);
+
+      fails = true;
+      await player.playQueue(songs, index: 1);
+      await pumpEventQueue();
+      expect(asked, ['s2', 's2']);
+      expect(ids(), ['s1', 's2']);
+      expect(player.playing, isTrue);
+    });
+
+    test('none go where the last song is no longer last as they come, nor with autoplay off or repeat on', () async {
+      held = Completer();
+      await player.playQueue(songs, index: 1);
+      await player.playQueue(const [Song(id: 'o1', title: 'Other')]);
+      held!.complete();
+      await pumpEventQueue();
+      expect(asked, ['s2', 'o1']);
+      expect(ids(), ['o1', 's1', 's3', 's4', 's5', 's6', 's7', 's8', 's9', 's10', 's11'], reason: 'after o1 alone');
+
+      held = Completer();
+      await player.playQueue(songs, index: 1);
+      await player.addToQueue(const [Song(id: 'a1', title: 'Added')], next: false);
+      held!.complete();
+      await pumpEventQueue();
+      expect(ids(), ['s1', 's2', 'a1']);
+
+      for (final change in <Future<void> Function()>[
+        () async => autoplay.value = false,
+        () => player.setRepeat(Repeat.one),
+      ]) {
+        autoplay.value = true;
+        await player.setRepeat(Repeat.off);
+        held = Completer();
+        await player.playQueue(songs, index: 1);
+        await change();
+        held!.complete();
+        await pumpEventQueue();
+        expect(ids(), ['s1', 's2']);
+      }
+    });
+
+    test('turned off, the songs it added that haven\'t played go out of the queue, in one report, the current one '
+        'playing on; turned on again, they come again', () async {
+      await player.playQueue(songs, index: 1);
+      await pumpEventQueue();
+      await player.addToQueue(const [Song(id: 'a1', title: 'Added')], next: false);
+      await player.jump(3);
+      reports.clear();
+      autoplay.value = false;
+      await pumpEventQueue();
+      expect(ids(), [
+        's1',
+        's2',
+        's3',
+        's4',
+        'a1',
+      ], reason: 'those played and the one that plays stay, and the user\'s');
+      expect(engine.tracks.map((track) => track.queryParameters['id']), ids());
+      expect(player.current?.id, 's4');
+      expect(player.playing, isTrue);
+      expect([for (final report in reports) ?report.queue?.map((item) => item.id)], [ids()]);
+
+      await player.playQueue(songs, index: 1);
+      await pumpEventQueue();
+      expect(asked, ['s2'], reason: 'off');
+      autoplay.value = true;
+      await pumpEventQueue();
+      expect(ids(), hasLength(12));
+      autoplay.value = false;
+      await pumpEventQueue();
+      expect(ids(), ['s1', 's2']);
+      autoplay.value = true;
+      await pumpEventQueue();
+      expect(asked, ['s2', 's2', 's2'], reason: 'on the same song, again');
+      expect(ids(), hasLength(12));
+    });
+
+    test('shuffled, the songs it added go out of the play order and of the order unshuffled alike', () async {
+      await player.playQueue(songs, index: 1);
+      await pumpEventQueue();
+      await player.setShuffle(true);
+      expect(ids(), ['s2', 's12', 's11', 's10', 's9', 's8', 's7', 's6', 's5', 's4', 's3', 's1']); // the fake's shuffle
+      autoplay.value = false;
+      await pumpEventQueue();
+      expect(ids(), ['s2', 's1']);
+      expect(engine.tracks.map((track) => track.queryParameters['id']), ['s1', 's2']);
+
+      await player.setShuffle(false);
+      expect(ids(), ['s1', 's2']);
+      expect(player.current?.id, 's2');
+    });
+
+    test('with none given, never', () async {
+      engine = FakeEngine();
+      player = PlayerController(engine, server);
+      await player.playQueue(songs, index: 1);
+      await pumpEventQueue();
+      expect(asked, isEmpty);
     });
   });
 

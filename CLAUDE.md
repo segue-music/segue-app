@@ -148,6 +148,15 @@ Running two app instances on one machine as different devices:
   frequency: of a Q so small (0.0001) that its band takes in every frequency, it is a gain. One graph, since on
   Android (mpv 0.35, FFmpeg 6.0) a second lavfi filter after mpv's resampler fails every frame. Turning it on or
   off restarts the audio output, a moment of silence; moving a band makes the graph anew, but not the output.
+  Autoplay (`AutoplayChoice`, `lib/autoplay_choice.dart`, on until turned off, `Services.autoplay`): as the queue's
+  last song starts playing, repeat off, `PlayerController` asks the media server for songs like it
+  (`MediaServer.similarSongs`: Subsonic's getSimilarSongs2 by the song's id, which Navidrome takes, else by its
+  artist's; Jellyfin's `Items/{id}/InstantMix`), once for that song in that queue, and adds at the end up to
+  `autoplaySize` of them the queue doesn't have, unless, as they come, the song is no longer last. Added before the
+  queue ends, they play on from it. Turned off, it takes those that haven't played out of the queue (`_autoplayed`,
+  the songs themselves, not their ids: the same song added otherwise stays), with one report, and turned on again on
+  the same song asks again. It is each device's own setting, not the protocol's: the hub sees a longer queue, or a
+  shorter one.
 - `ConnectController` (`lib/connect/`) follows the Connect model: the app controls one device at a
   time (`activeId`, null meaning this device). UI actions go through it (`playSongs`, `toggle`,
   `seek`, ...): it either runs them on the local player or sends them as hub commands. The UI should

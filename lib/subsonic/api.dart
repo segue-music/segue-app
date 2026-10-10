@@ -359,6 +359,32 @@ class SubsonicApi implements MediaServer {
       _artist(artist as Map<String, dynamic>),
   ];
 
+  /// getSimilarSongs2 by the song's id, for which Navidrome mixes songs like it (from its agents: Last.fm's, or a
+  /// plugin's), else its artist's. The Subsonic API takes only an artist's id there: a server that refuses the song's
+  /// is asked by its artist's, for songs of the artist and of those like them.
+  @override
+  Future<List<Song>> similarSongs(Song song, {int size = 50}) async {
+    Future<List<Song>> like(String id) async {
+      final body = await _get('getSimilarSongs2', {'id': id, 'count': '$size'});
+      return [
+        for (final json in (body['similarSongs2'] as Map<String, dynamic>?)?['song'] as List? ?? const [])
+          _song(json as Map<String, dynamic>),
+      ];
+    }
+
+    try {
+      return await like(song.id);
+    } on ServerError catch (error) {
+      final artistId = song.artistId;
+
+      if (error.isAuth || artistId == null) {
+        rethrow;
+      }
+
+      return like(artistId);
+    }
+  }
+
   /// The artist whose id is [id] and their albums, as getArtist gives them. The artist page asks for the artist and for
   /// their most played songs at once, which both start here: a request under way answers both ([_shared]).
   Future<Map<String, dynamic>> _artistJson(String id) =>

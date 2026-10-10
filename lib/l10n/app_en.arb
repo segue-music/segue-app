@@ -66,6 +66,8 @@
   "queue": "Queue",
   "queueOn": "Queue on {device}",
   "queueEmpty": "The queue is empty.",
+  "autoplay": "Autoplay",
+  "autoplayDetail": "When the queue ends, similar songs keep playing.",
   "albumCount": "{count, plural, =1{1 album} other{{count} albums}}",
   "orderName": "Name",
   "orderReleased": "New releases",

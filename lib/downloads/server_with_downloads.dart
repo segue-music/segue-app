@@ -302,6 +302,10 @@ class ServerWithDownloads implements MediaServer {
   Future<List<Artist>> similarArtists(String artistId) =>
       _either(() => server.similarArtists(artistId), () => const []);
 
+  @override
+  Future<List<Song>> similarSongs(Song song, {int size = 50}) =>
+      _either(() => server.similarSongs(song, size: size), () => const []);
+
   /// The song's file, where it is downloaded, the server in reach or not: it plays as it is, whatever [maxBitRate].
   @override
   Uri streamUrl(String songId, {int? maxBitRate}) =>

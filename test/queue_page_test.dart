@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:segue/autoplay_choice.dart';
 import 'package:segue/connect/connect.dart';
 import 'package:segue/l10n/app_localizations.dart';
 import 'package:segue/player/player.dart';
@@ -20,6 +21,8 @@ import 'package:segue/ui/now_playing_bar.dart';
 import 'package:segue/ui/player_page.dart';
 import 'package:segue/ui/queue_page.dart';
 import 'package:segue/ui/shortcuts.dart';
+import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 import 'fakes.dart';
 
@@ -33,12 +36,13 @@ const songs = [
 ];
 
 /// The player bar, under the navigator as in the app, with [songs] playing from the second one, or,
-/// with [client], what its devices play. [television] as on a TV.
+/// with [client], what its devices play. [television] as on a TV. With [autoplay], the pages show its switch.
 Future<PlayerController> pumpBar(
   WidgetTester tester, {
   SegueClient? client,
   Size size = const Size(360, 640),
   bool television = false,
+  AutoplayChoice? autoplay,
 }) async {
   final api = SubsonicApi(
     Uri.parse('https://music.test'),
@@ -59,6 +63,7 @@ Future<PlayerController> pumpBar(
     api,
     player,
     connect,
+    autoplay: autoplay,
   );
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -274,6 +279,42 @@ void main() {
     expect(tile(tester, 'Walk This Way').selected, isTrue);
     expect(tile(tester, 'Untranslatable').onTap, isNotNull);
     expect(player.queue, isEmpty, reason: 'not this device\'s');
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('after the last track, this device\'s queue has the switch of autoplay, which turns it off and on; '
+      'another device\'s, which goes on or not as that device has it, has none', (tester) async {
+    SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
+    final autoplay = AutoplayChoice();
+    addTearDown(autoplay.dispose);
+    await pumpBar(tester, autoplay: autoplay);
+    await openQueue(tester);
+    final toggle = find.widgetWithText(SwitchListTile, 'Reprodução automática');
+    await tester.scrollUntilVisible(
+      toggle,
+      100,
+      scrollable: find.descendant(of: find.byType(QueuePage), matching: find.byType(Scrollable)).first,
+    );
+    expect(find.text('Quando a fila acaba, músicas parecidas continuam tocando.'), findsOneWidget);
+    expect(tester.getRect(toggle).top, greaterThan(tester.getRect(inQueue(find.text('Four'))).bottom));
+    expect(tester.widget<SwitchListTile>(toggle).value, isTrue, reason: 'on, until turned off');
+
+    await tester.tap(toggle);
+    await tester.pump();
+    expect(autoplay.value, isFalse);
+    expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
+    await tester.tap(toggle);
+    await tester.pump();
+    expect(autoplay.value, isTrue);
+
+    await pumpBar(
+      tester,
+      client: clientWithTv(capabilities: CommandAction.values),
+      autoplay: autoplay,
+    );
+    await openQueue(tester);
+    expect(inQueue(find.text('Walk This Way')), findsOneWidget);
+    expect(find.byType(SwitchListTile), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
 

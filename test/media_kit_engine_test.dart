@@ -769,6 +769,18 @@ void main() {
       expect(engine.index, 4);
     }, skip: hasLibmpv ? false : 'needs libmpv');
 
+    test('after the last one, as it plays, play once it ends, as autoplay adds them', () async {
+      final server = await TrackServer.start();
+      addTearDown(server.close);
+      await engine.open([server.track('short0')], index: 0, position: Duration.zero, play: true);
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      expect(await engine.add([server.track('ok1')], next: false), 1);
+      await Future<void>.delayed(const Duration(milliseconds: 1500)); // the first ends
+      expect(server.requests, ['/short0', '/ok1']);
+      expect(engine.index, 1);
+      expect(engine.playing, isTrue);
+    }, skip: hasLibmpv ? false : 'needs libmpv');
+
     test('never take the current track elsewhere, or back to its start, even for a moment', () async {
       final tracks = [for (var i = 0; i < 3; i++) tone(dir, i, seconds: 20)];
       await engine.open(tracks, index: 1, position: const Duration(seconds: 10), play: true);

@@ -3,6 +3,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import 'app.dart';
+import 'autoplay_choice.dart';
 import 'player/audio_interruptions.dart';
 import 'player/libmpv_licenses.dart';
 import 'player/media_controls.dart';
@@ -31,6 +32,7 @@ Future<void> main() async {
       downloadChoice: await DownloadChoice.load(),
       replayGainChoice: await ReplayGainChoice.load(),
       equalizerChoice: await EqualizerChoice.load(),
+      autoplayChoice: await AutoplayChoice.load(),
       mediaControls: controls,
       interruptions: interruptions,
       television: television,

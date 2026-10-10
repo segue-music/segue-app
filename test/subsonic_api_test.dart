@@ -1167,6 +1167,53 @@ void main() {
     expect(asked, hasLength(1));
   });
 
+  test('the songs like one are getSimilarSongs2\'s, by the song\'s id, or by its artist\'s where the server refuses '
+      'it', () async {
+    final asked = <Uri>[];
+    var songIds = true;
+    final api = SubsonicApi(
+      Uri.parse('https://music.test'),
+      credentials,
+      client: MockClient((request) async {
+        asked.add(request.url);
+        return request.url.queryParameters['id'] == 's1' && !songIds
+            ? subsonic({
+                'status': 'failed',
+                'error': {'code': 70, 'message': 'Artist not found'},
+              })
+            : subsonic({
+                'status': 'ok',
+                'similarSongs2': {
+                  'song': [
+                    {'id': 's2', 'title': 'Dream On', 'artist': 'Aerosmith', 'artistId': 'ar1'},
+                    {'id': 's3', 'title': 'Surrender', 'artist': 'Cheap Trick', 'artistId': 'ar2'},
+                  ],
+                },
+              });
+      }),
+    );
+    const song = Song(
+      id: 's1',
+      title: 'Walk This Way',
+      artists: [Artist(id: 'ar1', name: 'Aerosmith')],
+    );
+    final similar = await api.similarSongs(song, size: 20);
+    expect([for (final found in similar) found.title], ['Dream On', 'Surrender'], reason: 'in the server\'s order');
+    expect(similar.last.artistId, 'ar2');
+    expect(asked.single.path, '/rest/getSimilarSongs2.view');
+    expect(asked.single.queryParameters, allOf(containsPair('id', 's1'), containsPair('count', '20')));
+
+    // A server that takes only an artist's id, as the Subsonic API has it.
+    songIds = false;
+    asked.clear();
+    expect(await api.similarSongs(song), hasLength(2));
+    expect([for (final url in asked) url.queryParameters['id']], ['s1', 'ar1']);
+    expect(asked.last.queryParameters, containsPair('count', '50'));
+
+    // A song with no artist's id, as one another device sent, has none to ask by.
+    await expectLater(api.similarSongs(const Song(id: 's1', title: 'Walk This Way')), throwsA(isA<ServerError>()));
+  });
+
   test('search asks for artists, albums and songs', () async {
     late Uri asked;
     final api = SubsonicApi(

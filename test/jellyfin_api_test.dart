@@ -784,6 +784,21 @@ void main() {
     expect([for (final artist in similar) artist.musicBrainzId], ['mb2', null]);
   });
 
+  test('the songs like one are Items/{id}/InstantMix\'s, the song itself among them', () async {
+    final asked = <http.Request>[];
+    final similar = await jellyfin(
+      (_) => items([
+        song,
+        {...song, 'Id': 's2', 'Name': 'Sweet Emotion'},
+      ]),
+      asked,
+    ).similarSongs(const Song(id: 's1', title: 'Walk This Way'), size: 20);
+    expect(asked.single.url.path, '/jellyfin/Items/s1/InstantMix');
+    expect(asked.single.url.queryParameters, allOf(containsPair('Limit', '20'), containsPair('userId', 'u1')));
+    expect([for (final song in similar) song.title], ['Walk This Way', 'Sweet Emotion']);
+    expect(similar.last.artistId, 'ar1');
+  });
+
   test('audio and covers come from URLs a player can open, the token in the stream\'s', () {
     final api = jellyfin((_) => http.Response('', 404));
     final stream = api.streamUrl('s1');

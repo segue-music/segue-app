@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import 'autoplay_choice.dart';
 import 'l10n/app_localizations.dart';
 import 'equalizer_choice.dart';
 import 'language_choice.dart';
@@ -32,6 +33,7 @@ class SegueApp extends StatefulWidget {
     this.downloadChoice,
     this.replayGainChoice,
     this.equalizerChoice,
+    this.autoplayChoice,
     this.mediaControls,
     this.interruptions,
     this.television = false,
@@ -59,6 +61,10 @@ class SegueApp extends StatefulWidget {
 
   /// The equalizer the player plays through; with none, off, until it is turned on.
   final EqualizerChoice? equalizerChoice;
+
+  /// Whether the player goes on after the queue's last song with songs like it; with none, it never does, and the
+  /// settings show no way to turn it on.
+  final AutoplayChoice? autoplayChoice;
 
   /// The system's media controls, where the platform has them.
   final MediaControls? mediaControls;
@@ -130,6 +136,7 @@ class _SegueAppState extends State<SegueApp> {
         downloadSettings: _downloadChoice,
         replayGain: _replayGainChoice,
         equalizer: _equalizerChoice,
+        autoplay: widget.autoplayChoice,
       );
 
       if (!mounted) {
