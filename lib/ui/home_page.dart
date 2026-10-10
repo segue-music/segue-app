@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
@@ -291,6 +292,18 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     }
   }
 
+  /// A touch off the search bar closes the keyboard: Flutter leaves the field focused on a touch, on a phone or a
+  /// tablet, unfocusing it only for a mouse. With the keyboard open, that is all it does, rather than also doing what it
+  /// touched (a genre, a song found, a button), as one closes the keyboard to see what was found: it takes the gesture
+  /// from what is under it, as [TapRegion.consumeOutsideTaps] does, but only then.
+  void _tappedOutsideSearch(PointerDownEvent event) {
+    if (_searchFocus.hasFocus && View.of(context).viewInsets.bottom > 0) {
+      GestureBinding.instance.gestureArena.add(event.pointer, _GestureTaker()).resolve(GestureDisposition.accepted);
+    }
+
+    _searchFocus.unfocus();
+  }
+
   void _clearSearch() {
     _search.clear();
     _searchFor('');
@@ -347,9 +360,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           readOnly: television && !_searchEditable,
           // A tap, or the remote's center button.
           onTap: television ? _openKeyboard : null,
-          // A tap anywhere else closes the keyboard: Flutter leaves the field focused on a touch, on a phone or a
-          // tablet, unfocusing it only for a mouse.
-          onTapOutside: (_) => _searchFocus.unfocus(),
+          onTapOutside: _tappedOutsideSearch,
           // On a phone, in the top bar, the search's name, in the room its name would take, rather than what it finds,
           // which wouldn't fit beside the top bar's buttons.
           hintText: narrow ? strings.search : strings.searchHint,
@@ -606,6 +617,15 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       ),
     );
   }
+}
+
+/// What takes a gesture in the arena from the recognizers of what was touched, and does nothing with it.
+class _GestureTaker implements GestureArenaMember {
+  @override
+  void acceptGesture(int pointer) {}
+
+  @override
+  void rejectGesture(int pointer) {}
 }
 
 /// How wide an icon button is: Material 3's 40 pixels, padded to 48 where the theme pads tap targets.

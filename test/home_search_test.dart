@@ -197,6 +197,40 @@ void main() {
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
   });
 
+  testWidgets('on a phone, with the keyboard open, a touch off the search bar only closes it', (tester) async {
+    final (player, _) = await pumpHome(tester, const Size(360, 640));
+    await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Buscar')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(TextField));
+    // The keyboard, over the bottom of the screen.
+    tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+    await tester.pump();
+    final field = tester.state<EditableTextState>(find.byType(EditableText)).widget.focusNode;
+
+    await tester.tap(find.text('Hard Rock'));
+    await tester.pumpAndSettle();
+    expect(field.hasFocus, isFalse);
+    expect(tester.testTextInput.isVisible, isFalse);
+    expect(find.byType(SearchBar), findsOneWidget, reason: 'no genre\'s page over the search');
+    await tester.tap(find.text('Hard Rock'));
+    await tester.pumpAndSettle();
+    expect(find.byType(SearchBar), findsNothing, reason: 'the keyboard closed, the genre\'s page');
+
+    await tester.tap(find.byTooltip('Voltar'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'dream');
+    await tester.pump(HomePage.searchTypingPause);
+    await tester.pump();
+    await tester.tap(find.text('Dream Police'));
+    await tester.pump();
+    expect(field.hasFocus, isFalse);
+    expect(player.current, isNull);
+    await tester.tap(find.text('Dream Police'));
+    await tester.pump();
+    expect(player.current?.id, 's2');
+    await tester.pumpWidget(const SizedBox()); // stops the bar's timer
+  });
+
   testWidgets('on a phone, a small gap sets the player bar apart from the sections\' bar, which alone keeps clear of '
       'the system\'s', (tester) async {
     final (player, _) = await pumpHome(tester, const Size(360, 640));
