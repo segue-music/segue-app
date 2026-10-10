@@ -79,7 +79,8 @@ the device it runs on.
   too, on the home, and the bar at the bottom has three: the home, the search, whose bar shows in it alone, in
   the top bar, over the genres until a search finds something, the keyboard opening only at a tap on it or on the
   search's button again, and a touch elsewhere only closing it, without opening what it touched, and the
-  library, whose albums, artists and playlists are tabs in the top bar, opening again on the one picked last);
+  library, whose albums, artists and playlists are tabs in the top bar, opening again on the one picked last; a
+  swipe goes from the home to the search and on through the library's tabs, and back);
   the album page, whose cover opens full screen; search (artists, albums and songs); and playback
   through media_kit (libmpv), with a seek bar, shuffle and repeat (the queue, or the track until
   another one is picked), in the player bar and in a full-screen player that the song in the bar

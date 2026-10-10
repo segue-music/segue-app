@@ -23,8 +23,10 @@ import 'package:segue/theme_choice.dart';
 import 'package:segue/ui/album_page.dart';
 import 'package:segue/ui/albums_view.dart';
 import 'package:segue/ui/artists_view.dart';
+import 'package:segue/ui/genres_view.dart';
 import 'package:segue/ui/home_page.dart';
 import 'package:segue/ui/home_view.dart';
+import 'package:segue/ui/playlists_view.dart';
 import 'package:segue/ui/settings_page.dart';
 import 'package:segue/ui/shortcuts.dart';
 import 'package:segue/ui/theme.dart';
@@ -944,6 +946,68 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.widget<TabBar>(tabs).controller?.index, 1);
     expect(find.byType(ArtistsView), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a phone, a swipe goes from the home to the search and on through the library\'s tabs, and back', (
+    tester,
+  ) async {
+    await pumpHome(tester, const Size(360, 640));
+    final bar = find.byType(NavigationBar);
+    final tabs = find.byType(TabBar);
+    int destination() => tester.widget<NavigationBar>(bar).selectedIndex;
+    TabController tab() => tester.widget<TabBar>(tabs).controller!;
+    Future<void> swipe(Finder from, double dx) async {
+      await tester.drag(from, Offset(dx, 0));
+      await tester.pumpAndSettle();
+    }
+
+    // From a row's title: along a row, a swipe goes along it.
+    await swipe(find.text('Mais tocados'), -300);
+    expect(destination(), 1);
+    expect(find.byType(GenresView), findsOneWidget);
+    expect(find.byType(HomeView), findsNothing);
+    await swipe(find.byType(GenresView), -300);
+    expect(destination(), 2);
+    expect(tab().index, 0);
+    expect(find.byType(AlbumsView), findsOneWidget);
+
+    // Between two tabs, the line under them follows the swipe.
+    final gesture = await tester.startGesture(tester.getCenter(find.byType(AlbumsView)));
+    await gesture.moveBy(const Offset(-20, 0));
+    await gesture.moveBy(const Offset(-70, 0));
+    await tester.pump();
+    expect(tab().animation!.value, moreOrLessEquals(0.25, epsilon: 0.01));
+    expect(tab().index, 0);
+    await gesture.moveBy(const Offset(-180, 0));
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(tab().index, 1);
+    expect(tab().animation!.value, 1);
+    expect(find.byType(ArtistsView), findsOneWidget);
+
+    await swipe(find.byType(ArtistsView), -300);
+    expect(tab().index, 2);
+    expect(find.byType(PlaylistsView), findsOneWidget);
+    await swipe(find.byType(PlaylistsView), -300);
+    expect(find.byType(PlaylistsView), findsOneWidget, reason: 'the last');
+
+    // A section picked in the bar, then swiped from.
+    await tester.tap(find.descendant(of: bar, matching: find.text('Início')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.descendant(of: bar, matching: find.text('Biblioteca')));
+    await tester.pumpAndSettle();
+    expect(find.byType(PlaylistsView), findsOneWidget, reason: 'the tab swiped to last');
+    await swipe(find.byType(PlaylistsView), 300);
+    expect(tab().index, 1);
+    await swipe(find.byType(ArtistsView), 300);
+    await swipe(find.byType(AlbumsView), 300);
+    expect(destination(), 1);
+    await swipe(find.byType(GenresView), 300);
+    expect(destination(), 0);
+    expect(find.byType(HomeView), findsOneWidget);
+    await swipe(find.text('Mais tocados'), 300);
+    expect(find.byType(HomeView), findsOneWidget, reason: 'the first');
     await tester.pumpWidget(const SizedBox());
   });
 

@@ -113,6 +113,9 @@ enum _Destination {
   /// The library's tabs, in their order.
   static const libraryTabs = [_Section.albums, _Section.artists, _Section.playlists];
 
+  /// The sections side by side, in the order a swipe goes through them: the destinations', the library's as its tabs.
+  static const sections = [_Section.home, _Section.search, ...libraryTabs];
+
   /// The destination [section] is in.
   static _Destination of(_Section section) => switch (section) {
     _Section.home => home,
@@ -145,7 +148,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   /// The order of the albums tab: by name, or a home row's, whose title opened it.
   AlbumOrder _albumOrder = AlbumOrder.name;
 
-  /// The sections opened so far: each loads the first time it is opened.
+  /// The sections opened so far: each loads the first time it is opened. On a phone the pages a swipe goes through
+  /// build each as it first comes into sight.
   final _opened = {_Section.home};
 
   /// On a phone, the library's tabs: the one picked, which the library opens on again.
@@ -240,6 +244,29 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       _Destination.search => _Section.search,
       _Destination.library => _Destination.libraryTabs[_libraryTabs.index],
     });
+  }
+
+  /// On a phone, a swipe at [page] of the sections side by side: the one at the closest page shown, the bar at the
+  /// bottom and the library's tabs saying so, and between two of the tabs, the line under them on its way from one to
+  /// the other, as over a TabBarView.
+  void _swiped(double page) {
+    final section = _Destination.sections[page.round()];
+
+    if (section != _section) {
+      final tab = _Destination.libraryTabs.indexOf(section);
+
+      if (tab >= 0) {
+        _libraryTabs.index = tab;
+      }
+
+      setState(() => _section = section);
+    }
+
+    final fromFirstTab = page - _Destination.sections.indexOf(_Destination.libraryTabs.first);
+
+    if (fromFirstTab >= 0 && !_libraryTabs.indexIsChanging) {
+      _libraryTabs.offset = (fromFirstTab - _libraryTabs.index).clamp(-1.0, 1.0);
+    }
   }
 
   /// The albums tab, in [order].
@@ -401,40 +428,23 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         onPressed: _toggleSettings,
       ),
     ];
-    final sections = Stack(
-      fit: StackFit.expand,
-      children: [
-        // Each section stays underneath once opened, also while searching: going back to it, or
-        // clearing the search, finds it where it was. Hidden, it takes no focus, which the remote would otherwise move
-        // to its albums, under the one shown.
-        for (final section in _opened)
-          Visibility(
-            key: ValueKey(section),
-            visible: (narrow || results == null) && section == shown,
-            maintainState: true,
-            child: switch (section) {
-              _Section.home => HomeView(onShowAll: _showAlbums),
-              _Section.albums => AlbumsView(
-                order: _albumOrder,
-                onOrder: (order) => setState(() => _albumOrder = order),
-              ),
-              _Section.artists => const ArtistsView(),
-              _Section.genres => const GenresView(),
-              _Section.playlists => const PlaylistsView(),
-              // On a phone, the genres until a search finds something, which come back as it is cleared, where they were.
-              _Section.search => Stack(
-                fit: StackFit.expand,
-                children: [
-                  Visibility(visible: results == null, maintainState: true, child: const GenresView()),
-                  if (results != null) SearchResultsList(results),
-                ],
-              ),
-            },
-          ),
-        // On a wide screen, over the section.
-        if (!narrow && results != null) SearchResultsList(results),
-      ],
-    );
+
+    // A section's view, in the wide screen's stack or the phone's pages.
+    Widget view(_Section section) => switch (section) {
+      _Section.home => HomeView(onShowAll: _showAlbums),
+      _Section.albums => AlbumsView(order: _albumOrder, onOrder: (order) => setState(() => _albumOrder = order)),
+      _Section.artists => const ArtistsView(),
+      _Section.genres => const GenresView(),
+      _Section.playlists => const PlaylistsView(),
+      // On a phone, the genres until a search finds something, which come back as it is cleared, where they were.
+      _Section.search => Stack(
+        fit: StackFit.expand,
+        children: [
+          Visibility(visible: results == null, maintainState: true, child: const GenresView()),
+          if (results != null) SearchResultsList(results),
+        ],
+      ),
+    };
 
     // The page area's navigator, over [first]: the sections, which the pages open over. The same navigator in both
     // layouts, by its key, so that the pages stay open as the window is narrowed or widened.
@@ -454,7 +464,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
     // On a phone the bars at the bottom stay, the player's and the destinations', and pages open over the rest, in the
     // page area, each with its own top bar and back arrow, over the section, which has the home's name in its top bar,
-    // the search bar, or the library's tabs. The full-screen player and the queue cover everything.
+    // the search bar, or the library's tabs, and which a swipe changes for the next. The full-screen player and the
+    // queue cover everything.
     if (narrow) {
       final destination = _Destination.of(shown);
       return SearchShortcut(
@@ -502,7 +513,16 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                   },
                   actions: actions,
                 ),
-                body: sections,
+                // A swipe goes from a section to the next, as the bar at the bottom and the library's tabs line them up.
+                body: _SwipedSections(
+                  page: _Destination.sections.indexOf(shown),
+                  onSwiped: _swiped,
+                  children: [
+                    // Off the page shown, a section takes no focus, which would scroll its page into sight.
+                    for (final section in _Destination.sections)
+                      ExcludeFocus(excluding: section != shown, child: view(section)),
+                  ],
+                ),
               ),
             ),
             bottomNavigationBar: Column(
@@ -548,6 +568,23 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       padding: const EdgeInsets.all(4),
       minimumSize: const Size.square(arrow),
       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    );
+    final sections = Stack(
+      fit: StackFit.expand,
+      children: [
+        // Each section stays underneath once opened, also while searching: going back to it, or
+        // clearing the search, finds it where it was. Hidden, it takes no focus, which the remote would otherwise move
+        // to its albums, under the one shown.
+        for (final section in _opened)
+          Visibility(
+            key: ValueKey(section),
+            visible: results == null && section == shown,
+            maintainState: true,
+            child: view(section),
+          ),
+        // Over the section.
+        if (results != null) SearchResultsList(results),
+      ],
     );
     return SearchShortcut(
       onSearch: _focusSearch,
@@ -616,6 +653,89 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         ),
       ),
     );
+  }
+}
+
+/// On a phone, the sections side by side, [page] the one shown, a swipe going from one to the next. Each stays once
+/// built, as on a wide screen they stay underneath: swiping back to it, or picking it in the bar at the bottom, finds it
+/// where it was.
+class _SwipedSections extends StatefulWidget {
+  const _SwipedSections({required this.page, required this.onSwiped, required this.children});
+
+  /// The section shown, which a section picked elsewhere (in the bar at the bottom, a tab) changes at once, as without
+  /// swiping.
+  final int page;
+
+  /// Where a swipe is, as it goes: the first section's page is 0. Not called as a section is picked elsewhere.
+  final ValueChanged<double> onSwiped;
+
+  final List<Widget> children;
+
+  @override
+  State<_SwipedSections> createState() => _SwipedSectionsState();
+}
+
+class _SwipedSectionsState extends State<_SwipedSections> {
+  late final _pages = PageController(initialPage: widget.page);
+
+  /// Whether the page is changing for a section picked elsewhere: in the home's build, where
+  /// [_SwipedSections.onSwiped] couldn't change the section, and needn't.
+  bool _picking = false;
+
+  @override
+  void didUpdateWidget(_SwipedSections oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (_pages.hasClients && _pages.page?.round() != widget.page) {
+      _picking = true;
+      _pages.jumpToPage(widget.page);
+      _picking = false;
+    }
+  }
+
+  @override
+  void dispose() {
+    _pages.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => NotificationListener<ScrollUpdateNotification>(
+    onNotification: (notification) {
+      // The pages' own, not a list's in a section.
+      final page = notification.depth == 0 ? (notification.metrics as PageMetrics).page : null;
+
+      if (page != null && !_picking) {
+        widget.onSwiped(page);
+      }
+
+      return false;
+    },
+    child: PageView(
+      controller: _pages,
+      children: [for (final child in widget.children) _KeptAlive(child: child)],
+    ),
+  );
+}
+
+/// Keeps [child] once built, out of sight in a [PageView] as a swipe leaves it.
+class _KeptAlive extends StatefulWidget {
+  const _KeptAlive({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_KeptAlive> createState() => _KeptAliveState();
+}
+
+class _KeptAliveState extends State<_KeptAlive> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return widget.child;
   }
 }
 
