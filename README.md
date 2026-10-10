@@ -234,7 +234,8 @@ the device it runs on.
   shows, the device it follows included: on Linux (MPRIS) the media keys, the desktop's player
   widget and KDE Connect; on iOS (Now Playing) the lock screen, Control Center, headphone buttons
   and CarPlay's Now Playing screen; on Android (its media session) the notification, the lock
-  screen and the headphones' buttons, Bluetooth's too;
+  screen and the headphones' buttons, Bluetooth's too, whose play, once the system has closed the
+  app, opens it and plays the music where it was;
 - on Android, playing in the background, with the screen off, and after the app is swiped out of
   the recent apps, as the media session's notification keeps it running while the music plays;
 - on iOS, playing in the background and with the silent switch on; a call pauses the music, which
@@ -253,8 +254,7 @@ the device it runs on.
   On a computer the window opens maximized.
 
 Not yet: moving a playlist's songs with the remote (a TV has no drag), adding the song that plays to a playlist from
-the player, moving songs in the queue and taking them out, the media controls on macOS and Windows, on Android a headphone's play once the system has closed the app (it opens
-the app, paused where the music was, without playing it), on a Jellyfin server the cover of a song that came from another device
+the player, moving songs in the queue and taking them out, the media controls on macOS and Windows, on a Jellyfin server the cover of a song that came from another device
 when its file has none of its own (Jellyfin doesn't fall back to the album's) and an artist's popular songs (Jellyfin
 knows only its users' plays), an offline cache, sending the music
 to speakers and TVs that don't run the app (Google Cast, UPnP/DLNA), and CarPlay as an app of its own (browsing the library

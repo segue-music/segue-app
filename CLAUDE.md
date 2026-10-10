@@ -138,7 +138,8 @@ Running two app instances on one machine as different devices:
   time (`activeId`, null meaning this device). UI actions go through it (`playSongs`, `toggle`,
   `seek`, ...): it either runs them on the local player or sends them as hub commands. The UI should
   call `connect`, not `player`, for playback. It also follows whichever device starts playing, and
-  restores the last playback on first connect. It links the player and the hub:
+  restores the last playback on first connect, paused, or playing for a play pressed before it came back
+  (`playRestoredBy`: `MediaControls` holds a headphone's play that opened the app on Android). It links the player and the hub:
   `player.onReport → client.sendState` and `client.onCommand → player.obey`.
 - On a wide screen, `HomePage` keeps its bars (the top one, the side rail, the player's) and opens
   pages between them, in a nested navigator, the page area (`lib/ui/page_area.dart`), whose

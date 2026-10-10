@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:clock/clock.dart';
 import 'package:flutter/foundation.dart';
 
 import '../player/player.dart';
@@ -87,6 +88,11 @@ class ConnectController extends ChangeNotifier {
   String? _playing;
   static const _here = ''; // the hub never gives a device an empty id
   bool _restored = false;
+
+  /// Until when the last playback plays as it comes back here, rather than paused: a play pressed as the app opened,
+  /// before it had any music to play (a headphone's button that woke it up, on Android). Brought back on another
+  /// device, the music stays as it is there. Null: it comes back paused.
+  DateTime? playRestoredBy;
 
   /// The device the app controls; null is this one.
   String? get activeId => _active;
@@ -270,6 +276,7 @@ class ConnectController extends ChangeNotifier {
     if (!_restored) {
       _restored = true;
       await _restoreLastPlayback();
+      await _playRestored();
     }
 
     client!.sendState(player.report(full: true));
@@ -303,6 +310,15 @@ class ConnectController extends ChangeNotifier {
       );
     } on CommandFailed {
       // nothing in it can be played here
+    }
+  }
+
+  Future<void> _playRestored() async {
+    final by = playRestoredBy;
+    playRestoredBy = null;
+
+    if (by != null && !clock.now().isAfter(by) && _active == null && player.queue.isNotEmpty && !player.playing) {
+      await player.play();
     }
   }
 

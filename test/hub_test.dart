@@ -186,6 +186,51 @@ void main() {
     expect(reopened.connect.nowPlaying?.device, isNull);
   });
 
+  test('a play pressed as the app opens, before it has any music, plays the last playback as it comes back', () async {
+    final user = newUser();
+    final laptop = await App(user, 'laptop').start();
+    await laptop.player.playQueue(songs, index: 1, position: const Duration(seconds: 30));
+    await Future<void>.delayed(const Duration(milliseconds: 100)); // the report reaches the hub
+    await laptop.client.close();
+    // The media controls take it before the app has signed in, as a headphone's button that woke the app up.
+    final controls = MediaControls();
+    addTearDown(() => controls.attach(null, null));
+    await controls.play();
+    final reopened = App(user, 'laptop');
+    controls.attach(reopened.connect, null);
+    await reopened.start();
+    await until(() => reopened.player.playing, 'the last playback to play');
+    expect(reopened.player.index, 1);
+    expect(reopened.player.position.inSeconds, greaterThanOrEqualTo(30));
+  });
+
+  test('a play pressed too long before the last playback comes back leaves it paused', () async {
+    final user = newUser();
+    final laptop = await App(user, 'laptop').start();
+    await laptop.player.playQueue(songs);
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    await laptop.client.close();
+    final reopened = App(user, 'laptop')..connect.playRestoredBy = DateTime.now().subtract(const Duration(seconds: 1));
+    await reopened.start();
+    await until(() => reopened.player.queue.isNotEmpty, 'the queue to come back');
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    expect(reopened.player.playing, isFalse);
+  });
+
+  test('a play pressed as the app opens leaves the last playback as it is on the device it is on', () async {
+    final user = newUser();
+    final tv = await App(user, 'tv').start();
+    await tv.player.playQueue(songs);
+    await tv.player.toggle();
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    final phone = App(user, 'phone')..connect.playRestoredBy = DateTime.now().add(const Duration(seconds: 8));
+    await phone.start();
+    await until(() => phone.connect.nowPlaying?.device == 'tv', 'the phone to show the TV');
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    expect(tv.player.playing, isFalse);
+    expect(phone.player.queue, isEmpty);
+  });
+
   test('another device opening after the last one closed continues it there', () async {
     final user = newUser();
     final laptop = await App(user, 'laptop').start();

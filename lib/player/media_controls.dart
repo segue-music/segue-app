@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:ui' show Color;
 
 import 'package:audio_service/audio_service.dart';
+import 'package:clock/clock.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -20,6 +21,15 @@ class MediaControls extends BaseAudioHandler with SeekHandler {
   MediaServer? _api;
   Timer? _tick;
   AppLocalizations? _strings;
+
+  /// Until when the music the app brings back as it opens plays ([ConnectController.playRestoredBy]), for a play that
+  /// came before it had a [ConnectController] to give it to; see [play].
+  DateTime? _earlyPlayBy;
+
+  /// How long a play that came before the app had any music to play holds: on Android, where a headphone's button
+  /// opens the app once the system has closed it, the music may come to the foreground (its service) only in the 10
+  /// seconds after the button.
+  static const _earlyPlayFor = Duration(seconds: 8);
 
   /// Starts the system's media service, on the platforms where the app sets it up: Linux (MPRIS),
   /// iOS and Android for now. Null when it can't, e.g. without a D-Bus session.
@@ -65,6 +75,13 @@ class MediaControls extends BaseAudioHandler with SeekHandler {
     _connect = connect;
     _api = api;
     connect?.addListener(_sync);
+    final earlyPlayBy = _earlyPlayBy;
+
+    if (connect != null && earlyPlayBy != null) {
+      connect.playRestoredBy = earlyPlayBy;
+      _earlyPlayBy = null;
+    }
+
     _sync();
   }
 
@@ -144,8 +161,25 @@ class MediaControls extends BaseAudioHandler with SeekHandler {
     }
   }
 
+  /// Plays, or, with no music yet, as the app opens (on Android, woken up by a headphone's button), plays the music it
+  /// brings back, if that is soon.
   @override
-  Future<void> play() => _do((connect) => connect.play());
+  Future<void> play() async {
+    final connect = _connect;
+
+    if (connect?.nowPlaying != null) {
+      await connect!.play();
+      return;
+    }
+
+    final by = clock.now().add(_earlyPlayFor);
+
+    if (connect == null) {
+      _earlyPlayBy = by;
+    } else {
+      connect.playRestoredBy = by;
+    }
+  }
 
   @override
   Future<void> pause() => _do((connect) => connect.pause());
