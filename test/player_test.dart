@@ -480,6 +480,108 @@ void main() {
     });
   });
 
+  group('moving and removing songs in the queue', () {
+    const four = [...songs, Song(id: 's3', title: 'Three'), Song(id: 's4', title: 'Four')];
+
+    List<String> ids() => [for (final song in player.queue) song.id];
+
+    test('a move takes the song to its new place, the current one playing on where it was, wherever it goes', () async {
+      await player.playQueue(four, index: 1, position: const Duration(seconds: 30));
+      reports.clear();
+      await player.moveInQueue(3, 0);
+      expect(ids(), ['s4', 's1', 's2', 's3']);
+      expect(player.current?.id, 's2');
+      expect(player.index, 2);
+      expect(player.playing, isTrue);
+      expect(player.position.inSeconds, 30);
+      expect(reports.last.queue?.map((item) => item.id), ['s4', 's1', 's2', 's3']);
+      expect(reports.last.index, 2);
+
+      // The current song itself.
+      await player.moveInQueue(2, 3);
+      expect(ids(), ['s4', 's1', 's3', 's2']);
+      expect(player.index, 3);
+      expect(engine.tracks.map((track) => track.queryParameters['id']), ['s4', 's1', 's3', 's2']);
+      await player.previous();
+      await player.previous();
+      expect(player.current?.id, 's3');
+    });
+
+    test("the reports during a move never have the current song's new place with the songs as they were", () async {
+      await player.playQueue(four, index: 1);
+      reports.clear();
+      await player.moveInQueue(3, 0);
+      var queue = four.map((song) => song.id).toList();
+
+      for (final report in reports) {
+        queue = report.queue?.map((item) => item.id!).toList() ?? queue;
+        expect(queue[report.index!], 's2');
+      }
+    });
+
+    test('shuffled, a move changes the play order alone, which shuffle going off forgets', () async {
+      await player.playQueue(four.take(3).toList(), index: 1);
+      await player.setShuffle(true);
+      expect(ids(), ['s2', 's3', 's1']); // the fake's shuffle
+      await player.moveInQueue(2, 1);
+      expect(ids(), ['s2', 's1', 's3']);
+      expect(player.current?.id, 's2');
+      await player.setShuffle(false);
+      expect(ids(), ['s1', 's2', 's3']);
+      expect(player.current?.id, 's2');
+    });
+
+    test('a removal takes the song out, the current one playing on; the current one stays', () async {
+      await player.playQueue(four, index: 2, position: const Duration(seconds: 30));
+      reports.clear();
+      await player.removeFromQueue(0);
+      expect(ids(), ['s2', 's3', 's4']);
+      expect(player.current?.id, 's3');
+      expect(player.index, 1);
+      expect(player.position.inSeconds, 30);
+      expect(reports.last.queue?.map((item) => item.id), ['s2', 's3', 's4']);
+      expect(reports.last.index, 1);
+
+      await player.removeFromQueue(2);
+      expect(ids(), ['s2', 's3']);
+      expect(engine.tracks.map((track) => track.queryParameters['id']), ['s2', 's3']);
+      await expectLater(
+        player.removeFromQueue(1),
+        throwsA(isA<CommandFailed>().having((e) => e.message, 'message', 'current track')),
+      );
+      await expectLater(
+        player.moveInQueue(0, 2),
+        throwsA(isA<CommandFailed>().having((e) => e.message, 'message', 'no such track')),
+      );
+      expect(ids(), ['s2', 's3']);
+    });
+
+    test('shuffled, a removal takes the song out of the play order and of the order unshuffled alike', () async {
+      await player.playQueue(four.take(3).toList(), index: 1);
+      await player.setShuffle(true);
+      expect(ids(), ['s2', 's3', 's1']); // the fake's shuffle
+      await player.removeFromQueue(1);
+      expect(ids(), ['s2', 's1']);
+      await player.setShuffle(false);
+      expect(ids(), ['s1', 's2']);
+      expect(player.current?.id, 's2');
+    });
+
+    test('changes made at once go in the order they were made', () async {
+      await player.playQueue(four);
+      await Future.wait([player.moveInQueue(3, 1), player.removeFromQueue(2), player.addToQueue(songs, next: false)]);
+      expect(ids(), ['s1', 's4', 's3', 's1', 's2']);
+    });
+
+    test('obeys moveInQueue and removeFromQueue', () async {
+      await player.playQueue(four);
+      await player.obey(const Command.moveInQueue(index: 3, to: 1));
+      expect(ids(), ['s1', 's4', 's2', 's3']);
+      await player.obey(const Command.removeFromQueue(2));
+      expect(ids(), ['s1', 's4', 's3']);
+    });
+  });
+
   test('obeys setRepeat and setShuffle, and reports both', () async {
     await player.playQueue(songs);
     await player.obey(const Command.setRepeat(Repeat.one));

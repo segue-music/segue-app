@@ -1,17 +1,23 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../connect/connect.dart';
 import '../l10n/app_localizations.dart';
+import '../segue/protocol.dart';
+import '../server/models.dart';
 import '../services.dart';
 import 'cover.dart';
 import 'now_playing_bar.dart';
 import 'page_area.dart';
 import 'player_controls.dart';
 import 'song_list_header.dart';
+import 'song_menu.dart';
 
 /// The queue of the device the app controls, in its play order (shuffled, or not): the current
 /// track on top, the next ones under it, and what played before above it. A tap on a track plays it
-/// there.
+/// there. Where the device takes it, the tracks from the one on top down move by dragging them, and any but the
+/// current one goes out of the queue by its menu.
 class QueuePage extends StatefulWidget {
   const QueuePage({super.key});
 
@@ -47,6 +53,9 @@ class _QueuePageState extends State<QueuePage> {
   int? _top;
   final _fromTop = UniqueKey();
 
+  /// A change made here until the queue shows it ([_QueueChange]).
+  _QueueChange? _change;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -71,23 +80,62 @@ class _QueuePageState extends State<QueuePage> {
           listenable: connect,
           builder: (context, _) {
             final now = connect.nowPlaying;
-            final (:tracks, :index) = connect.queue;
+            var (:tracks, :index) = connect.queue;
+            final change = _change;
+
+            // Until the queue is no longer as it was before the change: then it has it, or another change came.
+            if (change != null && listEquals(_ids(tracks), change.before)) {
+              (tracks, index) = (change.after, change.index);
+            } else {
+              _change = null;
+            }
+
             final top = _top!.clamp(0, tracks.length);
+            final editable = connect.canEditQueue;
+            final keys = _keys(tracks);
+            final theme = Theme.of(context);
+            final touch = switch (theme.platform) {
+              TargetPlatform.android || TargetPlatform.iOS || TargetPlatform.fuchsia => true,
+              TargetPlatform.linux || TargetPlatform.macOS || TargetPlatform.windows => false,
+            };
 
             Widget tile(int i) {
               final track = tracks[i];
               final current = i == index;
               final about = [track.artist, track.album].nonNulls.join(' · ');
-              final duration = track.durationMs;
-              return ListTile(
+              final duration = track.durationMs == null ? null : Duration(milliseconds: track.durationMs!);
+
+              Widget line(Widget? menu) => ListTile(
                 autofocus: current && television,
+                contentPadding: menu == null ? null : SongTrailing.tilePadding,
                 selected: current,
                 leading: Thumbnail(track.id, playing: current && (now?.playing ?? false)),
                 title: Text(track.title ?? '', maxLines: 1, overflow: TextOverflow.ellipsis),
                 subtitle: about.isEmpty ? null : Text(about, maxLines: 1, overflow: TextOverflow.ellipsis),
-                trailing: SongDuration(duration == null ? null : Duration(milliseconds: duration)),
+                trailing: menu == null ? SongDuration(duration) : SongTrailing(duration, menu),
                 onTap: now?.canJump ?? false ? () => runCommand(context, () => connect.jump(i)) : null,
               );
+
+              // A track the hub couldn't give in the app's API has no song to do anything else with.
+              if (track.id == null) {
+                return line(null);
+              }
+
+              return SongMenu(
+                Song.fromQueueItem(track),
+                list: SongList.queue,
+                onRemove: editable && !current ? () => _remove(connect, tracks, index, i) : null,
+                builder: (context, menu) => line(menu),
+              );
+            }
+
+            // From the one on top down, the tracks move where the device takes it: on a touch screen once held a
+            // moment, since a drag scrolls the list, and with a mouse at once.
+            Widget movable(BuildContext context, int i) {
+              final key = keys[top + i];
+              return touch
+                  ? ReorderableDelayedDragStartListener(key: key, index: i, child: tile(top + i))
+                  : ReorderableDragStartListener(key: key, index: i, child: tile(top + i));
             }
 
             return Scaffold(
@@ -105,18 +153,34 @@ class _QueuePageState extends State<QueuePage> {
                   // The header stays over the tracks, which go up from the one on top as much as down from it.
                   : Column(
                       children: [
-                        const SongListHeader(),
+                        const SongListHeader(menus: true),
                         Expanded(
                           // The list starts at the track on top; the ones before it go up from there.
                           child: CustomScrollView(
                             center: _fromTop,
                             slivers: [
                               SliverList.builder(itemCount: top, itemBuilder: (_, i) => tile(top - 1 - i)),
-                              SliverList.builder(
-                                key: _fromTop,
-                                itemCount: tracks.length - top,
-                                itemBuilder: (_, i) => tile(top + i),
-                              ),
+                              if (editable)
+                                SliverReorderableList(
+                                  key: _fromTop,
+                                  itemCount: tracks.length - top,
+                                  itemBuilder: movable,
+                                  onReorderItem: (from, to) => _move(connect, tracks, index, top + from, top + to),
+                                  // The track moving, lifted over the others, on the page's color: in the overlay,
+                                  // over the page.
+                                  proxyDecorator: (child, _, _) => Material(
+                                    elevation: 4,
+                                    color: theme.colorScheme.surfaceContainerHigh,
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: child,
+                                  ),
+                                )
+                              else
+                                SliverList.builder(
+                                  key: _fromTop,
+                                  itemCount: tracks.length - top,
+                                  itemBuilder: (_, i) => tile(top + i),
+                                ),
                             ],
                           ),
                         ),
@@ -128,4 +192,60 @@ class _QueuePageState extends State<QueuePage> {
       ),
     );
   }
+
+  /// Moves the track at [from] in [tracks], of which the one at [index] is current, to [to], the place it then has.
+  void _move(ConnectController connect, List<QueueItem> tracks, int index, int from, int to) {
+    if (from == to) {
+      return;
+    }
+
+    final after = [...tracks]
+      ..removeAt(from)
+      ..insert(to, tracks[from]);
+    _edit(_QueueChange(_ids(tracks), after, after.indexOf(tracks[index])), () => connect.moveInQueue(from, to));
+  }
+
+  /// Takes the track at [i] out of [tracks], of which the one at [index] is current.
+  void _remove(ConnectController connect, List<QueueItem> tracks, int index, int i) {
+    // The track on top stays on top.
+    if (i < _top!) {
+      _top = _top! - 1;
+    }
+
+    _edit(
+      _QueueChange(_ids(tracks), [...tracks]..removeAt(i), i < index ? index - 1 : index),
+      () => connect.removeFromQueue(i),
+    );
+  }
+
+  /// Shows [change] until the queue has it, and has the device the app controls make it with [command]; the queue as it
+  /// was again, and why, where that fails.
+  Future<void> _edit(_QueueChange change, Future<Result> Function() command) async {
+    setState(() => _change = change);
+    final result = await runCommand(context, command);
+
+    if (!result.ok && mounted && identical(_change, change)) {
+      setState(() => _change = null);
+    }
+  }
+
+  static List<String?> _ids(List<QueueItem> tracks) => [for (final track in tracks) track.id];
+
+  /// A key for each of [tracks], by its id and how many times that id comes before it, which stays with it as the queue
+  /// is reported again, its items made anew, and as it moves past others.
+  static List<Key> _keys(List<QueueItem> tracks) {
+    final seen = <String?, int>{};
+    return [for (final track in tracks) ValueKey((track.id, seen[track.id] = (seen[track.id] ?? -1) + 1))];
+  }
+}
+
+/// A change made to the queue on its page, a move or a removal, until the queue shows it: the device the app controls
+/// takes a moment to make it, another device a trip through the hub, and a track dropped somewhere has to show there at
+/// once. The tracks as they were, by their ids, and as they are to be, with the current one's place then.
+class _QueueChange {
+  _QueueChange(this.before, this.after, this.index);
+
+  final List<String?> before;
+  final List<QueueItem> after;
+  final int index;
 }

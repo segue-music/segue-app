@@ -442,6 +442,27 @@ void main() {
     expect(laptop.player.playing, isTrue);
   });
 
+  test('a controller moves and removes the tracks in the queue of the device it controls', () async {
+    final user = newUser();
+    final laptop = await App(user, 'laptop').start();
+    final phone = await App(user, 'phone').start();
+    await laptop.player.playQueue(songs);
+    await until(() => phone.connect.nowPlaying?.device == 'laptop', 'the phone to follow the laptop');
+    expect(phone.connect.canEditQueue, isTrue);
+    expect((await phone.connect.moveInQueue(1, 0)).ok, isTrue);
+    await until(() => phone.connect.queue.tracks.first.title == 'Other', 'the queue moved on the phone');
+    expect(laptop.player.queue.map((song) => song.title), ['Other', 'Dream On']);
+    expect(laptop.player.current?.title, 'Dream On');
+    expect(phone.connect.queue.index, 1);
+    expect(phone.connect.nowPlaying?.title, 'Dream On');
+
+    expect((await phone.connect.removeFromQueue(1)).error, 'current track');
+    expect((await phone.connect.removeFromQueue(0)).ok, isTrue);
+    await until(() => phone.connect.queue.tracks.length == 1, 'the track out of the queue on the phone');
+    expect(laptop.player.queue.map((song) => song.title), ['Dream On']);
+    expect(laptop.player.playing, isTrue);
+  });
+
   test('a device that follows another sees its track change', () async {
     final user = newUser();
     final laptop = await App(user, 'laptop').start();

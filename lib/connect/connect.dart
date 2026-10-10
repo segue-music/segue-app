@@ -213,6 +213,24 @@ class ConnectController extends ChangeNotifier {
     () => player.addToQueue(songs, next: next),
   );
 
+  /// Whether the device the app controls takes [moveInQueue] and [removeFromQueue].
+  bool get canEditQueue =>
+      _active == null ||
+      (activeDevice?.info.capabilities.toSet().containsAll([
+            CommandAction.moveInQueue,
+            CommandAction.removeFromQueue,
+          ]) ??
+          false);
+
+  /// Moves the track at [from] in [queue] to [to], the place it then has, on the device the app controls, the current
+  /// track playing on.
+  Future<Result> moveInQueue(int from, int to) =>
+      _run(Command.moveInQueue(index: from, to: to), () => player.moveInQueue(from, to));
+
+  /// Takes the track at [index] out of [queue], on the device the app controls; not the current one.
+  Future<Result> removeFromQueue(int index) =>
+      _run(Command.removeFromQueue(index), () => player.removeFromQueue(index));
+
   Future<Result> play() => _run(const Command(CommandAction.play), player.play);
 
   Future<Result> pause() => _run(const Command(CommandAction.pause), player.pause);

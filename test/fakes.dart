@@ -104,6 +104,57 @@ class FakeEngine implements AudioEngine {
   }
 
   @override
+  Future<({int from, int to})?> move(int from, int to) async {
+    if (from < 0 || from >= _order.length || to < 0 || to >= _order.length) {
+      return null;
+    }
+
+    final current = _order[_index];
+    _order = [..._order]
+      ..removeAt(from)
+      ..insert(to, _order[from]);
+    _index = _order.indexOf(current);
+    ({int from, int to})? unshuffled;
+
+    // Unshuffled, the tracks move in their order too, which stays the play order.
+    if (!_shuffle) {
+      opened = [...opened]
+        ..removeAt(from)
+        ..insert(to, opened[from]);
+      tracks = [...tracks]
+        ..removeAt(from)
+        ..insert(to, tracks[from]);
+      _order = [for (var i = 0; i < _order.length; i++) i];
+      unshuffled = (from: from, to: to);
+    }
+
+    _changes.add(null);
+    return unshuffled;
+  }
+
+  @override
+  Future<int> remove(int index) async {
+    if (index < 0 || index >= _order.length || index == _index) {
+      return -1;
+    }
+
+    final at = _order[index];
+    _order = [
+      for (final (i, track) in _order.indexed)
+        if (i != index) track < at ? track : track - 1,
+    ];
+
+    if (index < _index) {
+      _index--;
+    }
+
+    opened = [...opened]..removeAt(at);
+    tracks = [...tracks]..removeAt(at);
+    _changes.add(null);
+    return at;
+  }
+
+  @override
   Future<void> setRepeat(Repeat mode) async {
     _repeat = mode;
     _changes.add(null);

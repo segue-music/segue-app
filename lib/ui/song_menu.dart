@@ -12,11 +12,14 @@ import 'playlist_dialogs.dart';
 import 'themed_icon.dart';
 
 /// What a menu of songs does: a song's, or an album's with all of its songs.
-enum SongAction { playNext, addToQueue, addToPlaylist, removeFromPlaylist }
+enum SongAction { playNext, addToQueue, addToPlaylist, remove }
+
+/// The list a song's menu takes it out of ([SongAction.remove]).
+enum SongList { playlist, queue }
 
 /// The items of a menu of songs: playing them next and adding them to the queue, where the device the app controls
-/// takes it, and adding them to a playlist; with [removable], taking the song out of the playlist listing it.
-List<PopupMenuEntry<SongAction>> songMenuItems(BuildContext context, {bool removable = false}) {
+/// takes it, and adding them to a playlist; with [removableFrom], taking the song out of that list.
+List<PopupMenuEntry<SongAction>> songMenuItems(BuildContext context, {SongList? removableFrom}) {
   final strings = AppLocalizations.of(context);
   return [
     if (ServicesScope.of(context).connect.canAddToQueue) ...[
@@ -33,15 +36,18 @@ List<PopupMenuEntry<SongAction>> songMenuItems(BuildContext context, {bool remov
       value: SongAction.addToPlaylist,
       child: MenuItemLabel(strings.addToPlaylist, icon: HugeIcons.strokeRoundedPlaylist01),
     ),
-    if (removable)
+    if (removableFrom != null)
       PopupMenuItem(
-        value: SongAction.removeFromPlaylist,
-        child: MenuItemLabel(strings.removeFromPlaylist, icon: HugeIcons.strokeRoundedRemoveCircle),
+        value: SongAction.remove,
+        child: MenuItemLabel(switch (removableFrom) {
+          SongList.playlist => strings.removeFromPlaylist,
+          SongList.queue => strings.removeFromQueue,
+        }, icon: HugeIcons.strokeRoundedRemoveCircle),
       ),
   ];
 }
 
-/// Does [action] with [songs]; [onRemove] takes the song out of the playlist listing it.
+/// Does [action] with [songs]; [onRemove] takes the song out of the list it is in.
 void runSongAction(BuildContext context, SongAction action, List<Song> songs, {VoidCallback? onRemove}) {
   switch (action) {
     case SongAction.playNext:
@@ -50,7 +56,7 @@ void runSongAction(BuildContext context, SongAction action, List<Song> songs, {V
       addToQueue(context, songs, next: false);
     case SongAction.addToPlaylist:
       addToPlaylist(context, songs);
-    case SongAction.removeFromPlaylist:
+    case SongAction.remove:
       onRemove?.call();
   }
 }
@@ -72,17 +78,20 @@ Future<bool> addToQueue(BuildContext context, List<Song> songs, {required bool n
 }
 
 /// A song's menu, at the end of its line in a list, after its duration: what can be done with it besides playing it,
-/// playing it next, adding it to the queue or to a playlist, and, in a playlist that the user can change ([onRemove]),
-/// taking it out. Its button takes no focus: for the keyboard and the remote the song stays one stop, where the menu
+/// playing it next, adding it to the queue or to a playlist, and, in a list that the user can change ([onRemove]), a
+/// playlist or the queue ([list]), taking it out. Its button takes no focus: for the keyboard and the remote the song stays one stop, where the menu
 /// key, or Shift+F10, opens the menu. [builder] makes the song's line, with the button ([SongMenu.width] wide) where it
 /// goes.
 class SongMenu extends StatefulWidget {
-  const SongMenu(this.song, {required this.builder, this.onRemove, super.key});
+  const SongMenu(this.song, {required this.builder, this.onRemove, this.list = SongList.playlist, super.key});
 
   final Song song;
 
-  /// Takes the song out of the playlist listing it; null, no such item.
+  /// Takes the song out of the list it is in; null, no such item.
   final VoidCallback? onRemove;
+
+  /// The list [onRemove] takes it out of, which its item names.
+  final SongList list;
 
   final Widget Function(BuildContext context, Widget button) builder;
 
@@ -111,7 +120,7 @@ class _SongMenuState extends State<SongMenu> {
           // As big as the room it has, without Material's padding for a touch screen around it.
           style: IconButton.styleFrom(tapTargetSize: MaterialTapTargetSize.shrinkWrap),
           onSelected: (action) => runSongAction(context, action, [widget.song], onRemove: widget.onRemove),
-          itemBuilder: (context) => songMenuItems(context, removable: widget.onRemove != null),
+          itemBuilder: (context) => songMenuItems(context, removableFrom: widget.onRemove == null ? null : widget.list),
         ),
       ),
     );

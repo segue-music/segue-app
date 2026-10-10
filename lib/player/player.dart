@@ -17,7 +17,13 @@ class PlayerController extends ChangeNotifier {
   /// loudness [replayGain]'s way, the one that plays too as it changes; with none, not at all. Plays them through
   /// [equalizer], as it changes too; with none, as they are.
   PlayerController(this._engine, this._api, {this._quality, this._replayGain, this._equalizer}) {
-    _subscription = _engine.changes.listen((_) => _changed());
+    _subscription = _engine.changes.listen((_) {
+      if (_editing) {
+        _changeHeld = true;
+      } else {
+        _changed();
+      }
+    });
     _replayGain?.addListener(_updateGain);
 
     if (_equalizer != null) {
@@ -40,8 +46,13 @@ class PlayerController extends ChangeNotifier {
   List<Song> _queue = const [];
   bool _queueChanged = false;
 
-  // The adds to the queue, one after another: each finds it as the one before left it.
-  Future<void> _adds = Future.value();
+  // The changes to the queue (adding, moving and removing songs), one after another: each finds it as the one before
+  // left it. While one is under way, the engine's changes wait for it to end ([_changeHeld]), which tells of them all:
+  // until then the songs here aren't yet where the engine has them, and the current one's place, which may have moved,
+  // would come with the songs as they were.
+  Future<void> _edits = Future.value();
+  bool _editing = false;
+  bool _changeHeld = false;
 
   /// Receives this player's state after every change, for the hub.
   void Function(PlayerState state)? onReport;
@@ -76,10 +87,33 @@ class PlayerController extends ChangeNotifier {
   /// Adds [songs] to the queue, the current song playing on: right after it if [next], otherwise after the last one,
   /// where they stay as shuffle goes off (SPEC.md, section 5). To an empty queue, they are the queue, paused at the
   /// first.
-  Future<void> addToQueue(List<Song> songs, {required bool next}) {
-    final added = _adds.then((_) => _add(songs, next: next));
-    _adds = added.then<void>((_) {}, onError: (Object _) {});
-    return added;
+  Future<void> addToQueue(List<Song> songs, {required bool next}) => _edit(() => _add(songs, next: next));
+
+  /// Moves the song at [from] in [queue] to [to], the place it then has, the current song playing on. Shuffled, that is
+  /// a move in the play order alone, which shuffle going off forgets (SPEC.md, section 5).
+  Future<void> moveInQueue(int from, int to) => _edit(() => _move(from, to));
+
+  /// Takes the song at [index] out of [queue]; not the current one, which plays on (SPEC.md, section 5).
+  Future<void> removeFromQueue(int index) => _edit(() => _remove(index));
+
+  /// Makes [change] to the queue once the changes before it are done.
+  Future<void> _edit(Future<void> Function() change) {
+    final done = _edits.then((_) async {
+      _editing = true;
+
+      try {
+        await change();
+      } finally {
+        _editing = false;
+
+        // One that ended without telling of the queue, as one that had nothing to change.
+        if (_changeHeld) {
+          _changed();
+        }
+      }
+    });
+    _edits = done.then<void>((_) {}, onError: (Object _) {});
+    return done;
   }
 
   Future<void> _add(List<Song> songs, {required bool next}) async {
@@ -106,6 +140,67 @@ class PlayerController extends ChangeNotifier {
     _queueChanged = true;
     _changed();
   }
+
+  Future<void> _move(int from, int to) async {
+    if (!_inQueue(from) || !_inQueue(to)) {
+      throw const CommandFailed('no such track');
+    }
+
+    if (from == to) {
+      return;
+    }
+
+    final opened = _opened;
+    final unshuffled = await _engine.move(from, to);
+
+    // Another queue came meanwhile.
+    if (!identical(_opened, opened)) {
+      return;
+    }
+
+    if (unshuffled != null) {
+      final song = _opened[unshuffled.from];
+      final track = _tracks[unshuffled.from];
+      _opened = List.unmodifiable(
+        [..._opened]
+          ..removeAt(unshuffled.from)
+          ..insert(unshuffled.to, song),
+      );
+      _tracks = [..._tracks]
+        ..removeAt(unshuffled.from)
+        ..insert(unshuffled.to, track);
+    }
+
+    _order = const [];
+    _queueChanged = true;
+    _changed();
+  }
+
+  Future<void> _remove(int index) async {
+    if (!_inQueue(index)) {
+      throw const CommandFailed('no such track');
+    }
+
+    if (index == this.index) {
+      throw const CommandFailed('current track');
+    }
+
+    final opened = _opened;
+    final at = await _engine.remove(index);
+
+    // Another queue came meanwhile.
+    if (at < 0 || !identical(_opened, opened)) {
+      return;
+    }
+
+    _opened = List.unmodifiable([..._opened]..removeAt(at));
+    _tracks = [..._tracks]..removeAt(at);
+    _order = const [];
+    _queueChanged = true;
+    _changed();
+  }
+
+  bool _inQueue(int index) => index >= 0 && index < _queue.length;
 
   /// The engine's track of [song]: its stream, and its gain, by its place in the queue as it loads.
   TrackSource _track(Song song) {
@@ -279,6 +374,10 @@ class PlayerController extends ChangeNotifier {
         }
 
         await addToQueue(playable, next: command.next!);
+      case CommandAction.moveInQueue:
+        await moveInQueue(command.index!, command.to!);
+      case CommandAction.removeFromQueue:
+        await removeFromQueue(command.index!);
     }
   }
 
@@ -307,6 +406,7 @@ class PlayerController extends ChangeNotifier {
   }
 
   void _changed() {
+    _changeHeld = false;
     _followOrder();
     notifyListeners();
     final state = report();

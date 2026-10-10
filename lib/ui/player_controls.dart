@@ -21,8 +21,8 @@ String formatDuration(Duration? duration) {
   return '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}';
 }
 
-/// Runs a playback command and, if it fails, says why.
-Future<void> runCommand(BuildContext context, Future<Result> Function() command) async {
+/// Runs a playback command and, if it fails, says why. Its result.
+Future<Result> runCommand(BuildContext context, Future<Result> Function() command) async {
   final messenger = ScaffoldMessenger.maybeOf(context);
   final strings = AppLocalizations.of(context);
   final result = await command();
@@ -30,6 +30,8 @@ Future<void> runCommand(BuildContext context, Future<Result> Function() command)
   if (!result.ok) {
     messenger?.showSnackBar(SnackBar(content: Text(describeError(strings, result.error))));
   }
+
+  return result;
 }
 
 /// Builds with what plays, wherever it plays: on every change, and twice a second while it plays,

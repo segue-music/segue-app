@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -98,11 +101,15 @@ Finder inQueue(Finder finder) {
 ListTile tile(WidgetTester tester, String title) =>
     tester.widget<ListTile>(find.ancestor(of: inQueue(find.text(title)), matching: find.byType(ListTile)));
 
-SegueClient clientWithTv({required List<CommandAction> capabilities}) {
-  final client = SegueClient(
+const me = DeviceInfo(id: 'me', name: 'me', client: 'test', api: Api.subsonic, roles: [], capabilities: []);
+
+/// A hub client that never connects, with a TV that plays the track at [index] of its queue; or [client], with the TV in
+/// it.
+SegueClient clientWithTv({required List<CommandAction> capabilities, SegueClient? client, int index = 1}) {
+  client ??= SegueClient(
     url: Uri.parse('ws://unused'),
     auth: const Auth.subsonic(username: 'a', token: 't', salt: 's'),
-    device: const DeviceInfo(id: 'me', name: 'me', client: 'test', api: Api.subsonic, roles: [], capabilities: []),
+    device: me,
   );
   client.devices['tv'] = Device(
     info: DeviceInfo(
@@ -118,7 +125,7 @@ SegueClient clientWithTv({required List<CommandAction> capabilities}) {
       status: PlaybackStatus.playing,
       positionMs: 1000,
       at: DateTime.now().millisecondsSinceEpoch,
-      index: 1,
+      index: index,
       queue: const [
         QueueItem(id: 's1', title: 'Dream On', artist: 'Aerosmith', durationMs: 268000),
         QueueItem(id: 's2', title: 'Walk This Way', artist: 'Aerosmith', durationMs: 220000),
@@ -127,6 +134,63 @@ SegueClient clientWithTv({required List<CommandAction> capabilities}) {
     ),
   );
   return client;
+}
+
+/// A hub client whose commands wait for the test to answer them ([answer]).
+class WaitingClient extends SegueClient {
+  WaitingClient()
+    : super(
+        url: Uri.parse('ws://unused'),
+        auth: const Auth.subsonic(username: 'a', token: 't', salt: 's'),
+        device: me,
+      );
+
+  final sent = <Command>[];
+  final answer = Completer<Result>();
+
+  @override
+  Future<Result> command(String target, Command command) {
+    sent.add(command);
+    return answer.future;
+  }
+}
+
+/// The button of the menu of the track [title] in the queue.
+Finder menuOf(String title) => find.descendant(
+  of: find.ancestor(of: inQueue(find.text(title)), matching: find.byType(ListTile)),
+  matching: find.byTooltip('Mais opções'),
+);
+
+/// Drags the track [title] in the queue by [rows] tracks, down or, below zero, up, as a finger does on a touch screen:
+/// held a moment first.
+Future<void> dragTrack(WidgetTester tester, String title, int rows) async {
+  final line = find.ancestor(of: inQueue(find.text(title)), matching: find.byType(ListTile));
+  final from = tester.getCenter(line);
+  final height = tester.getSize(line).height;
+  final gesture = await tester.startGesture(from);
+  await tester.pump(kLongPressTimeout + const Duration(milliseconds: 100));
+
+  for (var i = 1; i <= 10; i++) {
+    await gesture.moveTo(from + Offset(0, rows * height * i / 10));
+    await tester.pump(const Duration(milliseconds: 16));
+  }
+
+  await gesture.up();
+  await tester.pumpAndSettle();
+}
+
+/// The titles in the queue's list from the one on top down, out of sight too: those before it, above, aren't built until
+/// the list scrolls up to them.
+List<String> titlesFromTop(WidgetTester tester) {
+  final list = find.descendant(of: find.byType(QueuePage), matching: find.byType(CustomScrollView));
+  final lines = find.descendant(of: list, matching: find.byType(ListTile), skipOffstage: false).evaluate().toList()
+    ..sort(
+      (a, b) => (a.renderObject! as RenderBox)
+          .localToGlobal(Offset.zero)
+          .dy
+          .compareTo((b.renderObject! as RenderBox).localToGlobal(Offset.zero).dy),
+    );
+  return [for (final line in lines) ((line.widget as ListTile).title! as Text).data!];
 }
 
 void main() {
@@ -242,5 +306,106 @@ void main() {
     await pumpBar(tester);
     expect(find.byTooltip('Fila'), findsNothing);
     await tester.pumpWidget(const SizedBox());
+  });
+
+  group('editing the queue', () {
+    testWidgets('a track dragged in the queue goes there, the current one playing on', (tester) async {
+      final player = await pumpBar(tester);
+      await openQueue(tester);
+      await dragTrack(tester, 'Four', -1);
+      expect(player.queue.map((song) => song.title), ['One', 'Two', 'Four', 'Three']);
+      expect(player.current?.title, 'Two');
+      expect(player.playing, isTrue);
+      expect(titlesFromTop(tester), ['Two', 'Four', 'Three']);
+      expect(tile(tester, 'Two').selected, isTrue);
+
+      // The current track itself.
+      await dragTrack(tester, 'Two', 2);
+      expect(player.queue.map((song) => song.title), ['One', 'Four', 'Three', 'Two']);
+      expect(player.current?.title, 'Two');
+      expect(tile(tester, 'Two').selected, isTrue);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets("a track moved on another device shows in its new place at once, until that device's queue comes", (
+      tester,
+    ) async {
+      final client = clientWithTv(capabilities: CommandAction.values, client: WaitingClient()) as WaitingClient;
+      await pumpBar(tester, client: client);
+      await openQueue(tester);
+      await dragTrack(tester, 'Untranslatable', -1);
+      expect(client.sent.single.toJson(), {'action': 'moveInQueue', 'index': 2, 'to': 1});
+      expect(titlesFromTop(tester), ['Untranslatable', 'Walk This Way']);
+      expect(tile(tester, 'Walk This Way').selected, isTrue);
+
+      // The TV's report, with the track where it went, and only then the result.
+      final state = client.devices['tv']!.state!;
+      client.devices['tv'] = Device(
+        info: client.devices['tv']!.info,
+        online: true,
+        state: StampedState(
+          status: state.status,
+          positionMs: state.positionMs,
+          at: state.at,
+          index: 2,
+          queue: [state.queue![0], state.queue![2], state.queue![1]],
+        ),
+      );
+      // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
+      client.notifyListeners();
+      await tester.pump();
+      client.answer.complete(const Result(ok: true));
+      await tester.pumpAndSettle();
+      expect(titlesFromTop(tester), ['Untranslatable', 'Walk This Way']);
+      expect(tile(tester, 'Walk This Way').selected, isTrue);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('a move the device fails puts the queue back as it was, and says why', (tester) async {
+      await pumpBar(tester, client: clientWithTv(capabilities: CommandAction.values));
+      await openQueue(tester);
+      await dragTrack(tester, 'Untranslatable', -1);
+      expect(titlesFromTop(tester), ['Walk This Way', 'Untranslatable']);
+      expect(find.text('Sem conexão com o hub.'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets("a track's menu takes it out of the queue; the current one stays", (tester) async {
+      final player = await pumpBar(tester);
+      await openQueue(tester);
+      await tester.tap(menuOf('Four'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Remover da fila'));
+      await tester.pumpAndSettle();
+      expect(player.queue.map((song) => song.title), ['One', 'Two', 'Three']);
+      expect(titlesFromTop(tester), ['Two', 'Three']);
+      expect(player.current?.title, 'Two');
+
+      await tester.tap(menuOf('Two'));
+      await tester.pumpAndSettle();
+      expect(find.text('Adicionar à playlist'), findsOneWidget);
+      expect(find.text('Remover da fila'), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('on a device that takes no moving or removing, its tracks neither move nor go out', (tester) async {
+      await pumpBar(
+        tester,
+        client: clientWithTv(
+          capabilities: [
+            ...CommandAction.values.where(
+              (action) => action != CommandAction.moveInQueue && action != CommandAction.removeFromQueue,
+            ),
+          ],
+          index: 0,
+        ),
+      );
+      await openQueue(tester);
+      expect(find.byType(SliverReorderableList), findsNothing);
+      await tester.tap(menuOf('Walk This Way'));
+      await tester.pumpAndSettle();
+      expect(find.text('Remover da fila'), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    });
   });
 }

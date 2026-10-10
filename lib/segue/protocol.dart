@@ -26,6 +26,8 @@ enum CommandAction {
   setRepeat,
   setShuffle,
   addToQueue,
+  moveInQueue,
+  removeFromQueue,
 }
 
 /// A player's repeat mode (SPEC.md, section 4). Their `name` is the wire name.
@@ -190,7 +192,8 @@ class Command {
       play = null,
       repeat = null,
       shuffle = null,
-      next = null;
+      next = null,
+      to = null;
 
   const Command.jump(int this.index)
     : action = CommandAction.jump,
@@ -200,7 +203,8 @@ class Command {
       play = null,
       repeat = null,
       shuffle = null,
-      next = null;
+      next = null,
+      to = null;
 
   const Command.seek(int this.positionMs)
     : action = CommandAction.seek,
@@ -210,7 +214,8 @@ class Command {
       play = null,
       repeat = null,
       shuffle = null,
-      next = null;
+      next = null,
+      to = null;
 
   const Command.setVolume(int this.volume)
     : action = CommandAction.setVolume,
@@ -220,7 +225,8 @@ class Command {
       play = null,
       repeat = null,
       shuffle = null,
-      next = null;
+      next = null,
+      to = null;
 
   const Command.setQueue({
     required List<QueueItem> this.queue,
@@ -231,7 +237,8 @@ class Command {
        volume = null,
        repeat = null,
        shuffle = null,
-       next = null;
+       next = null,
+       to = null;
 
   /// Adds [queue] to the player's queue: right after the current track if [next], otherwise at its end (SPEC.md,
   /// section 5).
@@ -242,7 +249,32 @@ class Command {
       index = null,
       play = null,
       repeat = null,
-      shuffle = null;
+      shuffle = null,
+      to = null;
+
+  /// Moves the track at [index] of the player's queue to [to], the place it then has, the current track playing on
+  /// (SPEC.md, section 5).
+  const Command.moveInQueue({required int this.index, required int this.to})
+    : action = CommandAction.moveInQueue,
+      positionMs = null,
+      volume = null,
+      queue = null,
+      play = null,
+      repeat = null,
+      shuffle = null,
+      next = null;
+
+  /// Takes the track at [index] out of the player's queue; not the current one (SPEC.md, section 5).
+  const Command.removeFromQueue(int this.index)
+    : action = CommandAction.removeFromQueue,
+      positionMs = null,
+      volume = null,
+      queue = null,
+      play = null,
+      repeat = null,
+      shuffle = null,
+      next = null,
+      to = null;
 
   const Command.setRepeat(Repeat this.repeat)
     : action = CommandAction.setRepeat,
@@ -252,7 +284,8 @@ class Command {
       index = null,
       play = null,
       shuffle = null,
-      next = null;
+      next = null,
+      to = null;
 
   const Command.setShuffle(bool this.shuffle)
     : action = CommandAction.setShuffle,
@@ -262,7 +295,8 @@ class Command {
       index = null,
       play = null,
       repeat = null,
-      next = null;
+      next = null,
+      to = null;
 
   factory Command.fromJson(Map<String, dynamic> json) {
     final action = _enum(CommandAction.values, json['action']);
@@ -282,6 +316,11 @@ class Command {
         queue: (json['queue'] as List).map((item) => QueueItem.fromJson(item as Map<String, dynamic>)).toList(),
         next: json['next'] as bool,
       ),
+      CommandAction.moveInQueue => Command.moveInQueue(
+        index: (json['index'] as num).toInt(),
+        to: (json['to'] as num).toInt(),
+      ),
+      CommandAction.removeFromQueue => Command.removeFromQueue((json['index'] as num).toInt()),
       _ => Command(action),
     };
   }
@@ -298,6 +337,9 @@ class Command {
   /// Whether [CommandAction.addToQueue] puts its tracks right after the current one, rather than at the end.
   final bool? next;
 
+  /// Where [CommandAction.moveInQueue] takes the track at [index]: the place it then has.
+  final int? to;
+
   Map<String, Object?> toJson() => {
     'action': action.name,
     'positionMs': ?positionMs,
@@ -308,6 +350,7 @@ class Command {
     'repeat': ?repeat?.name,
     'shuffle': ?shuffle,
     'next': ?next,
+    'to': ?to,
   };
 }
 

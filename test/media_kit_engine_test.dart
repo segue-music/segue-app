@@ -727,6 +727,93 @@ void main() {
     }, skip: hasLibmpv ? false : 'needs libmpv');
   });
 
+  group('tracks moved and removed', () {
+    test('the queue plays in its new order, the current track playing on', () async {
+      final server = await TrackServer.start();
+      addTearDown(server.close);
+      await engine.open(
+        [for (var i = 0; i < 4; i++) server.track('short$i')],
+        index: 0,
+        position: Duration.zero,
+        play: true,
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      expect(await engine.move(3, 1), (from: 3, to: 1));
+      expect(await engine.remove(2), 2);
+      expect(engine.order, [0, 1, 2]);
+      expect(engine.index, 0);
+      expect(engine.playing, isTrue);
+      await Future<void>.delayed(const Duration(seconds: 4)); // to the end of the queue
+      expect(server.requests, ['/short0', '/short3', '/short2']);
+      expect(engine.index, 2);
+    }, skip: hasLibmpv ? false : 'needs libmpv');
+
+    test('never take the current track elsewhere, or back to its start, even for a moment', () async {
+      final tracks = [for (var i = 0; i < 5; i++) tone(dir, i, seconds: 20)];
+      await engine.open(tracks, index: 2, position: const Duration(seconds: 10), play: true);
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      // The current track's place after each change: a track before it to the end, then the first out, then the current
+      // track itself moved down. Unshuffled, that is its place in the order unshuffled too, by which the engine tells the
+      // current track while it moves tracks: in mpv's playlist it may be in between for a moment.
+      final places = [2, 1, 0, 2];
+      var step = 0;
+      final told = <(int, int, Duration)>[];
+      final subscription = engine.changes.listen((_) => told.add((step, engine.order[engine.index], engine.position)));
+      step = 1;
+      await engine.move(0, 4);
+      step = 2;
+      expect(await engine.remove(0), 0);
+      step = 3;
+      await engine.move(0, 2);
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      expect(engine.index, 2);
+      expect(engine.playing, isTrue);
+      expect(told, isNotEmpty);
+
+      for (final (step, track, position) in told) {
+        expect(track, isIn([places[step - 1], places[step]]), reason: 'in step $step');
+        expect(position, greaterThan(const Duration(seconds: 10)), reason: 'in step $step');
+      }
+
+      await subscription.cancel();
+    }, skip: hasLibmpv ? false : 'needs libmpv');
+
+    test('shuffled, a move changes the play order alone, which shuffle going off forgets', () async {
+      final tracks = [for (var i = 0; i < 6; i++) tone(dir, i, seconds: 20)];
+      await engine.setShuffle(true);
+      await engine.open(tracks, index: 2, position: const Duration(seconds: 3), play: true);
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      final other = engine.index == 5 ? 4 : 5;
+      final moved = engine.order[other];
+      expect(await engine.move(other, 0), isNull);
+      expect(engine.order.first, moved);
+      expect(engine.order[engine.index], 2, reason: 'the same track, still current');
+
+      // A removal takes the track out of the order unshuffled too.
+      final removed = engine.order[engine.index == 1 ? 2 : 1];
+      expect(await engine.remove(engine.index == 1 ? 2 : 1), removed);
+      expect([...engine.order]..sort(), [0, 1, 2, 3, 4]);
+      await engine.setShuffle(false);
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      expect(engine.order, [0, 1, 2, 3, 4]);
+      expect(engine.index, removed < 2 ? 1 : 2);
+      expect(engine.playing, isTrue);
+      expect(engine.position, greaterThan(const Duration(seconds: 3)));
+    }, skip: hasLibmpv ? false : 'needs libmpv');
+
+    test('the current track stays, and a place past the queue changes nothing', () async {
+      final tracks = [for (var i = 0; i < 3; i++) tone(dir, i, seconds: 20)];
+      await engine.open(tracks, index: 1, position: Duration.zero, play: true);
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      expect(await engine.remove(1), -1);
+      expect(await engine.remove(3), -1);
+      expect(await engine.move(3, 0), isNull);
+      expect(await engine.move(0, 3), isNull);
+      expect(engine.order, [0, 1, 2]);
+      expect(engine.index, 1);
+    }, skip: hasLibmpv ? false : 'needs libmpv');
+  });
+
   test('shuffle stays on for the tracks opened next', () async {
     final tracks = [for (var i = 0; i < 8; i++) tone(dir, i)];
     await engine.setShuffle(true);

@@ -120,7 +120,13 @@ Running two app instances on one machine as different devices:
   tells of a move with the index from before, and mpv of the current track's new place only after, so while it moves
   them it knows the current track by its name, and after a move that takes a track over the current one it waits for
   mpv's word, which would otherwise come with a later playlist and name another track. mpv's unshuffle puts back only
-  the tracks it shuffled, and the others anywhere, so turning shuffle off moves them where they go the same way. The
+  the tracks it shuffled, and the others anywhere, so turning shuffle off moves them where they go the same way. It
+  moves a track (`move`) the same way, and takes one out (`remove`, never the current one) first from the tracks it
+  has, so that what mpv says of the playlist with it isn't taken for the queue now, waiting, where it was before the
+  current one, for mpv's word of the current track's new place. `PlayerController` makes the changes to the queue
+  (adding, moving, removing) one after another, and holds the engine's changes until each is done: until then its
+  songs aren't where the engine has them, and a report would send the current track's new place with the queue as it
+  was. The
   on_load hook also plays the track with its gain (`TrackGain`, ReplayGain): the file's tags, through mpv's
   `replaygain` (and `replaygain-preamp`), or a gain in dB, which goes in `replaygain-fallback` with `replaygain` off:
   mpv then applies it to every track, as a volume of its own (`compute_replaygain` in its `player/audio.c`). `PlayerController` picks each song's

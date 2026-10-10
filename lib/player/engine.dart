@@ -101,6 +101,17 @@ abstract class AudioEngine {
   /// index of the first; -1 where none were open to add them to (a stop, or another open, came first).
   Future<int> add(List<TrackSource> tracks, {required bool next});
 
+  /// Moves the track at [from] in the play order ([order]) to [to], the place it then has, the current one playing on,
+  /// wherever that takes it. Shuffled, that changes the play order alone, which shuffle going off forgets; otherwise the
+  /// order unshuffled changes with it. Where the track was and went in the order unshuffled where that changed; null
+  /// where it didn't (shuffled), or where there was no such track (a stop, or another open, came first).
+  Future<({int from, int to})?> move(int from, int to);
+
+  /// Takes the track at [index] in the play order ([order]) out, of the order unshuffled too; not the current one,
+  /// which plays on. Where it was in the order unshuffled; -1 where there was no such track to take out (the current
+  /// one, a stop, or another open first).
+  Future<int> remove(int index);
+
   Future<void> play();
   Future<void> pause();
   Future<void> stop();
@@ -503,6 +514,88 @@ class MediaKitEngine implements AudioEngine {
         }
       },
     );
+    return at;
+  }
+
+  @override
+  Future<({int from, int to})?> move(int from, int to) {
+    final opens = _opens;
+    return _inTurn(() => _move(from, to, opens: opens));
+  }
+
+  /// [move], once the changes before it are done, unless another open, the [opens]th, came first.
+  Future<({int from, int to})?> _move(int from, int to, {required int opens}) async {
+    await _ready;
+    final track = _at(_inOrder, from);
+
+    if (opens != _opens || track == null || to < 0 || to >= _inOrder.length) {
+      return null;
+    }
+
+    ({int from, int to})? unshuffled;
+
+    // Unshuffled, the tracks are in the play order.
+    if (!_shuffle) {
+      final at = _opened.indexOf(track);
+      final source = _tracks[at];
+      _opened = [..._opened]
+        ..removeAt(at)
+        ..insert(to, track);
+      _tracks = [..._tracks]
+        ..removeAt(at)
+        ..insert(to, source);
+      unshuffled = (from: at, to: to);
+    }
+
+    await _rearrange(
+      [..._inOrder]
+        ..removeAt(from)
+        ..insert(to, track),
+    );
+    return unshuffled;
+  }
+
+  @override
+  Future<int> remove(int index) {
+    final opens = _opens;
+    return _inTurn(() => _remove(index, opens: opens));
+  }
+
+  /// [remove], once the changes before it are done, unless another open, the [opens]th, came first. As in
+  /// [_rearrange], the engine knows the current track by its name until mpv has said where it went, which, where a
+  /// track before it goes, comes after.
+  Future<int> _remove(int index, {required int opens}) async {
+    await _ready;
+    final track = _at(_inOrder, index);
+
+    if (opens != _opens || track == null || index == _index) {
+      return -1;
+    }
+
+    // Out of those it has first, so that what mpv says of the playlist with it isn't taken for the tracks now.
+    final at = _opened.indexOf(track);
+    _opened = [..._opened]..removeAt(at);
+    _tracks = [..._tracks]..removeAt(at);
+    _rearranging = true;
+
+    try {
+      final playing = int.tryParse(await (_player.platform as NativePlayer).getProperty('playlist-playing-pos')) ?? -1;
+      final from = _player.state.playlist.medias.indexWhere((media) => media.uri == track);
+
+      if (from >= 0) {
+        final told = from < playing
+            ? _player.stream.playlist
+                  .firstWhere((playlist) => playlist.index == playing - 1)
+                  .then<void>((_) {}, onError: (Object _) {})
+            : null;
+        await _player.remove(from);
+        await told?.timeout(const Duration(seconds: 1), onTimeout: () {});
+      }
+    } finally {
+      _rearranging = false;
+    }
+
+    _changes.add(null);
     return at;
   }
 

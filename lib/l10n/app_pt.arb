@@ -53,6 +53,10 @@
   "@errorNoSuchTrack": {
     "description": "A command for a track the queue lacks, as the next one at its end."
   },
+  "errorCurrentTrack": "A faixa que está tocando não sai da fila.",
+  "@errorCurrentTrack": {
+    "description": "A command to take the current track out of the queue, which a player refuses."
+  },
   "errorNothingPlayable": "Nada nessa fila pode tocar aqui.",
   "@errorNothingPlayable": {
     "description": "A queue none of whose songs the device can play."
@@ -1046,6 +1050,10 @@
   "removeFromPlaylist": "Remover da playlist",
   "@removeFromPlaylist": {
     "description": "The menu item that takes a song out of the playlist listing it."
+  },
+  "removeFromQueue": "Remover da fila",
+  "@removeFromQueue": {
+    "description": "The menu item that takes a track out of the queue, in the queue's page."
   },
   "moreOptions": "Mais opções",
   "@moreOptions": {

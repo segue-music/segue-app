@@ -142,7 +142,11 @@ the device it runs on.
   page under the bars;
 - the queue of whichever device the app controls, from the full-screen player or, on a wide
   screen, the player bar: the current track on top, the next ones under it and what played before
-  above it. A tap on a track plays it there;
+  above it. A tap on a track plays it there. On a device that takes it, a track moves by dragging it,
+  from the one on top down (on a touch screen, once held a moment), and goes out of the queue from its
+  menu, but for the current one, which plays on either way, wherever it goes. Shuffled, a move changes
+  the play order alone, which turning shuffle off forgets. The queue shows the change at once, and on
+  another device until its queue comes; one the device refuses goes back, and a message says why;
 - songs played next, right after the one that plays, or added at the end of the queue, on whichever
   device the app controls: a song from its menu, an album, all its songs, from the button beside its
   play button, and a playlist from its menu, on its page and in the list of them (a long press, or the
@@ -253,8 +257,8 @@ the device it runs on.
   the background. On Linux the window's title bar, with the close button, takes the background too.
   On a computer the window opens maximized.
 
-Not yet: moving a playlist's songs with the remote (a TV has no drag), adding the song that plays to a playlist from
-the player, moving songs in the queue and taking them out, the media controls on macOS and Windows, on a Jellyfin server the cover of a song that came from another device
+Not yet: moving a playlist's or the queue's songs with the remote (a TV has no drag), adding the song that plays to a
+playlist from the player, the media controls on macOS and Windows, on a Jellyfin server the cover of a song that came from another device
 when its file has none of its own (Jellyfin doesn't fall back to the album's) and an artist's popular songs (Jellyfin
 knows only its users' plays), an offline cache, sending the music
 to speakers and TVs that don't run the app (Google Cast, UPnP/DLNA), and CarPlay as an app of its own (browsing the library
