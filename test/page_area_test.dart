@@ -154,9 +154,9 @@ void main() {
     expect(tester.getRect(find.text('Adicionados recentemente')).left, logo.left);
     expect(tester.getRect(find.byType(Cover).first).left, logo.left);
     expect(
-      tester.getRect(find.descendant(of: find.byType(AppBar), matching: find.text('Início'))).left,
+      tester.getRect(find.descendant(of: find.byType(AppBar), matching: find.text('Segue Music'))).left,
       72,
-      reason: 'the section\'s name where a page\'s is, after its back arrow',
+      reason: 'the app\'s name where a page\'s title is, after its back arrow',
     );
     await tester.pumpWidget(const SizedBox());
   });
