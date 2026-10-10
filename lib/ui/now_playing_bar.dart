@@ -11,6 +11,7 @@ import 'page_area.dart';
 import 'player_controls.dart';
 import 'player_page.dart';
 import 'queue_page.dart';
+import 'sleep_timer_button.dart';
 import 'song_link.dart';
 import 'themed_icon.dart';
 
@@ -201,6 +202,8 @@ class NowPlayingBar extends StatelessWidget {
                                 icon: const ThemedIcon(HugeIcons.strokeRoundedPlaylist03),
                                 onPressed: () => QueuePage.toggle(context),
                               ),
+                            // The timer pauses this device's player: none while another device plays.
+                            if (wide && now.device == null) const SleepTimerButton(),
                             IconButton(
                               tooltip: strings.devices,
                               icon: ThemedIcon(

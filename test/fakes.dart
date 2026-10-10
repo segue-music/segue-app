@@ -12,6 +12,7 @@ import 'package:segue/subsonic/api.dart';
 /// in fake time (fake_async) plays in it.
 class FakeEngine implements AudioEngine {
   final _changes = StreamController<void>.broadcast(sync: true);
+  final _ended = StreamController<void>.broadcast(sync: true);
 
   /// The tracks open got, and their streams as they were then, from the start.
   List<TrackSource> opened = [];
@@ -36,6 +37,9 @@ class FakeEngine implements AudioEngine {
   Stream<void> get changes => _changes.stream;
 
   @override
+  Stream<void> get ended => _ended.stream;
+
+  @override
   bool get playing => _playing;
 
   @override
@@ -58,6 +62,23 @@ class FakeEngine implements AudioEngine {
 
   @override
   bool get failed => _failed;
+
+  /// As when the current track plays to its end: the next one starts, or, repeating them, the first after the last, or,
+  /// repeating it, the same one again; the last, with repeat off, the engine stops on it, paused.
+  void endTrack() {
+    if (_repeat == Repeat.one) {
+      _seek(Duration.zero);
+    } else if (_index + 1 < _order.length || _repeat == Repeat.all) {
+      _index = (_index + 1) % _order.length;
+      _seek(Duration.zero);
+    } else {
+      _seek(position);
+      _playing = false;
+    }
+
+    _changes.add(null);
+    _ended.add(null);
+  }
 
   /// As when the current track fails to load: the engine stops on it, paused.
   void fail() {
@@ -234,7 +255,10 @@ class FakeEngine implements AudioEngine {
   Future<void> setEqualizer(Map<int, double> gains) async => equalizer = gains;
 
   @override
-  Future<void> dispose() => _changes.close();
+  Future<void> dispose() async {
+    await _changes.close();
+    await _ended.close();
+  }
 
   void _setPlaying(bool playing) {
     _failed &= !playing; // play tries the track again

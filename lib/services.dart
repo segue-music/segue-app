@@ -19,6 +19,7 @@ import 'player/engine.dart';
 import 'player/play_counter.dart';
 import 'pictures/fanart_tv.dart';
 import 'player/player.dart';
+import 'player/sleep_timer.dart';
 import 'quality_choice.dart';
 import 'replay_gain_choice.dart';
 import 'releases/musicbrainz.dart';
@@ -49,6 +50,7 @@ class Services {
     this.reachability,
     this.downloadHold,
     this.autoplay,
+    this.sleepTimer,
   });
 
   /// Starts a session: the API, with what the user downloaded, this device's player, which streams in the quality picked
@@ -144,6 +146,7 @@ class Services {
       reachability: reachability,
       downloadHold: downloadHold,
       autoplay: autoplay,
+      sleepTimer: SleepTimer(player),
     );
     unawaited(client?.start());
     unawaited(services._loadFavorites());
@@ -224,6 +227,9 @@ class Services {
   /// turn on and off; null, it never does, nor shows a way to.
   final AutoplayChoice? autoplay;
 
+  /// What pauses [player] after a while, or as the song ends; null, nothing does, nor shows a way to.
+  final SleepTimer? sleepTimer;
+
   /// Loads the favorites, where the media server gives them.
   Future<void> _loadFavorites() async {
     try {
@@ -266,6 +272,7 @@ class Services {
     favorites.dispose();
     await connect.client?.close();
     playCounter?.dispose();
+    sleepTimer?.dispose();
     mobileData?.dispose();
     await player.dispose();
     api.close();

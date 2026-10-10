@@ -250,5 +250,11 @@
   "playMix": "Reproducir un mix",
   "mixEmpty": "Este mix no tiene canciones.",
   "couldNotPlayMix": "No pude reproducir el mix: {error}",
-  "mixArtists": "{artists} y más"
+  "mixArtists": "{artists} y más",
+  "sleepTimer": "Temporizador de sueño",
+  "sleepTimerWhile": "{minutes, select, 60{1 hora} other{{minutes} minutos}}",
+  "sleepTimerSongEnd": "Fin de esta canción",
+  "sleepTimerOff": "Desactivar el temporizador",
+  "sleepTimerPausesIn": "{minutes, plural, =1{La música se pausa en 1 minuto} other{La música se pausa en {minutes} minutos}}",
+  "sleepTimerPausesAtSongEnd": "La música se pausa cuando termine esta canción"
 }

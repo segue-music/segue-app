@@ -77,6 +77,10 @@ abstract class AudioEngine {
   /// track starts over by itself (repeating it). Position ticks don't count.
   Stream<void> get changes;
 
+  /// Fires as a track plays to its end: as the next one starts by itself, as it starts over, repeating it, or, the last
+  /// with repeat off, as the engine stops on it. Not as it's left for another ([jump], [open]), nor as it fails.
+  Stream<void> get ended;
+
   bool get playing;
   int get index;
   Duration get position;
@@ -199,8 +203,10 @@ class MediaKitEngine implements AudioEngine {
           return;
         }
 
-        // Another track, by itself: from its start. A shuffle keeps the same one current.
-        if (_at(inOrder, playlist.index) != _at(_inOrder, _index)) {
+        // Another track, by itself: from its start, the one before having ended. A shuffle keeps the same one current.
+        final next = _at(inOrder, playlist.index) != _at(_inOrder, _index);
+
+        if (next) {
           _moved(Duration.zero);
           _seekOnLoad = null;
         }
@@ -208,10 +214,22 @@ class MediaKitEngine implements AudioEngine {
         _inOrder = inOrder;
         _index = playlist.index;
         _changes.add(null);
+
+        if (next) {
+          _ended.add(null);
+        }
       }),
       stream.playlistMode.listen((_) => _changes.add(null)),
       stream.volume.listen((_) => _changes.add(null)),
-      stream.completed.listen((_) => _changes.add(null)),
+      stream.completed.listen((completed) {
+        _changes.add(null);
+
+        // The last track ended, repeat off: mpv stays on it, at its end (keep-open, as media_kit has it). media_kit
+        // tells of the end of the others too, which the next track starting tells of.
+        if (completed && repeat == Repeat.off && _index == _inOrder.length - 1) {
+          _ended.add(null);
+        }
+      }),
       stream.position.listen((inStream) {
         final reported = inStream + _offset;
 
@@ -221,6 +239,12 @@ class MediaKitEngine implements AudioEngine {
           }
         } else if (reported < _lastPosition - const Duration(milliseconds: 500)) {
           _changes.add(null); // went back by itself: the track started over, repeating it
+
+          // It ended, then, where it repeats by itself: the next track that starts, otherwise, tells of it, and the
+          // position going back to its start may come first.
+          if (repeat == Repeat.one || _inOrder.length == 1) {
+            _ended.add(null);
+          }
 
           // A stream that starts later goes back to where it starts, not to the track's start.
           if (_offset > Duration.zero && !_waiting && !_failed) {
@@ -247,6 +271,7 @@ class MediaKitEngine implements AudioEngine {
   // At the info level, for each track's "Playing:" in the log.
   final _player = Player(configuration: const PlayerConfiguration(logLevel: MPVLogLevel.info));
   final _changes = StreamController<void>.broadcast();
+  final _ended = StreamController<void>.broadcast();
   late final List<StreamSubscription<Object?>> _subscriptions;
   late final Future<void> _ready;
   bool _disposed = false;
@@ -372,6 +397,9 @@ class MediaKitEngine implements AudioEngine {
 
   @override
   Stream<void> get changes => _changes.stream;
+
+  @override
+  Stream<void> get ended => _ended.stream;
 
   @override
   bool get playing => !_failed && _player.state.playing;
@@ -1177,6 +1205,7 @@ class MediaKitEngine implements AudioEngine {
     }
 
     await _changes.close();
+    await _ended.close();
     await _loadsDone.close();
     await _player.dispose();
   }

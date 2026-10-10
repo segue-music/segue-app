@@ -81,6 +81,10 @@ class PlayerController extends ChangeNotifier {
   /// Whether the current song failed to load: the player stopped on it, paused.
   bool get failed => _engine.failed;
 
+  /// Fires as a song plays to its end ([AudioEngine.ended]): as the next one, or the same one again, starts, or the queue
+  /// ends.
+  Stream<void> get songEnded => _engine.ended;
+
   PlaybackStatus get status => _queue.isEmpty
       ? PlaybackStatus.stopped
       : playing

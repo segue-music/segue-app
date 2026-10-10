@@ -946,6 +946,46 @@ void main() {
     await subscription.cancel();
   }, skip: hasLibmpv ? false : 'needs libmpv');
 
+  test('a track that plays to its end says it ended, as the next one starts; a jump to another says nothing', () async {
+    final tracks = [tone(dir, 0, seconds: 1), tone(dir, 1, seconds: 20), tone(dir, 2, seconds: 20)];
+    var ended = 0;
+    final subscription = engine.ended.listen((_) => ended++);
+    await engine.open(tracks, index: 0, position: Duration.zero, play: true);
+    await Future<void>.delayed(const Duration(milliseconds: 1500)); // the first track ends
+    expect(engine.index, 1);
+    expect(ended, 1);
+
+    await engine.jump(2);
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+    expect(engine.index, 2);
+    expect(ended, 1);
+    await subscription.cancel();
+  }, skip: hasLibmpv ? false : 'needs libmpv');
+
+  test('a track that plays to its end says it ended, as it starts over, repeating it', () async {
+    final tracks = [tone(dir, 0, seconds: 2), tone(dir, 1)];
+    var ended = 0;
+    final subscription = engine.ended.listen((_) => ended++);
+    await engine.setRepeat(Repeat.one);
+    await engine.open(tracks, index: 0, position: Duration.zero, play: true);
+    await Future<void>.delayed(const Duration(milliseconds: 2500));
+    expect(engine.index, 0);
+    expect(ended, greaterThanOrEqualTo(1));
+    await subscription.cancel();
+  }, skip: hasLibmpv ? false : 'needs libmpv');
+
+  test('the last track that plays to its end says it ended, as the engine stops on it', () async {
+    final tracks = [tone(dir, 0, seconds: 20), tone(dir, 1, seconds: 1)];
+    var ended = 0;
+    final subscription = engine.ended.listen((_) => ended++);
+    await engine.open(tracks, index: 1, position: Duration.zero, play: true);
+    await Future<void>.delayed(const Duration(milliseconds: 1500));
+    expect(engine.index, 1);
+    expect(engine.playing, isFalse);
+    expect(ended, 1);
+    await subscription.cancel();
+  }, skip: hasLibmpv ? false : 'needs libmpv');
+
   test('repeat all goes back to the first track after the last', () async {
     final tracks = [tone(dir, 0, seconds: 1), tone(dir, 1, seconds: 1)];
     await engine.setRepeat(Repeat.all);

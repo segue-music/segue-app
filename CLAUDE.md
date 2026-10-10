@@ -157,6 +157,13 @@ Running two app instances on one machine as different devices:
   the songs themselves, not their ids: the same song added otherwise stays), with one report, and turned on again on
   the same song asks again. It is each device's own setting, not the protocol's: the hub sees a longer queue, or a
   shorter one.
+- `SleepTimer` (`lib/player/sleep_timer.dart`, `Services.sleepTimer`, `SleepTimerButton`) pauses this device's
+  player after a while, the music fading out over the last 30 s through `PlayerController.setVolume` (a volume the
+  user picks meanwhile stays) and getting its volume back once paused, or as the song ends (`PlayerController.songEnded`,
+  the engine's `ended`: the next track starting by itself, the track starting over where it repeats by itself, or the
+  last one ending, repeat off; media_kit tells `completed` at the end of every track, so only the last one's counts),
+  the next one then paused at its start. A stopped player turns it off. It is each device's own, like autoplay: the
+  protocol has no timer, so its button shows only while this device plays. Only `Services.start` makes one.
 - `ConnectController` (`lib/connect/`) follows the Connect model: the app controls one device at a
   time (`activeId`, null meaning this device). UI actions go through it (`playSongs`, `toggle`,
   `seek`, ...): it either runs them on the local player or sends them as hub commands. The UI should

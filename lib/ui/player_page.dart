@@ -19,6 +19,7 @@ import 'now_playing_bar.dart';
 import 'page_area.dart';
 import 'player_controls.dart';
 import 'queue_page.dart';
+import 'sleep_timer_button.dart';
 import 'song_link.dart';
 import 'themed_icon.dart';
 
@@ -126,8 +127,12 @@ class _PlayerPageState extends State<PlayerPage> with SingleTickerProviderStateM
                       ),
                       _ => null,
                     },
-                    // As wide as the close button, so that the album stays in the middle, a long one too.
-                    actions: [if (!wide) const SizedBox(width: kToolbarHeight)],
+                    // On a phone, the sleep timer's button, where this device plays: the timer pauses its player. As
+                    // wide as the close button, so that the album stays in the middle, a long one too.
+                    actions: [
+                      if (!wide)
+                        SizedBox(width: kToolbarHeight, child: device == null ? const SleepTimerButton() : null),
+                    ],
                   ),
                   body: now == null
                       ? Center(child: Text(strings.nothingPlaying))

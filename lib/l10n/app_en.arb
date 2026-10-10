@@ -250,5 +250,11 @@
   "playMix": "Play a mix",
   "mixEmpty": "This mix has no songs.",
   "couldNotPlayMix": "Couldn't play the mix: {error}",
-  "mixArtists": "{artists} and more"
+  "mixArtists": "{artists} and more",
+  "sleepTimer": "Sleep timer",
+  "sleepTimerWhile": "{minutes, select, 60{1 hour} other{{minutes} minutes}}",
+  "sleepTimerSongEnd": "End of this song",
+  "sleepTimerOff": "Turn off the timer",
+  "sleepTimerPausesIn": "{minutes, plural, =1{The music pauses in 1 minute} other{The music pauses in {minutes} minutes}}",
+  "sleepTimerPausesAtSongEnd": "The music pauses when this song ends"
 }

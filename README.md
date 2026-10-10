@@ -168,6 +168,12 @@ the device it runs on.
   on Jellyfin its instant mix, of the song's genres. It is on until a switch turns it off, in the settings and after
   the queue's last song, which takes the songs it added that haven't played out of the queue; on again, they come
   again. It is this device's: another device's queue goes on, or not, as that device has it;
+- a sleep timer, from a moon in the full-screen player's top right corner (on a wider screen, in the player bar), while
+  the music plays on this device: it pauses the music after 5, 15, 30 or 45 minutes or an hour, the music fading out
+  over the last 30 seconds (a volume picked meanwhile stays) and playing as loud as before as it plays again, or as the
+  song that plays ends, the next one paused at its start. The moon is tinted while it's on, with the minutes left on
+  it, and its sheet says when the music pauses, and turns it off. It is this device's player's: the protocol has none
+  for another device;
 - the album's songs and the queue have a header naming their columns: the number ("#") or the
   cover, the title, and the duration as a clock; over the queue it stays as the tracks scroll;
 - making and changing playlists: a new one, from a button over the list of them, named in a dialog; a
@@ -310,7 +316,7 @@ the device it runs on.
   On a computer the window opens maximized.
 
 Not yet: moving a playlist's or the queue's songs with the remote (a TV has no drag), adding the song that plays to a
-playlist from the player, turning another device's autoplay on or off from here, the media controls on macOS and Windows, on a Jellyfin server the cover of a song that came from another device
+playlist from the player, turning another device's autoplay on or off from here, a sleep timer for another device, the media controls on macOS and Windows, on a Jellyfin server the cover of a song that came from another device
 when its file has none of its own (Jellyfin doesn't fall back to the album's) and an artist's popular songs (Jellyfin
 knows only its users' plays), sending the music
 to speakers and TVs that don't run the app (Google Cast, UPnP/DLNA), and CarPlay as an app of its own (browsing the library

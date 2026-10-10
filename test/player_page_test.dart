@@ -12,6 +12,7 @@ import 'package:segue/connect/connect.dart';
 import 'package:segue/l10n/app_localizations.dart';
 import 'package:segue/lyrics/lrclib.dart';
 import 'package:segue/player/player.dart';
+import 'package:segue/player/sleep_timer.dart';
 import 'package:segue/segue/client.dart';
 import 'package:segue/segue/protocol.dart';
 import 'package:segue/server/models.dart';
@@ -149,7 +150,7 @@ const sweetEmotion = Song(
 /// The player bar, under the navigator as in the app, on a screen of [size] (a phone's by default),
 /// playing [song] here, Sweet Emotion by default: under an empty page, or with [inHome], the home's.
 /// [client] adds a hub, and the bar then shows what it says; [server] answers for the media server,
-/// which by default knows nothing.
+/// which by default knows nothing. With [sleepTimer], the session has one.
 Future<PlayerController> pumpBar(
   WidgetTester tester, {
   SegueClient? client,
@@ -158,6 +159,7 @@ Future<PlayerController> pumpBar(
   Size size = const Size(360, 640),
   bool inHome = false,
   Song song = sweetEmotion,
+  bool sleepTimer = false,
 }) async {
   final api = SubsonicApi(
     Uri.parse('https://music.test'),
@@ -179,6 +181,7 @@ Future<PlayerController> pumpBar(
     player,
     connect,
     lrclib: lrclib,
+    sleepTimer: sleepTimer ? SleepTimer(player) : null,
   );
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;

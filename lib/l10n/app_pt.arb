@@ -1462,5 +1462,39 @@
         "type": "String"
       }
     }
+  },
+  "sleepTimer": "Timer de sono",
+  "@sleepTimer": {
+    "description": "The sleep timer's button's tooltip, while it's off, and its sheet's title: what pauses the music after a while, or as the song ends, to fall asleep to it."
+  },
+  "sleepTimerWhile": "{minutes, select, 60{1 hora} other{{minutes} minutos}}",
+  "@sleepTimerWhile": {
+    "description": "In the sleep timer's sheet, a while after which the music pauses, in minutes (60 is an hour).",
+    "placeholders": {
+      "minutes": {
+        "type": "String"
+      }
+    }
+  },
+  "sleepTimerSongEnd": "Fim desta música",
+  "@sleepTimerSongEnd": {
+    "description": "In the sleep timer's sheet: the music pauses as the song that plays ends."
+  },
+  "sleepTimerOff": "Desligar o timer",
+  "@sleepTimerOff": {
+    "description": "In the sleep timer's sheet, while it's on: the music plays on."
+  },
+  "sleepTimerPausesIn": "{minutes, plural, =1{A música pausa em 1 minuto} other{A música pausa em {minutes} minutos}}",
+  "@sleepTimerPausesIn": {
+    "description": "The sleep timer's button's tooltip, and its sheet under its title, while it counts down: in how many minutes the music pauses, rounded up.",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "sleepTimerPausesAtSongEnd": "A música pausa quando a atual acabar",
+  "@sleepTimerPausesAtSongEnd": {
+    "description": "The sleep timer's button's tooltip, and its sheet under its title, while it waits for the song that plays to end."
   }
 }
