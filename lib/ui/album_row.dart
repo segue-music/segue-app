@@ -38,8 +38,11 @@ class AlbumRow extends StatelessWidget {
         child: Text(message, style: text.bodyMedium),
       );
 
+      // While new albums come (the home pulled down to list them again), the ones before, where they were.
       final albums = snapshot.data;
       return TileRow(
+        // The new ones from the first, rather than where the ones before were scrolled to.
+        key: ObjectKey(albums),
         title: title,
         onShowAll: onShowAll,
         tileSize: tileSize,

@@ -1037,6 +1037,23 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('the home pulled down, its rows start again from their first album', (tester) async {
+    final asked = await pumpHome(tester, const Size(360, 640), released: [for (var i = 0; i < 10; i++) 'Released $i']);
+    final rows = asked.length;
+    await tester.drag(find.text('Released 0'), const Offset(-2000, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('Released 0'), findsNothing);
+    expect(find.text('Released 9'), findsOneWidget);
+
+    final list = find.descendant(of: find.byType(HomeView), matching: find.byType(Scrollable)).first;
+    await tester.dragFrom(tester.getTopLeft(list) + const Offset(180, 20), const Offset(0, 300));
+    await tester.pumpAndSettle();
+    expect(asked.length, 2 * rows, reason: 'listed again');
+    expect(find.text('Released 0'), findsOneWidget);
+    expect(find.text('Released 9'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('arrows at the right of a row take it a screenful forward and back, lined up on an album', (
     tester,
   ) async {
