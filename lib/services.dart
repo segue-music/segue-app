@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 
 import 'autoplay_choice.dart';
 import 'connect/connect.dart';
+import 'crossfade_choice.dart';
 import 'download_choice.dart';
 import 'downloads/downloads.dart';
 import 'downloads/pending_plays.dart';
@@ -15,6 +16,7 @@ import 'downloads/server_with_downloads.dart';
 import 'equalizer_choice.dart';
 import 'lyrics/lrclib.dart';
 import 'mobile_data.dart';
+import 'player/crossfade_engine.dart';
 import 'player/engine.dart';
 import 'player/play_counter.dart';
 import 'pictures/fanart_tv.dart';
@@ -50,14 +52,16 @@ class Services {
     this.reachability,
     this.downloadHold,
     this.autoplay,
+    this.crossfade,
     this.sleepTimer,
   });
 
   /// Starts a session: the API, with what the user downloaded, this device's player, which streams in the quality picked
   /// ([quality]; the original, with none), levels the songs' loudness the way picked ([replayGain]; not at all, with
-  /// none), plays them through the equalizer as set ([equalizer]; as they are, with none) and goes on after the queue's
-  /// last song while [autoplay] is on (never, with none), and, if a hub is found, the connection to it. With the media
-  /// server out of reach, the hub is the one last found next to it, which the connection reaches once it can.
+  /// none), plays them through the equalizer as set ([equalizer]; as they are, with none), goes on after the queue's
+  /// last song while [autoplay] is on (never, with none) and crossfades them for as long as [crossfade] says (never, with
+  /// none), and, if a hub is found, the connection to it. With the media server out of reach, the hub is the one last
+  /// found next to it, which the connection reaches once it can.
   static Future<Services> start(
     Session session, {
     AudioEngine? engine,
@@ -66,6 +70,7 @@ class Services {
     ValueListenable<EqualizerSettings>? equalizer,
     ValueListenable<DownloadSettings>? downloadSettings,
     AutoplayChoice? autoplay,
+    CrossfadeChoice? crossfade,
   }) async {
     final server = openServer(
       session.server,
@@ -110,6 +115,8 @@ class Services {
       replayGain: replayGain,
       equalizer: equalizer,
       autoplay: autoplay,
+      crossfade: crossfade,
+      crossfadeEngine: crossfade == null ? null : () => CrossfadeEngine(() => crossfade.value),
     );
     final hubUrl = foundHub ?? (reachable ? null : await _rememberedHub(session.server));
 
@@ -146,6 +153,7 @@ class Services {
       reachability: reachability,
       downloadHold: downloadHold,
       autoplay: autoplay,
+      crossfade: crossfade,
       sleepTimer: SleepTimer(player),
     );
     unawaited(client?.start());
@@ -226,6 +234,9 @@ class Services {
   /// Whether [player] goes on after the queue's last song with songs like it, which the settings and the queue's page
   /// turn on and off; null, it never does, nor shows a way to.
   final AutoplayChoice? autoplay;
+
+  /// How long [player] crossfades the songs for, which the settings pick; null, it never does, nor shows a way to.
+  final CrossfadeChoice? crossfade;
 
   /// What pauses [player] after a while, or as the song ends; null, nothing does, nor shows a way to.
   final SleepTimer? sleepTimer;

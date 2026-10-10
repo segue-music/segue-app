@@ -783,6 +783,101 @@ void main() {
     });
   });
 
+  group('crossfade', () {
+    const three = [...songs, Song(id: 's3', title: 'Three', duration: Duration(minutes: 2))];
+    late ValueNotifier<Duration> crossfade;
+    late List<FakeEngine> made;
+
+    setUp(() {
+      crossfade = ValueNotifier(Duration.zero);
+      made = [];
+      player.onReport = null; // the one on the same engine, which this one takes the place of
+      player = PlayerController(
+        engine,
+        api,
+        crossfade: crossfade,
+        crossfadeEngine: () {
+          made.add(FakeEngine());
+          return made.last;
+        },
+      );
+      player.onReport = reports.add;
+    });
+
+    test('on, the queue goes on on the engine that crossfades, from where it was, in its order, as loud, repeating as '
+        'it was; off, back on the one before, which the other then stopped', () async {
+      await player.playQueue(three, index: 1);
+      await player.setShuffle(true);
+      await player.setVolume(40);
+      await player.setRepeat(Repeat.all);
+      await player.seek(const Duration(seconds: 30));
+      final queue = player.queue;
+      reports.clear();
+
+      crossfade.value = const Duration(seconds: 6);
+      await pumpEventQueue();
+      expect(made, hasLength(1));
+      final crossfading = made.single;
+      expect(crossfading.tracks.map((track) => track.queryParameters['id']), ['s1', 's2', 's3']);
+      expect(crossfading.orderOpened, [1, 2, 0]);
+      expect(crossfading.index, 0);
+      expect(crossfading.position, greaterThanOrEqualTo(const Duration(seconds: 30)));
+      expect(crossfading.playing, isTrue);
+      expect(crossfading.volume, 40);
+      expect(crossfading.repeat, Repeat.all);
+      expect(crossfading.shuffle, isTrue);
+      expect(engine.playing, isFalse, reason: 'stopped');
+      expect(player.queue, queue);
+      expect(player.current?.id, 's2');
+      expect(reports, hasLength(1), reason: 'told of once');
+      expect(reports.single.queue, isNull, reason: 'the same queue');
+
+      await player.next();
+      expect(crossfading.index, 1, reason: 'what the player is asked goes to it');
+      expect(engine.index, 0);
+
+      crossfade.value = Duration.zero;
+      await pumpEventQueue();
+      expect(engine.opened, hasLength(3));
+      expect(engine.orderOpened, [1, 2, 0]);
+      expect(engine.index, 1);
+      expect(engine.playing, isTrue);
+      expect(player.current?.id, 's3');
+      expect(made, hasLength(1));
+    });
+
+    test('a length for another stays on the same engine', () async {
+      crossfade.value = const Duration(seconds: 6);
+      await pumpEventQueue();
+      crossfade.value = const Duration(seconds: 10);
+      await pumpEventQueue();
+      expect(made, hasLength(1));
+    });
+
+    test('on from the start, the songs play on the engine that crossfades, as long as the media server says', () async {
+      crossfade.value = const Duration(seconds: 6);
+      made.add(FakeEngine());
+      player = PlayerController(engine, api, crossfade: crossfade, crossfadeEngine: () => made.first);
+      await player.playQueue(three);
+      expect(made.first.opened.map((track) => track.duration), [for (final song in three) song.duration]);
+      expect(engine.opened, isEmpty);
+    });
+
+    test('the songs ended are the engine\'s that plays them', () async {
+      final ended = <String?>[];
+      player.songEnded.listen((_) => ended.add(player.current?.id));
+      await player.playQueue(three);
+      engine.endTrack();
+      await pumpEventQueue();
+
+      crossfade.value = const Duration(seconds: 6);
+      await pumpEventQueue();
+      made.single.endTrack();
+      await pumpEventQueue();
+      expect(ended, ['s2', 's3']);
+    });
+  });
+
   test('obeys setRepeat and setShuffle, and reports both', () async {
     await player.playQueue(songs);
     await player.obey(const Command.setRepeat(Repeat.one));

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../crossfade_choice.dart';
 import '../equalizer_choice.dart';
 import '../l10n/app_localizations.dart';
 import '../language_choice.dart';
@@ -20,9 +21,9 @@ import 'theme_fade.dart';
 import 'themed_icon.dart';
 
 /// What the user picks for the app, and signing out, in groups under their names: the appearance (the theme, the
-/// language), the playback (the quality, the volume's normalization, the equalizer's page, autoplay) and the app itself
-/// (its version, the licenses' page); a line between the groups, and after the last, signing out, under the account it
-/// signs out of. Each choice is a line that says the option picked, which opens a sheet of them all ([_Choice]), or, on
+/// language), the playback (the quality, the volume's normalization, the equalizer's page, the crossfade, autoplay) and
+/// the app itself (its version, the licenses' page); a line between the groups, and after the last, signing out, under
+/// the account it signs out of. Each choice is a line that says the option picked, which opens a sheet of them all ([_Choice]), or, on
 /// or off, a switch. In the page area, from the top bar's button; a choice missing (none given), its line too, a group
 /// left with none too, and the version with none.
 class SettingsPage extends StatelessWidget {
@@ -55,6 +56,7 @@ class SettingsPage extends StatelessWidget {
     final session = ServicesScope.of(context).session;
     final downloads = ServicesScope.of(context).downloads;
     final autoplay = ServicesScope.of(context).autoplay;
+    final crossfade = ServicesScope.of(context).crossfade;
     final (themeChoice, languageChoice, qualityChoice, replayGainChoice, equalizerChoice) = (
       this.themeChoice,
       this.languageChoice,
@@ -81,6 +83,7 @@ class SettingsPage extends StatelessWidget {
           qualityChoice,
           replayGainChoice,
           equalizerChoice,
+          crossfade,
           downloadChoice,
         ]),
         builder: (context, _) {
@@ -176,6 +179,21 @@ class SettingsPage extends StatelessWidget {
                     onTap: () =>
                         Navigator.of(context)
                             .push(MaterialPageRoute<void>(builder: (_) => EqualizerPage(choice: equalizerChoice))),
+                  ),
+                // None with what it does, under it.
+                if (crossfade != null)
+                  _Choice(
+                    icon: HugeIcons.strokeRoundedBlend,
+                    title: strings.crossfade,
+                    options: [
+                      for (final length in CrossfadeChoice.lengths)
+                        (
+                          name: strings.crossfadeLength(length.inSeconds),
+                          detail: length == Duration.zero ? strings.crossfadeOffDetail : null,
+                          picked: length == crossfade.value,
+                          onPicked: () => crossfade.pick(length),
+                        ),
+                    ],
                   ),
                 if (autoplay != null) AutoplaySwitch(autoplay),
               ],

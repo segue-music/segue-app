@@ -9,8 +9,8 @@ import 'package:segue/segue/protocol.dart';
 import 'package:segue/subsonic/api.dart';
 
 /// An engine with no audio: a queue and a clock, like the real one. Its clock is [clock], so that a test
-/// in fake time (fake_async) plays in it.
-class FakeEngine implements AudioEngine {
+/// in fake time (fake_async) plays in it. A deck too, of a track as long as [duration], at [level].
+class FakeEngine implements Deck {
   final _changes = StreamController<void>.broadcast(sync: true);
   final _ended = StreamController<void>.broadcast(sync: true);
 
@@ -32,6 +32,16 @@ class FakeEngine implements AudioEngine {
 
   /// The equalizer's gains, as [setEqualizer] last set them; null before it did.
   Map<int, double>? equalizer;
+
+  /// How long the current track is, as its stream says; zero, it doesn't.
+  @override
+  Duration duration = Duration.zero;
+
+  /// The level it plays at, as [setLevel] last set it.
+  double level = 1;
+
+  /// The play order open got last; null where it got none.
+  List<int>? orderOpened;
 
   @override
   Stream<void> get changes => _changes.stream;
@@ -94,13 +104,18 @@ class FakeEngine implements AudioEngine {
     required int index,
     required Duration position,
     required bool play,
+    List<int>? order,
   }) async {
     _failed = false;
     opened = tracks;
+    orderOpened = order;
     _order = [for (var i = 0; i < tracks.length; i++) i];
     _index = index;
 
-    if (_shuffle) {
+    if (_shuffle && order != null) {
+      _order = order;
+      _index = order.indexOf(index);
+    } else if (_shuffle) {
       _shuffleOrder();
     }
 
@@ -253,6 +268,9 @@ class FakeEngine implements AudioEngine {
 
   @override
   Future<void> setEqualizer(Map<int, double> gains) async => equalizer = gains;
+
+  @override
+  Future<void> setLevel(double level) async => this.level = level;
 
   @override
   Future<void> dispose() async {

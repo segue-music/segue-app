@@ -9,25 +9,38 @@ import '../segue/client.dart';
 import '../segue/protocol.dart';
 import '../server/models.dart';
 import '../server/server.dart';
+import 'crossfade_engine.dart';
 import 'engine.dart';
 
 /// This device's player: the queue, playback, and the commands other devices send it.
 class PlayerController extends ChangeNotifier {
+  /// Plays on [engine], or, while [crossfade] is more than none, on the one [crossfadeEngine] makes, which crossfades
+  /// the songs ([CrossfadeEngine]): as it goes on or off, the queue goes on on the other one, from where it was.
   /// Streams each song in the quality that [quality] gives as it loads; with none, the files as they are. Levels their
   /// loudness [replayGain]'s way, the one that plays too as it changes; with none, not at all. Plays them through
   /// [equalizer], as it changes too; with none, as they are. Goes on after the queue's last song with songs like it
   /// while [autoplay] is on, and takes those that haven't played out of the queue as it goes off; with none, the music
   /// stops there.
-  PlayerController(this._engine, this._api, {this._quality, this._replayGain, this._equalizer, this._autoplay}) {
-    _subscription = _engine.changes.listen((_) {
-      if (_editing) {
-        _changeHeld = true;
-      } else {
-        _changed();
-      }
-    });
+  PlayerController(
+    AudioEngine engine,
+    this._api, {
+    this._quality,
+    this._replayGain,
+    this._equalizer,
+    this._autoplay,
+    this._crossfade,
+    this._crossfadeEngine,
+  }) : _gapless = engine,
+       _engine = engine {
+    // Crossfading from the start: the queue, still empty, has nothing to take along.
+    if (_crossfading) {
+      _engine = _crossfadeEngine!();
+    }
+
+    _follow(_engine);
     _replayGain?.addListener(_updateGain);
     _autoplay?.addListener(_autoplayTurned);
+    _crossfade?.addListener(_crossfadeTurned);
 
     if (_equalizer != null) {
       _equalizer.addListener(_equalize);
@@ -35,13 +48,20 @@ class PlayerController extends ChangeNotifier {
     }
   }
 
-  final AudioEngine _engine;
+  /// The engine of songs one right after the other (gapless), and the one the songs play on, it or one that crossfades
+  /// them.
+  final AudioEngine _gapless;
+  AudioEngine _engine;
   final MediaServer _api;
   final StreamQuality Function()? _quality;
   final ValueListenable<ReplayGainMode>? _replayGain;
   final ValueListenable<EqualizerSettings>? _equalizer;
   final ValueListenable<bool>? _autoplay;
-  late final StreamSubscription<void> _subscription;
+  final ValueListenable<Duration>? _crossfade;
+  final AudioEngine Function()? _crossfadeEngine;
+  late StreamSubscription<void> _subscription;
+  late StreamSubscription<void> _endedSubscription;
+  final _songEnded = StreamController<void>.broadcast();
   // The songs as playQueue got them, with those addToQueue added among them (their order unshuffled), and their tracks
   // for the engine; and _queue: them in the engine's play order (shuffled, or not).
   List<Song> _opened = const [];
@@ -82,8 +102,77 @@ class PlayerController extends ChangeNotifier {
   bool get failed => _engine.failed;
 
   /// Fires as a song plays to its end ([AudioEngine.ended]): as the next one, or the same one again, starts, or the queue
-  /// ends.
-  Stream<void> get songEnded => _engine.ended;
+  /// ends; crossfading, as the next one starts fading in.
+  Stream<void> get songEnded => _songEnded.stream;
+
+  /// Takes [engine]'s changes, and the songs it plays to their end, for this player's.
+  void _follow(AudioEngine engine) {
+    _subscription = engine.changes.listen((_) {
+      if (_editing) {
+        _changeHeld = true;
+      } else {
+        _changed();
+      }
+    });
+    _endedSubscription = engine.ended.listen(_songEnded.add);
+  }
+
+  /// Whether the songs are to crossfade, as [_crossfade] says.
+  bool get _crossfading => _crossfadeEngine != null && (_crossfade?.value ?? Duration.zero) > Duration.zero;
+
+  /// The crossfade went on or off: the queue goes on on the other engine, once the changes to it before are done.
+  void _crossfadeTurned() {
+    if (_crossfading == identical(_engine, _gapless)) {
+      unawaited(_edit(_changeEngine));
+    }
+  }
+
+  /// Plays the queue on the engine the crossfade calls for ([_crossfading]), where it doesn't already: from where it
+  /// was on the one before, playing or not as it was, in the same order, shuffled or not, as loud, repeating as it did,
+  /// through the equalizer. The one before stops; the one that crossfades goes, with its decks.
+  Future<void> _changeEngine() async {
+    final crossfading = _crossfading;
+
+    if (crossfading == !identical(_engine, _gapless)) {
+      return;
+    }
+
+    final before = _engine;
+    final engine = crossfading ? _crossfadeEngine!() : _gapless;
+    final opened = _opened;
+    final tracks = _tracks;
+    final order = before.order;
+    final current = before.index >= 0 && before.index < order.length ? order[before.index] : 0;
+    final playing = before.playing;
+    final (changes, ended) = (_subscription, _endedSubscription);
+    // From now on, what the player is asked goes to it, and what it says comes from it.
+    _engine = engine;
+    _follow(engine);
+    await changes.cancel();
+    await ended.cancel();
+    await before.pause();
+    final position = before.position;
+    await engine.setVolume(before.volume);
+    await engine.setRepeat(before.repeat);
+    await engine.setShuffle(before.shuffle);
+
+    if (_equalizer != null) {
+      _equalize();
+    }
+
+    // Unless another queue came meanwhile, which plays on it already.
+    if (tracks.isNotEmpty && identical(_opened, opened)) {
+      await engine.open(tracks, index: current, position: position, play: playing, order: order);
+    }
+
+    if (identical(before, _gapless)) {
+      await before.stop();
+    } else {
+      await before.dispose();
+    }
+
+    _changeHeld = true; // told of once done, by the edit
+  }
 
   PlaybackStatus get status => _queue.isEmpty
       ? PlaybackStatus.stopped
@@ -235,6 +324,7 @@ class PlayerController extends ChangeNotifier {
       () => _stream(song.id),
       addressFrom: (from) => _streamFrom(song.id, from),
       gain: () => _gain(song, _tracks.indexOf(track)),
+      duration: song.duration,
     );
     return track;
   }
@@ -548,8 +638,18 @@ class PlayerController extends ChangeNotifier {
     _replayGain?.removeListener(_updateGain);
     _equalizer?.removeListener(_equalize);
     _autoplay?.removeListener(_autoplayTurned);
+    _crossfade?.removeListener(_crossfadeTurned);
+    // Once the changes to the queue under way are done, the engine changing among them.
+    await _edits;
     await _subscription.cancel();
-    await _engine.dispose();
+    await _endedSubscription.cancel();
+    await _songEnded.close();
+
+    if (!identical(_engine, _gapless)) {
+      await _engine.dispose();
+    }
+
+    await _gapless.dispose();
     super.dispose();
   }
 }

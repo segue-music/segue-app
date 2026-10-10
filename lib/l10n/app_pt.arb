@@ -1301,6 +1301,23 @@
       }
     }
   },
+  "crossfade": "Crossfade",
+  "@crossfade": {
+    "description": "In the settings, the line of the choice of how long this device's player crossfades the songs for, each fading into the next as it starts, the two playing together a while, and the title of its sheet."
+  },
+  "crossfadeLength": "{seconds, plural, =0{Desligado} =1{1 segundo} other{{seconds} segundos}}",
+  "@crossfadeLength": {
+    "description": "How long the songs crossfade for, in the crossfade's sheet in the settings and under its line there: none (off), or that many seconds.",
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "crossfadeOffDetail": "Cada música logo depois da anterior, sem pausa",
+  "@crossfadeOffDetail": {
+    "description": "Under the crossfade's option of none, in its sheet in the settings: the songs play one right after the other, with no gap between them (gapless)."
+  },
   "equalizer": "Equalizador",
   "@equalizer": {
     "description": "The equalizer of this device's player, which raises or lowers the sound's bands of frequencies: its line in the settings, which opens its page, and that page's title."

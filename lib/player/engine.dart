@@ -9,8 +9,8 @@ import '../segue/protocol.dart';
 /// Where a track's stream is, for [AudioEngine.open], and how loud it plays: the engine asks for them as the track
 /// loads.
 class TrackSource {
-  /// At [url], whenever it loads, with [gain].
-  TrackSource(Uri url, {TrackGain gain = TrackGain.none})
+  /// At [url], whenever it loads, with [gain]; [duration] long.
+  TrackSource(Uri url, {TrackGain gain = TrackGain.none, this.duration})
     : address = (() => url),
       addressFrom = _nowhere,
       gain = (() => gain);
@@ -19,12 +19,15 @@ class TrackSource {
   /// can change from one track to the next; asked as the track is opened too, for the stream the engine may open ahead.
   /// To seek in a stream that can't (one the media server transcodes as it goes), from that point on, in whole seconds,
   /// at the one [addressFrom] gives, where null says the stream can't start there. With the gain that [gain] gives as
-  /// it loads, and again as [AudioEngine.updateGain] asks for it.
-  TrackSource.resolved(this.address, {this.addressFrom = _nowhere, this.gain = _asItIs});
+  /// it loads, and again as [AudioEngine.updateGain] asks for it. [duration] long.
+  TrackSource.resolved(this.address, {this.addressFrom = _nowhere, this.gain = _asItIs, this.duration});
 
   final Uri Function() address;
   final Future<Uri?> Function(Duration from) addressFrom;
   final TrackGain Function() gain;
+
+  /// How long the track is, as the media server says; null where it doesn't.
+  final Duration? duration;
 
   static Future<Uri?> _nowhere(Duration from) async => null;
 
@@ -100,10 +103,21 @@ abstract class AudioEngine {
   /// [jump] and [open] go on to others.
   bool get failed;
 
+  /// Plays [tracks] from the one at [index], at [position], or, unless [play], only takes them there.
+  ///
   /// Opened paused, the current track loads all the same, so that [play] starts it at once. Should it
   /// fail then, the engine stops on it without telling ([failed] stays false), since nothing asked it
   /// to play: [play] tries it again, and tells if it fails again.
-  Future<void> open(List<TrackSource> tracks, {required int index, required Duration position, required bool play});
+  ///
+  /// With shuffle on, they play in [order] (as [AudioEngine.order] says one), where given: shuffled already, as by
+  /// another engine; otherwise the engine shuffles them.
+  Future<void> open(
+    List<TrackSource> tracks, {
+    required int index,
+    required Duration position,
+    required bool play,
+    List<int>? order,
+  });
 
   /// Adds [tracks] to those open got, the current one playing on: right after it if [next], in the play order and in
   /// the order unshuffled alike, otherwise after the last one in both. Where they went in the order unshuffled: the
@@ -151,6 +165,17 @@ abstract class AudioEngine {
   Future<void> dispose();
 }
 
+/// An engine that [CrossfadeEngine] plays the tracks on, one at a time, each on the deck whose turn it is.
+abstract interface class Deck implements AudioEngine {
+  /// How long the current track is, where its stream says (a file, or a stream that can seek, whose length is known):
+  /// zero where it doesn't, as a stream the media server transcodes as it goes says nothing of its length.
+  Duration get duration;
+
+  /// Plays at [level] of [volume]: from 0, nothing heard, to 1, as loud as [volume] says, as a sound's amplitude goes.
+  /// [volume] stays as it is, and nothing is told of it.
+  Future<void> setLevel(double level);
+}
+
 /// Plays through media_kit (libmpv), on every platform.
 ///
 /// mpv's playlist has a name for each track ([_name]): its stream's address as the track was opened, with the name in
@@ -163,7 +188,7 @@ abstract class AudioEngine {
 /// mpv opens the next track's stream as the one before plays (prefetch-playlist), so that it plays right after, with
 /// no gap, however late the media server answers. It opens the track's name, before the on_load hook, so a stream that
 /// is still the one the name says is opened ahead; one that changed (another quality) is opened as the track loads.
-class MediaKitEngine implements AudioEngine {
+class MediaKitEngine implements Deck {
   /// [silent] sends the audio nowhere: for tests on a machine without sound. [audioFile] writes it to that file
   /// instead, as raw samples (16 bits, in the tracks' channels and sample rate), as fast as mpv decodes them: for tests
   /// that listen to it.
@@ -220,7 +245,6 @@ class MediaKitEngine implements AudioEngine {
         }
       }),
       stream.playlistMode.listen((_) => _changes.add(null)),
-      stream.volume.listen((_) => _changes.add(null)),
       stream.completed.listen((completed) {
         _changes.add(null);
 
@@ -308,6 +332,10 @@ class MediaKitEngine implements AudioEngine {
   // media_kit turns shuffle off with every open; this is the mode, which stays.
   bool _shuffle = false;
 
+  // The volume, and the level of it that plays ([setLevel]), which mpv's volume makes of them.
+  int _volume = 100;
+  double _level = 1;
+
   Duration _lastPosition = Duration.zero;
 
   // The track mpv last started to load, by its log: what a failure that follows in the log is about.
@@ -324,9 +352,11 @@ class MediaKitEngine implements AudioEngine {
   // Whether mpv opens the next track ahead (prefetch-playlist), as it does from the start ([_openAheadAfter]).
   bool _prefetch = true;
 
-  // Whether the track mpv last started to load ([_loading]) has loaded, as its duration announces; and each load, for
-  // a load waiting for its track, by the track and the count of loads the log had told of then.
+  // Whether the track mpv last started to load ([_loading]) has loaded, as its duration announces, and whether mpv
+  // knows how long it is, as it does of a stream it can seek in; and each load, for a load waiting for its track, by
+  // the track and the count of loads the log had told of then.
   bool _loaded = false;
+  bool _lengthKnown = false;
   final _loadsDone = StreamController<({String track, int logged})>.broadcast();
 
   // A seek while the current track loads, after a jump or moving on by itself: where it goes once loaded.
@@ -368,6 +398,8 @@ class MediaKitEngine implements AudioEngine {
   void _moved(Duration to) {
     _movedTo = to;
     _movedAt = DateTime.now();
+    // Not back by itself, should it be before where it was: what the position says next is from here.
+    _lastPosition = to;
   }
 
   bool get _moving => _movedTo != null && DateTime.now().difference(_movedAt) <= _trustMoveFor;
@@ -427,7 +459,11 @@ class MediaKitEngine implements AudioEngine {
   }
 
   @override
-  int get volume => _player.state.volume.round();
+  int get volume => _volume;
+
+  @override
+  Duration get duration =>
+      _lengthKnown && _currentLoaded && !_waiting && !_failed ? _player.state.duration + _offset : Duration.zero;
 
   @override
   List<int> get order {
@@ -499,27 +535,36 @@ class MediaKitEngine implements AudioEngine {
     return done;
   }
 
+  /// In an [order] given, mpv's playlist is in that order, which shuffle going off takes back to the tracks' own, as it
+  /// does tracks added shuffled ([_rearrange]).
   @override
   Future<void> open(
     List<TrackSource> tracks, {
     required int index,
     required Duration position,
     required bool play,
+    List<int>? order,
   }) async {
     await _ready;
+    final shuffled = _shuffle && order != null && order.length == tracks.length;
     _failed = false;
     _quiet = !play;
     _tracks = tracks;
     _opens++;
     _named = tracks.length;
     _opened = _inOrder = [for (final (i, track) in tracks.indexed) _name('$_opens.$i', _addressOf(track))];
-    _index = index;
+
+    if (shuffled) {
+      _inOrder = [for (final i in order) _opened[i]];
+    }
+
+    _index = shuffled ? order.indexOf(index) : index;
     _offset = Duration.zero;
     _restart = null;
-    final playlist = Playlist([for (final track in _opened) Media(track)], index: index);
+    final playlist = Playlist([for (final track in _inOrder) Media(track)], index: _index);
     await _playFrom(position, () => _player.open(playlist, play: false), play: play);
 
-    if (_shuffle) {
+    if (_shuffle && !shuffled) {
       await _player.setShuffle(true);
     }
   }
@@ -941,7 +986,7 @@ class MediaKitEngine implements AudioEngine {
     if (log.prefix == 'cplayer' && log.text.startsWith('Playing: ')) {
       final track = _loading = log.text.substring('Playing: '.length);
       _loadingStream = null;
-      _loaded = false;
+      _loaded = _lengthKnown = false;
       unawaited(_watchLoad(track, ++_loadsLogged));
     } else if (log.level == 'error' &&
         (log.text == 'Failed to open $_loading.' ||
@@ -975,10 +1020,28 @@ class MediaKitEngine implements AudioEngine {
         _loaded = true;
         _loadsDone.add((track: track, logged: logged));
         _whenLoaded();
+        await _learnLength(logged);
         return;
       }
 
       await Future<void>.delayed(const Duration(milliseconds: 50));
+    }
+  }
+
+  /// Learns whether mpv knows how long the track that loaded, as the [logged]th, is: a file, or a stream it can seek
+  /// in, whose length it read. One the media server transcodes as it goes, of no length told, it can't seek in, and its
+  /// duration is as long as what came of it so far.
+  Future<void> _learnLength(int logged) async {
+    final String seekable;
+
+    try {
+      seekable = await (_player.platform as NativePlayer).getProperty('seekable');
+    } on Object {
+      return; // disposed meanwhile
+    }
+
+    if (logged == _loadsLogged) {
+      _lengthKnown = seekable == 'yes';
     }
   }
 
@@ -1094,7 +1157,28 @@ class MediaKitEngine implements AudioEngine {
   }
 
   @override
-  Future<void> setVolume(int volume) => _player.setVolume(volume.toDouble());
+  Future<void> setVolume(int volume) async {
+    _volume = volume;
+    await _playAtVolume();
+
+    if (!_disposed) {
+      _changes.add(null);
+    }
+  }
+
+  @override
+  Future<void> setLevel(double level) async {
+    _level = level.clamp(0, 1);
+    await _playAtVolume();
+  }
+
+  /// Gives mpv the volume, at the level set. mpv makes its volume a gain by its cube (audio_update_volume, in its
+  /// player/audio.c), so the level, a gain, goes in it by its cube root.
+  Future<void> _playAtVolume() async {
+    if (!_disposed) {
+      await _player.setVolume(_volume * pow(_level, 1 / 3).toDouble());
+    }
+  }
 
   @override
   Future<void> updateGain() async {

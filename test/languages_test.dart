@@ -8,6 +8,7 @@ import 'package:http/testing.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:segue/autoplay_choice.dart';
 import 'package:segue/connect/connect.dart';
+import 'package:segue/crossfade_choice.dart';
 import 'package:segue/equalizer_choice.dart';
 import 'package:segue/l10n/app_localizations.dart';
 import 'package:segue/language_choice.dart';
@@ -203,12 +204,15 @@ Future<void> pumpHome(WidgetTester tester, Locale language, Size size) async {
   ], play: false);
   final autoplay = AutoplayChoice();
   addTearDown(autoplay.dispose);
+  final crossfade = CrossfadeChoice();
+  addTearDown(crossfade.dispose);
   final services = Services(
     Session(server: Uri.parse('https://music.test'), credentials: credentials, deviceId: 'me', deviceName: 'laptop'),
     api,
     player,
     ConnectController(player: player),
     autoplay: autoplay,
+    crossfade: crossfade,
   );
   final themeChoice = ThemeChoice();
   addTearDown(themeChoice.dispose);
@@ -303,6 +307,16 @@ void main() {
         expect(find.text(strings.appVersionNumber('0.1.0', '214')), findsOneWidget);
         expect(find.text(strings.openSourceLicenses), findsOneWidget);
         expect(find.text(strings.signOut), findsOneWidget);
+        await tap(tester, find.text(strings.crossfade).hitTestable());
+
+        for (final text in [strings.crossfadeOffDetail, strings.crossfadeLength(12)]) {
+          expect(find.descendant(of: find.byType(BottomSheet), matching: find.text(text)), findsOneWidget);
+        }
+
+        await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+        await tester.pumpAndSettle();
+        // Back up to the equalizer, which the crossfade's line took below the top.
+        await tester.scrollUntilVisible(find.text(strings.equalizer).hitTestable(), -100, scrollable: list);
         await tap(tester, find.text(strings.equalizer).hitTestable());
         expect(find.text(strings.useEqualizer), findsOneWidget);
 

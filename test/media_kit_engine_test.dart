@@ -8,6 +8,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:media_kit/media_kit.dart';
+import 'package:segue/player/crossfade_engine.dart';
 import 'package:segue/player/engine.dart';
 import 'package:segue/segue/protocol.dart';
 
@@ -372,6 +373,21 @@ void main() {
       ]);
     });
 
+    test('a level plays the tracks that much quieter, as a sound\'s amplitude goes, the volume as it was', () async {
+      var changes = 0;
+      listened.changes.listen((_) => changes++);
+      await listened.setLevel(0.5);
+      await listened.open([track(0, seconds: 2)], index: 0, position: Duration.zero, play: true);
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      expect(loudestBySecond(heard).take(1), [withGain(-6.02)]);
+      expect(listened.volume, 100);
+
+      final before = changes;
+      await listened.setLevel(0.2);
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      expect(changes, before, reason: 'nothing to tell');
+    });
+
     test('a new gain holds at once for the track that plays', () async {
       var gain = TrackGain.none;
       final file = File('${dir.path}/t0.wav')..writeAsBytesSync(wav(0, seconds: 2));
@@ -491,6 +507,95 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 500));
     expect(engine.playing, isTrue);
     expect(engine.position, greaterThan(const Duration(seconds: 2)));
+  }, skip: hasLibmpv ? false : 'needs libmpv');
+
+  test('the volume is the one set, and a level, which says nothing, leaves it so', () async {
+    var changes = 0;
+    engine.changes.listen((_) => changes++);
+    await engine.setVolume(40);
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    expect(engine.volume, 40);
+    expect(changes, 1);
+
+    await engine.setLevel(0.5);
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    expect(engine.volume, 40);
+    expect(changes, 1);
+  }, skip: hasLibmpv ? false : 'needs libmpv');
+
+  test('a file says how long it is, once loaded; a stream the server transcodes as it goes doesn\'t', () async {
+    final server = await TrackServer.start();
+    addTearDown(server.close);
+    await engine.open([tone(dir, 0)], index: 0, position: Duration.zero, play: true);
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+    expect(engine.duration.inMilliseconds, closeTo(4000, 50));
+
+    await engine.open([server.track('ok0')], index: 0, position: Duration.zero, play: true);
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+    expect(engine.playing, isTrue);
+    expect(engine.duration, Duration.zero);
+  }, skip: hasLibmpv ? false : 'needs libmpv');
+
+  test('opened shuffled in an order given, it plays in that order, which shuffle off takes back to theirs', () async {
+    final tracks = [for (var i = 0; i < 4; i++) tone(dir, i)];
+    await engine.setShuffle(true);
+    await engine.open(tracks, index: 1, position: Duration.zero, play: true, order: [3, 1, 0, 2]);
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+    expect(engine.order, [3, 1, 0, 2]);
+    expect(engine.index, 1);
+    expect(engine.playing, isTrue);
+
+    await engine.setShuffle(false);
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    expect(engine.order, [0, 1, 2, 3]);
+    expect(engine.index, 1);
+    expect(engine.position, greaterThan(const Duration(milliseconds: 500)), reason: 'not started over');
+  }, skip: hasLibmpv ? false : 'needs libmpv');
+
+  group('crossfading on two decks', () {
+    late List<MediaKitEngine> decks;
+    late CrossfadeEngine crossfading;
+
+    setUp(() {
+      decks = [MediaKitEngine(silent: true), MediaKitEngine(silent: true)];
+      crossfading = CrossfadeEngine(() => const Duration(seconds: 1), decks: decks);
+    });
+    tearDown(() => crossfading.dispose());
+
+    test('the next track starts as the one before nears its end, the two playing together, and the queue ends with the '
+        'last', () async {
+      final tracks = [for (var i = 0; i < 2; i++) tone(dir, i, seconds: 3)];
+      var ended = 0;
+      crossfading.ended.listen((_) => ended++);
+      await crossfading.open(tracks, index: 0, position: Duration.zero, play: true);
+      await Future<void>.delayed(const Duration(milliseconds: 2400));
+      expect(crossfading.index, 1, reason: 'a second before the end');
+      expect(ended, 1);
+      expect(decks.map((deck) => deck.playing), [true, true]);
+      expect(crossfading.position, lessThan(const Duration(milliseconds: 500)));
+
+      await Future<void>.delayed(const Duration(milliseconds: 1000));
+      expect(decks[0].playing, isFalse, reason: 'the one before, ended');
+      expect(crossfading.playing, isTrue);
+
+      await Future<void>.delayed(const Duration(seconds: 2));
+      expect(crossfading.index, 1);
+      expect(crossfading.playing, isFalse);
+      expect(ended, 2, reason: 'the last, repeat off');
+    });
+
+    test('from the media server, as it transcodes, the next track starts as long as it says', () async {
+      final server = await TrackServer.start();
+      addTearDown(server.close);
+      final tracks = [
+        for (var i = 0; i < 2; i++) TrackSource(server.url('ok$i'), duration: const Duration(seconds: 4)),
+      ];
+      await crossfading.open(tracks, index: 0, position: Duration.zero, play: true);
+      await Future<void>.delayed(const Duration(milliseconds: 3400));
+      expect(crossfading.index, 1);
+      expect(decks.map((deck) => deck.playing), [true, true]);
+      expect(server.requests, ['/ok0', '/ok1'], reason: 'each once');
+    });
   }, skip: hasLibmpv ? false : 'needs libmpv');
 
   group('opened paused from the media server', () {

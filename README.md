@@ -22,7 +22,7 @@ the device it runs on.
   token, or Jellyfin's access token, which signing out ends on a Jellyfin server (Navidrome's keeps
   it until the password changes). Signing out is at the end of the settings (a page the top bar's
   button opens, in groups: the appearance, with the theme and the language, the playback, with the quality, the volume's
-  normalization and the equalizer, and about the app, its version and the open source licenses; each choice a line that
+  normalization, the equalizer and the crossfade, and about the app, its version and the open source licenses; each choice a line that
   says the option picked and opens a sheet of them all), under the user and the server it signs out of;
 - the open source licenses: the app's own, Flutter's and the Dart packages', and, where the app
   brings them (Android, iOS, macOS, Windows), those of libmpv, FFmpeg and Mbed TLS, the native
@@ -171,7 +171,7 @@ the device it runs on.
 - a sleep timer, from a moon in the full-screen player's top right corner (on a wider screen, in the player bar), while
   the music plays on this device: it pauses the music after 5, 15, 30 or 45 minutes or an hour, the music fading out
   over the last 30 seconds (a volume picked meanwhile stays) and playing as loud as before as it plays again, or as the
-  song that plays ends, the next one paused at its start. The moon is tinted while it's on, with the minutes left on
+  song that plays ends (crossfading, as the crossfade starts), the next one paused at its start. The moon is tinted while it's on, with the minutes left on
   it, and its sheet says when the music pauses, and turns it off. It is this device's player's: the protocol has none
   for another device;
 - the album's songs and the queue have a header naming their columns: the number ("#") or the
@@ -270,7 +270,16 @@ the device it runs on.
 - each song right after the one before, with no gap between them (gapless), as a live album or one whose songs run
   into each other plays: the next song is asked of the media server while the one before plays, however late the
   server answers, in the quality then picked. A song put next while the one before plays, or moved there, is asked as
-  it starts, as every song was before;
+  it starts, as every song was before. Not while the songs crossfade;
+- crossfade, off until the settings pick how long, from 2 to 12 seconds, which the app keeps: as a song nears its end,
+  the next one starts, quiet, and gets louder as the one before gets quieter, at equal power, so that the two together
+  are about as loud as either alone; over half of a short song at most. A jump, a seek or another queue ends it at
+  once, the song fading out stopping, and a song repeated starts over as before. A song's end is where its stream says
+  (a file, or a stream that can seek), or else where the media server does; one whose length neither says plays to its
+  end, the next one starting then. Picked while the music plays, it holds at once, the music going on from where it
+  was. mpv plays one song at a time, so the songs take turns on two players, the next one opened a little before its
+  turn; with it on, the songs that don't crossfade have a moment between them rather than none. It is this device's:
+  the protocol knows nothing of it;
 - the volume's normalization (ReplayGain), so that the songs this device plays play about as loud as one another:
   off, as it is until the settings pick another; automatic (by album where a song plays among its album's, in their
   order, unshuffled; by song otherwise); by song; or by album. The app keeps the one picked, which holds at once, for
@@ -332,7 +341,7 @@ has been tried on a tablet and on an Android TV, and the iOS build on an iPhone,
 | `lib/jellyfin/` | The Jellyfin API: sign-in by name for this device, the same library calls, and signing out |
 | `lib/downloads/` | `Downloads`, the albums and playlists downloaded to the device, and `ServerWithDownloads`, the media server as the app sees it: downloaded songs and covers from their files, and with the server out of reach, what was downloaded |
 | `lib/segue/` | The Segue protocol in Dart (its `SPEC.md` is in the segue repository), the hub client (reconnects by itself) and hub discovery |
-| `lib/player/` | `PlayerController` (queue, commands, state reports, each song's ReplayGain, the equalizer) over an `AudioEngine`; `MediaKitEngine` is the real one. `MediaControls`: the system's media controls. `AudioInterruptions`: calls and the like pausing the music, on iOS |
+| `lib/player/` | `PlayerController` (queue, commands, state reports, each song's ReplayGain, the equalizer) over an `AudioEngine`; `MediaKitEngine` is the real one, and `CrossfadeEngine` crossfades on two of them. `MediaControls`: the system's media controls. `AudioInterruptions`: calls and the like pausing the music, on iOS |
 | `lib/connect/` | `ConnectController`: which device the app controls, and moving the music between devices |
 | `lib/lyrics/` | LRCLIB (lrclib.net), where lyrics come from when the media server has none, and LRC |
 | `lib/pictures/` | fanart.tv, where more pictures of an artist than the media server's one come from, for their biography, and their picture where the server has none |

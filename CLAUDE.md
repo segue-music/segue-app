@@ -157,11 +157,25 @@ Running two app instances on one machine as different devices:
   the songs themselves, not their ids: the same song added otherwise stays), with one report, and turned on again on
   the same song asks again. It is each device's own setting, not the protocol's: the hub sees a longer queue, or a
   shorter one.
+  The crossfade (`CrossfadeChoice`, `lib/crossfade_choice.dart`, off until a length is picked, `Services.crossfade`),
+  each device's own too: while it is on, `PlayerController` plays on a `CrossfadeEngine`
+  (`lib/player/crossfade_engine.dart`) rather than on the engine it was given, and as it goes on or off it opens the
+  queue on the other engine where it was, in the same play order (`open`'s `order`), the one before stopped (or, the
+  crossfade's, disposed); `songEnded` is the engine's in use. mpv plays one track at a time, so the `CrossfadeEngine`
+  has two decks (`Deck`, each a `MediaKitEngine` of one track) and keeps the queue, its play order and repeat itself:
+  a track plays on its deck to its end. 10 s before its turn the next one opens, paused, on the other deck, at level 0
+  (`Deck.setLevel`: a part of the volume, which goes in mpv's by its cube root, mpv making its volume a gain by its
+  cube; `volume` stays, and nothing is told of it). Within the crossfade's length of the end (`Deck.duration`, mpv's
+  where it knows the length, a file or a stream that can seek, or else the media server's, `TrackSource.duration`),
+  the next one starts and is the current track from then (`ended` fires), each deck's level following its own
+  position at equal power, over half of either track at most. A jump, a seek or an open stops the track fading out;
+  repeat one is the deck's own; a track whose length is unknown plays to its end, the next one starting then. No
+  gapless there. Only the current deck's changes are the engine's.
 - `SleepTimer` (`lib/player/sleep_timer.dart`, `Services.sleepTimer`, `SleepTimerButton`) pauses this device's
   player after a while, the music fading out over the last 30 s through `PlayerController.setVolume` (a volume the
   user picks meanwhile stays) and getting its volume back once paused, or as the song ends (`PlayerController.songEnded`,
-  the engine's `ended`: the next track starting by itself, the track starting over where it repeats by itself, or the
-  last one ending, repeat off; media_kit tells `completed` at the end of every track, so only the last one's counts),
+  the engine's `ended`: the next track starting by itself, or its crossfade, the track starting over where it repeats
+  by itself, or the last one ending, repeat off; media_kit tells `completed` at the end of every track, so only the last one's counts),
   the next one then paused at its start. A stopped player turns it off. It is each device's own, like autoplay: the
   protocol has no timer, so its button shows only while this device plays. Only `Services.start` makes one.
 - `ConnectController` (`lib/connect/`) follows the Connect model: the app controls one device at a
