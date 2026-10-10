@@ -220,8 +220,8 @@ Running two app instances on one machine as different devices:
   Jellyfin's items marked `IsFavorite`, by name, since it doesn't say when), with the changes made here since, which
   show at once and go to the server one after another (`setFavorite`: star and unstar; `UserFavoriteItems/{id}`), a
   refused one undone; once none is left, they load again. `Services.start` loads them, and again as the server comes
-  back in reach; the pages that list them (`FavoriteSongsPage`, first among the playlists, the albums' "Favoritos"
-  chip, the artists' third choice) load them as they open. `FavoriteButton` (`lib/ui/favorite_button.dart`) is the
+  back in reach; the pages that list them (`FavoriteSongsPage`, first among the playlists, the albums' and the
+  artists' "Favoritos" chips) load them as they open. `FavoriteButton` (`lib/ui/favorite_button.dart`) is the
   heart, filled (`filledHeart`, Hugeicons' outline with a fill, as its free icons have no filled heart) while the item
   is a favorite: on an album's page, an artist's, the phone's full-screen player (by the title) and the wide player
   bar; a song's menu has it as an item.

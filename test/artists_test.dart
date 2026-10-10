@@ -421,11 +421,14 @@ Finder icon(HugeIconData data) => find.byWidgetPredicate((widget) => widget is T
 /// The tile of the artist named [name], in the artists' grid.
 Finder tile(String name) => find.ancestor(of: find.text(name), matching: find.byType(InkWell)).first;
 
-/// The choice of the artists tab between their orders.
+/// A choice between a few options, as an artist's page has between their songs and between their albums.
 Finder orders() => find.byWidgetPredicate((widget) => widget is SegmentedChoice);
 
-/// The option of the artists tab that picks the order [label] names.
-Finder order(String label) => find.descendant(of: orders(), matching: find.text(label));
+/// The chip of the artists tab that picks the order [label] names.
+Finder order(String label) => find.widgetWithText(ChoiceChip, label);
+
+/// Whether the chip of the artists tab that [label] names is the one picked.
+bool picked(WidgetTester tester, String label) => tester.widget<ChoiceChip>(order(label)).selected;
 
 /// The option of an artist's page that shows the list of their songs [label] names, or the list's title.
 Finder songList(String label) => find.descendant(of: find.byType(ArtistPage), matching: find.text(label));
@@ -485,37 +488,35 @@ void main() {
     await pumpHome(tester, const Size(1000, 700));
     await tester.tap(find.byTooltip('Artistas'));
     await tester.pumpAndSettle();
-    expect(tester.getSemantics(order('Nome')), isSemantics(label: 'Nome', isButton: true), reason: 'the order picked');
+    expect(picked(tester, 'Nome'), isTrue);
+    expect(picked(tester, 'Mais tocados'), isFalse);
+    expect(picked(tester, 'Favoritos'), isFalse);
     expect(find.text('Aerosmith'), findsOneWidget);
     expect(find.text('Ramones'), findsOneWidget);
     final picture = tester.getRect(find.descendant(of: tile('Aerosmith'), matching: find.byType(Cover)));
-    final choice = tester.getRect(orders());
-    expect(picture.left, moreOrLessEquals(choice.left), reason: 'lined up with the choice');
-    expect(picture.top, greaterThan(choice.bottom), reason: 'under it');
-    expect(
-      choice.width,
-      lessThan(tester.getSize(find.byType(GridView)).width / 2),
-      reason: 'as wide as its options, not the tab',
-    );
+    final chip = tester.getRect(order('Nome'));
+    expect(picture.left, moreOrLessEquals(chip.left), reason: 'lined up with the chips');
+    expect(picture.top, greaterThan(chip.bottom), reason: 'under them');
 
     await tester.tap(order('Mais tocados'));
     await tester.pumpAndSettle();
-    expect(tester.getSemantics(order('Mais tocados')), isSemantics(label: 'Mais tocados'));
+    expect(picked(tester, 'Mais tocados'), isTrue);
+    expect(picked(tester, 'Nome'), isFalse);
     expect(find.text('Cheap Trick'), findsOneWidget, reason: 'their songs have played');
     expect(find.text('1 álbum'), findsOneWidget, reason: 'as the tab lists them by name');
     expect(find.text('Aerosmith'), findsNothing, reason: 'none of theirs has');
     expect(find.text('Ramones'), findsNothing);
 
-    // A tap picks the next.
-    await tester.tap(order('Mais tocados'));
+    await tester.tap(order('Favoritos'));
     await tester.pumpAndSettle();
-    expect(tester.getSemantics(order('Favoritos')), isSemantics(label: 'Favoritos'));
+    expect(picked(tester, 'Favoritos'), isTrue);
     expect(find.text('Ramones'), findsOneWidget, reason: 'the user\'s favorite');
     expect(find.text('Aerosmith'), findsNothing);
     expect(find.text('Cheap Trick'), findsNothing);
 
-    await tester.tap(order('Favoritos'));
+    await tester.tap(order('Nome'));
     await tester.pumpAndSettle();
+    expect(picked(tester, 'Nome'), isTrue);
     expect(find.text('Aerosmith'), findsOneWidget);
     expect(find.text('Ramones'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
@@ -759,7 +760,7 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('on a phone, the artists are a tab of the library, in the bar at the bottom, their orders in icons, and '
+  testWidgets('on a phone, the artists are a tab of the library, in the bar at the bottom, their orders in chips, and '
       'the bar stays under an artist\'s page', (tester) async {
     await pumpHome(tester, const Size(360, 640));
     expect(find.byType(NavigationBar), findsOneWidget);
@@ -771,15 +772,10 @@ void main() {
       reason: 'the library\'s tabs in the top bar',
     );
     expect(find.text('Cheap Trick'), findsOneWidget);
-    // The orders in icons, their names in tooltips, as on an artist's page: A to Z, and headphones for what the user
-    // listens to.
-    expect(find.descendant(of: orders(), matching: find.byType(Text)), findsNothing);
-    expect(find.descendant(of: find.byTooltip('Nome'), matching: icon(HugeIcons.strokeRoundedSortingAZ02)), findsOne);
-    expect(
-      find.descendant(of: find.byTooltip('Mais tocados'), matching: icon(HugeIcons.strokeRoundedHeadphones)),
-      findsOne,
-    );
-    expect(tester.getSemantics(find.byTooltip('Nome')), isSemantics(label: 'Nome', isButton: true));
+    // In words, as the albums' orders are, along a line that scrolls sideways where they don't fit.
+    expect(picked(tester, 'Nome'), isTrue);
+    expect(order('Favoritos'), findsOneWidget);
+    expect(tester.getRect(order('Nome')).left, 16);
 
     await tester.tap(find.text('Cheap Trick'));
     await tester.pumpAndSettle();

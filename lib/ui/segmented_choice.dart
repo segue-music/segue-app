@@ -7,10 +7,10 @@ import 'focus_ring.dart';
 import 'themed_icon.dart';
 
 /// A choice of a few [options], side by side in a pill-shaped button, the one [selected] under a thumb as tall as the
-/// button: for a page's two or three views of one thing, as an artist's songs or the library's artists. A tap anywhere
-/// on it picks the next option, and the thumb slides to it, from the last back to the first, so that with two each tap
-/// goes from one to the other. More, as the albums' orders, are chips (`OrderChips`), which scroll sideways where they
-/// don't fit. Each option is as wide as it asks, as a chip is, and the thumb takes the width of the one it goes to on
+/// button: for a page's two views of one thing, as an artist's songs or their albums. A tap anywhere on it picks the
+/// next option, and the thumb slides to it, from the last back to the first, so that with two each tap goes from one to
+/// the other. More, as the library's albums' and artists' orders, are chips (`OrderChips`), which pick any at once and
+/// scroll sideways where they don't fit. Each option is as wide as it asks, as a chip is, and the thumb takes the width of the one it goes to on
 /// the way; where the system asks for less motion, it moves at once. They say themselves in words, or with an [icon]
 /// each.
 class SegmentedChoice<T> extends StatelessWidget {

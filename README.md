@@ -37,8 +37,8 @@ the device it runs on.
   dragged down from its top (with a finger, a touchpad, or on a computer the mouse), each row then from its first
   album; albums (by name, the latest
   released, the most played or the latest added, picked in chips above them, the next ones coming
-  as the grid nears its end), artists (by name or the most played first, picked above them, a thumb
-  sliding to the one picked: on a Subsonic server, which counts no plays by artist, from the 500
+  as the grid nears its end), artists (by name or the most played first, picked in chips above them, as the albums'
+  orders are: on a Subsonic server, which counts no plays by artist, from the 500
   most played albums; each with their picture, the media server's or, where it has none (on Navidrome, since
   0.64, which before gave its placeholder), the one fanart.tv's users like most, by the artist's MusicBrainz id,
   there too in search, on their page and by their name on an album's; each with their albums or, picked above
@@ -172,8 +172,8 @@ the device it runs on.
   albums they have, in the full-screen player at the end of the song's title (on a phone; on a wider screen, in the
   player bar), and in a song's menu, as an item. It changes at once, and on the server as it can; one the server
   refuses goes back, and says so. The favorite songs come first among the playlists ("Músicas favoritas"), laid out as
-  one, which plays them, with how many they are; the albums tab has a chip, "Favoritos", and the artists tab a third
-  choice, that show the favorite ones alone. On a Subsonic server the latest made a favorite come first; on Jellyfin,
+  one, which plays them, with how many they are; the albums and the artists tabs have a chip,
+  "Favoritos", after their orders', that shows the favorite ones alone. On a Subsonic server the latest made a favorite come first; on Jellyfin,
   which doesn't say when, by name;
 - downloads, to listen without the media server: an album or a playlist, from the button beside its
   play button, which shows how far it has got and, once all its songs are on the device, that it is
