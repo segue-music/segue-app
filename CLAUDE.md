@@ -216,7 +216,12 @@ Running two app instances on one machine as different devices:
   media controls: Linux (MPRIS), iOS (Now Playing, also CarPlay's) and Android (its media session, whose
   foreground service keeps the app running in the background while the music plays) for now. Android draws the
   notification's icon (`drawable/ic_notification`, from `tool/icons.dart`) from its alpha alone, and the release build
-  keeps it only because `res/raw/keep.xml` says so: Dart names it, where the resource shrinker doesn't look.
+  keeps it only because `res/raw/keep.xml` says so: Dart names it, where the resource shrinker doesn't look. Swiped
+  out of Android's recent apps (`onTaskRemoved`), the app closes (`_close`, in `app.dart`): this device's music
+  pauses, the media controls let go of it and the services go, but the process stays, idle, until Android ends it or
+  the app opens in it again (`_reopen`, as its screen shows or for a headphone's play). Ended at once, it came back
+  without a screen: as a media session ends, Android's media controls bind to the app's `MediaBrowserService` to look
+  for music to resume, and audio_service's service starts the Flutter engine, and with it the whole app.
 - `PlayCounter` (`lib/player/play_counter.dart`) counts the songs this device's player plays toward
   the user's most played (`MediaServer.scrobble`; a no-op on Jellyfin, where the hub's
   `Sessions/Playing` counts them). Only `Services.start` makes one: widget tests that build

@@ -240,8 +240,10 @@ the device it runs on.
   and CarPlay's Now Playing screen; on Android (its media session) the notification, the lock
   screen and the headphones' buttons, Bluetooth's too, whose play, once the system has closed the
   app, opens it and plays the music where it was;
-- on Android, playing in the background, with the screen off, and after the app is swiped out of
-  the recent apps, as the media session's notification keeps it running while the music plays;
+- on Android, playing in the background and with the screen off, as the media session's
+  notification keeps the app running while the music plays; swiped out of the recent apps, the app
+  closes, as closing its window does on a computer: the music this device plays stops, paused where it
+  was, and opens there again, and another device's plays on;
 - on iOS, playing in the background and with the silent switch on; a call pauses the music, which
   plays again after it, and leaving the car or unplugging the headphones pauses it;
 - the interface in Portuguese, English or Spanish: the system's language, where the app has it

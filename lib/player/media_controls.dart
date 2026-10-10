@@ -31,6 +31,13 @@ class MediaControls extends BaseAudioHandler with SeekHandler {
   /// seconds after the button.
   static const _earlyPlayFor = Duration(seconds: 8);
 
+  /// Closes the app, as Android's recent apps let go of it ([onTaskRemoved]).
+  Future<void> Function()? close;
+
+  /// Opens the app closed by [close] again, without its screen, for a play that came to it (a headphone's button), as
+  /// one opens it where Android had ended it.
+  VoidCallback? open;
+
   /// Starts the system's media service, on the platforms where the app sets it up: Linux (MPRIS),
   /// iOS and Android for now. Null when it can't, e.g. without a D-Bus session.
   static Future<MediaControls?> start() async {
@@ -176,6 +183,7 @@ class MediaControls extends BaseAudioHandler with SeekHandler {
 
     if (connect == null) {
       _earlyPlayBy = by;
+      open?.call();
     } else {
       connect.playRestoredBy = by;
     }
@@ -183,6 +191,12 @@ class MediaControls extends BaseAudioHandler with SeekHandler {
 
   @override
   Future<void> pause() => _do((connect) => connect.pause());
+
+  /// On Android, the app swiped out of the recent apps: it closes ([close]), and the music this device plays stops, as
+  /// closing its window does on a computer, rather than playing on with its notification, as the media session's
+  /// foreground service would let it.
+  @override
+  Future<void> onTaskRemoved() async => close?.call();
 
   @override
   Future<void> stop() => pause();

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -74,6 +76,10 @@ class _SegueAppState extends State<SegueApp> {
   bool _starting = false;
   Object? _error;
 
+  /// The session of the app closed by [_close], which starts again as its screen shows again; null, it isn't closed.
+  Session? _closed;
+  late final AppLifecycleListener _lifecycle;
+
   /// [SegueApp.themeChoice], or one of its own, which follows the system's until a pick.
   late final _themeChoice = widget.themeChoice ?? ThemeChoice();
 
@@ -92,6 +98,10 @@ class _SegueAppState extends State<SegueApp> {
   @override
   void initState() {
     super.initState();
+    widget.mediaControls
+      ?..close = _close
+      ..open = _reopen;
+    _lifecycle = AppLifecycleListener(onResume: _reopen);
     final session = widget.session;
 
     if (session != null) {
@@ -132,6 +142,44 @@ class _SegueAppState extends State<SegueApp> {
     }
   }
 
+  /// Closes the app, swiped out of Android's recent apps ([MediaControls.close]), as closing its window does on a
+  /// computer: the music this device plays stops, paused where it was, which the hub keeps as the last playback, so that
+  /// the app opens on it again; another device's plays on. The system's media controls let go of it, and the hub hears
+  /// it leave. The process stays, with nothing running, until Android ends it or the app opens again in it
+  /// ([_reopen]): ended at once, it would come back without a screen, as the system's media controls look for music to
+  /// resume in it, and with it the app, signed in to the hub and showing its music there.
+  Future<void> _close() async {
+    final services = _services;
+
+    if (services == null) {
+      return;
+    }
+
+    await services.player.pause();
+    widget.mediaControls?.attach(null, null);
+    widget.interruptions?.attach(null);
+
+    if (mounted) {
+      setState(() {
+        _services = null;
+        _closed = services.session;
+      });
+    }
+
+    await services.dispose();
+  }
+
+  /// The app closed by [_close] opens again, its screen showing or for a play from the system's media controls: it starts
+  /// as it does in a process of its own.
+  void _reopen() {
+    final session = _closed;
+
+    if (session != null) {
+      _closed = null;
+      unawaited(_start(session));
+    }
+  }
+
   Future<void> _signOut() async {
     final services = _services;
     setState(() {
@@ -167,6 +215,7 @@ class _SegueAppState extends State<SegueApp> {
       _equalizerChoice.dispose();
     }
 
+    _lifecycle.dispose();
     super.dispose();
   }
 
@@ -228,7 +277,7 @@ class _SegueAppState extends State<SegueApp> {
               equalizerChoice: _equalizerChoice,
               packageInfo: widget.packageInfo,
             )
-          : _starting
+          : _starting || _closed != null
           ? const Scaffold(body: Center(child: Spinner()))
           : _error != null
           ? Builder(

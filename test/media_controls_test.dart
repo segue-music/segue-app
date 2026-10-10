@@ -92,4 +92,31 @@ void main() {
     expect(controls.mediaItem.value?.artist, 'Aerosmith (on tv)');
     controls.attach(null, null);
   });
+
+  test('the app swiped out of the recent apps, it closes', () async {
+    final controls = MediaControls();
+    var closed = 0;
+    await controls.onTaskRemoved(); // with nothing to end it yet
+    controls.close = () async => closed++;
+    await controls.onTaskRemoved();
+    expect(closed, 1);
+  });
+
+  test('closed, a play opens the app again, and plays the music it brings back', () async {
+    final controls = MediaControls();
+    var opened = 0;
+    controls.open = () => opened++;
+    await controls.play();
+    expect(opened, 1);
+
+    final api = SubsonicApi(
+      Uri.parse('https://music.test'),
+      const SubsonicCredentials(username: 'a', token: 't', salt: 's'),
+      client: MockClient((_) async => http.Response('', 404)),
+    );
+    final connect = ConnectController(player: PlayerController(FakeEngine(), api));
+    controls.attach(connect, null);
+    expect(connect.playRestoredBy, isNotNull);
+    controls.attach(null, null);
+  });
 }
