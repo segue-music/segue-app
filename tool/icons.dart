@@ -2,7 +2,7 @@
 // near-black background. Run it after changing the artwork: DART=1 tool/flutter.sh run tool/icons.dart
 //
 // - Android: the launcher icon, adaptive (Android 8 and later, mipmap-anydpi-v26/ic_launcher.xml) and as a plain image
-//   before that, and the Android TV banner.
+//   before that, the Android TV banner, and the media notification's icon.
 // - Linux: the window's icon, also the one of the menu entry that install-desktop-entry.sh adds.
 // - iOS: one 1024 px icon, from which Xcode makes the smaller ones.
 // - macOS: the icon at each size its asset catalog lists.
@@ -33,6 +33,9 @@ void main() {
     // layer, 108 dp of which 72 dp show, is the inside of the square without its edge, stretched to the layer's
     // borders. The ring fits in the 66 dp circle that every shape keeps.
     _write('$_res/mipmap-$density/ic_launcher_foreground.png', art.inside((108 * scale).round(), 66 / 108));
+    // The media notification's icon (lib/player/media_controls.dart), also in the status bar: 24 dp, of which the ring
+    // takes the 20 dp a round icon of Material's takes.
+    _write('$_res/drawable-$density/ic_notification.png', art.silhouette((24 * scale).round(), 20 / 24));
   }
 
   // The Android TV banner, 320 × 180 dp: the whole artwork, on its own background.
@@ -111,6 +114,24 @@ class _Artwork {
       final (px, py) = _nearestInside(x, y, inset);
       final (r, g, b) = _sample(px, py);
       return (r, g, b, 1);
+    });
+  }
+
+  /// The ring and the note alone, in white, opaque where they are pink and transparent where the square is dark, as
+  /// Android wants a notification's icon, of which it takes only the alpha. [fill] is how much of the image the ring
+  /// takes.
+  Image silhouette(int size, double fill) {
+    final scale = 2 * _reach / (size * fill);
+    return _render(size, size, scale, (x, y) {
+      final dx = x - _cx, dy = y - _cy;
+
+      // Past the ring, before the square's edge, which is pink too.
+      if (dx * dx + dy * dy > (_reach + 12) * (_reach + 12)) {
+        return (1, 1, 1, 0);
+      }
+
+      final (red, _, _) = _sample(x, y);
+      return (1, 1, 1, ((red - 0.2) / 0.4).clamp(0.0, 1.0));
     });
   }
 

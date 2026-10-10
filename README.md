@@ -233,7 +233,10 @@ the device it runs on.
 - the system's media controls (through `audio_service`) show and command what the now-playing bar
   shows, the device it follows included: on Linux (MPRIS) the media keys, the desktop's player
   widget and KDE Connect; on iOS (Now Playing) the lock screen, Control Center, headphone buttons
-  and CarPlay's Now Playing screen;
+  and CarPlay's Now Playing screen; on Android (its media session) the notification, the lock
+  screen and the headphones' buttons, Bluetooth's too;
+- on Android, playing in the background, with the screen off, and after the app is swiped out of
+  the recent apps, as the media session's notification keeps it running while the music plays;
 - on iOS, playing in the background and with the silent switch on; a call pauses the music, which
   plays again after it, and leaving the car or unplugging the headphones pauses it;
 - the interface in Portuguese, English or Spanish: the system's language, where the app has it
@@ -241,7 +244,7 @@ the device it runs on.
   language menu in the sign-in's corner) pick one, which the app keeps. Dates, numbers of albums and songs, and Material's own words (tooltips, the text
   fields' menu) follow it, and on iOS the local network permission's prompt follows the system's;
 - its icon (made by `tool/icons.dart` from `tool/icon.png`): Android's launcher icon, adaptive from
-  Android 8 on, the Android TV banner, on Linux the window's icon and an entry in the application
+  Android 8 on, the Android TV banner, the ring and the note in white in Android's media notification, on Linux the window's icon and an entry in the application
   menu, the iOS and macOS icons, the Windows icon, and the app's own, in its top bar. The theme,
   light or dark (as the system's, until the settings pick one, or the system's again, which the app
   keeps, the old theme fading into the new one), takes the icon's colors: its pink,
@@ -250,7 +253,8 @@ the device it runs on.
   On a computer the window opens maximized.
 
 Not yet: moving a playlist's songs with the remote (a TV has no drag), adding the song that plays to a playlist from
-the player, moving songs in the queue and taking them out, the media controls on the other platforms (Android's media session), on a Jellyfin server the cover of a song that came from another device
+the player, moving songs in the queue and taking them out, the media controls on macOS and Windows, on Android a headphone's play once the system has closed the app (it opens
+the app, paused where the music was, without playing it), on a Jellyfin server the cover of a song that came from another device
 when its file has none of its own (Jellyfin doesn't fall back to the album's) and an artist's popular songs (Jellyfin
 knows only its users' plays), an offline cache, sending the music
 to speakers and TVs that don't run the app (Google Cast, UPnP/DLNA), and CarPlay as an app of its own (browsing the library

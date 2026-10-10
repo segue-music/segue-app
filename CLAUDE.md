@@ -31,7 +31,7 @@ tool/flutter.sh test test/player_test.dart    # one file
 tool/flutter.sh test --plain-name 'a refused hello is a final HubClosed'
 tool/flutter.sh run -d linux                  # the app in this desktop (display, GPU, sound, session bus, language)
 tool/package-linux.sh                         # release build → build/segue-linux-x64.tar.gz
-DART=1 tool/flutter.sh run tool/icons.dart    # every icon (Android, TV banner, Linux, iOS, macOS, Windows) from tool/icon.png
+DART=1 tool/flutter.sh run tool/icons.dart    # every icon (Android, TV banner, notification, Linux, iOS, macOS, Windows) from tool/icon.png
 ```
 
 The Android build (phones and Android TV) uses a second image, with the JDK and Android SDK/NDK:
@@ -206,7 +206,10 @@ Running two app instances on one machine as different devices:
 - `lib/segue/`: protocol types, the client (reconnects with backoff; stops on final close codes
   4001/4002/4003) and hub discovery (`/connect/v1/info` next to the server).
 - `MediaControls` (`lib/player/media_controls.dart`) mirrors `connect.nowPlaying` to the system's
-  media controls: Linux (MPRIS) and iOS (Now Playing, also CarPlay's) for now.
+  media controls: Linux (MPRIS), iOS (Now Playing, also CarPlay's) and Android (its media session, whose
+  foreground service keeps the app running in the background while the music plays) for now. Android draws the
+  notification's icon (`drawable/ic_notification`, from `tool/icons.dart`) from its alpha alone, and the release build
+  keeps it only because `res/raw/keep.xml` says so: Dart names it, where the resource shrinker doesn't look.
 - `PlayCounter` (`lib/player/play_counter.dart`) counts the songs this device's player plays toward
   the user's most played (`MediaServer.scrobble`; a no-op on Jellyfin, where the hub's
   `Sessions/Playing` counts them). Only `Services.start` makes one: widget tests that build

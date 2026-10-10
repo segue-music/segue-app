@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui' show Color;
 
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/foundation.dart';
@@ -11,7 +12,8 @@ import '../segue/protocol.dart';
 import '../server/server.dart';
 
 /// The system's media controls (MPRIS on Linux: media keys, the desktop's player widget, KDE
-/// Connect...; Now Playing on iOS: the lock screen, Control Center, CarPlay, headphone buttons) for
+/// Connect...; Now Playing on iOS: the lock screen, Control Center, CarPlay, headphone buttons; the
+/// media session on Android: the notification, the lock screen, headphone buttons) for
 /// what the now-playing bar shows: this device's playback, or the device it follows.
 class MediaControls extends BaseAudioHandler with SeekHandler {
   ConnectController? _connect;
@@ -19,10 +21,10 @@ class MediaControls extends BaseAudioHandler with SeekHandler {
   Timer? _tick;
   AppLocalizations? _strings;
 
-  /// Starts the system's media service, on the platforms where the app sets it up: Linux (MPRIS)
-  /// and iOS for now. Null when it can't, e.g. without a D-Bus session.
+  /// Starts the system's media service, on the platforms where the app sets it up: Linux (MPRIS),
+  /// iOS and Android for now. Null when it can't, e.g. without a D-Bus session.
   static Future<MediaControls?> start() async {
-    if (!Platform.isLinux && !Platform.isIOS) {
+    if (!Platform.isLinux && !Platform.isIOS && !Platform.isAndroid) {
       return null;
     }
 
@@ -30,9 +32,14 @@ class MediaControls extends BaseAudioHandler with SeekHandler {
       return await AudioService.init(
         builder: MediaControls.new,
         config: const AudioServiceConfig(
-          // On Linux, the MPRIS bus name (with ".instance<pid>") and the name the desktop shows.
+          // On Linux, the MPRIS bus name (with ".instance<pid>") and the name the desktop shows; on
+          // Android, the notification's channel, as the app's notifications in the system settings list it.
           androidNotificationChannelId: 'io.github.mateusguilherme.segue',
           androidNotificationChannelName: 'Segue',
+          // The ring and the note in white (tool/icons.dart), as Android takes only the alpha of the
+          // notification's icon, on the pink of the app's icon (iconPink, lib/ui/theme.dart).
+          androidNotificationIcon: 'drawable/ic_notification',
+          notificationColor: Color(0xFFF9358E),
         ),
       );
     } on Object catch (e) {

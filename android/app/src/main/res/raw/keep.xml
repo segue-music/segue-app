@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The release build drops the resources no code names, and the notification's icon is named only
+     in Dart (lib/player/media_controls.dart), which the shrinker doesn't read. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:keep="@drawable/ic_notification" />
