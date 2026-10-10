@@ -205,7 +205,11 @@ class PlayerController extends ChangeNotifier {
   /// The engine's track of [song]: its stream, and its gain, by its place in the queue as it loads.
   TrackSource _track(Song song) {
     late final TrackSource track;
-    track = TrackSource.resolved((from) => _stream(song.id, from), gain: () => _gain(song, _tracks.indexOf(track)));
+    track = TrackSource.resolved(
+      () => _stream(song.id),
+      addressFrom: (from) => _streamFrom(song.id, from),
+      gain: () => _gain(song, _tracks.indexOf(track)),
+    );
     return track;
   }
 
@@ -248,16 +252,13 @@ class PlayerController extends ChangeNotifier {
   /// The equalizer changed: the songs play through it as it is now, the one that plays too.
   void _equalize() => unawaited(_engine.setEqualizer(_equalizer!.value.bandGains));
 
-  /// Where the song whose id is [songId] streams from, from [from] on ([TrackSource.resolved]), in the quality picked as it
-  /// loads.
-  Future<Uri?> _stream(String songId, Duration from) async {
+  /// Where the song whose id is [songId] streams from ([TrackSource.resolved]), in the quality picked as it loads.
+  Uri _stream(String songId) => _api.streamUrl(songId, maxBitRate: _quality?.call().maxBitRate);
+
+  /// Where the song whose id is [songId] streams from, from [from] on ([TrackSource.resolved]), in the quality picked as
+  /// it loads: transcoded, since the files as they are can seek.
+  Future<Uri?> _streamFrom(String songId, Duration from) async {
     final maxBitRate = _quality?.call().maxBitRate;
-
-    if (from == Duration.zero) {
-      return _api.streamUrl(songId, maxBitRate: maxBitRate);
-    }
-
-    // The files as they are can seek.
     return maxBitRate == null ? null : _api.transcodedStreamUrl(songId, maxBitRate: maxBitRate, from: from);
   }
 

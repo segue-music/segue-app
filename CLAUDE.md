@@ -109,11 +109,19 @@ Running two app instances on one machine as different devices:
   right after the failure mpv may still be on it, in its youtube-dl hook, and ignores a write of
   `playlist-pos` to it. Until a track it opened paused, or at a position, has
   loaded, it holds a seek, play and pause for when it has, since mpv can't seek before. The play order
-  (`order`) maps the shuffled playlist back to the songs. mpv's playlist names the tracks
-  (`segue://track/<open>/<track>`) rather than holding their streams: as mpv loads one, its on_load hook asks the
-  track for its stream (`TrackSource`), so that a new quality holds from the next song, and a stream that can't seek
-  (one a Subsonic server transcodes as it goes) seeks by loading its track again from that point (`timeOffset`), the
-  engine adding where the stream starts to mpv's positions. That a track has loaded it learns by asking mpv for its
+  (`order`) maps the shuffled playlist back to the songs. mpv's playlist names each track by its stream's address as
+  it was opened, with the track's own id (`<open>.<track>`) last in its query (`segueTrack`), or, for a file, by the
+  id alone (`segue://track/<open>.<track>`): as mpv loads one, its on_load hook asks the track for its stream
+  (`TrackSource`), so that a new quality holds from the next song, and a stream that can't seek (one a Subsonic server
+  transcodes as it goes) seeks by loading its track again from that point (`timeOffset`), the engine adding where the
+  stream starts to mpv's positions. mpv opens the next track ahead as the one before plays (`prefetch-playlist`), so
+  that it plays right after it, with no gap (gapless), however late the media server answers: it opens the track's
+  name, before the hook, which is why the name is the stream. As a track loads, the engine has mpv open the next one
+  ahead only where its name is still its stream (not a file, nor a stream of the quality before), and names one of
+  another quality anew in its place (`_rename`). A stream that fails to open is the loading track's only where it is
+  its name or the stream the hook gave it: another is the next one, opened ahead, which mpv tries again as it loads it.
+  mpv can't drop a stream it opened ahead, so the next track changed after that (play next, a move) opens as it
+  starts, as before. That a track has loaded it learns by asking mpv for its
   duration after each "Playing:" in the log: mpv's own notice says nothing for a track as long as the one before.
   Until then the position stays where the track is to start, and a seek waits for it. It adds tracks (`add`, play next
   or at the end) by appending them to mpv's playlist and moving them after the current one (`_rearrange`): media_kit

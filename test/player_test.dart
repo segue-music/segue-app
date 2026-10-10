@@ -57,9 +57,9 @@ void main() {
     expect(engine.tracks.first.queryParameters, containsPair('maxBitRate', '160'));
 
     quality = StreamQuality.original;
-    final next = await engine.opened.last.address(Duration.zero);
-    expect(next?.queryParameters['id'], 's2');
-    expect(next?.queryParameters.containsKey('maxBitRate'), isFalse);
+    final next = engine.opened.last.address();
+    expect(next.queryParameters['id'], 's2');
+    expect(next.queryParameters.containsKey('maxBitRate'), isFalse);
   });
 
   test('a song the server transcodes starts later where it can; the file as it is never needs to', () async {
@@ -87,12 +87,12 @@ void main() {
     player = PlayerController(engine, offsets, quality: () => quality);
     await player.playQueue(songs);
 
-    final later = await engine.opened.first.address(const Duration(seconds: 42));
+    final later = await engine.opened.first.addressFrom(const Duration(seconds: 42));
     expect(later?.queryParameters, containsPair('maxBitRate', '96'));
     expect(later?.queryParameters, containsPair('timeOffset', '42'));
 
     quality = StreamQuality.original;
-    expect(await engine.opened.first.address(const Duration(seconds: 42)), isNull);
+    expect(await engine.opened.first.addressFrom(const Duration(seconds: 42)), isNull);
   });
 
   group('ReplayGain', () {

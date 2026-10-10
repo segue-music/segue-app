@@ -11,17 +11,22 @@ import '../segue/protocol.dart';
 class TrackSource {
   /// At [url], whenever it loads, with [gain].
   TrackSource(Uri url, {TrackGain gain = TrackGain.none})
-    : address = ((from) async => from == Duration.zero ? url : null),
+    : address = (() => url),
+      addressFrom = _nowhere,
       gain = (() => gain);
 
   /// At the address that [address] gives as the track loads, so that what it asks the media server for (its quality)
-  /// can change from one track to the next: the stream from its start ([Duration.zero]), or, to seek in a stream that
-  /// can't (one the media server transcodes as it goes), from that point, in whole seconds, where null says the stream
-  /// can't start there. With the gain that [gain] gives then, and again as [AudioEngine.updateGain] asks for it.
-  TrackSource.resolved(this.address, {this.gain = _asItIs});
+  /// can change from one track to the next; asked as the track is opened too, for the stream the engine may open ahead.
+  /// To seek in a stream that can't (one the media server transcodes as it goes), from that point on, in whole seconds,
+  /// at the one [addressFrom] gives, where null says the stream can't start there. With the gain that [gain] gives as
+  /// it loads, and again as [AudioEngine.updateGain] asks for it.
+  TrackSource.resolved(this.address, {this.addressFrom = _nowhere, this.gain = _asItIs});
 
-  final Future<Uri?> Function(Duration from) address;
+  final Uri Function() address;
+  final Future<Uri?> Function(Duration from) addressFrom;
   final TrackGain Function() gain;
+
+  static Future<Uri?> _nowhere(Duration from) async => null;
 
   static TrackGain _asItIs() => TrackGain.none;
 }
@@ -144,22 +149,26 @@ abstract class AudioEngine {
 
 /// Plays through media_kit (libmpv), on every platform.
 ///
-/// mpv's playlist has a name for each track (`segue://track/<open>/<track>`), not its stream: as mpv is about to load
-/// one, its on_load hook asks the track where its stream is ([TrackSource.address]) and points mpv there
-/// (stream-open-filename), and how loud it plays ([TrackSource.gain]). So the stream can change between two loads of a
-/// track, and a stream that can't seek, one the media server transcodes as it goes, seeks by loading its track again,
-/// from the point sought ([_startOver]).
+/// mpv's playlist has a name for each track ([_name]): its stream's address as the track was opened, with the name in
+/// its query, or, for a file, the name alone (`segue://track/<open>.<track>`). As mpv is about to load one, its on_load
+/// hook asks the track where its stream is ([TrackSource.address]) and points mpv there (stream-open-filename), and how
+/// loud it plays ([TrackSource.gain]). So the stream can change between two loads of a track, and a stream that can't
+/// seek, one the media server transcodes as it goes, seeks by loading its track again, from the point sought
+/// ([_startOver]).
+///
+/// mpv opens the next track's stream as the one before plays (prefetch-playlist), so that it plays right after, with
+/// no gap, however late the media server answers. It opens the track's name, before the on_load hook, so a stream that
+/// is still the one the name says is opened ahead; one that changed (another quality) is opened as the track loads.
 class MediaKitEngine implements AudioEngine {
   /// [silent] sends the audio nowhere: for tests on a machine without sound. [audioFile] writes it to that file
   /// instead, as raw samples (16 bits, in the tracks' channels and sample rate), as fast as mpv decodes them: for tests
   /// that listen to it.
   MediaKitEngine({@visibleForTesting bool silent = false, @visibleForTesting String? audioFile}) {
     final native = _player.platform as NativePlayer;
-    _ready = audioFile != null
-        ? _writeAudioTo(native, audioFile)
-        : silent
-        ? native.setProperty('ao', 'null')
-        : Future.value();
+    _ready = Future.wait([
+      native.setProperty('prefetch-playlist', 'yes'),
+      if (audioFile != null) _writeAudioTo(native, audioFile) else if (silent) native.setProperty('ao', 'null'),
+    ]);
     native.onLoadHooks.add(_pointAtStream);
     final stream = _player.stream;
     _subscriptions = [
@@ -281,6 +290,14 @@ class MediaKitEngine implements AudioEngine {
   // the log has told of.
   String? _loading;
   int _loadsLogged = 0;
+
+  // The stream the on_load hook pointed mpv at for the track it loads ([_loading]): a stream that fails to open, other
+  // than it or the track's name, is another track's, one mpv opened ahead as the one before played, which it tries
+  // again as it loads it.
+  String? _loadingStream;
+
+  // Whether mpv opens the next track ahead (prefetch-playlist), as it does from the start ([_openAheadAfter]).
+  bool _prefetch = true;
 
   // Whether the track mpv last started to load ([_loading]) has loaded, as its duration announces; and each load, for
   // a load waiting for its track, by the track and the count of loads the log had told of then.
@@ -467,7 +484,7 @@ class MediaKitEngine implements AudioEngine {
     _tracks = tracks;
     _opens++;
     _named = tracks.length;
-    _opened = _inOrder = [for (var i = 0; i < tracks.length; i++) Media('segue://track/$_opens/$i').uri];
+    _opened = _inOrder = [for (final (i, track) in tracks.indexed) _name('$_opens.$i', _addressOf(track))];
     _index = index;
     _offset = Duration.zero;
     _restart = null;
@@ -498,7 +515,7 @@ class MediaKitEngine implements AudioEngine {
 
     final at = next ? _opened.indexOf(current) + 1 : _opened.length;
     final place = next ? _index + 1 : _inOrder.length;
-    final names = [for (final _ in tracks) Media('segue://track/$_opens/${_named++}').uri];
+    final names = [for (final track in tracks) _name('$_opens.${_named++}', _addressOf(track))];
     _tracks = [..._tracks.take(at), ...tracks, ..._tracks.skip(at)];
     _opened = [..._opened.take(at), ...names, ..._opened.skip(at)];
     await _rearrange(
@@ -641,6 +658,31 @@ class MediaKitEngine implements AudioEngine {
     _changes.add(null);
   }
 
+  /// The name in mpv's playlist of the track [id] (`<open>.<track>`), whose stream is at [address] as it is opened: its
+  /// stream's ([_streamName]), or else the id alone.
+  static String _name(String id, Uri? address) => _streamName(id, address) ?? Media('segue://track/$id').uri;
+
+  /// The name of the track [id] where its stream, at [address], is the media server's: the address itself, with [id]
+  /// last in its query, which the media server ignores, so that mpv, opening the track ahead (prefetch-playlist), opens
+  /// its stream. None for a file, which opens at once, or a track without a stream.
+  static String? _streamName(String id, Uri? address) =>
+      address != null && (address.isScheme('http') || address.isScheme('https'))
+      ? Media(address.replace(query: [if (address.hasQuery) address.query, 'segueTrack=$id'].join('&')).toString()).uri
+      : null;
+
+  /// The id of the track whose name ([_name]) is [track]: what comes after its last `/` or `=`.
+  static String _idOf(String track) => track.substring(track.lastIndexOf(RegExp('[/=]')) + 1);
+
+  /// Where [track]'s stream is, from its start; none where it can't say.
+  static Uri? _addressOf(TrackSource track) {
+    try {
+      return track.address();
+    } on Object catch (e) {
+      debugPrint('no stream: $e');
+      return null;
+    }
+  }
+
   /// mpv's on_load hook: points mpv, about to load one of the tracks, at its stream, and plays it with its gain. The
   /// stream the track gives now, or, loading it again to start later, the one [_startOver] got. A track of another open
   /// is left as it is, which mpv fails to open, and a failure the engine ignores, as it does of a track it no longer
@@ -664,21 +706,79 @@ class MediaKitEngine implements AudioEngine {
       address = restart.address;
     } else {
       _offset = Duration.zero;
-
-      try {
-        address = await source.address(Duration.zero);
-      } on Object catch (e) {
-        debugPrint('no stream for $track: $e'); // which mpv then fails to open
-      }
+      address = _addressOf(source); // none: mpv then opens the track's name, its stream as it was opened, if it has one
     }
 
-    if (address != null && !_disposed) {
-      await native.setProperty('stream-open-filename', '$address');
-    }
+    // The track's name where its stream is still the one it names, which mpv may have opened already.
+    final stream = address == null || _streamName(_idOf(track), address) == track ? track : '$address';
+    _loadingStream = stream;
+    await native.setProperty('stream-open-filename', stream);
+    await _openAheadAfter(track);
 
     if (!_disposed) {
       await _playWith(source.gain());
     }
+  }
+
+  /// Has mpv open ahead the track after [track] in the play order, as [track] plays (prefetch-playlist), where its name
+  /// is its stream as it is now: not a file, which opens at once, nor a stream the track no longer gives (another
+  /// quality, since it was named), which mpv would open for nothing. Such a track, where it now has a stream to open
+  /// ahead, is named anew ([_rename]) after it.
+  Future<void> _openAheadAfter(String track) async {
+    final at = _inOrder.indexOf(track);
+    final next = at < 0 ? null : _at(_inOrder, at + 1) ?? (repeat == Repeat.all ? _at(_inOrder, 0) : null);
+    final i = next == null ? -1 : _opened.indexOf(next);
+    final name = i < 0 ? null : _streamName(_idOf(next!), _addressOf(_tracks[i]));
+    await _setPrefetch(name != null && name == next);
+
+    if (name != null && name != next) {
+      unawaited(_rename(next!, name));
+    }
+  }
+
+  /// Has mpv open the next track ahead, or not ([_prefetch]).
+  Future<void> _setPrefetch(bool on) async {
+    if (on != _prefetch && !_disposed) {
+      _prefetch = on;
+      await (_player.platform as NativePlayer).setProperty('prefetch-playlist', on ? 'yes' : 'no');
+    }
+  }
+
+  /// Names [track] [name] in its place, then has mpv open it ahead: mpv appends it, moves it after [track], and takes
+  /// [track] out. Only a track after the one mpv plays, which the playlist events, until it is done, aren't about
+  /// ([_ours]), and whose place in the play order and the order unshuffled stays.
+  Future<void> _rename(String track, String name) {
+    final opens = _opens;
+    return _inTurn(() async {
+      final native = _player.platform as NativePlayer;
+      final playing = int.tryParse(await native.getProperty('playlist-playing-pos')) ?? -1;
+      final from = _player.state.playlist.medias.indexWhere((media) => media.uri == track);
+      final i = _opened.indexOf(track);
+      final at = _inOrder.indexOf(track);
+
+      if (opens != _opens || from <= playing || i < 0 || at < 0) {
+        return;
+      }
+
+      _opened = [..._opened]..[i] = name;
+      _inOrder = [..._inOrder]..[at] = name;
+      _rearranging = true;
+
+      try {
+        await _player.add(Media(name));
+        final last = _player.state.playlist.medias.length - 1;
+
+        if (last > from + 1) {
+          await _player.move(last, from + 1);
+        }
+
+        await _player.remove(from);
+      } finally {
+        _rearranging = false;
+      }
+
+      await _setPrefetch(true);
+    });
   }
 
   /// After a failure, mpv keeps its playlist, stopped: plays its track at [index] from [position].
@@ -807,13 +907,18 @@ class MediaKitEngine implements AudioEngine {
     await _player.play();
   }
 
+  /// Follows mpv's loads, and their failures: a stream that fails to open is the loading track's where it is the track's
+  /// name or the stream the on_load hook gave it; another is one mpv opened ahead.
   void _logged(PlayerLog log) {
     if (log.prefix == 'cplayer' && log.text.startsWith('Playing: ')) {
       final track = _loading = log.text.substring('Playing: '.length);
+      _loadingStream = null;
       _loaded = false;
       unawaited(_watchLoad(track, ++_loadsLogged));
     } else if (log.level == 'error' &&
-        (log.text.startsWith('Failed to open ') || log.text == 'Failed to recognize file format.')) {
+        (log.text == 'Failed to open $_loading.' ||
+            log.text == 'Failed to open $_loadingStream.' ||
+            log.text == 'Failed to recognize file format.')) {
       unawaited(_fail(_loading));
     }
   }
@@ -935,7 +1040,7 @@ class MediaKitEngine implements AudioEngine {
     final Uri? address;
 
     try {
-      address = await _tracks[i].address(from);
+      address = from == Duration.zero ? _tracks[i].address() : await _tracks[i].addressFrom(from);
     } on Object catch (e) {
       debugPrint('no stream for $track from $from: $e');
       return false;

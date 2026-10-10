@@ -13,7 +13,7 @@ import 'package:segue/subsonic/api.dart';
 class FakeEngine implements AudioEngine {
   final _changes = StreamController<void>.broadcast(sync: true);
 
-  /// The tracks open got, and their streams as they were then, from the start: those once open returns.
+  /// The tracks open got, and their streams as they were then, from the start.
   List<TrackSource> opened = [];
   List<Uri> tracks = [];
   int _index = 0;
@@ -85,9 +85,8 @@ class FakeEngine implements AudioEngine {
 
     _seek(position);
     _playing = play;
+    this.tracks = [for (final track in tracks) track.address()];
     _changes.add(null);
-    // Last, so that the rest changes at once, as before the tracks' streams were asked for.
-    this.tracks = [for (final track in tracks) (await track.address(Duration.zero))!];
   }
 
   @override
@@ -101,9 +100,8 @@ class FakeEngine implements AudioEngine {
     final moved = [for (final track in _order) track < at ? track : track + tracks.length];
     _order = [...moved.take(place), for (var i = 0; i < tracks.length; i++) at + i, ...moved.skip(place)];
     opened = [...opened.take(at), ...tracks, ...opened.skip(at)];
+    this.tracks = [...this.tracks.take(at), for (final track in tracks) track.address(), ...this.tracks.skip(at)];
     _changes.add(null);
-    final added = [for (final track in tracks) (await track.address(Duration.zero))!];
-    this.tracks = [...this.tracks.take(at), ...added, ...this.tracks.skip(at)];
     return at;
   }
 

@@ -237,6 +237,10 @@ the device it runs on.
   app keeps the one picked, which holds, as a change of connection does, from the next song on. A song a Subsonic server transcodes as it
   goes can't seek, so a seek asks for it again from that point (OpenSubsonic's transcodeOffset, which Navidrome
   has), as does opening on the last playback; a Jellyfin server sends it as HLS, which can seek;
+- each song right after the one before, with no gap between them (gapless), as a live album or one whose songs run
+  into each other plays: the next song is asked of the media server while the one before plays, however late the
+  server answers, in the quality then picked. A song put next while the one before plays, or moved there, is asked as
+  it starts, as every song was before;
 - the volume's normalization (ReplayGain), so that the songs this device plays play about as loud as one another:
   off, as it is until the settings pick another; automatic (by album where a song plays among its album's, in their
   order, unshuffled; by song otherwise); by song; or by album. The app keeps the one picked, which holds at once, for

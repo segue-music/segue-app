@@ -152,6 +152,12 @@ class TrackServer {
   final offsets = <int>[];
   bool flakyFails = true;
 
+  /// The timeOffsets of the requests for [name].
+  List<int> offsetsOf(String name) => [
+    for (final (i, path) in requests.indexed)
+      if (path == '/$name') offsets[i],
+  ];
+
   TrackSource track(String name) => TrackSource(url(name));
 
   /// With a query, as the media server's stream URLs have; from [from] on, a timeOffset too.
@@ -369,7 +375,7 @@ void main() {
     test('a new gain holds at once for the track that plays', () async {
       var gain = TrackGain.none;
       final file = File('${dir.path}/t0.wav')..writeAsBytesSync(wav(0, seconds: 2));
-      final source = TrackSource.resolved((from) async => file.uri, gain: () => gain);
+      final source = TrackSource.resolved(() => file.uri, gain: () => gain);
       await listened.open([source], index: 0, position: Duration.zero, play: false);
       await Future<void>.delayed(const Duration(milliseconds: 300));
       gain = const TrackGain(-12);
@@ -543,13 +549,14 @@ void main() {
     tearDown(() => server.close());
 
     /// `long<n>`, which starts later when asked.
-    TrackSource long(int n) => TrackSource.resolved((from) async => server.url('long$n', from: from));
+    TrackSource long(int n) =>
+        TrackSource.resolved(() => server.url('long$n'), addressFrom: (from) async => server.url('long$n', from: from));
 
     test('a seek loads it again from there, and the position counts from the track\'s start', () async {
       await engine.open([long(0), long(1)], index: 0, position: Duration.zero, play: true);
       await Future<void>.delayed(const Duration(milliseconds: 500));
       await engine.seek(const Duration(seconds: 10, milliseconds: 600));
-      expect(server.offsets, [0, 10], reason: 'the track again, from the second sought');
+      expect(server.offsetsOf('long0'), [0, 10], reason: 'the track again, from the second sought');
       await Future<void>.delayed(const Duration(milliseconds: 800));
       expect((engine.index, engine.playing), (0, true));
       expect(engine.position, greaterThan(const Duration(seconds: 10)));
@@ -596,33 +603,112 @@ void main() {
       expect(engine.position, greaterThan(const Duration(seconds: 2)));
       expect(engine.position, lessThan(const Duration(seconds: 4)));
     });
+  }, skip: hasLibmpv ? false : 'needs libmpv');
 
-    test('each load asks the track where its stream is: an address that changes holds from the next load', () async {
-      var loads = 0;
-      TrackSource counted() => TrackSource.resolved((from) async => server.url('ok${loads++}'));
-      await engine.open([counted(), counted()], index: 0, position: Duration.zero, play: true);
-      await Future<void>.delayed(const Duration(milliseconds: 300));
+  // mpv opens the next track's stream as the one before plays, so that it plays right after it, with no gap, however
+  // late the media server answers.
+  group('the next track', () {
+    late TrackServer server;
+
+    setUp(() async => server = await TrackServer.start());
+    tearDown(() => server.close());
+
+    /// The track [n] in the quality [quality] gives, as the second number of its name, as a media server's addresses
+    /// have it.
+    TrackSource track(int n, int Function() quality) => TrackSource.resolved(() => server.url('ok$n${quality()}'));
+
+    test('is asked of the server as the one before plays, and plays from what came', () async {
+      await engine.open([server.track('ok0'), server.track('slow1')], index: 0, position: Duration.zero, play: true);
+      await Future<void>.delayed(const Duration(milliseconds: 600));
+      expect(server.requests, ['/ok0', '/slow1']);
+      expect((engine.index, engine.playing), (0, true));
       await engine.jump(1);
       await Future<void>.delayed(const Duration(milliseconds: 300));
-      await engine.jump(0);
+      expect(server.requests, ['/ok0', '/slow1'], reason: 'not asked again');
+      expect((engine.index, engine.playing), (1, true));
+      expect(engine.position, greaterThan(Duration.zero), reason: 'playing already, though the server answers late');
+    });
+
+    test('a file isn\'t opened ahead, as it opens at once', () async {
+      await engine.open([server.track('ok0'), tone(dir, 1)], index: 0, position: Duration.zero, play: true);
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      await engine.jump(1);
       await Future<void>.delayed(const Duration(milliseconds: 300));
-      expect(server.requests, ['/ok0', '/ok1', '/ok2']);
-      expect((engine.index, engine.playing), (0, true));
+      expect((engine.index, engine.playing, engine.failed), (1, true, false));
+    });
+
+    test('plays from the stream it gives as it loads, of another quality since it was opened, and the one after it is '
+        'asked ahead in that quality', () async {
+      var quality = 0;
+      await engine.open(
+        [for (var n = 1; n <= 3; n++) track(n, () => quality)],
+        index: 0,
+        position: Duration.zero,
+        play: true,
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      quality = 1; // as the phone goes over to mobile data
+      await engine.jump(1);
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      expect(server.requests, ['/ok10', '/ok20', '/ok21', '/ok31']);
+      expect((engine.index, engine.playing), (1, true));
+      expect(engine.order, [0, 1, 2]);
+      server.requests.clear();
+      await engine.jump(2);
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      expect(server.requests, isEmpty, reason: 'opened ahead');
+      expect((engine.index, engine.playing), (2, true));
+    });
+
+    test('asked ahead in another quality, it keeps its place in the play order and in the order unshuffled', () async {
+      var quality = 0;
+      await engine.setShuffle(true);
+      await engine.open(
+        [for (var n = 1; n <= 5; n++) track(n, () => quality)],
+        index: 0,
+        position: Duration.zero,
+        play: true,
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      final order = engine.order;
+      // Another track than the current one, which a jump would only start over, and not the last.
+      final target = engine.index == 1 ? 2 : 1;
+      quality = 1;
+      await engine.jump(target);
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      expect(server.requests.last, '/ok${order[target + 1] + 1}1');
+      expect(engine.index, target);
+      expect(engine.order, order);
+      await engine.setShuffle(false);
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      expect(engine.index, order[target]);
+      expect(engine.order, [0, 1, 2, 3, 4]);
+    });
+
+    test('failing as it is asked ahead stops nothing: it fails as it is to play', () async {
+      await engine.open([server.track('short0'), server.track('fail1')], index: 0, position: Duration.zero, play: true);
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      expect(server.requests, ['/short0', '/fail1']);
+      expect((engine.index, engine.failed, engine.playing), (0, false, true));
+      await Future<void>.delayed(const Duration(milliseconds: 1500));
+      expect((engine.index, engine.failed, engine.playing), (1, true, false));
     });
   }, skip: hasLibmpv ? false : 'needs libmpv');
 
   test('after a jump, a seek while the track loads goes there once it has', () async {
     final server = await TrackServer.start();
     addTearDown(server.close);
-    await engine.open([server.track('ok0'), server.track('slow1')], index: 0, position: Duration.zero, play: true);
+    // Not the next track, which would be there already, opened ahead.
+    final tracks = [server.track('ok0'), server.track('ok1'), server.track('slow2')];
+    await engine.open(tracks, index: 0, position: Duration.zero, play: true);
     await Future<void>.delayed(const Duration(milliseconds: 800));
-    await engine.jump(1);
+    await engine.jump(2);
     await Future<void>.delayed(const Duration(milliseconds: 100));
     expect(engine.position, Duration.zero, reason: 'the start of the track loading, not the one before\'s place');
     await engine.seek(const Duration(seconds: 2));
     expect(engine.position, const Duration(seconds: 2));
     await Future<void>.delayed(const Duration(milliseconds: 1000)); // it loads after half a second
-    expect((engine.index, engine.playing), (1, true));
+    expect((engine.index, engine.playing), (2, true));
     expect(engine.position, greaterThan(const Duration(seconds: 2)));
     expect(engine.position, lessThan(const Duration(milliseconds: 3500)));
   }, skip: hasLibmpv ? false : 'needs libmpv');
@@ -671,13 +757,15 @@ void main() {
         play: true,
       );
       await Future<void>.delayed(const Duration(milliseconds: 300));
+      expect(server.requests, ['/short0', '/short1'], reason: 'the next track asked ahead');
+      server.requests.clear();
       expect(await engine.add([server.track('short2')], next: false), 2);
       expect(await engine.add([server.track('short3'), server.track('short4')], next: true), 1);
       expect(engine.order, [0, 1, 2, 3, 4]);
       expect(engine.index, 0);
       expect(engine.playing, isTrue);
       await Future<void>.delayed(const Duration(seconds: 5)); // to the end of the queue
-      expect(server.requests, ['/short0', '/short3', '/short4', '/short1', '/short2']);
+      expect(server.requests, ['/short3', '/short4', '/short1', '/short2']);
       expect(engine.index, 4);
     }, skip: hasLibmpv ? false : 'needs libmpv');
 
@@ -738,13 +826,15 @@ void main() {
         play: true,
       );
       await Future<void>.delayed(const Duration(milliseconds: 300));
+      expect(server.requests, ['/short0', '/short1'], reason: 'the next track asked ahead');
+      server.requests.clear();
       expect(await engine.move(3, 1), (from: 3, to: 1));
       expect(await engine.remove(2), 2);
       expect(engine.order, [0, 1, 2]);
       expect(engine.index, 0);
       expect(engine.playing, isTrue);
       await Future<void>.delayed(const Duration(seconds: 4)); // to the end of the queue
-      expect(server.requests, ['/short0', '/short3', '/short2']);
+      expect(server.requests, ['/short3', '/short2']);
       expect(engine.index, 2);
     }, skip: hasLibmpv ? false : 'needs libmpv');
 
