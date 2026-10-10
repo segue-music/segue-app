@@ -115,7 +115,7 @@ class _QueuePageState extends State<QueuePage> {
                 leading: Thumbnail(track.id, playing: current && (now?.playing ?? false)),
                 title: Text(track.title ?? '', maxLines: 1, overflow: TextOverflow.ellipsis),
                 subtitle: about.isEmpty ? null : Text(about, maxLines: 1, overflow: TextOverflow.ellipsis),
-                trailing: menu == null ? SongDuration(duration) : SongTrailing(duration, menu),
+                trailing: menu == null ? SongDuration(duration) : SongTrailing(track.id!, duration, menu),
                 onTap: now?.canJump ?? false ? () => runCommand(context, () => connect.jump(i)) : null,
               );
 

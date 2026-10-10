@@ -233,7 +233,8 @@ Running two app instances on one machine as different devices:
   artists' "Favoritos" chips) load them as they open. `FavoriteButton` (`lib/ui/favorite_button.dart`) is the
   heart, filled (`filledHeart`, Hugeicons' outline with a fill, as its free icons have no filled heart) while the item
   is a favorite: on an album's page, an artist's, the phone's full-screen player (by the title) and the wide player
-  bar; a song's menu has it as an item.
+  bar; a song's menu has it as an item. A favorite song's line in a list has it too, filled, before its duration
+  (`SongTrailing`), which a press takes out of them; a song that isn't has none there.
 - `lib/lyrics/lrclib.dart`: LRCLIB, where the full-screen player's lyrics (`LyricsView`) come from
   when the media server has none, by the song's title, artist, album and length. `Services.start`
   gives it one; tests leave `Services.lrclib` null, so that none goes out to the internet.

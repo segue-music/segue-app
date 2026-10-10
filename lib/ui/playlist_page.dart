@@ -382,7 +382,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
               : narrow
               ? Text(artistNames(song), maxLines: 1, overflow: TextOverflow.ellipsis)
               : ExcludeFocus(child: ArtistLinks.song(song)),
-          trailing: SongTrailing(song.duration, menu),
+          trailing: SongTrailing(song.id, song.duration, menu),
           onTap: () => _play(songs, index),
         ),
       ),

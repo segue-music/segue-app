@@ -15,6 +15,7 @@ import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/album_page.dart';
 import 'package:segue/ui/albums_view.dart';
+import 'package:segue/ui/favorite_button.dart';
 import 'package:segue/ui/favorite_songs_page.dart';
 import 'package:segue/ui/now_playing_bar.dart';
 import 'package:segue/ui/player_page.dart';
@@ -31,7 +32,7 @@ http.Response subsonic(Map<String, Object?> body) => http.Response(
 );
 
 /// A server whose starred songs and albums change as the app asks, at first the song s1 and the album a1, of the
-/// library's two albums, a1 and a2, the first with the songs s1 and s2. While [held], it answers no change; with
+/// library's two albums, a1 and a2, the first with the songs s1 and s2, of 3:35 each. While [held], it answers no change; with
 /// [refuses], it refuses them; [down], it answers nothing.
 class Starred {
   final songs = {'s1'};
@@ -69,7 +70,8 @@ class Starred {
             'artist': 'Aerosmith',
             'artistId': 'ar1',
             'song': [
-              for (final id in ['s1', 's2']) {'id': id, 'title': 'Song $id', 'artist': 'Aerosmith', 'artistId': 'ar1'},
+              for (final id in ['s1', 's2'])
+                {'id': id, 'title': 'Song $id', 'artist': 'Aerosmith', 'artistId': 'ar1', 'duration': 215},
             ],
           },
         });
@@ -208,6 +210,16 @@ void main() {
     Finder heart({required bool filled}) =>
         find.byTooltip(filled ? 'Remover dos favoritos' : 'Adicionar aos favoritos');
 
+    /// The heart of the album's page, beside its play button, rather than one of its songs'.
+    Finder albumHeart({required bool filled}) => find.descendant(
+      of: find.byType(FavoriteButton),
+      matching: heart(filled: filled),
+    );
+
+    /// The heart on the song [title]'s line, which is there while the song is a favorite.
+    Finder songHeart(String title) =>
+        find.descendant(of: find.widgetWithText(ListTile, title), matching: heart(filled: true));
+
     /// The song [title]'s menu: its button.
     Finder songMenu(String title) =>
         find.descendant(of: find.widgetWithText(ListTile, title), matching: find.byTooltip('Mais opções'));
@@ -215,21 +227,21 @@ void main() {
     testWidgets('on an album\'s page, the heart beside its play button is filled while it is a favorite, and a tap '
         'makes it one, or no longer one', (tester) async {
       await pump(tester, const AlbumPage(Album(id: 'a1', name: 'Album a1')));
-      expect(heart(filled: true), findsOneWidget);
+      expect(albumHeart(filled: true), findsOneWidget);
       final play = tester.getRect(find.byTooltip('Tocar o álbum'));
-      expect(tester.getRect(heart(filled: true)).center.dy, moreOrLessEquals(play.center.dy, epsilon: 1));
+      expect(tester.getRect(albumHeart(filled: true)).center.dy, moreOrLessEquals(play.center.dy, epsilon: 1));
 
-      await tester.tap(heart(filled: true));
+      await tester.tap(albumHeart(filled: true));
       await tester.pump();
-      expect(heart(filled: false), findsOneWidget, reason: 'at once');
+      expect(albumHeart(filled: false), findsOneWidget, reason: 'at once');
       await tester.pumpAndSettle();
       expect(server.changes, ['unstar.view a1']);
       expect(server.albums, isEmpty);
 
-      await tester.tap(heart(filled: false));
+      await tester.tap(albumHeart(filled: false));
       await tester.pumpAndSettle();
       expect(server.changes.last, 'star.view a1');
-      expect(heart(filled: true), findsOneWidget);
+      expect(albumHeart(filled: true), findsOneWidget);
     });
 
     testWidgets('a song\'s menu makes it one of the favorites, and then no longer one', (tester) async {
@@ -248,13 +260,52 @@ void main() {
       expect(server.changes.last, 'unstar.view s2');
     });
 
+    for (final (screen, size) in [('a wide screen', const Size(1000, 700)), ('a phone', const Size(360, 640))]) {
+      testWidgets(
+        'on $screen, a favorite song\'s line has a heart, filled, before its duration, which makes it no longer '
+        'one; a song that isn\'t has none, until its menu makes it one',
+        (tester) async {
+          await pump(
+            tester,
+            const AlbumPage(Album(id: 'a1', name: 'Album a1')),
+            size: size,
+          );
+          final (s1, s2) = (find.widgetWithText(ListTile, 'Song s1'), find.widgetWithText(ListTile, 'Song s2'));
+          await tester.ensureVisible(s2);
+          await tester.pumpAndSettle();
+          expect(songHeart('Song s1'), findsOneWidget);
+          expect(songHeart('Song s2'), findsNothing);
+          final duration = tester.getRect(find.descendant(of: s1, matching: find.text('3:35')));
+          expect(tester.getRect(songHeart('Song s1')).right, lessThanOrEqualTo(duration.left));
+          expect(
+            tester.getRect(find.descendant(of: s2, matching: find.text('3:35'))).right,
+            duration.right,
+            reason: 'the durations lined up, with a heart or without',
+          );
+
+          await tester.tap(songHeart('Song s1'));
+          await tester.pump();
+          expect(songHeart('Song s1'), findsNothing, reason: 'at once');
+          await tester.pumpAndSettle();
+          expect(server.changes, ['unstar.view s1']);
+
+          await tester.tap(songMenu('Song s2'));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('Adicionar aos favoritos'));
+          await tester.pumpAndSettle();
+          expect(songHeart('Song s2'), findsOneWidget);
+          expect(server.changes.last, 'star.view s2');
+        },
+      );
+    }
+
     testWidgets('a change the server refuses says so, and the heart goes back', (tester) async {
       await pump(tester, const AlbumPage(Album(id: 'a1', name: 'Album a1')));
       server.refuses = true;
-      await tester.tap(heart(filled: true));
+      await tester.tap(albumHeart(filled: true));
       await tester.pumpAndSettle();
       expect(find.textContaining('Não consegui alterar os favoritos'), findsOneWidget);
-      expect(heart(filled: true), findsOneWidget);
+      expect(albumHeart(filled: true), findsOneWidget);
     });
 
     testWidgets('the favorite songs come first among the playlists, with how many they are, and open their page, which '

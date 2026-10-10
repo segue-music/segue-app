@@ -3,7 +3,9 @@ import 'package:hugeicons/hugeicons.dart';
 
 import '../l10n/app_localizations.dart';
 import '../server/models.dart';
+import '../services.dart';
 import 'cover.dart';
+import 'favorite_button.dart';
 import 'player_controls.dart';
 import 'song_menu.dart';
 import 'themed_icon.dart';
@@ -38,10 +40,14 @@ class SongDuration extends StatelessWidget {
   Widget build(BuildContext context) => Text(formatDuration(duration), style: _columnStyle(context));
 }
 
-/// The end of a song's line in a list: its [duration], under the header's clock, then its menu's [button], last, at the
-/// end of the line, where the durations end too, lined up from song to song. The line's list tile takes [tilePadding].
+/// The end of a song's line in a list: a heart while the song is one of the user's favorites ([_FavoriteHeart]), its
+/// [duration], under the header's clock, then its menu's [button], last, at the end of the line, where the durations
+/// end too, lined up from song to song. The line's list tile takes [tilePadding].
 class SongTrailing extends StatelessWidget {
-  const SongTrailing(this.duration, this.button, {super.key});
+  const SongTrailing(this.id, this.duration, this.button, {super.key});
+
+  /// The song's.
+  final String id;
 
   final Duration? duration;
   final Widget button;
@@ -58,11 +64,50 @@ class SongTrailing extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     mainAxisSize: MainAxisSize.min,
     children: [
+      _FavoriteHeart(id),
       SongDuration(duration),
       const SizedBox(width: gap),
       button,
     ],
   );
+}
+
+/// Before a song's duration in a list, a heart, filled, in the theme's color, while the song whose id is [id] is one of
+/// the user's favorites, so that it shows without opening its menu, and a press makes it no longer one; nothing while it
+/// isn't, which the menu makes it. As big as the menu's button, and as it, taking no focus: for the keyboard and the
+/// remote the song stays one stop, where its menu does the same.
+class _FavoriteHeart extends StatelessWidget {
+  const _FavoriteHeart(this.id);
+
+  final String id;
+
+  @override
+  Widget build(BuildContext context) {
+    final favorites = ServicesScope.of(context).favorites;
+    return ListenableBuilder(
+      listenable: favorites,
+      builder: (context, _) {
+        if (!favorites.contains(FavoriteKind.song, id)) {
+          return const SizedBox.shrink();
+        }
+
+        return ExcludeFocus(
+          child: SizedBox.square(
+            dimension: SongMenu.width,
+            child: IconButton(
+              tooltip: AppLocalizations.of(context).removeFromFavorites,
+              isSelected: true,
+              iconSize: 20,
+              icon: ThemedIcon(filledHeart),
+              // As big as the room it has, as the menu's button is.
+              style: IconButton.styleFrom(tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+              onPressed: () => setFavorite(context, FavoriteKind.song, id, favorite: false),
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 
 /// The line above a list of songs on a phone, under its cover: [details] at its start, and at its end [button], then
