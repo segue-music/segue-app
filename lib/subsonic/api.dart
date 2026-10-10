@@ -384,6 +384,14 @@ class SubsonicApi implements MediaServer {
   Future<void> scrobble(String songId, {required DateTime time}) =>
       _get('scrobble', {'id': songId, 'submission': 'true', 'time': '${time.millisecondsSinceEpoch}'});
 
+  /// As [scrobble]: the server counts it at [time], however long ago.
+  @override
+  Future<void> scrobbleMissed(String songId, {required DateTime time}) => scrobble(songId, time: time);
+
+  /// The stream, which comes whole, transcoded or not.
+  @override
+  Uri downloadUrl(String songId, {int? maxBitRate}) => streamUrl(songId, maxBitRate: maxBitRate);
+
   @override
   Uri coverArtUrl(String id, {int size = 300}) => _url('getCoverArt', {'id': id, 'size': '$size'});
 

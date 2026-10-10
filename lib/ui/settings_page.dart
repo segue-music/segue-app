@@ -5,6 +5,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../equalizer_choice.dart';
 import '../l10n/app_localizations.dart';
 import '../language_choice.dart';
+import '../download_choice.dart';
 import '../quality_choice.dart';
 import '../replay_gain_choice.dart';
 import '../services.dart';
@@ -29,6 +30,7 @@ class SettingsPage extends StatelessWidget {
     this.themeChoice,
     this.languageChoice,
     this.qualityChoice,
+    this.downloadChoice,
     this.replayGainChoice,
     this.equalizerChoice,
     this.packageInfo,
@@ -39,6 +41,7 @@ class SettingsPage extends StatelessWidget {
   final ThemeChoice? themeChoice;
   final LanguageChoice? languageChoice;
   final QualityChoice? qualityChoice;
+  final DownloadChoice? downloadChoice;
   final ReplayGainChoice? replayGainChoice;
   final EqualizerChoice? equalizerChoice;
 
@@ -58,6 +61,7 @@ class SettingsPage extends StatelessWidget {
       this.equalizerChoice,
     );
     final packageInfo = this.packageInfo;
+    final downloadChoice = this.downloadChoice;
     return Scaffold(
       appBar: AppBar(
         // Under a wide screen's top bar, whose arrow goes back: no arrow of its own.
@@ -69,7 +73,14 @@ class SettingsPage extends StatelessWidget {
       // of them, by the room MediaQuery says they take.
       body: ListenableBuilder(
         // A line says the option picked last.
-        listenable: Listenable.merge([themeChoice, languageChoice, qualityChoice, replayGainChoice, equalizerChoice]),
+        listenable: Listenable.merge([
+          themeChoice,
+          languageChoice,
+          qualityChoice,
+          replayGainChoice,
+          equalizerChoice,
+          downloadChoice,
+        ]),
         builder: (context, _) {
           final groups = [
             (
@@ -164,12 +175,42 @@ class SettingsPage extends StatelessWidget {
                         Navigator.of(context)
                             .push(MaterialPageRoute<void>(builder: (_) => EqualizerPage(choice: equalizerChoice))),
                   ),
+              ],
+            ),
+            // How the app downloads, and what it has downloaded, where it downloads.
+            (
+              strings.downloads,
+              [
+                if (downloads != null && downloadChoice != null) ...[
+                  _Choice(
+                    icon: HugeIcons.strokeRoundedAudioWave01,
+                    title: strings.downloadQuality,
+                    options: [
+                      for (final quality in DownloadChoice.qualities)
+                        (
+                          name: strings.streamQuality(quality.name, quality.maxBitRate ?? 0),
+                          detail: null,
+                          picked: quality == downloadChoice.value.quality,
+                          onPicked: () => downloadChoice.pickQuality(quality),
+                        ),
+                    ],
+                  ),
+                  // Only where the device has mobile data, which it waits off until it is turned on.
+                  if (downloadChoice.mobileData)
+                    SwitchListTile(
+                      secondary: const ThemedIcon(HugeIcons.strokeRoundedWifiDisconnected02),
+                      title: Text(strings.downloadOnMobileData),
+                      subtitle: Text(strings.downloadOnMobileDataDetail),
+                      value: downloadChoice.value.onMobileData,
+                      onChanged: downloadChoice.pickOnMobileData,
+                    ),
+                ],
                 // The albums and playlists downloaded, a page of their own in the page area, with the room they take under
                 // its name.
                 if (downloads != null)
                   ListTile(
                     leading: const ThemedIcon(HugeIcons.strokeRoundedDownload04),
-                    title: Text(strings.downloads),
+                    title: Text(strings.downloadedAlbums),
                     subtitle: DownloadsSize(downloads),
                     onTap: () =>
                         Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const DownloadsPage())),

@@ -146,6 +146,11 @@ abstract interface class MediaServer {
   /// stands in), and on Jellyfin HLS, which can.
   Uri streamUrl(String songId, {int? maxBitRate});
 
+  /// Where a song's audio is to download it, as one file: the file as it is, or with [maxBitRate], in kbps, transcoded
+  /// down to it by the server, whole (not HLS, as Jellyfin streams it), for the player to play and seek in once it is
+  /// all on the device. The URL carries the credentials.
+  Uri downloadUrl(String songId, {int? maxBitRate});
+
   /// The stream that [streamUrl] gives with [maxBitRate] where the server transcodes the song, from [from] on, in whole
   /// seconds: to seek in a stream that can't, the player starts it there instead. Null where the server can't start
   /// it later: a Subsonic server without OpenSubsonic's transcodeOffset, and Jellyfin, whose HLS needn't.
@@ -154,6 +159,11 @@ abstract interface class MediaServer {
   /// Counts a play of the song whose id is [songId], which started playing at [time], toward the
   /// user's most played.
   Future<void> scrobble(String songId, {required DateTime time});
+
+  /// Counts a play this device made while the server was out of reach, of the song whose id is [songId], which started
+  /// playing at [time], as [scrobble] would have; also where [scrobble] counts nothing, as the hub's report counts the
+  /// play instead (Jellyfin), since the hub saw none of it.
+  Future<void> scrobbleMissed(String songId, {required DateTime time});
 
   Uri coverArtUrl(String id, {int size = 300});
 

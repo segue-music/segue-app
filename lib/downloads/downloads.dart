@@ -44,27 +44,52 @@ class Download {
 /// How far a download has got: of its songs, how many are on the device, and how many failed to come this time.
 typedef DownloadProgress = ({int done, int failed, int total});
 
-/// The albums and playlists the user downloaded, in [directory]: the songs as their files are (what the media server
-/// streams without transcoding), their covers, and what they are (an index), so that they play, and show, without the
-/// server. Each song is there once, however many downloads have it.
-///
-/// What a download lacks comes from the server one file at a time, songs first, while it is in reach ([reachability]):
-/// a file that fails waits for the next time it is, or for the app to open again.
-class Downloads extends ChangeNotifier {
-  Downloads._(this.directory, this._server, this._http, this._reachability, this._downloads, this._files);
+/// Something a download lacks, and how it comes: by the key it fails under ([Downloads._failed]), a file's path.
+typedef _Missing = ({String key, Future<void> Function() fetch});
 
-  /// The downloads kept in [directory], whose missing songs and covers come from [server] (its files as they are, its
-  /// covers at [coverSize] pixels) through [client].
+/// The albums and playlists the user downloaded, in [directory]: the songs as their files are, or transcoded down to a
+/// bitrate, their covers, their lyrics, their artists with their pictures, and what they all are (an index), so that
+/// they play, and show, without the media server. Each song is there once, however many downloads have it.
+///
+/// What a download lacks comes from the server one thing at a time, its songs, then their covers, lyrics and artists,
+/// while it is in reach ([Reachability]) and the downloads aren't held (on mobile data, where the user keeps them off
+/// it): what fails waits for the next time the server is in reach, or for the app to open again.
+class Downloads extends ChangeNotifier {
+  Downloads._(
+    this.directory,
+    this._server,
+    this._http,
+    this._reachability,
+    this._downloads,
+    this._artists,
+    this._files,
+    this._maxBitRate,
+    this._hold,
+    this._lyricsOf,
+    this._artistPicture,
+  );
+
+  /// The downloads kept in [directory], whose missing songs, covers and artists come from [server] through [client]:
+  /// the songs in the bitrate [maxBitRate] gives as each comes (null, the files as they are), the covers and artists'
+  /// pictures at [coverSize] pixels, and, where the server has none, the artist's picture that [artistPicture] finds
+  /// (fanart.tv's). Their lyrics are the ones [lyricsOf] finds. Nothing comes while [hold] is true.
   static Future<Downloads> open(
     Directory directory,
     MediaServer server, {
     http.Client? client,
     Reachability? reachability,
+    int? Function()? maxBitRate,
+    ValueListenable<bool>? hold,
+    Future<Lyrics?> Function(Song song)? lyricsOf,
+    Future<Uri?> Function(Artist artist)? artistPicture,
   }) async {
-    await Directory('${directory.path}/$_songsFolder').create(recursive: true);
-    await Directory('${directory.path}/$_coversFolder').create(recursive: true);
+    for (final folder in _folders) {
+      await Directory('${directory.path}/$folder').create(recursive: true);
+    }
+
     final index = File('${directory.path}/$_indexFile');
     final downloads = <String, Download>{};
+    final artists = <String, Artist>{};
     var readable = true;
 
     if (await index.exists()) {
@@ -75,6 +100,11 @@ class Downloads extends ChangeNotifier {
           final download = _download(item as Map<String, dynamic>);
           downloads[download._key] = download;
         }
+
+        for (final item in json['artists'] as List? ?? const []) {
+          final artist = _artist(item as Map<String, dynamic>);
+          artists[artist.id] = artist;
+        }
       } on Object catch (e) {
         // Its files stay, rather than go as no download's.
         debugPrint('downloads index unreadable: $e');
@@ -84,7 +114,7 @@ class Downloads extends ChangeNotifier {
 
     final files = <String>{};
 
-    for (final folder in [_songsFolder, _coversFolder]) {
+    for (final folder in _folders) {
       await for (final entity in Directory('${directory.path}/$folder').list()) {
         // One left halfway by a download cut short.
         if (entity.path.endsWith('.part')) {
@@ -95,8 +125,21 @@ class Downloads extends ChangeNotifier {
       }
     }
 
-    final opened = Downloads._(directory, server, client ?? http.Client(), reachability, downloads, files);
-    reachability?.addListener(opened._reachabilityChanged);
+    final opened = Downloads._(
+      directory,
+      server,
+      client ?? http.Client(),
+      reachability,
+      downloads,
+      artists,
+      files,
+      maxBitRate,
+      hold,
+      lyricsOf,
+      artistPicture,
+    );
+    reachability?.addListener(opened._resume);
+    hold?.addListener(opened._resume);
 
     if (readable) {
       await opened._forget();
@@ -112,14 +155,23 @@ class Downloads extends ChangeNotifier {
   final MediaServer _server;
   final http.Client _http;
   final Reachability? _reachability;
+  final int? Function()? _maxBitRate;
+  final ValueListenable<bool>? _hold;
+  final Future<Lyrics?> Function(Song song)? _lyricsOf;
+  final Future<Uri?> Function(Artist artist)? _artistPicture;
 
   /// By [Download._key], in the order they were asked for.
   final Map<String, Download> _downloads;
 
-  /// The files there, by their path under [directory] (`songs/<key>`, `covers/<key>`).
+  /// The artists of the downloads, by their ids, as the server gave them, with the id of their picture on the device
+  /// ([Artist.coverArt]): the server's, or, for fanart.tv's, `fanart:` and their MusicBrainz id.
+  final Map<String, Artist> _artists;
+
+  /// The files there, by their path under [directory] (`songs/<key>`, `covers/<key>`, `lyrics/<key>`).
   final Set<String> _files;
 
-  /// The songs and covers, by their files, that failed to come since the server was last out of reach.
+  /// What failed to come since the server was last out of reach, by its key: a file's path, or an artist's
+  /// (`artists/<key>`).
   final _failed = <String>{};
 
   bool _fetching = false;
@@ -130,6 +182,8 @@ class Downloads extends ChangeNotifier {
 
   static const _songsFolder = 'songs';
   static const _coversFolder = 'covers';
+  static const _lyricsFolder = 'lyrics';
+  static const _folders = [_songsFolder, _coversFolder, _lyricsFolder];
   static const _indexFile = 'index.json';
 
   /// Every download, the latest asked for first.
@@ -140,6 +194,9 @@ class Downloads extends ChangeNotifier {
 
   /// The download of the playlist whose id is [id]; null where there is none.
   Download? ofPlaylist(String id) => _downloads['playlist:$id'];
+
+  /// Whether the downloads wait, held where the user keeps them off mobile data.
+  bool get held => _hold?.value ?? false;
 
   DownloadProgress progressOf(Download download) {
     var (done, failed) = (0, 0);
@@ -160,10 +217,31 @@ class Downloads extends ChangeNotifier {
   /// The file of the song whose id is [songId], where it is on the device.
   File? songFile(String songId) => _existing(_songFile(songId));
 
-  /// The file of the cover whose id is [coverId], where it is on the device, at [coverSize] pixels.
+  /// The file of the cover whose id is [coverId], where it is on the device, at [coverSize] pixels: an album's, a song's,
+  /// a playlist's or an artist's picture ([artist]).
   File? coverFile(String coverId) => _existing(_coverFile(coverId));
 
   File? _existing(String file) => _files.contains(file) ? File('${directory.path}/$file') : null;
+
+  /// The artist whose id is [id], of a download, as the server gave them, with their picture's id ([Artist.coverArt])
+  /// where it is on the device; null where the downloads haven't got them.
+  Artist? artist(String id) => _artists[id];
+
+  /// The lyrics of the song whose id is [songId], downloaded with it; null where it has none, or they haven't come.
+  Future<Lyrics?> lyrics(String songId) async {
+    final file = _existing(_lyricsFile(songId));
+
+    if (file == null) {
+      return null;
+    }
+
+    try {
+      return _lyrics(jsonDecode(await file.readAsString()) as Map<String, dynamic>);
+    } on Object catch (e) {
+      debugPrint('lyrics unreadable: $e');
+      return null;
+    }
+  }
 
   /// Downloads [album], with [songs], its songs; again, for one already there, with the songs it has now.
   Future<void> addAlbum(Album album, List<Song> songs) =>
@@ -184,7 +262,7 @@ class Downloads extends ChangeNotifier {
     unawaited(_fetch());
   }
 
-  /// Takes [download] off the device: the songs and covers no other download has.
+  /// Takes [download] off the device: the songs, covers, lyrics and artists no other download has.
   Future<void> remove(Download download) async {
     if (_downloads.remove(download._key) == null) {
       return;
@@ -210,8 +288,8 @@ class Downloads extends ChangeNotifier {
     return bytes;
   }
 
-  /// Fetches what the downloads lack, a file at a time, songs first, until none is left, the server is out of reach or
-  /// the downloads close. A file that fails is skipped until the server is back in reach.
+  /// Fetches what the downloads lack, one thing at a time, until nothing is left, the server is out of reach, the
+  /// downloads are held or they close. What fails is skipped until the server is back in reach.
   Future<void> _fetch() async {
     if (_fetching) {
       return;
@@ -220,27 +298,18 @@ class Downloads extends ChangeNotifier {
     _fetching = true;
 
     try {
-      while (!_disposed && (_reachability?.value ?? true)) {
-        final song = _missingSong();
-        final cover = song == null ? _missingCover() : null;
+      while (!_disposed && (_reachability?.value ?? true) && !held) {
+        final missing = _missingSong() ?? _missingCover() ?? _missingLyrics() ?? _missingArtist();
 
-        if (song == null && cover == null) {
+        if (missing == null) {
           break;
         }
 
-        final file = song != null ? _songFile(song.id) : _coverFile(cover!);
-
         try {
-          if (song != null) {
-            await _fetchSong(song, file);
-          } else {
-            await _fetchCover(cover!, file);
-          }
-
-          _files.add(file);
+          await missing.fetch();
         } on Object catch (error) {
-          debugPrint('download of $file: $error');
-          _failed.add(file);
+          debugPrint('download of ${missing.key}: $error');
+          _failed.add(missing.key);
 
           if (isNetworkFailure(error)) {
             _reachability?.lost();
@@ -248,9 +317,7 @@ class Downloads extends ChangeNotifier {
         }
 
         // Taken off meanwhile.
-        if (!_wanted().contains(file)) {
-          await _delete(file);
-        }
+        await _forget();
 
         if (!_disposed) {
           notifyListeners();
@@ -261,13 +328,16 @@ class Downloads extends ChangeNotifier {
     }
   }
 
-  Song? _missingSong() {
+  /// Whether [key] is neither there nor failed.
+  bool _lacks(String key) => !_files.contains(key) && !_failed.contains(key);
+
+  _Missing? _missingSong() {
     for (final download in _downloads.values) {
       for (final song in download.songs) {
         final file = _songFile(song.id);
 
-        if (!_files.contains(file) && !_failed.contains(file)) {
-          return song;
+        if (_lacks(file)) {
+          return (key: file, fetch: () => _fetchSong(song, file));
         }
       }
     }
@@ -275,13 +345,13 @@ class Downloads extends ChangeNotifier {
     return null;
   }
 
-  String? _missingCover() {
+  _Missing? _missingCover() {
     for (final download in _downloads.values) {
       for (final cover in download.covers) {
         final file = _coverFile(cover);
 
-        if (!_files.contains(file) && !_failed.contains(file)) {
-          return cover;
+        if (_lacks(file)) {
+          return (key: file, fetch: () => _write(file, () => _server.coverArt(cover, size: coverSize)));
         }
       }
     }
@@ -289,10 +359,47 @@ class Downloads extends ChangeNotifier {
     return null;
   }
 
-  /// The song's file as it is, as the server streams it untranscoded, written beside where it goes and moved there
-  /// once whole.
+  _Missing? _missingLyrics() {
+    final lyricsOf = _lyricsOf;
+
+    if (lyricsOf == null) {
+      return null;
+    }
+
+    for (final download in _downloads.values) {
+      for (final song in download.songs) {
+        final file = _lyricsFile(song.id);
+
+        if (_lacks(file)) {
+          // A song with none has a file all the same, which says so, to be asked once.
+          return (
+            key: file,
+            fetch: () => _write(file, () async => utf8.encode(jsonEncode(_lyricsJson(await lyricsOf(song))))),
+          );
+        }
+      }
+    }
+
+    return null;
+  }
+
+  _Missing? _missingArtist() {
+    for (final id in _wantedArtists()) {
+      final key = _artistKey(id);
+
+      if (!_artists.containsKey(id) && !_failed.contains(key)) {
+        return (key: key, fetch: () => _fetchArtist(id));
+      }
+    }
+
+    return null;
+  }
+
+  /// The song's file, as the server streams it in the quality picked for downloads, written beside where it goes and
+  /// moved there once whole.
   Future<void> _fetchSong(Song song, String file) async {
-    final response = await _http.send(http.Request('GET', _server.streamUrl(song.id))).timeout(_wait);
+    final url = _server.downloadUrl(song.id, maxBitRate: _maxBitRate?.call());
+    final response = await _http.send(http.Request('GET', url)).timeout(_wait);
 
     if (response.statusCode != 200) {
       await response.stream.drain<void>();
@@ -305,6 +412,7 @@ class Downloads extends ChangeNotifier {
       // A stream that stops coming fails, rather than leaving the downloads waiting on it.
       await response.stream.timeout(_wait).pipe(part.openWrite());
       await part.rename('${directory.path}/$file');
+      _files.add(file);
     } on Object {
       if (await part.exists()) {
         await part.delete();
@@ -314,33 +422,92 @@ class Downloads extends ChangeNotifier {
     }
   }
 
-  Future<void> _fetchCover(String cover, String file) async {
-    final bytes = await _server.coverArt(cover, size: coverSize).timeout(_wait);
+  /// The artist whose id is [id], as the server gives them, with their picture: the server's, or else, where it has
+  /// none, the one [_artistPicture] finds. Without one, where neither has one, or it can't be had.
+  Future<void> _fetchArtist(String id) async {
+    final (artist, _) = await _server.artist(id).timeout(_wait);
+    String? picture;
+
+    try {
+      if (artist.coverArt case final cover?) {
+        await _write(_coverFile(cover), () => _server.coverArt(cover, size: coverSize));
+        picture = cover;
+      } else if ((artist.musicBrainzId, _artistPicture) case (final mbid?, final artistPicture?)) {
+        if (await artistPicture(artist).timeout(_wait) case final url?) {
+          picture = 'fanart:$mbid';
+          await _write(_coverFile(picture), () async {
+            final response = await _http.get(url).timeout(_wait);
+
+            if (response.statusCode != 200) {
+              throw ServerError('HTTP ${response.statusCode}');
+            }
+
+            return response.bodyBytes;
+          });
+        }
+      }
+    } on ServerError catch (e) {
+      debugPrint('no picture of ${artist.name}: $e');
+      picture = null;
+    }
+
+    _artists[id] = Artist(
+      id: id,
+      name: artist.name,
+      coverArt: picture,
+      musicBrainzId: artist.musicBrainzId,
+      albumCount: artist.albumCount,
+    );
+    await _save();
+  }
+
+  /// Writes what [bytes] gives as [file], beside where it goes, and moves it there.
+  Future<void> _write(String file, Future<List<int>> Function() bytes) async {
+    final content = await bytes().timeout(_wait);
     final part = File('${directory.path}/$file.part');
-    await part.writeAsBytes(bytes, flush: true);
+    await part.writeAsBytes(content, flush: true);
     await part.rename('${directory.path}/$file');
+    _files.add(file);
   }
 
   /// How long the downloads wait for the server, for an answer or for more of a file.
   static const _wait = Duration(seconds: 30);
 
-  /// Every file the downloads want.
-  Set<String> _wanted() => {
+  /// The ids of the downloads' artists: the albums', and each song's first.
+  Set<String> _wantedArtists() => {
     for (final download in _downloads.values) ...[
-      for (final song in download.songs) _songFile(song.id),
-      for (final cover in download.covers) _coverFile(cover),
+      ?download.album?.artistId,
+      for (final song in download.songs) ?song.artistId,
     ],
   };
 
-  /// Deletes the files no download wants.
+  /// Every file the downloads want.
+  Set<String> _wanted() => {
+    for (final download in _downloads.values) ...[
+      for (final song in download.songs) ...[_songFile(song.id), _lyricsFile(song.id)],
+      for (final cover in download.covers) _coverFile(cover),
+    ],
+    for (final artist in _artists.values)
+      if (artist.coverArt case final picture?) _coverFile(picture),
+  };
+
+  /// Forgets the artists no download has, and deletes the files none wants.
   Future<void> _forget() async {
+    final artists = _wantedArtists();
+    final before = _artists.length;
+    _artists.removeWhere((id, _) => !artists.contains(id));
+
+    if (_artists.length != before) {
+      await _save();
+    }
+
     final wanted = _wanted();
 
     for (final file in _files.difference(wanted).toList()) {
       await _delete(file);
     }
 
-    _failed.removeWhere((file) => !wanted.contains(file));
+    _failed.removeWhere((key) => !wanted.contains(key) && !artists.map(_artistKey).contains(key));
   }
 
   Future<void> _delete(String file) async {
@@ -359,22 +526,27 @@ class Downloads extends ChangeNotifier {
     await part.writeAsString(
       jsonEncode({
         'downloads': [for (final download in _downloads.values) _downloadJson(download)],
+        'artists': [for (final artist in _artists.values) _artistJson(artist)],
       }),
       flush: true,
     );
     await part.rename('${directory.path}/$_indexFile');
   }
 
-  /// The server is in reach again: the files that failed are tried again.
-  void _reachabilityChanged() {
-    if (_reachability?.value ?? false) {
+  /// The server in reach again, or the downloads no longer held: what failed is tried again, and what is missing
+  /// comes.
+  void _resume() {
+    if ((_reachability?.value ?? true) && !held) {
       _failed.clear();
-      notifyListeners();
       unawaited(_fetch());
+    }
+
+    if (!_disposed) {
+      notifyListeners();
     }
   }
 
-  /// Tries again the files that failed to come.
+  /// Tries again what failed to come.
   void retry() {
     _failed.clear();
     notifyListeners();
@@ -383,6 +555,8 @@ class Downloads extends ChangeNotifier {
 
   static String _songFile(String id) => '$_songsFolder/${_name(id)}';
   static String _coverFile(String id) => '$_coversFolder/${_name(id)}';
+  static String _lyricsFile(String id) => '$_lyricsFolder/${_name(id)}';
+  static String _artistKey(String id) => 'artists/${_name(id)}';
 
   /// A file's name for an id, which may hold any character: base 64, as URLs have it, without its padding.
   static String _name(String id) => base64Url.encode(utf8.encode(id)).replaceAll('=', '');
@@ -390,7 +564,8 @@ class Downloads extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
-    _reachability?.removeListener(_reachabilityChanged);
+    _reachability?.removeListener(_resume);
+    _hold?.removeListener(_resume);
     _http.close();
     super.dispose();
   }
@@ -520,3 +695,42 @@ Song _song(Map<String, dynamic> json) => Song(
     _ => null,
   },
 );
+
+Map<String, Object?> _artistJson(Artist artist) => {
+  'id': artist.id,
+  'name': artist.name,
+  'coverArt': artist.coverArt,
+  'musicBrainzId': artist.musicBrainzId,
+  'albumCount': artist.albumCount,
+};
+
+Artist _artist(Map<String, dynamic> json) => Artist(
+  id: json['id'] as String,
+  name: json['name'] as String,
+  coverArt: json['coverArt'] as String?,
+  musicBrainzId: json['musicBrainzId'] as String?,
+  albumCount: (json['albumCount'] as num?)?.toInt(),
+);
+
+/// Lyrics as JSON, each line with when it starts, where they're synced; none, as no lines.
+Map<String, Object?> _lyricsJson(Lyrics? lyrics) => {
+  'provider': lyrics?.provider,
+  'lines': [
+    for (final line in lyrics?.lines ?? const <LyricLine>[]) {'text': line.text, 'startMs': line.start?.inMilliseconds},
+  ],
+};
+
+/// The lyrics [json] holds; null for none.
+Lyrics? _lyrics(Map<String, dynamic> json) {
+  final lines = [
+    for (final line in json['lines'] as List)
+      LyricLine(
+        (line as Map<String, dynamic>)['text'] as String,
+        start: switch (line['startMs']) {
+          final num ms => Duration(milliseconds: ms.toInt()),
+          _ => null,
+        },
+      ),
+  ];
+  return lines.isEmpty ? null : Lyrics(lines, provider: json['provider'] as String?);
+}

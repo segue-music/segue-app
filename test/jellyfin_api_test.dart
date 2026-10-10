@@ -811,6 +811,27 @@ void main() {
     );
   });
 
+  test('a download within a bitrate comes as one file: universal over plain HTTP, MP3 where transcoded', () {
+    final api = jellyfin((_) => http.Response('', 404));
+    expect(api.downloadUrl('s1'), api.streamUrl('s1'));
+    final download = api.downloadUrl('s1', maxBitRate: 160);
+    expect(download.path, '/jellyfin/Audio/s1/universal');
+    expect(download.queryParameters, containsPair('MaxStreamingBitrate', '160000'));
+    expect(download.queryParameters, containsPair('TranscodingProtocol', 'http'));
+    expect(download.queryParameters, containsPair('TranscodingContainer', 'mp3'));
+    expect(download.queryParameters, containsPair('AudioCodec', 'mp3'));
+    expect(download.queryParameters, containsPair('ApiKey', 'tok'));
+  });
+
+  test('a play missed while out of reach marks the song played then, which the hub never reported', () async {
+    final asked = <http.Request>[];
+    await jellyfin((_) => http.Response('', 200), asked).scrobbleMissed('s1', time: DateTime.utc(2026, 10, 10, 12));
+    expect(asked.single.method, 'POST');
+    expect(asked.single.url.path, '/jellyfin/UserPlayedItems/s1');
+    expect(asked.single.url.queryParameters, containsPair('userId', 'u1'));
+    expect(asked.single.url.queryParameters, containsPair('datePlayed', '2026-10-10T12:00:00.000Z'));
+  });
+
   test('a sign-in the server forgot is an auth error, also from pages that ask for two things at once', () async {
     final forgot = jellyfin((_) => http.Response('', 401));
 

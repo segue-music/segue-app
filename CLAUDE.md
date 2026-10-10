@@ -177,14 +177,23 @@ Running two app instances on one machine as different devices:
   `timeOffset` to start later where the server has OpenSubsonic's transcodeOffset, or Jellyfin's `universal`, as HLS.
 - `Downloads` (`lib/downloads/downloads.dart`, `Services.downloads`) keeps the albums and playlists the user
   downloads, in a folder of the app's for each user on each server (`Services.downloadsDirectory`): the songs as their
-  files are (`streamUrl` without a bitrate), their covers at 800 pixels, and an index (`index.json`, written beside and
-  moved over, so that it is never half written) of what they are, as JSON. Files are named by their ids in base 64; a
-  song in several downloads is there once, and goes with the last. It fetches what they lack one file at a time while
-  the server is in reach, skipping the files that failed until it is back, or `retry`. `ServerWithDownloads`
+  files are, or in the quality picked (`DownloadChoice`, `lib/download_choice.dart`, through `MediaServer.downloadUrl`,
+  which on Jellyfin transcodes into one MP3 file rather than the HLS `streamUrl` gives), their covers at 800 pixels,
+  their lyrics (`lyrics/`, the server's or LRCLIB's, a file that says so where there are none), their artists, with
+  their pictures (the server's, or fanart.tv's, kept as the cover `fanart:<MusicBrainz id>`), and an index
+  (`index.json`, written beside and moved over, so that it is never half written) of what they are, as JSON. Files are
+  named by their ids in base 64; a song in several downloads is there once, and goes with the last. It fetches what
+  they lack one thing at a time, songs, covers, lyrics, then artists, while the server is in reach and the downloads
+  aren't held (`DownloadHold`: on mobile data, unless the user lets them go over it), skipping what failed until the
+  server is back, or `retry`. LRCLIB and fanart.tv failing for the network fail as anything else would
+  (`Services._lyricsOf`, `_fanartPicture`), rather than set the media server out of reach. `ServerWithDownloads`
   (`lib/downloads/server_with_downloads.dart`) is the `MediaServer` the app is given (`Services.api`): a downloaded
   song's `streamUrl` is its file (`file://`, which mpv plays and seeks in), and a downloaded cover's `coverArtUrl` its
   own (`Cover` shows a `file://` one as a file), in reach or not; out of reach, the reads come from the downloads, and
-  what changes the server fails at once. `Reachability` (`lib/server/reachability.dart`) says whether the server is in
+  what changes the server fails at once. The plays this device makes out of reach (`scrobble`) are kept
+  (`PendingPlays`, `plays.json` in the same folder) and counted as the server is back, by `scrobbleMissed`: Subsonic's
+  scrobble at their time, and on Jellyfin, whose `scrobble` counts nothing since the hub reports the plays, the song
+  marked played then (`UserPlayedItems`). `Reachability` (`lib/server/reachability.dart`) says whether the server is in
   reach: `Services.start` pings it (`MediaServer.ping`) as it discovers the hub, both waiting a few seconds at most,
   since a request to a server out of reach can wait for minutes, and a request that fails for the network
   (`isNetworkFailure`) sets it out of reach, from when it pings every 30 s. `HomePage` builds its sections anew as it

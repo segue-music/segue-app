@@ -4,9 +4,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:segue/connect/connect.dart';
+import 'package:segue/download_choice.dart';
 import 'package:segue/downloads/downloads.dart';
 import 'package:segue/l10n/app_localizations.dart';
 import 'package:segue/player/player.dart';
+import 'package:segue/quality_choice.dart';
 import 'package:segue/server/models.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
@@ -16,7 +18,10 @@ import 'package:segue/ui/albums_view.dart';
 import 'package:segue/ui/download_button.dart';
 import 'package:segue/ui/downloads_page.dart';
 import 'package:segue/ui/playlists_view.dart';
+import 'package:segue/ui/settings_page.dart';
 import 'package:segue/ui/spinner.dart';
+import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 import 'fakes.dart';
 
@@ -63,6 +68,7 @@ Future<void> until(WidgetTester tester, bool Function() done) async {
 }
 
 void main() {
+  setUpAll(() => SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty());
   late Directory directory;
   late FileServer server;
   late Downloads downloads;
@@ -222,5 +228,43 @@ void main() {
     await tester.pump();
     expect(find.widgetWithText(ChoiceChip, 'Baixados'), findsNothing);
     expect(find.widgetWithText(ChoiceChip, 'Nome'), findsOneWidget);
+  });
+
+  testWidgets('the settings pick the downloads\' quality and whether they go over mobile data, over the list of them', (
+    tester,
+  ) async {
+    await open(tester);
+    final choice = DownloadChoice(mobileData: true);
+    addTearDown(choice.dispose);
+    tester.view.physicalSize = const Size(400, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await pumpWith(tester, server, downloads, SettingsPage(onSignOut: () {}, downloadChoice: choice));
+    expect(find.text('Qualidade dos downloads'), findsOneWidget);
+    expect(find.text('Baixados'), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.text('Qualidade dos downloads')).dy,
+      lessThan(tester.getTopLeft(find.text('Baixados')).dy),
+    );
+
+    await tester.tap(find.text('Qualidade dos downloads'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Qualidade baixa · 96 kbps').last);
+    await tester.pumpAndSettle();
+    expect(choice.value.quality, StreamQuality.low);
+
+    expect(tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value, isFalse);
+    await tester.tap(find.text('Baixar com dados móveis'));
+    await tester.pump();
+    expect(choice.value.onMobileData, isTrue);
+  });
+
+  testWidgets('without mobile data, downloading over it is no choice', (tester) async {
+    await open(tester);
+    final choice = DownloadChoice();
+    addTearDown(choice.dispose);
+    await pumpWith(tester, server, downloads, SettingsPage(onSignOut: () {}, downloadChoice: choice));
+    expect(find.text('Qualidade dos downloads'), findsOneWidget);
+    expect(find.byType(SwitchListTile), findsNothing);
   });
 }

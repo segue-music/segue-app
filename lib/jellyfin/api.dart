@@ -404,6 +404,22 @@ class JellyfinApi implements MediaServer {
           'ApiKey': credentials.token,
         });
 
+  /// The file as it is, or, within [maxBitRate], universal's answer over plain HTTP rather than HLS: the file where it is
+  /// within it, and otherwise MP3, as one file.
+  @override
+  Uri downloadUrl(String songId, {int? maxBitRate}) => maxBitRate == null
+      ? streamUrl(songId)
+      : _url('Audio/$songId/universal', {
+          'MaxStreamingBitrate': '${maxBitRate * 1000}',
+          'Container': 'opus,webm|opus,ogg,mp3,aac,m4a|aac,m4a|alac,m4b|aac,flac,webma,webm|webma,wav',
+          'TranscodingContainer': 'mp3',
+          'TranscodingProtocol': 'http',
+          'AudioCodec': 'mp3',
+          'UserId': credentials.userId,
+          'DeviceId': deviceId,
+          'ApiKey': credentials.token,
+        });
+
   /// Never: a transcoded song comes as HLS, which can seek.
   @override
   Future<Uri?> transcodedStreamUrl(String songId, {required int maxBitRate, required Duration from}) async => null;
@@ -412,6 +428,14 @@ class JellyfinApi implements MediaServer {
   /// the device (SPEC.md, section 12), and counting it here too would count it twice.
   @override
   Future<void> scrobble(String songId, {required DateTime time}) async {}
+
+  /// Marks the song played at [time] (UserPlayedItems), which counts a play of it: the hub reported none.
+  @override
+  Future<void> scrobbleMissed(String songId, {required DateTime time}) => _send(
+    'POST',
+    'UserPlayedItems/$songId',
+    query: {'userId': credentials.userId, 'datePlayed': time.toUtc().toIso8601String()},
+  );
 
   /// Jellyfin serves images without a sign-in.
   @override

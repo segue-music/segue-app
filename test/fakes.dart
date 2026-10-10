@@ -253,11 +253,15 @@ class FakeEngine implements AudioEngine {
 
 /// A Subsonic server whose songs are their ids' bytes, and whose covers are images of their ids, but for those in
 /// [failing], which it answers with an error, and those in [held], which it answers once their completer is; out of
-/// reach ([reachable] false), it answers nothing. It counts what it is asked for.
+/// reach ([reachable] false), it answers nothing. Its artists are [artists], by their ids, as getArtist gives them; it
+/// counts plays (scrobble) and answers pings. Pictures from elsewhere (`fanart.test`) are images of their paths. It
+/// keeps what it is asked for: by endpoint and id ([requests]), and whole ([urls]).
 class FileServer {
   final requests = <String>[];
+  final urls = <Uri>[];
   final failing = <String>{};
   final held = <String, Completer<void>>{};
+  final artists = <String, Map<String, Object?>>{};
   bool reachable = true;
 
   late final client = MockClient((request) async {
@@ -265,7 +269,14 @@ class FileServer {
       throw http.ClientException('no route to host', request.url);
     }
 
-    final id = request.url.queryParameters['id']!;
+    urls.add(request.url);
+
+    if (request.url.host == 'fanart.test') {
+      requests.add('fanart ${request.url.path}');
+      return http.Response.bytes(utf8.encode('picture at ${request.url.path}'), 200);
+    }
+
+    final id = request.url.queryParameters['id'] ?? '';
     final endpoint = request.url.pathSegments.last;
     requests.add('$endpoint $id');
     await held[id]?.future;
@@ -274,6 +285,13 @@ class FileServer {
       return http.Response('', 500);
     }
 
+    http.Response subsonic(Map<String, Object?> body) => http.Response(
+      jsonEncode({
+        'subsonic-response': {'status': 'ok', ...body},
+      }),
+      200,
+    );
+
     return switch (endpoint) {
       'stream.view' => http.Response.bytes(utf8.encode('audio of $id'), 200),
       'getCoverArt.view' => http.Response.bytes(
@@ -281,6 +299,8 @@ class FileServer {
         200,
         headers: {'content-type': 'image/jpeg'},
       ),
+      'getArtist.view' when artists.containsKey(id) => subsonic({'artist': artists[id]}),
+      'scrobble.view' || 'ping.view' => subsonic({}),
       _ => http.Response('', 404),
     };
   });

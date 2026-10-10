@@ -69,7 +69,7 @@ class DownloadButton extends StatelessWidget {
         }
 
         return IconButton(
-          tooltip: strings.downloading(done, total),
+          tooltip: downloads.held ? strings.downloadWaiting(done, total) : strings.downloading(done, total),
           icon: ProgressRing(
             total == 0 ? 0 : done / total,
             size: (IconTheme.of(context).size ?? 24) - 2,

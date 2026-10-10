@@ -10,6 +10,7 @@ import 'session.dart';
 import 'device.dart';
 import 'equalizer_choice.dart';
 import 'language_choice.dart';
+import 'download_choice.dart';
 import 'quality_choice.dart';
 import 'replay_gain_choice.dart';
 import 'theme_choice.dart';
@@ -27,6 +28,7 @@ Future<void> main() async {
       themeChoice: await ThemeChoice.load(),
       languageChoice: await LanguageChoice.load(),
       qualityChoice: await QualityChoice.load(),
+      downloadChoice: await DownloadChoice.load(),
       replayGainChoice: await ReplayGainChoice.load(),
       equalizerChoice: await EqualizerChoice.load(),
       mediaControls: controls,

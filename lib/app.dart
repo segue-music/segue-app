@@ -8,6 +8,7 @@ import 'equalizer_choice.dart';
 import 'language_choice.dart';
 import 'player/audio_interruptions.dart';
 import 'player/media_controls.dart';
+import 'download_choice.dart';
 import 'quality_choice.dart';
 import 'replay_gain_choice.dart';
 import 'services.dart';
@@ -28,6 +29,7 @@ class SegueApp extends StatefulWidget {
     this.themeChoice,
     this.languageChoice,
     this.qualityChoice,
+    this.downloadChoice,
     this.replayGainChoice,
     this.equalizerChoice,
     this.mediaControls,
@@ -48,6 +50,9 @@ class SegueApp extends StatefulWidget {
 
   /// The quality the player streams in; with none, the original, until a pick.
   final QualityChoice? qualityChoice;
+
+  /// How the app downloads; with none, the files as they are, over Wi-Fi or a cable alone, until a pick.
+  final DownloadChoice? downloadChoice;
 
   /// How the player levels the songs' loudness; with none, not at all, until a pick.
   final ReplayGainChoice? replayGainChoice;
@@ -89,6 +94,9 @@ class _SegueAppState extends State<SegueApp> {
   /// [SegueApp.qualityChoice], or one of its own, the original until a pick.
   late final _qualityChoice = widget.qualityChoice ?? QualityChoice();
 
+  /// [SegueApp.downloadChoice], or one of its own, the files as they are, over Wi-Fi or a cable, until a pick.
+  late final _downloadChoice = widget.downloadChoice ?? DownloadChoice();
+
   /// [SegueApp.replayGainChoice], or one of its own, off until a pick.
   late final _replayGainChoice = widget.replayGainChoice ?? ReplayGainChoice();
 
@@ -119,6 +127,7 @@ class _SegueAppState extends State<SegueApp> {
       final services = await Services.start(
         session,
         quality: _qualityChoice,
+        downloadSettings: _downloadChoice,
         replayGain: _replayGainChoice,
         equalizer: _equalizerChoice,
       );
@@ -207,6 +216,10 @@ class _SegueAppState extends State<SegueApp> {
       _qualityChoice.dispose();
     }
 
+    if (widget.downloadChoice == null) {
+      _downloadChoice.dispose();
+    }
+
     if (widget.replayGainChoice == null) {
       _replayGainChoice.dispose();
     }
@@ -273,6 +286,7 @@ class _SegueAppState extends State<SegueApp> {
               themeChoice: _themeChoice,
               languageChoice: _languageChoice,
               qualityChoice: _qualityChoice,
+              downloadChoice: _downloadChoice,
               replayGainChoice: _replayGainChoice,
               equalizerChoice: _equalizerChoice,
               packageInfo: widget.packageInfo,

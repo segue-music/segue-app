@@ -7,7 +7,9 @@ import 'package:flutter/widgets.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'connect/connect.dart';
+import 'download_choice.dart';
 import 'downloads/downloads.dart';
+import 'downloads/pending_plays.dart';
 import 'downloads/server_with_downloads.dart';
 import 'equalizer_choice.dart';
 import 'lyrics/lrclib.dart';
@@ -22,6 +24,7 @@ import 'releases/musicbrainz.dart';
 import 'segue/client.dart';
 import 'segue/discovery.dart';
 import 'segue/protocol.dart';
+import 'server/models.dart';
 import 'server/playlist_editor.dart';
 import 'server/reachability.dart';
 import 'server/server.dart';
@@ -42,6 +45,7 @@ class Services {
     this.mobileData,
     this.downloads,
     this.reachability,
+    this.downloadHold,
   });
 
   /// Starts a session: the API, with what the user downloaded, this device's player, which streams in the quality picked
@@ -55,6 +59,7 @@ class Services {
     ValueListenable<StreamQuality>? quality,
     ValueListenable<ReplayGainMode>? replayGain,
     ValueListenable<EqualizerSettings>? equalizer,
+    ValueListenable<DownloadSettings>? downloadSettings,
   }) async {
     final server = openServer(
       session.server,
@@ -65,17 +70,33 @@ class Services {
     final reachability = Reachability(server.ping);
     // At once, rather than one after the other: out of reach, each waits for nothing to answer.
     final (reachable, foundHub) = await (reachability.check(), discoverHub(session.server, hub: session.hub)).wait;
+    final mobileData = await MobileData.watch();
+    final lrclib = Lrclib();
+    final fanartTv = fanartTvKey.isEmpty ? null : FanartTv(apiKey: fanartTvKey);
+    final downloadHold = DownloadHold(downloadSettings ?? ValueNotifier(const DownloadSettings()), mobileData);
     // Where there is nowhere to keep them, none: the app plays from the server alone.
     Downloads? downloads;
+    PendingPlays? pendingPlays;
 
     try {
-      downloads = await Downloads.open(await downloadsDirectory(session), server, reachability: reachability);
+      final directory = await downloadsDirectory(session);
+      downloads = await Downloads.open(
+        directory,
+        server,
+        reachability: reachability,
+        maxBitRate: () => downloadSettings?.value.quality.maxBitRate,
+        hold: downloadHold,
+        lyricsOf: (song) => _lyricsOf(song, server, lrclib),
+        artistPicture: fanartTv == null ? null : (artist) => _fanartPicture(artist, fanartTv),
+      );
+      pendingPlays = await PendingPlays.open(File('${directory.path}/plays.json'));
     } on Object catch (e) {
       debugPrint('downloads unavailable: $e');
     }
 
-    final api = downloads == null ? server : ServerWithDownloads(server, downloads, reachability);
-    final mobileData = await MobileData.watch();
+    final api = downloads == null
+        ? server
+        : ServerWithDownloads(server, downloads, reachability, pendingPlays: pendingPlays);
     final player = PlayerController(
       engine ?? MediaKitEngine(),
       api,
@@ -109,16 +130,44 @@ class Services {
       api,
       player,
       ConnectController(player: player, client: client),
-      lrclib: Lrclib(),
+      lrclib: lrclib,
       musicBrainz: MusicBrainz(remembersCountries: true),
-      fanartTv: fanartTvKey.isEmpty ? null : FanartTv(apiKey: fanartTvKey),
+      fanartTv: fanartTv,
       playCounter: PlayCounter(player, api),
       mobileData: mobileData,
       downloads: downloads,
       reachability: reachability,
+      downloadHold: downloadHold,
     );
     unawaited(client?.start());
     return services;
+  }
+
+  /// The lyrics a downloaded [song] keeps: the media server's, or else LRCLIB's, as the lyrics' view finds them. LRCLIB
+  /// failing for the network fails them as anything else would, to be asked again, rather than as the media server
+  /// out of reach.
+  static Future<Lyrics?> _lyricsOf(Song song, MediaServer server, Lrclib lrclib) async {
+    final lyrics = await server.lyrics(song.id);
+    final artist = song.artist;
+
+    if (lyrics != null || artist == null) {
+      return lyrics;
+    }
+
+    try {
+      return await lrclib.find(title: song.title, artist: artist, album: song.album, duration: song.duration);
+    } on Object catch (e) {
+      throw Exception('LRCLIB: $e');
+    }
+  }
+
+  /// The picture of [artist] fanart.tv's users like most, for a download; failing as [_lyricsOf]'s LRCLIB does.
+  static Future<Uri?> _fanartPicture(Artist artist, FanartTv fanartTv) async {
+    try {
+      return (await fanartTv.artistPictures(artist)).firstOrNull;
+    } on Object catch (e) {
+      throw Exception('fanart.tv: $e');
+    }
   }
 
   final Session session;
@@ -151,6 +200,9 @@ class Services {
 
   /// Whether the media server is in reach; null, as it always were.
   final Reachability? reachability;
+
+  /// Whether the downloads wait for Wi-Fi or a cable; null, they never do.
+  final DownloadHold? downloadHold;
 
   /// The hub last found next to [server] ([Session.foundHub]); null where none was, or the preferences can't be read.
   static Future<Uri?> _rememberedHub(Uri server) async {
@@ -191,6 +243,7 @@ class Services {
     musicBrainz?.close();
     fanartTv?.close();
     downloads?.dispose();
+    downloadHold?.dispose();
     reachability?.dispose();
   }
 }

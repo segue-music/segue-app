@@ -77,6 +77,8 @@ class _DownloadTile extends StatelessWidget {
             ? songCountAndLength(strings, download.songs)
             : done + failed == total
             ? strings.downloadFailed(failed)
+            : downloads.held
+            ? strings.downloadWaiting(done, total)
             : strings.downloading(done, total),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,

@@ -2,10 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:segue/downloads/downloads.dart';
+import 'package:segue/downloads/pending_plays.dart';
 import 'package:segue/downloads/server_with_downloads.dart';
 import 'package:segue/server/models.dart';
 import 'package:segue/server/reachability.dart';
@@ -66,7 +68,7 @@ void main() {
 
   setUp(() {
     directory = Directory.systemTemp.createTempSync('segue-downloads');
-    server = FileServer();
+    server = FileServer()..artists['ar1'] = {'id': 'ar1', 'name': 'Aerosmith', 'coverArt': 'ar-ar1'};
   });
   tearDown(() => directory.deleteSync(recursive: true));
 
@@ -80,8 +82,23 @@ void main() {
     opened.clear();
   });
 
-  Future<Downloads> open({Reachability? reachability}) async {
-    final downloads = await Downloads.open(directory, server.api, client: server.client, reachability: reachability);
+  Future<Downloads> open({
+    Reachability? reachability,
+    int? Function()? maxBitRate,
+    ValueListenable<bool>? hold,
+    Future<Lyrics?> Function(Song song)? lyricsOf,
+    Future<Uri?> Function(Artist artist)? artistPicture,
+  }) async {
+    final downloads = await Downloads.open(
+      directory,
+      server.api,
+      client: server.client,
+      reachability: reachability,
+      maxBitRate: maxBitRate,
+      hold: hold,
+      lyricsOf: lyricsOf,
+      artistPicture: artistPicture,
+    );
     opened.add(downloads);
     return downloads;
   }
@@ -100,8 +117,17 @@ void main() {
     expect(downloads.songFile('s1')!.readAsStringSync(), 'audio of s1');
     expect(downloads.coverFile('al1')!.readAsStringSync(), 'image of al1');
     expect(downloads.songFile('s3'), isNull);
-    // The files as they are: nothing transcoded. And the cover once, though each song names it.
-    expect(server.requests, ['stream.view s1', 'stream.view s2', 'getCoverArt.view al1']);
+    // The files as they are: nothing transcoded. And the cover once, though each song names it; then the artist, with
+    // their picture.
+    expect(server.requests, [
+      'stream.view s1',
+      'stream.view s2',
+      'getCoverArt.view al1',
+      'getArtist.view ar1',
+      'getCoverArt.view ar-ar1',
+    ]);
+    expect(downloads.artist('ar1')?.coverArt, 'ar-ar1');
+    expect(downloads.coverFile('ar-ar1')!.readAsStringSync(), 'image of ar-ar1');
     expect(Uri.parse(server.api.streamUrl('s1').toString()).queryParameters, isNot(contains('maxBitRate')));
   });
 
@@ -202,6 +228,141 @@ void main() {
     expect(Directory('${directory.path}/songs').listSync(), hasLength(2));
   });
 
+  test('the songs come in the quality picked for downloads, as each comes', () async {
+    var bitRate = 160;
+    final downloads = await open(maxBitRate: () => bitRate);
+    server.held['s2'] = Completer<void>();
+    await downloads.addAlbum(album, songs);
+    await settled(downloads);
+    bitRate = 96;
+    server.held.remove('s2')!.complete();
+    await settled(downloads);
+    final streams = server.urls.where((url) => url.path.endsWith('stream.view'));
+    expect([for (final url in streams) url.queryParameters['maxBitRate']], ['160', '160']);
+
+    await downloads.addPlaylist(playlist, [const Song(id: 's3', title: 'Other')]);
+    await settled(downloads);
+    expect(server.urls.lastWhere((url) => url.path.endsWith('stream.view')).queryParameters['maxBitRate'], '96');
+  });
+
+  test('held, as on mobile data, nothing comes until they are let go', () async {
+    final hold = ValueNotifier(true);
+    final downloads = await open(hold: hold);
+    await downloads.addAlbum(album, songs);
+    await settled(downloads);
+    expect(downloads.held, isTrue);
+    expect(server.requests, isEmpty);
+
+    hold.value = false;
+    await settled(downloads);
+    expect(downloads.progressOf(downloads.ofAlbum('al1')!).done, 2);
+  });
+
+  test('the songs\' lyrics come with them, asked once, none too', () async {
+    var asked = 0;
+
+    Future<Lyrics?> lyricsOf(Song song) async {
+      asked++;
+      return song.id == 's1'
+          ? const Lyrics([LyricLine('Backstroke lover', start: Duration(seconds: 12))], provider: 'LRCLIB')
+          : null;
+    }
+
+    final downloads = await open(lyricsOf: lyricsOf);
+    await downloads.addAlbum(album, songs);
+    await settled(downloads);
+    final lyrics = await downloads.lyrics('s1');
+    expect(lyrics?.lines.single.text, 'Backstroke lover');
+    expect(lyrics?.lines.single.start, const Duration(seconds: 12));
+    expect(lyrics?.provider, 'LRCLIB');
+    expect(await downloads.lyrics('s2'), isNull);
+    expect(asked, 2);
+    close(downloads);
+
+    final again = await open(lyricsOf: lyricsOf);
+    await settled(again);
+    expect(asked, 2);
+    expect((await again.lyrics('s1'))?.lines, hasLength(1));
+  });
+
+  test('an artist the server has no picture of has the one found elsewhere, which goes with them', () async {
+    server.artists['ar2'] = {'id': 'ar2', 'name': 'Run-DMC', 'musicBrainzId': 'mb2'};
+    final downloads = await open(
+      artistPicture: (artist) async => Uri.parse('https://fanart.test/${artist.musicBrainzId}.jpg'),
+    );
+    await downloads.addPlaylist(playlist, [
+      const Song(
+        id: 's9',
+        title: 'Walk This Way',
+        artists: [Artist(id: 'ar2', name: 'Run-DMC')],
+      ),
+    ]);
+    await settled(downloads);
+    expect(downloads.artist('ar2')?.coverArt, 'fanart:mb2');
+    expect(downloads.coverFile('fanart:mb2')!.readAsStringSync(), 'picture at /mb2.jpg');
+
+    await downloads.remove(downloads.ofPlaylist('p1')!);
+    expect(downloads.artist('ar2'), isNull);
+    expect(downloads.coverFile('fanart:mb2'), isNull);
+  });
+
+  group('plays made out of reach', () {
+    test('are kept, and counted at the time they were made as the server is back', () async {
+      final reachability = Reachability(() async {
+        if (!server.reachable) {
+          throw const SocketException('no route to host');
+        }
+      }, retry: const Duration(hours: 1));
+      addTearDown(reachability.dispose);
+      final downloads = await open(reachability: reachability);
+      final pendingPlays = await PendingPlays.open(File('${directory.path}/plays.json'));
+      final api = ServerWithDownloads(server.api, downloads, reachability, pendingPlays: pendingPlays);
+      server.reachable = false;
+      await reachability.check();
+      final time = DateTime.utc(2026, 10, 10, 12);
+      await api.scrobble('s1', time: time);
+      expect(pendingPlays.plays.single.songId, 's1');
+      expect((await PendingPlays.open(pendingPlays.file)).plays, hasLength(1), reason: 'kept on the device');
+
+      server.reachable = true;
+      await reachability.check();
+
+      // Written on the device as each goes.
+      for (var i = 0; i < 100 && pendingPlays.plays.isNotEmpty; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+      }
+
+      final scrobble = server.urls.lastWhere((url) => url.path.endsWith('scrobble.view'));
+      expect(scrobble.queryParameters['id'], 's1');
+      expect(scrobble.queryParameters['time'], '${time.millisecondsSinceEpoch}');
+      expect(pendingPlays.plays, isEmpty);
+      expect((await PendingPlays.open(pendingPlays.file)).plays, isEmpty);
+      api.close();
+    });
+
+    test('stop at a play that fails for the network, the rest kept; one the server refuses goes', () async {
+      final pendingPlays = await PendingPlays.open(File('${directory.path}/plays.json'));
+      await pendingPlays.add('s1', DateTime.utc(2026));
+      await pendingPlays.add('gone', DateTime.utc(2026));
+      await pendingPlays.add('s2', DateTime.utc(2026));
+      await pendingPlays.add('s3', DateTime.utc(2026));
+      final counted = <String>[];
+      final sent = await pendingPlays.send((play) async {
+        switch (play.songId) {
+          case 'gone':
+            throw const ServerError('no such song');
+          case 's3':
+            throw const SocketException('no route to host');
+        }
+
+        counted.add(play.songId);
+      });
+      expect(sent, isFalse);
+      expect(counted, ['s1', 's2']);
+      expect([for (final play in pendingPlays.plays) play.songId], ['s3']);
+    });
+  });
+
   group('the server with the downloads', () {
     late Reachability reachability;
     late Downloads downloads;
@@ -233,6 +394,7 @@ void main() {
     test('out of reach, the albums, playlists, artists and genres are the downloaded ones', () async {
       server.reachable = false;
       await reachability.check();
+      expect((await api.artist('ar1')).$1.coverArt, 'ar-ar1', reason: 'with their picture');
       expect((await api.albums(order: AlbumOrder.name)).map((album) => album.name), ['Toys in the Attic']);
       expect(await api.albums(order: AlbumOrder.mostPlayed), isEmpty);
       expect((await api.album('al1')).$2.map((song) => song.title), ['Walk This Way', 'Sweet Emotion']);

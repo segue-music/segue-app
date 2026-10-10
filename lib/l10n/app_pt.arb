@@ -1109,6 +1109,26 @@
   "@allPlaylists": {
     "description": "The chip over the playlists that shows them all, downloaded or not."
   },
+  "downloadQuality": "Qualidade dos downloads",
+  "@downloadQuality": {
+    "description": "The setting that picks the quality songs are downloaded in, from now on."
+  },
+  "downloadOnMobileData": "Baixar com dados móveis",
+  "@downloadOnMobileData": {
+    "description": "The switch that lets downloads go on over mobile data, on a device that has it."
+  },
+  "downloadOnMobileDataDetail": "Desligado, os downloads esperam o Wi-Fi ou um cabo.",
+  "@downloadOnMobileDataDetail": {
+    "description": "Under the switch that lets downloads go on over mobile data: what it does off."
+  },
+  "downloadWaiting": "Esperando o Wi-Fi: {done} de {total} faixas",
+  "@downloadWaiting": {
+    "description": "How far a download has got while it waits for Wi-Fi, as the user keeps downloads off mobile data.",
+    "placeholders": {
+      "done": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
   "nothingDownloaded": "Nada baixado. Com o servidor ao alcance, baixe álbuns e playlists pelo botão nas páginas deles.",
   "@nothingDownloaded": {
     "description": "Where downloads would be listed, when there are none."

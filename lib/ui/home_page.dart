@@ -10,6 +10,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../l10n/app_localizations.dart';
 import '../equalizer_choice.dart';
 import '../language_choice.dart';
+import '../download_choice.dart';
 import '../quality_choice.dart';
 import '../replay_gain_choice.dart';
 import '../segue/client.dart';
@@ -38,6 +39,7 @@ class HomePage extends StatefulWidget {
     this.themeChoice,
     this.languageChoice,
     this.qualityChoice,
+    this.downloadChoice,
     this.replayGainChoice,
     this.equalizerChoice,
     this.packageInfo,
@@ -54,6 +56,9 @@ class HomePage extends StatefulWidget {
 
   /// The quality the player streams in, picked in the settings; none, no choice of it.
   final QualityChoice? qualityChoice;
+
+  /// How the app downloads, picked in the settings; none, no choice of it.
+  final DownloadChoice? downloadChoice;
 
   /// How the player levels the songs' loudness, picked in the settings; none, no choice of it.
   final ReplayGainChoice? replayGainChoice;
@@ -214,6 +219,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           themeChoice: widget.themeChoice,
           languageChoice: widget.languageChoice,
           qualityChoice: widget.qualityChoice,
+          downloadChoice: widget.downloadChoice,
           replayGainChoice: widget.replayGainChoice,
           equalizerChoice: widget.equalizerChoice,
           packageInfo: widget.packageInfo,

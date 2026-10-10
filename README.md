@@ -169,10 +169,13 @@ the device it runs on.
   a server with OpenSubsonic's formPost (Navidrome) takes in a form's body, rather than in the URL;
 - downloads, to listen without the media server: an album or a playlist, from the button beside its
   play button, which shows how far it has got and, once all its songs are on the device, that it is
-  downloaded; pressed then, it takes it off the device, once asked. The songs come as their files are
-  (what the server streams untranscoded), with their covers and what the app shows of them, one at a
-  time while the server is in reach, and the songs that failed come again as it is back, or from the
-  button. A song in several downloads is on the device once. A downloaded song plays from its file and a
+  downloaded; pressed then, it takes it off the device, once asked. The songs come as their files are,
+  or in the quality picked for downloads in the settings (320, 160 or 96 kbps, transcoded by the server
+  into one file: on Jellyfin MP3, rather than the HLS it streams), with their covers, their lyrics (the
+  server's, or else LRCLIB's), their artists with their pictures (the server's, or else fanart.tv's)
+  and what the app shows of them, one at a time while the server is in reach; on a device with mobile
+  data, over Wi-Fi or a cable alone, unless the settings let them go over mobile data too (the button
+  says it waits). What failed comes again as the server is back, or from the button. A song in several downloads is on the device once. A downloaded song plays from its file and a
   downloaded cover shows from its own, the server in reach or not; a downloaded playlist follows the
   server's as its page shows it. In the library, a chip after the albums' orders ("Baixados") shows the
   downloaded albums alone, the latest first, and one over the playlists ("Baixadas") the downloaded
@@ -181,8 +184,11 @@ the device it runs on.
   with a short wait, as it opens, and again every 30 s once a request has failed), the top bar says so,
   and the app shows what was downloaded: the home a row of the downloaded albums alone, the library
   their albums, artists and genres and the downloaded playlists, the search them too, and their pages,
-  which play from the files; as it is back, it shows the whole library again. The hub is then the one
-  last found next to the server, which the app reaches once it can;
+  which play from the files, with their lyrics and their artists' pictures; as it is back, it shows the
+  whole library again. The hub is then the one last found next to the server, which the app reaches
+  once it can. The plays made meanwhile are kept on the device, and counted as the server is back, at
+  the time they were made (on Jellyfin, where the hub counts the plays it sees, by marking the song
+  played then);
 - on the album page, what kind of release it is (an album, an EP, a single or a compilation: on a
   computer above its name, on a phone before its year), which its play button, and the one on its
   cover wherever albums are listed, say too ("Tocar o EP"); under its name, its artist with their
@@ -278,8 +284,7 @@ the device it runs on.
 Not yet: moving a playlist's or the queue's songs with the remote (a TV has no drag), adding the song that plays to a
 playlist from the player, the media controls on macOS and Windows, on a Jellyfin server the cover of a song that came from another device
 when its file has none of its own (Jellyfin doesn't fall back to the album's) and an artist's popular songs (Jellyfin
-knows only its users' plays), downloading on Wi-Fi alone and in a quality of the user's (the downloads come as their files
-are), counting the plays made without the server once it is back, lyrics and artists' pictures without the server, sending the music
+knows only its users' plays), sending the music
 to speakers and TVs that don't run the app (Google Cast, UPnP/DLNA), and CarPlay as an app of its own (browsing the library
 on the car's screen, which needs Apple's CarPlay entitlement and native code). The Android build
 has been tried on a tablet and on an Android TV, and the iOS build on an iPhone, with CarPlay's Now Playing screen.

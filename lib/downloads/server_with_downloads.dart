@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import '../segue/protocol.dart';
@@ -5,6 +6,7 @@ import '../server/models.dart';
 import '../server/reachability.dart';
 import '../server/server.dart';
 import 'downloads.dart';
+import 'pending_plays.dart';
 
 /// The media server as the app sees it, with what the user downloaded ([downloads]). A downloaded song plays from its
 /// file and a downloaded cover shows from its own, the server in reach or not; with it out of reach ([reachability]),
@@ -12,9 +14,13 @@ import 'downloads.dart';
 /// what they can't say (the most played, a biography, lyrics) is none, and what changes the server fails at once.
 ///
 /// A request that fails for the network tells [reachability], which then keeps the next ones from waiting on a server
-/// that doesn't answer, until it answers again.
+/// that doesn't answer, until it answers again. The plays this device makes meanwhile are kept ([pendingPlays]), and
+/// counted as it is back ([MediaServer.scrobbleMissed]).
 class ServerWithDownloads implements MediaServer {
-  ServerWithDownloads(this.server, this.downloads, this.reachability);
+  ServerWithDownloads(this.server, this.downloads, this.reachability, {this.pendingPlays}) {
+    reachability.addListener(_reachabilityChanged);
+    _reachabilityChanged();
+  }
 
   /// The media server itself.
   final MediaServer server;
@@ -22,11 +28,32 @@ class ServerWithDownloads implements MediaServer {
   final Downloads downloads;
   final Reachability reachability;
 
+  /// The plays made out of reach; null, they go uncounted.
+  final PendingPlays? pendingPlays;
+
+  /// In reach again: the plays made meanwhile go to the server.
+  void _reachabilityChanged() {
+    final pendingPlays = this.pendingPlays;
+
+    if (reachability.value && pendingPlays != null && pendingPlays.plays.isNotEmpty) {
+      unawaited(_sendPendingPlays(pendingPlays));
+    }
+  }
+
+  Future<void> _sendPendingPlays(PendingPlays pendingPlays) async {
+    if (!await pendingPlays.send((play) => server.scrobbleMissed(play.songId, time: play.time))) {
+      // Out of reach again, unless another send had them.
+      if (pendingPlays.plays.isNotEmpty) {
+        reachability.lost();
+      }
+    }
+  }
+
   /// What a request needing the server fails with while it is out of reach.
   static const unreachable = ServerError('no connection to the media server');
 
   /// [request] of the server, in reach; out of reach, or as a request fails for the network, [downloaded].
-  Future<T> _either<T>(Future<T> Function() request, T Function() downloaded) async {
+  Future<T> _either<T>(Future<T> Function() request, FutureOr<T> Function() downloaded) async {
     if (!reachability.value) {
       return downloaded();
     }
@@ -172,7 +199,7 @@ class ServerWithDownloads implements MediaServer {
       _only(() => server.moveInPlaylist(id, from: from, to: to));
 
   @override
-  Future<Lyrics?> lyrics(String songId) => _either(() => server.lyrics(songId), () => null);
+  Future<Lyrics?> lyrics(String songId) => _either(() => server.lyrics(songId), () => downloads.lyrics(songId));
 
   @override
   Future<SearchResults> search(String query, {int artists = 5, int albums = 10, int songs = 50}) =>
@@ -225,9 +252,21 @@ class ServerWithDownloads implements MediaServer {
 
     return [
       for (final MapEntry(key: id, value: name) in names.entries)
-        Artist(id: id, name: name, albumCount: albums[id] ?? 0),
+        _withPicture(Artist(id: id, name: name, albumCount: albums[id] ?? 0)),
     ];
   }
+
+  /// [artist] with what the downloads have of them: their picture, and their MusicBrainz id.
+  Artist _withPicture(Artist artist) => switch (downloads.artist(artist.id)) {
+    final downloaded? => Artist(
+      id: artist.id,
+      name: downloaded.name,
+      albumCount: artist.albumCount,
+      coverArt: downloaded.coverArt,
+      musicBrainzId: downloaded.musicBrainzId,
+    ),
+    null => artist,
+  };
 
   static List<Artist> _byName(List<Artist> artists) =>
       artists..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
@@ -260,6 +299,9 @@ class ServerWithDownloads implements MediaServer {
   Uri streamUrl(String songId, {int? maxBitRate}) =>
       downloads.songFile(songId)?.uri ?? server.streamUrl(songId, maxBitRate: maxBitRate);
 
+  @override
+  Uri downloadUrl(String songId, {int? maxBitRate}) => server.downloadUrl(songId, maxBitRate: maxBitRate);
+
   /// None for a downloaded song, whose file seeks.
   @override
   Future<Uri?> transcodedStreamUrl(String songId, {required int maxBitRate, required Duration from}) async =>
@@ -267,10 +309,21 @@ class ServerWithDownloads implements MediaServer {
       ? null
       : await server.transcodedStreamUrl(songId, maxBitRate: maxBitRate, from: from);
 
-  /// Out of reach, the play goes uncounted.
+  /// Out of reach, or failing for the network, the play is kept, to be counted as the server is back.
   @override
-  Future<void> scrobble(String songId, {required DateTime time}) =>
-      _either(() => server.scrobble(songId, time: time), () {});
+  Future<void> scrobble(String songId, {required DateTime time}) async {
+    final counted = await _either(() async {
+      await server.scrobble(songId, time: time);
+      return true;
+    }, () => false);
+
+    if (!counted) {
+      await pendingPlays?.add(songId, time);
+    }
+  }
+
+  @override
+  Future<void> scrobbleMissed(String songId, {required DateTime time}) => server.scrobbleMissed(songId, time: time);
 
   /// The cover's file, where it is downloaded, at [Downloads.coverSize] pixels whatever [size]: the image shown takes it
   /// to the size it wants.
@@ -287,5 +340,8 @@ class ServerWithDownloads implements MediaServer {
   Future<void> signOut() => server.signOut();
 
   @override
-  void close() => server.close();
+  void close() {
+    reachability.removeListener(_reachabilityChanged);
+    server.close();
+  }
 }
