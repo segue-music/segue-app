@@ -343,6 +343,31 @@ void main() {
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
   });
 
+  testWidgets('on a phone, the search picked again goes to its bar, ready to type; with a page over it, it shows '
+      'again', (tester) async {
+    await pumpHome(tester, const Size(360, 640));
+    final search = find.descendant(of: find.byType(NavigationBar), matching: find.text('Buscar'));
+    await tester.tap(search);
+    await tester.pumpAndSettle();
+    final field = tester.state<EditableTextState>(find.byType(EditableText)).widget.focusNode;
+    expect(field.hasFocus, isFalse);
+    expect(tester.testTextInput.isVisible, isFalse);
+
+    await tester.tap(search);
+    await tester.pump();
+    expect(field.hasFocus, isTrue);
+    expect(tester.testTextInput.isVisible, isTrue);
+
+    await tester.tap(find.text('Hard Rock'));
+    await tester.pumpAndSettle();
+    expect(find.byType(SearchBar), findsNothing, reason: 'the genre\'s page, over the search');
+    await tester.tap(search);
+    await tester.pumpAndSettle();
+    expect(find.text('Hard Rock'), findsOneWidget, reason: 'the genres again');
+    expect(tester.testTextInput.isVisible, isFalse);
+    await tester.pumpWidget(const SizedBox()); // stops the bar's timer
+  });
+
   testWidgets('the app\'s icon clears the search, going back to the home', (tester) async {
     await pumpHome(tester, const Size(1000, 640));
     await tester.enterText(find.byType(TextField), 'dream');

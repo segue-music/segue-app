@@ -77,7 +77,8 @@ the device it runs on.
   albums, artists, genres and playlists in a side rail, as icons that name their sections on hover, beside
   them, and the home under the app's icon, in the top bar's left corner (on a phone, the icon goes there
   too, on the home, and the bar at the bottom has three: the home, the search, whose bar shows in it alone, in
-  the top bar, over the genres until a search finds something, the keyboard opening only at a tap on it, and the
+  the top bar, over the genres until a search finds something, the keyboard opening only at a tap on it or on the
+  search's button again, and the
   library, whose albums, artists and playlists are tabs in the top bar, opening again on the one picked last);
   the album page, whose cover opens full screen; search (artists, albums and songs); and playback
   through media_kit (libmpv), with a seek bar, shuffle and repeat (the queue, or the track until

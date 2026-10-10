@@ -226,12 +226,20 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     }
   }
 
-  /// On a phone, shows [destination]: the library on the tab picked last.
-  void _open(_Destination destination) => _select(switch (destination) {
-    _Destination.home => _Section.home,
-    _Destination.search => _Section.search,
-    _Destination.library => _Destination.libraryTabs[_libraryTabs.index],
-  });
+  /// On a phone, shows [destination]: the library on the tab picked last. The search picked again, shown with no page
+  /// over it, goes to its bar, ready to type; with a page over it, it shows again, as another destination would.
+  void _open(_Destination destination) {
+    if (destination == _Destination.search && _Destination.of(_section) == destination && !_history.canGoBack) {
+      _searchFocus.requestFocus();
+      return;
+    }
+
+    _select(switch (destination) {
+      _Destination.home => _Section.home,
+      _Destination.search => _Section.search,
+      _Destination.library => _Destination.libraryTabs[_libraryTabs.index],
+    });
+  }
 
   /// The albums tab, in [order].
   void _showAlbums(AlbumOrder order) {
