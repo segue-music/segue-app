@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
+import 'swipe_back.dart';
 import 'themed_icon.dart';
 
 /// The pink of the app's icon (tool/icon.png): its rounded square.
@@ -17,6 +18,15 @@ const iconBlack = Color(0xFF090909);
 
 /// The back arrow that Flutter puts in a page's top bar by itself.
 const backArrow = HugeIcons.strokeRoundedArrowLeft02;
+
+/// Each platform's page transitions, Flutter's, with a swipe to the right as a page's back arrow too. One for every
+/// theme made, so that a theme made again is the same, as Flutter's builders are constants.
+final _pageTransitions = PageTransitionsTheme(
+  builders: {
+    for (final MapEntry(key: platform, value: builder) in const PageTransitionsTheme().builders.entries)
+      platform: SwipeBackPageTransitionsBuilder(builder),
+  },
+);
 
 /// The app's theme, light or dark. Whatever has the focus stands out: a TV is driven with a remote
 /// from across the room, and Material's own focus highlights are faint. Buttons get a ring; lists,
@@ -43,6 +53,7 @@ ThemeData segueTheme(Brightness brightness) {
     iconButtonTheme: IconButtonThemeData(style: buttons),
     // The back arrow that Flutter puts in a page's top bar by itself, from Hugeicons as the rest.
     actionIconTheme: ActionIconThemeData(backButtonIconBuilder: (context) => const ThemedIcon(backArrow)),
+    pageTransitionsTheme: _pageTransitions,
     filledButtonTheme: FilledButtonThemeData(style: buttons),
     textButtonTheme: TextButtonThemeData(style: buttons),
     listTileTheme: const ListTileThemeData(mouseCursor: WidgetStateMouseCursor.clickable),

@@ -122,7 +122,9 @@ the device it runs on.
   and pages (an album, an artist, a genre, the queue, the full-screen player) open between them, with
   the search bar in the middle of the top bar. Arrows beside the app's icon go back and forward through
   those pages, as a browser's do, and so do the keyboard's left and right (on a phone, left goes back
-  from a page with a back arrow). A section, or a search, closes them. An artist's page has their
+  from a page with a back arrow). A section, or a search, closes them. On a touch screen, a page with a
+  back arrow also goes back with a finger swiped to the right from anywhere on it, the page following the
+  finger, rather than only from the screen's edge. An artist's page has their
   picture, round, and behind it the same picture, blurred, across the top of the page. On an album's
   or an artist's page, once the cover or the picture has gone up, the name stays at the top of the
   page, in a bar that comes in as it goes, after the album's play button. Esc takes the focus off
