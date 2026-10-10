@@ -552,7 +552,7 @@ void main() {
 
   testWidgets(
     'on a wide screen, the artist\'s picture is behind the top of their page too, blurred, across it, under '
-    'the page\'s color: half of it at the top, all of it at the bottom of the round picture; nothing with no picture',
+    'the page\'s color: a fifth of it at the top, all of it at the bottom of the round picture; nothing with no picture',
     (tester) async {
       await pumpHome(tester, const Size(1000, 700));
       await tester.tap(find.byTooltip('Artistas'));
@@ -569,7 +569,7 @@ void main() {
       final gradient = (shade.decoration as BoxDecoration).gradient! as LinearGradient;
       final surface = Theme.of(tester.element(page)).colorScheme.surface;
       expect(shade.position, DecorationPosition.foreground);
-      expect((gradient.colors.first, gradient.colors.last), (surface.withValues(alpha: 0.5), surface));
+      expect((gradient.colors.first, gradient.colors.last), (surface.withValues(alpha: 0.2), surface));
 
       await tester.tap(find.byTooltip('Voltar'));
       await tester.pumpAndSettle();

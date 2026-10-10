@@ -419,17 +419,17 @@ class _ArtistPageState extends State<ArtistPage> {
       children: [
         Stack(
           children: [
-            // Behind them, the picture blurred into its colors, across the page, under half of the page's color at the
-            // top and more of it lower down, all of it at the bottom of the round picture, where the page goes on.
+            // Behind them, the picture blurred into its colors, across the page, under a fifth of the page's color at
+            // the top and more of it lower down, all of it at the bottom of the round picture, where the page goes on.
             if (picture != null || otherPicture != null)
               Positioned.fill(
                 child: ClipRect(
                   child: DecoratedBox(
                     position: DecorationPosition.foreground,
-                    decoration: BoxDecoration(gradient: _fade(surface, from: 0.5)),
+                    decoration: BoxDecoration(gradient: _fade(surface, from: 0.2)),
                     // As the artists' grid has asked for it, which the blur leaves nothing more to see in.
                     child: ImageFiltered(
-                      imageFilter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+                      imageFilter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
                       child: Cover(picture, url: otherPicture, icon: HugeIcons.strokeRoundedUser),
                     ),
                   ),
