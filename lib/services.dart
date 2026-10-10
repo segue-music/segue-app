@@ -1,9 +1,14 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
+import 'package:path_provider/path_provider.dart';
 
 import 'connect/connect.dart';
+import 'downloads/downloads.dart';
+import 'downloads/server_with_downloads.dart';
 import 'equalizer_choice.dart';
 import 'lyrics/lrclib.dart';
 import 'mobile_data.dart';
@@ -18,6 +23,7 @@ import 'segue/client.dart';
 import 'segue/discovery.dart';
 import 'segue/protocol.dart';
 import 'server/playlist_editor.dart';
+import 'server/reachability.dart';
 import 'server/server.dart';
 import 'server/sign_in.dart';
 import 'session.dart';
@@ -34,11 +40,15 @@ class Services {
     this.fanartTv,
     this.playCounter,
     this.mobileData,
+    this.downloads,
+    this.reachability,
   });
 
-  /// Starts a session: the API, this device's player, which streams in the quality picked ([quality]; the original, with
-  /// none), levels the songs' loudness the way picked ([replayGain]; not at all, with none) and plays them through
-  /// the equalizer as set ([equalizer]; as they are, with none), and, if a hub is found, the connection to it.
+  /// Starts a session: the API, with what the user downloaded, this device's player, which streams in the quality picked
+  /// ([quality]; the original, with none), levels the songs' loudness the way picked ([replayGain]; not at all, with
+  /// none) and plays them through the equalizer as set ([equalizer]; as they are, with none), and, if a hub is found,
+  /// the connection to it. With the media server out of reach, the hub is the one last found next to it, which the
+  /// connection reaches once it can.
   static Future<Services> start(
     Session session, {
     AudioEngine? engine,
@@ -46,12 +56,25 @@ class Services {
     ValueListenable<ReplayGainMode>? replayGain,
     ValueListenable<EqualizerSettings>? equalizer,
   }) async {
-    final api = openServer(
+    final server = openServer(
       session.server,
       session.credentials,
       deviceId: session.deviceId,
       deviceName: session.deviceName,
     );
+    final reachability = Reachability(server.ping);
+    // At once, rather than one after the other: out of reach, each waits for nothing to answer.
+    final (reachable, foundHub) = await (reachability.check(), discoverHub(session.server, hub: session.hub)).wait;
+    // Where there is nowhere to keep them, none: the app plays from the server alone.
+    Downloads? downloads;
+
+    try {
+      downloads = await Downloads.open(await downloadsDirectory(session), server, reachability: reachability);
+    } on Object catch (e) {
+      debugPrint('downloads unavailable: $e');
+    }
+
+    final api = downloads == null ? server : ServerWithDownloads(server, downloads, reachability);
     final mobileData = await MobileData.watch();
     final player = PlayerController(
       engine ?? MediaKitEngine(),
@@ -60,7 +83,12 @@ class Services {
       replayGain: replayGain,
       equalizer: equalizer,
     );
-    final hubUrl = await discoverHub(session.server, hub: session.hub);
+    final hubUrl = foundHub ?? (reachable ? null : await _rememberedHub(session.server));
+
+    if (foundHub != null) {
+      await _rememberHub(session.server, foundHub);
+    }
+
     final client = hubUrl == null
         ? null
         : SegueClient(
@@ -86,6 +114,8 @@ class Services {
       fanartTv: fanartTvKey.isEmpty ? null : FanartTv(apiKey: fanartTvKey),
       playCounter: PlayCounter(player, api),
       mobileData: mobileData,
+      downloads: downloads,
+      reachability: reachability,
     );
     unawaited(client?.start());
     return services;
@@ -116,6 +146,39 @@ class Services {
   /// Whether the device is on mobile data, for the automatic quality; null, never.
   final MobileData? mobileData;
 
+  /// The albums and playlists the user downloaded; null, none, nor a way to download them.
+  final Downloads? downloads;
+
+  /// Whether the media server is in reach; null, as it always were.
+  final Reachability? reachability;
+
+  /// The hub last found next to [server] ([Session.foundHub]); null where none was, or the preferences can't be read.
+  static Future<Uri?> _rememberedHub(Uri server) async {
+    try {
+      return await Session.foundHub(server);
+    } on Object catch (e) {
+      debugPrint('found hub unknown: $e');
+      return null;
+    }
+  }
+
+  /// Keeps [hub] as the hub found next to [server], where the preferences can be written.
+  static Future<void> _rememberHub(Uri server, Uri hub) async {
+    try {
+      await Session.rememberFoundHub(server, hub);
+    } on Object catch (e) {
+      debugPrint('found hub not kept: $e');
+    }
+  }
+
+  /// Where the downloads of [session]'s user on its server are kept: a folder of their own, in the app's.
+  static Future<Directory> downloadsDirectory(Session session) async {
+    final account = base64Url
+        .encode(utf8.encode('${session.server}\n${session.credentials.username}'))
+        .replaceAll('=', '');
+    return Directory('${(await getApplicationSupportDirectory()).path}/downloads/$account');
+  }
+
   Future<void> dispose() async {
     connect.dispose();
     playlistEditor.dispose();
@@ -127,6 +190,8 @@ class Services {
     lrclib?.close();
     musicBrainz?.close();
     fanartTv?.close();
+    downloads?.dispose();
+    reachability?.dispose();
   }
 }
 

@@ -18,6 +18,7 @@ import 'cover_page.dart';
 import 'credits_page.dart';
 import 'current_song.dart';
 import 'dates.dart';
+import 'download_button.dart';
 import 'equalizer.dart';
 import 'errors.dart';
 import 'now_playing_bar.dart';
@@ -285,7 +286,11 @@ class _AlbumPageState extends State<AlbumPage> {
               ),
             ),
           ),
-          SongListTopLine(details: byline, button: add, play: play),
+          SongListTopLine(
+            details: byline,
+            button: Row(mainAxisSize: MainAxisSize.min, children: [DownloadButton.album(album, songs), add]),
+            play: play,
+          ),
         ],
       );
     }
@@ -311,7 +316,10 @@ class _AlbumPageState extends State<AlbumPage> {
                   Text(album.name, style: text.titleLarge),
                   byline,
                   const SizedBox(height: 12),
-                  Row(mainAxisSize: MainAxisSize.min, children: [play, const SizedBox(width: 8), add]),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [play, const SizedBox(width: 8), add, DownloadButton.album(album, songs)],
+                  ),
                 ],
               ),
             ),

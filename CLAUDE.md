@@ -175,6 +175,22 @@ Running two app instances on one machine as different devices:
   `PlayerController` reads as each song loads, the automatic one by `MobileData`, `lib/mobile_data.dart`, from
   connectivity_plus, and offered only on a device with mobile data, `hasMobileData`): Subsonic's `maxBitRate`, with
   `timeOffset` to start later where the server has OpenSubsonic's transcodeOffset, or Jellyfin's `universal`, as HLS.
+- `Downloads` (`lib/downloads/downloads.dart`, `Services.downloads`) keeps the albums and playlists the user
+  downloads, in a folder of the app's for each user on each server (`Services.downloadsDirectory`): the songs as their
+  files are (`streamUrl` without a bitrate), their covers at 800 pixels, and an index (`index.json`, written beside and
+  moved over, so that it is never half written) of what they are, as JSON. Files are named by their ids in base 64; a
+  song in several downloads is there once, and goes with the last. It fetches what they lack one file at a time while
+  the server is in reach, skipping the files that failed until it is back, or `retry`. `ServerWithDownloads`
+  (`lib/downloads/server_with_downloads.dart`) is the `MediaServer` the app is given (`Services.api`): a downloaded
+  song's `streamUrl` is its file (`file://`, which mpv plays and seeks in), and a downloaded cover's `coverArtUrl` its
+  own (`Cover` shows a `file://` one as a file), in reach or not; out of reach, the reads come from the downloads, and
+  what changes the server fails at once. `Reachability` (`lib/server/reachability.dart`) says whether the server is in
+  reach: `Services.start` pings it (`MediaServer.ping`) as it discovers the hub, both waiting a few seconds at most,
+  since a request to a server out of reach can wait for minutes, and a request that fails for the network
+  (`isNetworkFailure`) sets it out of reach, from when it pings every 30 s. `HomePage` builds its sections anew as it
+  changes. Out of reach as the app opens, the hub is the one last found next to the server (`Session.foundHub`), which
+  `SegueClient` reaches once it can. Tests leave `Services.downloads` null, and `Services.start` too where it can't
+  have a folder.
 - `PlaylistEditor` (`lib/server/playlist_editor.dart`, `Services.playlistEditor`) makes the changes to the user's
   playlists (create, rename, delete, add, remove, move), one after another in the order they come, since removing and
   moving go by the songs' places, and tells its listeners once none is left: the playlists section and a playlist's page

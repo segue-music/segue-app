@@ -104,6 +104,19 @@ class Session {
     }
   }
 
+  /// The hub last found next to [server] (its WebSocket's address), for when the server can't be reached to find it
+  /// again; null where none was.
+  static Future<Uri?> foundHub(Uri server) async {
+    final hub = await _prefs.getString('foundHub');
+    return hub != null && await _prefs.getString('foundHubServer') == server.toString() ? Uri.parse(hub) : null;
+  }
+
+  /// Keeps [hub] as the hub found next to [server] ([foundHub]).
+  static Future<void> rememberFoundHub(Uri server, Uri hub) async {
+    await _prefs.setString('foundHubServer', server.toString());
+    await _prefs.setString('foundHub', hub.toString());
+  }
+
   /// Signs out. The device id stays: it is this installation's, not the session's.
   static Future<void> clear() async {
     await _secure.delete(key: 'token');

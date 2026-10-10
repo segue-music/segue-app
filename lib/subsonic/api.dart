@@ -52,6 +52,7 @@ class SubsonicApi implements MediaServer {
   @override
   Auth get auth => Auth.subsonic(username: credentials.username, token: credentials.token, salt: credentials.salt);
 
+  @override
   Future<void> ping() => _get('ping');
 
   /// Albums by name are getAlbumList2's alphabeticalByName; the latest added, its newest; by release

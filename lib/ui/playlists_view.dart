@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 
+import '../downloads/downloads.dart';
 import '../l10n/app_localizations.dart';
 import '../server/models.dart';
 import '../server/playlist_editor.dart';
 import '../services.dart';
 import 'cover.dart';
+import 'order_chips.dart';
 import 'playlist_dialogs.dart';
 import 'playlist_menu.dart';
 import 'playlist_page.dart';
@@ -15,7 +17,8 @@ import 'spinner.dart';
 
 /// The user's playlists, and those others share with them, by name, each with its picture and how many songs it has,
 /// opening its page, under a button that makes a new one. Held, one opens its menu, which plays it next or adds it to
-/// the queue, and renames and deletes one the user can change. They load again as the app changes any.
+/// the queue, and renames and deletes one the user can change. They load again as the app changes any. Where the app
+/// downloads, chips over them show them all, or the downloaded alone, as these come and go.
 class PlaylistsView extends StatefulWidget {
   const PlaylistsView({super.key});
 
@@ -26,6 +29,9 @@ class PlaylistsView extends StatefulWidget {
 class _PlaylistsViewState extends State<PlaylistsView> {
   Future<List<Playlist>>? _playlists;
   PlaylistEditor? _editor;
+
+  /// Whether it shows the downloaded alone.
+  bool _downloaded = false;
 
   @override
   void didChangeDependencies() {
@@ -56,7 +62,55 @@ class _PlaylistsViewState extends State<PlaylistsView> {
         ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
 
   @override
-  Widget build(BuildContext context) => FutureBuilder(
+  Widget build(BuildContext context) {
+    final downloads = ServicesScope.of(context).downloads;
+
+    if (downloads == null) {
+      return _all();
+    }
+
+    final strings = AppLocalizations.of(context);
+    // As the albums' chips, at the top, their line the whole width.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        OrderChips(
+          _downloaded,
+          orders: const [false, true],
+          label: (downloaded) => downloaded ? strings.downloadedPlaylists : strings.allPlaylists,
+          onOrder: (downloaded) => setState(() => _downloaded = downloaded),
+        ),
+        Expanded(child: _downloaded ? _downloadedOnes(downloads) : _all()),
+      ],
+    );
+  }
+
+  /// The downloaded playlists, by name, as they come and go.
+  Widget _downloadedOnes(Downloads downloads) => ListenableBuilder(
+    listenable: downloads,
+    builder: (context, _) {
+      final playlists = [for (final download in downloads.all) ?download.playlist]
+        ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+
+      if (playlists.isEmpty) {
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Text(AppLocalizations.of(context).nothingDownloaded, textAlign: TextAlign.center),
+          ),
+        );
+      }
+
+      return ListView(
+        // At the end, clear of the bars a phone's home has over it.
+        padding: EdgeInsets.only(bottom: 8 + MediaQuery.paddingOf(context).bottom),
+        children: [for (final playlist in playlists) _PlaylistTile(playlist)],
+      );
+    },
+  );
+
+  /// Every playlist, from the server.
+  Widget _all() => FutureBuilder(
     future: _playlists,
     builder: (context, snapshot) {
       final strings = AppLocalizations.of(context);

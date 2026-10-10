@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
@@ -11,6 +13,7 @@ import 'artist_link.dart';
 import 'cover.dart';
 import 'cover_page.dart';
 import 'current_song.dart';
+import 'download_button.dart';
 import 'errors.dart';
 import 'now_playing_bar.dart';
 import 'page_area.dart';
@@ -82,9 +85,17 @@ class _PlaylistPageState extends State<PlaylistPage> {
 
   Future<void> _load() async {
     final version = ++_version;
+    final services = ServicesScope.of(context);
 
     try {
-      final (playlist, songs) = await ServicesScope.of(context).api.playlist(widget.playlist.id);
+      final (playlist, songs) = await services.api.playlist(widget.playlist.id);
+      final downloads = services.downloads;
+
+      // Downloaded, it follows the playlist as the server has it, its new songs downloading too.
+      if (downloads?.ofPlaylist(playlist.id) case final download?
+          when !listEquals([for (final song in download.songs) song.id], [for (final song in songs) song.id])) {
+        unawaited(downloads!.addPlaylist(playlist, songs));
+      }
 
       if (mounted && version == _version) {
         setState(() {
@@ -281,7 +292,11 @@ class _PlaylistPageState extends State<PlaylistPage> {
               ),
             ),
           ),
-          SongListTopLine(details: details ?? const SizedBox.shrink(), button: menu, play: play),
+          SongListTopLine(
+            details: details ?? const SizedBox.shrink(),
+            button: Row(mainAxisSize: MainAxisSize.min, children: [DownloadButton.playlist(playlist, songs), ?menu]),
+            play: play,
+          ),
         ],
       );
     }
@@ -310,6 +325,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
                     children: [
                       play,
                       if (menu != null) ...[const SizedBox(width: 8), menu],
+                      DownloadButton.playlist(playlist, songs),
                     ],
                   ),
                 ],

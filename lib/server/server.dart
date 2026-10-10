@@ -58,6 +58,9 @@ abstract interface class MediaServer {
   /// The same credentials, for the hub's hello (SPEC.md, section 2).
   Auth get auth;
 
+  /// Asks the server for as little as it answers: whether it is there. Throws where it can't be reached, or refuses.
+  Future<void> ping();
+
   /// Albums, in [order].
   Future<List<Album>> albums({required AlbumOrder order, int size = 100, int offset = 0});
 

@@ -71,29 +71,100 @@ class _SpinnerPainter extends CustomPainter {
     final tail = _tail.transform(growth);
     final start = -pi / 2 + tail * 3 / 2 * pi + turn * 2 * pi + growth * pi / 2;
     final sweep = (head - tail) * 3 / 2 * pi;
-
-    final center = size.center(Offset.zero);
-    final radius = (size.shortestSide - strokeWidth) / 2;
-    final along = sweep / (2 * pi);
-    final arc = SweepGradient(
-      colors: [color, color, color.withAlpha(0), color.withAlpha(0)],
-      stops: [0, along, along, 1],
-      transform: GradientRotation(start),
-    );
-    canvas.drawCircle(
-      center,
-      radius,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = strokeWidth
-        ..shader = arc.createShader(Rect.fromCircle(center: center, radius: radius)),
-    );
-    final end = Paint()..color = color;
-    canvas.drawCircle(center + Offset.fromDirection(start, radius), strokeWidth / 2, end);
-    canvas.drawCircle(center + Offset.fromDirection(start + sweep, radius), strokeWidth / 2, end);
+    _paintArc(canvas, size, start: start, sweep: sweep, strokeWidth: strokeWidth, color: color);
   }
 
   @override
   bool shouldRepaint(_SpinnerPainter old) =>
       old.animation != animation || old.strokeWidth != strokeWidth || old.color != color;
+}
+
+/// Paints an arc of [color] from [start] for [sweep], in radians, round at its ends, in [size]: a whole circle that a
+/// sweep gradient paints only along the arc, and a small filled circle at each end, which Linux keeps smooth.
+void _paintArc(
+  Canvas canvas,
+  Size size, {
+  required double start,
+  required double sweep,
+  required double strokeWidth,
+  required Color color,
+}) {
+  final center = size.center(Offset.zero);
+  final radius = (size.shortestSide - strokeWidth) / 2;
+  final along = sweep / (2 * pi);
+  final arc = SweepGradient(
+    colors: [color, color, color.withAlpha(0), color.withAlpha(0)],
+    stops: [0, along, along, 1],
+    transform: GradientRotation(start),
+  );
+  canvas.drawCircle(
+    center,
+    radius,
+    Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..shader = arc.createShader(Rect.fromCircle(center: center, radius: radius)),
+  );
+  final end = Paint()..color = color;
+  canvas.drawCircle(center + Offset.fromDirection(start, radius), strokeWidth / 2, end);
+  canvas.drawCircle(center + Offset.fromDirection(start + sweep, radius), strokeWidth / 2, end);
+}
+
+/// How far something has got, from 0 to 1 ([value]), as an arc from the top, clockwise, over a faint whole circle:
+/// Material's determinate CircularProgressIndicator, drawn as [Spinner] is, so that it stays smooth on Linux.
+class ProgressRing extends StatelessWidget {
+  const ProgressRing(this.value, {this.size = 36, this.strokeWidth = 4, this.color, super.key});
+
+  final double value;
+
+  /// The circle's diameter, stroke included.
+  final double size;
+
+  final double strokeWidth;
+
+  /// The progress indicator theme's color, or the primary color, by default.
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return SizedBox.square(
+      dimension: size,
+      child: CustomPaint(
+        painter: _ProgressRingPainter(
+          value.clamp(0, 1),
+          strokeWidth: strokeWidth,
+          color: color ?? theme.progressIndicatorTheme.color ?? theme.colorScheme.primary,
+        ),
+      ),
+    );
+  }
+}
+
+class _ProgressRingPainter extends CustomPainter {
+  _ProgressRingPainter(this.value, {required this.strokeWidth, required this.color});
+
+  final double value;
+  final double strokeWidth;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawCircle(
+      size.center(Offset.zero),
+      (size.shortestSide - strokeWidth) / 2,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..color = color.withValues(alpha: 0.25),
+    );
+
+    if (value > 0) {
+      _paintArc(canvas, size, start: -pi / 2, sweep: value * 2 * pi, strokeWidth: strokeWidth, color: color);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_ProgressRingPainter old) =>
+      old.value != value || old.strokeWidth != strokeWidth || old.color != color;
 }

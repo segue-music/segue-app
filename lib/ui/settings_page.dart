@@ -9,6 +9,7 @@ import '../quality_choice.dart';
 import '../replay_gain_choice.dart';
 import '../services.dart';
 import '../theme_choice.dart';
+import 'downloads_page.dart';
 import 'equalizer_page.dart';
 import 'language_button.dart';
 import 'licenses_page.dart';
@@ -48,6 +49,7 @@ class SettingsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context);
     final session = ServicesScope.of(context).session;
+    final downloads = ServicesScope.of(context).downloads;
     final (themeChoice, languageChoice, qualityChoice, replayGainChoice, equalizerChoice) = (
       this.themeChoice,
       this.languageChoice,
@@ -161,6 +163,16 @@ class SettingsPage extends StatelessWidget {
                     onTap: () =>
                         Navigator.of(context)
                             .push(MaterialPageRoute<void>(builder: (_) => EqualizerPage(choice: equalizerChoice))),
+                  ),
+                // The albums and playlists downloaded, a page of their own in the page area, with the room they take under
+                // its name.
+                if (downloads != null)
+                  ListTile(
+                    leading: const ThemedIcon(HugeIcons.strokeRoundedDownload04),
+                    title: Text(strings.downloads),
+                    subtitle: DownloadsSize(downloads),
+                    onTap: () =>
+                        Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const DownloadsPage())),
                   ),
               ],
             ),

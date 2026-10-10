@@ -429,6 +429,10 @@ class JellyfinApi implements MediaServer {
     return response.bodyBytes;
   }
 
+  /// System/Ping, which answers without a sign-in.
+  @override
+  Future<void> ping() => _get('System/Ping', const {});
+
   /// Ends this device's sign-in (Sessions/Logout), so that its token stops working.
   @override
   Future<void> signOut() async {

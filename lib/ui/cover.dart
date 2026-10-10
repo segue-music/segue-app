@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 import 'dart:ui' as ui;
 
@@ -81,10 +82,13 @@ class Cover extends StatelessWidget {
     }
   }
 
-  /// The cover [id], asked of the media server at [size] pixels, or else the picture at [url], taken that many across at
-  /// most; null for neither.
+  /// The cover [id], asked of the media server at [size] pixels, or its file where it is downloaded, taken that many
+  /// across at most, or else the picture at [url], taken so too; null for neither.
   static ImageProvider? _image(BuildContext context, String? id, Uri? url, int size) => switch ((id, url)) {
-    (final id?, _) => NetworkImage(ServicesScope.of(context).api.coverArtUrl(id, size: size).toString()),
+    (final id?, _) => switch (ServicesScope.of(context).api.coverArtUrl(id, size: size)) {
+      final cover when cover.isScheme('file') => ResizeImage(FileImage(File.fromUri(cover)), width: size),
+      final cover => NetworkImage('$cover'),
+    },
     (null, final url?) => ResizeImage(NetworkImage('$url'), width: size),
     (null, null) => null,
   };

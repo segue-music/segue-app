@@ -15,6 +15,7 @@ import '../replay_gain_choice.dart';
 import '../segue/client.dart';
 import '../segue/protocol.dart';
 import '../server/models.dart';
+import '../server/reachability.dart';
 import '../server/server.dart';
 import '../services.dart';
 import '../theme_choice.dart';
@@ -148,6 +149,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   /// The order of the albums tab: by name, or a home row's, whose title opened it.
   AlbumOrder _albumOrder = AlbumOrder.name;
 
+  /// Whether the albums tab shows the downloaded alone, rather than the library's in [_albumOrder].
+  bool _albumsDownloaded = false;
+
   /// The sections opened so far: each loads the first time it is opened. On a phone the pages a swipe goes through
   /// build each as it first comes into sight.
   final _opened = {_Section.home};
@@ -164,11 +168,28 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   final _history = PageHistory();
   late final _observers = [_history, TopPageTraversal()];
 
+  /// Whether the media server is in reach, which the sections load by: as it changes, they load anew, from the server
+  /// or from what was downloaded.
+  Reachability? _reachability;
+
   @override
   void initState() {
     super.initState();
     _searchFocus.addListener(_searchFocusChanged);
   }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final reachability = ServicesScope.of(context).reachability;
+
+    if (reachability != _reachability) {
+      _reachability?.removeListener(_reachabilityChanged);
+      _reachability = reachability?..addListener(_reachabilityChanged);
+    }
+  }
+
+  void _reachabilityChanged() => setState(() {});
 
   /// The settings' page, by which the top bar's button tells it on top, also once it opens again going forward
   /// ([PageHistory] opens a page again with its settings).
@@ -271,7 +292,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
   /// The albums tab, in [order].
   void _showAlbums(AlbumOrder order) {
-    setState(() => _albumOrder = order);
+    setState(() {
+      _albumOrder = order;
+      _albumsDownloaded = false;
+    });
     _select(_Section.albums);
   }
 
@@ -338,6 +362,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
   @override
   void dispose() {
+    _reachability?.removeListener(_reachabilityChanged);
     _typing?.cancel();
     _search.dispose();
     _searchFocus.dispose();
@@ -421,7 +446,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     // settings, a page of their own, whose button comes after the hub's status, which stays in sight: signing out, which
     // forgets the token, two clicks away rather than one in the corner.
     final actions = [
-      _HubStatus(client: services.connect.client),
+      _HubStatus(client: services.connect.client, reachability: services.reachability),
       IconButton(
         tooltip: strings.settings,
         icon: const ThemedIcon(HugeIcons.strokeRoundedSettings01),
@@ -429,22 +454,35 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       ),
     ];
 
-    // A section's view, in the wide screen's stack or the phone's pages.
-    Widget view(_Section section) => switch (section) {
-      _Section.home => HomeView(onShowAll: _showAlbums),
-      _Section.albums => AlbumsView(order: _albumOrder, onOrder: (order) => setState(() => _albumOrder = order)),
-      _Section.artists => const ArtistsView(),
-      _Section.genres => const GenresView(),
-      _Section.playlists => const PlaylistsView(),
-      // On a phone, the genres until a search finds something, which come back as it is cleared, where they were.
-      _Section.search => Stack(
-        fit: StackFit.expand,
-        children: [
-          Visibility(visible: results == null, maintainState: true, child: const GenresView()),
-          if (results != null) SearchResultsList(results),
-        ],
-      ),
-    };
+    // A section's view, in the wide screen's stack or the phone's pages: anew as the media server goes out of reach or
+    // comes back, so that it shows what was downloaded, or all again.
+    final reachable = services.reachability?.value ?? true;
+    Widget view(_Section section) => KeyedSubtree(
+      key: ValueKey((section, reachable)),
+      child: switch (section) {
+        _Section.home => HomeView(onShowAll: _showAlbums),
+        _Section.albums => AlbumsView(
+          order: _albumOrder,
+          onOrder: (order) => setState(() {
+            _albumOrder = order;
+            _albumsDownloaded = false;
+          }),
+          downloaded: _albumsDownloaded,
+          onDownloaded: () => setState(() => _albumsDownloaded = true),
+        ),
+        _Section.artists => const ArtistsView(),
+        _Section.genres => const GenresView(),
+        _Section.playlists => const PlaylistsView(),
+        // On a phone, the genres until a search finds something, which come back as it is cleared, where they were.
+        _Section.search => Stack(
+          fit: StackFit.expand,
+          children: [
+            Visibility(visible: results == null, maintainState: true, child: const GenresView()),
+            if (results != null) SearchResultsList(results),
+          ],
+        ),
+      },
+    );
 
     // The page area's navigator, over [first]: the sections, which the pages open over. The same navigator in both
     // layouts, by its key, so that the pages stay open as the window is narrowed or widened.
@@ -806,15 +844,18 @@ class _SideRail extends StatelessWidget {
   }
 }
 
-/// Whether Connect works: the hub's connection, at a glance.
+/// Whether Connect works, the hub's connection, at a glance; and, while the media server is out of reach
+/// ([reachability]), that the app shows only what was downloaded.
 class _HubStatus extends StatelessWidget {
-  const _HubStatus({required this.client});
+  const _HubStatus({required this.client, this.reachability});
 
   final SegueClient? client;
+  final Reachability? reachability;
 
   @override
   Widget build(BuildContext context) {
     final client = this.client;
+    final reachability = this.reachability;
     final strings = AppLocalizations.of(context);
     // As big as the icon buttons beside it, so that the icons in the bar are evenly spaced.
     final size = _buttonSize(context);
@@ -827,20 +868,26 @@ class _HubStatus extends StatelessWidget {
       ),
     );
 
-    if (client == null) {
-      return status(strings.noHub, HugeIcons.strokeRoundedUnlink02);
-    }
-
     return ListenableBuilder(
-      listenable: client,
-      builder: (context, _) => switch (client.status) {
-        HubStatus.connected => status(strings.hubConnected, HugeIcons.strokeRoundedCloudCheck),
-        HubStatus.connecting => status(strings.hubConnecting, HugeIcons.strokeRoundedCloudLoading),
-        HubStatus.offline => status(strings.hubOffline, HugeIcons.strokeRoundedCloudOff),
-        HubStatus.rejected => status(
-          client.lastClose?.code == CloseCode.replaced ? strings.hubReplaced : strings.hubRejected,
-          HugeIcons.strokeRoundedCloudAlert,
-        ),
+      listenable: Listenable.merge([?client, ?reachability]),
+      builder: (context, _) {
+        if (reachability != null && !reachability.value) {
+          return status(strings.serverUnreachable, HugeIcons.strokeRoundedWifiDisconnected02);
+        }
+
+        if (client == null) {
+          return status(strings.noHub, HugeIcons.strokeRoundedUnlink02);
+        }
+
+        return switch (client.status) {
+          HubStatus.connected => status(strings.hubConnected, HugeIcons.strokeRoundedCloudCheck),
+          HubStatus.connecting => status(strings.hubConnecting, HugeIcons.strokeRoundedCloudLoading),
+          HubStatus.offline => status(strings.hubOffline, HugeIcons.strokeRoundedCloudOff),
+          HubStatus.rejected => status(
+            client.lastClose?.code == CloseCode.replaced ? strings.hubReplaced : strings.hubRejected,
+            HugeIcons.strokeRoundedCloudAlert,
+          ),
+        };
       },
     );
   }

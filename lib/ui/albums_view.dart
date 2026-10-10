@@ -1,8 +1,10 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
+import '../downloads/downloads.dart';
 import '../l10n/app_localizations.dart';
 import '../server/models.dart';
 import '../server/server.dart';
@@ -29,9 +31,18 @@ extension AlbumOrderText on AlbumOrder {
 }
 
 /// The library's albums in [order], or a genre's by name, a page at a time: the next as the grid nears
-/// its end. Above the library's, chips pick the order.
+/// its end; or the albums downloaded ([downloaded]). Above the library's, chips pick the order, and after them, where the
+/// app downloads, "Baixados", the downloaded alone.
 class AlbumsView extends StatefulWidget {
-  const AlbumsView({this.genre, this.header, this.order = AlbumOrder.name, this.onOrder, super.key});
+  const AlbumsView({
+    this.genre,
+    this.header,
+    this.order = AlbumOrder.name,
+    this.onOrder,
+    this.downloaded = false,
+    this.onDownloaded,
+    super.key,
+  });
 
   /// The genre whose albums it lists; null, the library's.
   final Genre? genre;
@@ -44,6 +55,13 @@ class AlbumsView extends StatefulWidget {
 
   /// Picks another order, from the chips; null, no chips.
   final ValueChanged<AlbumOrder>? onOrder;
+
+  /// Whether it shows the albums downloaded alone, the latest downloaded first, as they come and go, rather than the
+  /// library's in [order].
+  final bool downloaded;
+
+  /// Shows the downloaded alone, from the chips' last; null, no such chip.
+  final VoidCallback? onDownloaded;
 
   @override
   State<AlbumsView> createState() => _AlbumsViewState();
@@ -71,9 +89,18 @@ class _AlbumsViewState extends State<AlbumsView> {
   /// Counts the starts over, so that a page asked for before one is dropped.
   int _generation = 0;
 
+  /// What was downloaded, which [AlbumsView.downloaded] lists as it changes.
+  Downloads? _downloads;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final downloads = ServicesScope.of(context).downloads;
+
+    if (downloads != _downloads) {
+      _downloads?.removeListener(_downloadsChanged);
+      _downloads = downloads?..addListener(_downloadsChanged);
+    }
 
     if (!_started) {
       _started = true;
@@ -81,12 +108,37 @@ class _AlbumsViewState extends State<AlbumsView> {
     }
   }
 
-  /// Another order lists them again, from the start.
+  @override
+  void dispose() {
+    _downloads?.removeListener(_downloadsChanged);
+    super.dispose();
+  }
+
+  /// The downloaded albums, the latest downloaded first.
+  List<Album> get _downloadedAlbums => [for (final download in _downloads?.all ?? const <Download>[]) ?download.album];
+
+  /// A download came or went: listing the downloaded, the list follows it.
+  void _downloadsChanged() {
+    final albums = _downloadedAlbums;
+
+    if (widget.downloaded && !_sameAlbums(albums, _albums)) {
+      setState(() {
+        _albums
+          ..clear()
+          ..addAll(albums);
+      });
+    }
+  }
+
+  static bool _sameAlbums(List<Album> a, List<Album> b) =>
+      listEquals([for (final album in a) album.id], [for (final album in b) album.id]);
+
+  /// Another order, or the downloaded alone, lists them again, from the start.
   @override
   void didUpdateWidget(AlbumsView oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    if (widget.order != oldWidget.order) {
+    if (widget.order != oldWidget.order || widget.downloaded != oldWidget.downloaded) {
       _albums.clear();
       _done = false;
       _error = null;
@@ -102,6 +154,20 @@ class _AlbumsViewState extends State<AlbumsView> {
 
     final generation = over ? ++_generation : _generation;
     final api = ServicesScope.of(context).api;
+
+    // The downloaded, all at once: they are on the device.
+    if (widget.downloaded) {
+      setState(() {
+        _albums
+          ..clear()
+          ..addAll(_downloadedAlbums);
+        _done = true;
+        _loading = false;
+        _error = null;
+      });
+      return;
+    }
+
     setState(() {
       _loading = true;
       _error = null;
@@ -167,12 +233,27 @@ class _AlbumsViewState extends State<AlbumsView> {
     }
 
     final strings = AppLocalizations.of(context);
+    final onDownloaded = widget.onDownloaded;
     // The chips stay at the top, also while another order's albums come. Their line takes the whole width, the chips
     // starting at its left, lined up with the albums.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        OrderChips(widget.order, orders: _orders, label: (order) => order.label(strings), onOrder: onOrder),
+        OrderChips(
+          widget.downloaded ? null : widget.order,
+          orders: _orders,
+          label: (order) => order.label(strings),
+          onOrder: onOrder,
+          more: [
+            if (_downloads != null && onDownloaded != null)
+              ChoiceChip(
+                label: Text(strings.downloadedAlbums),
+                selected: widget.downloaded,
+                onSelected: (_) => onDownloaded(),
+                mouseCursor: WidgetStateMouseCursor.clickable,
+              ),
+          ],
+        ),
         Expanded(child: _albumsGrid()),
       ],
     );
@@ -207,7 +288,15 @@ class _AlbumsViewState extends State<AlbumsView> {
                   child: Center(child: Spinner()),
                 )
               : _albums.isEmpty && widget.genre == null
-              ? Center(child: Text(widget.order.emptyMessage(strings)))
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Text(
+                      widget.downloaded ? strings.nothingDownloaded : widget.order.emptyMessage(strings),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                )
               : null,
         ),
       ),

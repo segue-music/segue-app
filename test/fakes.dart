@@ -1,8 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:clock/clock.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:segue/player/engine.dart';
 import 'package:segue/segue/protocol.dart';
+import 'package:segue/subsonic/api.dart';
 
 /// An engine with no audio: a queue and a clock, like the real one. Its clock is [clock], so that a test
 /// in fake time (fake_async) plays in it.
@@ -245,4 +249,45 @@ class FakeEngine implements AudioEngine {
     _position = position;
     _since = clock.now();
   }
+}
+
+/// A Subsonic server whose songs are their ids' bytes, and whose covers are images of their ids, but for those in
+/// [failing], which it answers with an error, and those in [held], which it answers once their completer is; out of
+/// reach ([reachable] false), it answers nothing. It counts what it is asked for.
+class FileServer {
+  final requests = <String>[];
+  final failing = <String>{};
+  final held = <String, Completer<void>>{};
+  bool reachable = true;
+
+  late final client = MockClient((request) async {
+    if (!reachable) {
+      throw http.ClientException('no route to host', request.url);
+    }
+
+    final id = request.url.queryParameters['id']!;
+    final endpoint = request.url.pathSegments.last;
+    requests.add('$endpoint $id');
+    await held[id]?.future;
+
+    if (failing.contains(id)) {
+      return http.Response('', 500);
+    }
+
+    return switch (endpoint) {
+      'stream.view' => http.Response.bytes(utf8.encode('audio of $id'), 200),
+      'getCoverArt.view' => http.Response.bytes(
+        utf8.encode('image of $id'),
+        200,
+        headers: {'content-type': 'image/jpeg'},
+      ),
+      _ => http.Response('', 404),
+    };
+  });
+
+  late final api = SubsonicApi(
+    Uri.parse('https://music.test'),
+    const SubsonicCredentials(username: 'a', token: 't', salt: 's'),
+    client: client,
+  );
 }

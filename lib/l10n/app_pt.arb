@@ -1055,6 +1055,75 @@
   "@removeFromQueue": {
     "description": "The menu item that takes a track out of the queue, in the queue's page."
   },
+  "download": "Baixar",
+  "@download": {
+    "description": "The tooltip of the button that downloads an album or a playlist to the device, to play without the server."
+  },
+  "downloaded": "Baixado: toca sem o servidor",
+  "@downloaded": {
+    "description": "The tooltip of the download button of an album or a playlist whose tracks are all on the device."
+  },
+  "downloading": "Baixando: {done} de {total} faixas",
+  "@downloading": {
+    "description": "How far the download of an album or a playlist has got, in its button's tooltip and in the downloads' page.",
+    "placeholders": {
+      "done": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "downloadFailed": "{count, plural, =1{1 faixa não baixou: tentar de novo} other{{count} faixas não baixaram: tentar de novo}}",
+  "@downloadFailed": {
+    "description": "The tooltip of the download button of an album or a playlist some of whose tracks failed to come, which tries them again.",
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "removeDownloadQuestion": "Remover “{name}” do aparelho?",
+  "@removeDownloadQuestion": {
+    "description": "The question before taking a downloaded album or playlist off the device.",
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "removeDownloadDetail": "As faixas continuam no servidor, e voltam a tocar de lá.",
+  "@removeDownloadDetail": {
+    "description": "Under the question before taking a download off the device: what stays."
+  },
+  "remove": "Remover",
+  "@remove": {
+    "description": "The button that takes a download off the device, in the question before it."
+  },
+  "serverUnreachable": "Sem conexão com o servidor: só o que foi baixado",
+  "@serverUnreachable": {
+    "description": "The tooltip of the top bar's status while the media server can't be reached, when the app shows only what was downloaded."
+  },
+  "downloadedAlbums": "Baixados",
+  "@downloadedAlbums": {
+    "description": "The home's row of downloaded albums, which it shows alone while the media server can't be reached."
+  },
+  "downloadedPlaylists": "Baixadas",
+  "@downloadedPlaylists": {
+    "description": "The chip over the playlists that shows the downloaded ones alone."
+  },
+  "allPlaylists": "Todas",
+  "@allPlaylists": {
+    "description": "The chip over the playlists that shows them all, downloaded or not."
+  },
+  "nothingDownloaded": "Nada baixado. Com o servidor ao alcance, baixe álbuns e playlists pelo botão nas páginas deles.",
+  "@nothingDownloaded": {
+    "description": "Where downloads would be listed, when there are none."
+  },
+  "downloads": "Downloads",
+  "@downloads": {
+    "description": "The settings' entry, and the page it opens, listing the albums and playlists downloaded to the device."
+  },
+  "downloadsSize": "{size} no aparelho",
+  "@downloadsSize": {
+    "description": "How much room the downloads take, as \"1,2 GB\", under the settings' entry and on top of the downloads' page.",
+    "placeholders": {
+      "size": {"type": "String"}
+    }
+  },
   "moreOptions": "Mais opções",
   "@moreOptions": {
     "description": "The tooltip of the button that opens a song's or a playlist's menu."

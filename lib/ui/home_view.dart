@@ -9,7 +9,8 @@ import 'album_row.dart';
 import 'albums_view.dart';
 
 /// The first section: the latest released albums, the albums the user plays most and the latest added
-/// to the library, each in a row that scrolls sideways, whose title opens all of them.
+/// to the library, each in a row that scrolls sideways, whose title opens all of them. With the media server out of
+/// reach, the albums downloaded, the latest first, alone.
 class HomeView extends StatefulWidget {
   const HomeView({this.onShowAll, super.key});
 
@@ -27,6 +28,9 @@ class _HomeViewState extends State<HomeView> {
   late Map<AlbumOrder, Future<List<Album>>> _albums;
   bool _loaded = false;
 
+  /// Whether the media server was out of reach as the rows loaded.
+  bool _offline = false;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -37,8 +41,11 @@ class _HomeViewState extends State<HomeView> {
   }
 
   void _load() {
-    final api = ServicesScope.of(context).api;
-    _albums = {for (final order in _rows) order: api.albums(order: order, size: AlbumRow.maxAlbums)};
+    final services = ServicesScope.of(context);
+    _offline = !(services.reachability?.value ?? true);
+    // Out of reach, the server's albums are the downloaded ones, the latest downloaded first.
+    final rows = _offline ? const [AlbumOrder.latest] : _rows;
+    _albums = {for (final order in rows) order: services.api.albums(order: order, size: AlbumRow.maxAlbums)};
     _loaded = true;
   }
 
@@ -60,11 +67,11 @@ class _HomeViewState extends State<HomeView> {
           // At the end, clear of the bars a phone's home has over it.
           padding: EdgeInsets.only(bottom: 16 + MediaQuery.paddingOf(context).bottom),
           children: [
-            for (final order in _rows)
+            for (final MapEntry(key: order, value: albums) in _albums.entries)
               AlbumRow(
-                title: order.label(strings),
-                albums: _albums[order]!,
-                empty: order.emptyMessage(strings),
+                title: _offline ? strings.downloadedAlbums : order.label(strings),
+                albums: albums,
+                empty: _offline ? strings.nothingDownloaded : order.emptyMessage(strings),
                 onShowAll: onShowAll == null ? null : () => onShowAll(order),
               ),
           ],

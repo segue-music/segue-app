@@ -167,6 +167,22 @@ the device it runs on.
   and what shows the playlists then loads them again as the server has them; one the server refuses
   says so. On a Subsonic server a song moves as the playlist's songs go back in their new order, which
   a server with OpenSubsonic's formPost (Navidrome) takes in a form's body, rather than in the URL;
+- downloads, to listen without the media server: an album or a playlist, from the button beside its
+  play button, which shows how far it has got and, once all its songs are on the device, that it is
+  downloaded; pressed then, it takes it off the device, once asked. The songs come as their files are
+  (what the server streams untranscoded), with their covers and what the app shows of them, one at a
+  time while the server is in reach, and the songs that failed come again as it is back, or from the
+  button. A song in several downloads is on the device once. A downloaded song plays from its file and a
+  downloaded cover shows from its own, the server in reach or not; a downloaded playlist follows the
+  server's as its page shows it. In the library, a chip after the albums' orders ("Baixados") shows the
+  downloaded albums alone, the latest first, and one over the playlists ("Baixadas") the downloaded
+  playlists; the settings list the downloads, with the room they take, each opening its page and going
+  off the device from its own button. With the server out of reach (the app asks it,
+  with a short wait, as it opens, and again every 30 s once a request has failed), the top bar says so,
+  and the app shows what was downloaded: the home a row of the downloaded albums alone, the library
+  their albums, artists and genres and the downloaded playlists, the search them too, and their pages,
+  which play from the files; as it is back, it shows the whole library again. The hub is then the one
+  last found next to the server, which the app reaches once it can;
 - on the album page, what kind of release it is (an album, an EP, a single or a compilation: on a
   computer above its name, on a phone before its year), which its play button, and the one on its
   cover wherever albums are listed, say too ("Tocar o EP"); under its name, its artist with their
@@ -262,7 +278,8 @@ the device it runs on.
 Not yet: moving a playlist's or the queue's songs with the remote (a TV has no drag), adding the song that plays to a
 playlist from the player, the media controls on macOS and Windows, on a Jellyfin server the cover of a song that came from another device
 when its file has none of its own (Jellyfin doesn't fall back to the album's) and an artist's popular songs (Jellyfin
-knows only its users' plays), an offline cache, sending the music
+knows only its users' plays), downloading on Wi-Fi alone and in a quality of the user's (the downloads come as their files
+are), counting the plays made without the server once it is back, lyrics and artists' pictures without the server, sending the music
 to speakers and TVs that don't run the app (Google Cast, UPnP/DLNA), and CarPlay as an app of its own (browsing the library
 on the car's screen, which needs Apple's CarPlay entitlement and native code). The Android build
 has been tried on a tablet and on an Android TV, and the iOS build on an iPhone, with CarPlay's Now Playing screen.
@@ -274,6 +291,7 @@ has been tried on a tablet and on an Android TV, and the iOS build on an iPhone,
 | `lib/server/` | `MediaServer`, what the app asks of the media server in either API, and its albums, artists and songs; finding out which API a server speaks, and signing in to it; `PlaylistEditor`, the changes to the user's playlists |
 | `lib/subsonic/` | The Subsonic API: token sign-in, albums, artists, songs, playlists, search, stream and cover URLs |
 | `lib/jellyfin/` | The Jellyfin API: sign-in by name for this device, the same library calls, and signing out |
+| `lib/downloads/` | `Downloads`, the albums and playlists downloaded to the device, and `ServerWithDownloads`, the media server as the app sees it: downloaded songs and covers from their files, and with the server out of reach, what was downloaded |
 | `lib/segue/` | The Segue protocol in Dart (its `SPEC.md` is in the segue repository), the hub client (reconnects by itself) and hub discovery |
 | `lib/player/` | `PlayerController` (queue, commands, state reports, each song's ReplayGain, the equalizer) over an `AudioEngine`; `MediaKitEngine` is the real one. `MediaControls`: the system's media controls. `AudioInterruptions`: calls and the like pausing the music, on iOS |
 | `lib/connect/` | `ConnectController`: which device the app controls, and moving the music between devices |
