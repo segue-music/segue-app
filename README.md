@@ -163,8 +163,8 @@ It does:
   another device until its queue comes; one the device refuses goes back, and a message says why;
 - songs played next, right after the one that plays, or added at the end of the queue, on whichever
   device the app controls: a song from its menu, an album, all its songs, from the button beside its
-  play button, and a playlist from its menu, on its page and in the list of them (a long press, or the
-  menu key), another user's too. Shuffled, they still play next, and turning shuffle off puts them where they would
+  play button, and a playlist from its menu, on its page and in the list of them (a long press, OK held on a remote,
+  or the menu key), another user's too. Shuffled, they still play next, and turning shuffle off puts them where they would
   have gone unshuffled. To an empty queue they are the queue, paused at the first. A message at the
   bottom says so;
 - autoplay: as the queue's last song starts playing, repeat off, songs like it go after it, ten at a time, but for those
@@ -184,14 +184,14 @@ It does:
 - making and changing playlists: a new one, from a button over the list of them, named in a dialog; a
   song added to one, from its menu (a button after its duration, wherever songs are listed: an album's
   page, an artist's, a playlist's, search; for the keyboard and the remote, which stop at the song
-  alone, the menu key or Shift+F10 on it), the song that plays from the player (on a phone, the full-screen
+  alone, the menu key or Shift+F10 on it, or OK held, as a TV's remote seldom has a menu key), the song that plays from the player (on a phone, the full-screen
   player's button at the bottom right; on a wider screen, the player bar's, beside the heart), or an album, all its
   songs, from the button beside its play button, to one of those the user can change, picked in a dialog, or to a new
   one named there; on the
   page of one the user can change, a song taken out from its menu, a song moved by dragging it (on a
   touch screen, once held a moment; on a TV by the remote, as below), and the playlist renamed or deleted (once asked)
   from its own
-  menu, which in the list of them a long press on it opens too (with a finger or the mouse), or the menu key. Another user's playlist, or one the server makes from rules (Navidrome's smart playlists), as
+  menu, which in the list of them a long press on it opens too (with a finger or the mouse), OK held, or the menu key. Another user's playlist, or one the server makes from rules (Navidrome's smart playlists), as
   OpenSubsonic says, has none of these: its menu only plays it next or adds it to the queue. Each change goes to the server as it's made, one after another,
   and what shows the playlists then loads them again as the server has them; one the server refuses
   says so. On a Subsonic server a song moves as the playlist's songs go back in their new order, which

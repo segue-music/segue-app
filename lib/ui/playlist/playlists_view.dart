@@ -1,6 +1,5 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../../downloads/downloads.dart';
@@ -9,6 +8,7 @@ import '../../server/models.dart';
 import '../../server/playlist_editor.dart';
 import '../../services.dart';
 import '../widgets/cover.dart';
+import '../widgets/menu_shortcuts.dart';
 import '../widgets/order_chips.dart';
 import '../widgets/spinner.dart';
 import 'favorite_songs_page.dart';
@@ -187,8 +187,9 @@ class _FavoritesTile extends StatelessWidget {
 }
 
 /// A playlist in the list: a tap opens its page. A long press (held, with a finger or the mouse) opens its menu where it
-/// was pressed, as the menu key, or Shift+F10, does over it, for the keyboard and the remote; where it has nothing to
-/// do (another user's playlist, empty, or one the device the app controls can't add to its queue), nothing opens.
+/// was pressed, as the menu key, Shift+F10, or OK held does over it, for the keyboard and the remote; where it has
+/// nothing to do (another user's playlist, empty, or one the device the app controls can't add to its queue), nothing
+/// opens.
 class _PlaylistTile extends StatefulWidget {
   const _PlaylistTile(this.playlist);
 
@@ -242,11 +243,8 @@ class _PlaylistTileState extends State<_PlaylistTile> {
       onLongPress: () => _openMenu(at: _pressedAt),
     );
 
-    return CallbackShortcuts(
-      bindings: {
-        const SingleActivator(LogicalKeyboardKey.contextMenu): _openMenu,
-        const SingleActivator(LogicalKeyboardKey.f10, shift: true): _openMenu,
-      },
+    return MenuShortcuts(
+      onOpen: _openMenu,
       child: Listener(onPointerDown: (event) => _pressedAt = event.position, child: tile),
     );
   }

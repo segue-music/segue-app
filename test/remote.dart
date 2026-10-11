@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -35,6 +36,16 @@ Future<void> pressOnRemote(WidgetTester tester, LogicalKeyboardKey key) async {
     await tester.sendKeyEvent(key);
   }
 
+  await tester.pumpAndSettle();
+}
+
+/// Holds OK until a song's or a playlist's menu opens, its key repeating then, and lets it go.
+Future<void> holdOk(WidgetTester tester) async {
+  await tester.sendKeyDownEvent(LogicalKeyboardKey.select);
+  await tester.pump(kLongPressTimeout);
+  await tester.pump();
+  await tester.sendKeyRepeatEvent(LogicalKeyboardKey.select);
+  await tester.sendKeyUpEvent(LogicalKeyboardKey.select);
   await tester.pumpAndSettle();
 }
 

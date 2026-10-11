@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -8,6 +7,7 @@ import '../../server/models.dart';
 import '../../services.dart';
 import '../playlist/playlist_dialogs.dart';
 import '../widgets/errors.dart';
+import '../widgets/menu_shortcuts.dart';
 import '../widgets/menu_item_label.dart';
 import '../widgets/themed_icon.dart';
 import 'favorite_button.dart';
@@ -116,10 +116,10 @@ Future<bool> addToQueue(BuildContext context, List<Song> songs, {required bool n
 
 /// A song's menu, at the end of its line in a list, after its duration: what can be done with it besides playing it,
 /// playing it next, adding it to the queue or to a playlist, making it one of the user's favorites or no longer one,
-/// and, in a list that the user can change ([onRemove]), a
-/// playlist or the queue ([list]), taking it out, and on a TV moving it there ([onMove]). Its button takes no focus: for the keyboard and the remote the song stays one stop, where the menu
-/// key, or Shift+F10, opens the menu. [builder] makes the song's line, with the button ([SongMenu.width] wide) where it
-/// goes.
+/// and, in a list that the user can change ([onRemove]), a playlist or the queue ([list]), taking it out, and on a TV
+/// moving it there ([onMove]). Its button takes no focus: for the keyboard and the remote the song stays one stop,
+/// where the menu key, Shift+F10, or OK held opens the menu ([MenuShortcuts]). [builder] makes the song's line, with
+/// the button ([SongMenu.width] wide) where it goes.
 class SongMenu extends StatefulWidget {
   const SongMenu(
     this.song, {
@@ -179,12 +179,6 @@ class _SongMenuState extends State<SongMenu> {
       ),
     );
 
-    return CallbackShortcuts(
-      bindings: {
-        const SingleActivator(LogicalKeyboardKey.contextMenu): _open,
-        const SingleActivator(LogicalKeyboardKey.f10, shift: true): _open,
-      },
-      child: widget.builder(context, button),
-    );
+    return MenuShortcuts(onOpen: _open, child: widget.builder(context, button));
   }
 }

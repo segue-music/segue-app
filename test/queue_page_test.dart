@@ -440,6 +440,41 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     });
 
+    testWidgets('on a TV, whose remote seldom has a menu key, OK held on a track opens its menu, nothing in it picked '
+        'as OK is let go, and pressed, plays the track as it is let go', (tester) async {
+      final player = await pumpBar(tester, size: const Size(1000, 600), television: true);
+      await openQueue(tester);
+      await pressOnRemote(tester, LogicalKeyboardKey.arrowDown);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.select);
+      await tester.pump(kLongPressTimeout - const Duration(milliseconds: 100));
+      expect(player.current?.title, 'Two', reason: 'not yet');
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.select);
+      await tester.pumpAndSettle();
+      expect(player.current?.title, 'Three');
+      expect(find.text('Mover'), findsNothing);
+
+      // On Android the key repeats from when the system takes it as held.
+      await pressOnRemote(tester, LogicalKeyboardKey.arrowDown);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.select);
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.sendKeyRepeatEvent(LogicalKeyboardKey.select);
+      await tester.pump();
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.select);
+      await tester.pumpAndSettle();
+      expect(find.text('Mover'), findsOneWidget);
+      expect(player.current?.title, 'Three');
+      await pressOnRemote(tester, LogicalKeyboardKey.escape);
+      expect(find.text('Mover'), findsNothing);
+      expect(focusedOn(tester, 'Four'), isTrue);
+
+      await holdOk(tester);
+      expect(find.text('Mover'), findsOneWidget);
+      expect(player.current?.title, 'Three');
+      await pickByRemote(tester, 'Remover da fila');
+      expect(player.queue.map((song) => song.title), ['One', 'Two', 'Three']);
+      await tester.pumpWidget(const SizedBox());
+    });
+
     testWidgets('on a TV, which has no drag, a track moves by the remote: from its menu, up and down take it along, '
         'the focus on it, and OK leaves it there, the device moving it only then', (tester) async {
       final player = await pumpBar(tester, size: const Size(1000, 600), television: true);

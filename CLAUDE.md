@@ -352,8 +352,10 @@ Running two app instances on one machine as different devices:
   `adb shell input keyevent` sends. `TextFieldArrowShortcuts` lets up and down leave text fields
   (on a TV, left and right too). A text field opens the keyboard as the focus comes to it, and on a
   TV the keyboard covers half the screen and takes the D-pad, so there the home's search bar stays
-  read-only until the center button (its `onTap`) opens it. A TV has no drag, so the queue's and a
-  playlist's songs move by the remote (`MovableSong`, `lib/ui/song/movable_song.dart`, from the song's menu):
+  read-only until the center button (its `onTap`) opens it. A TV's remote seldom has a menu key, so a song's or a
+  playlist's menu also opens with the center button held (`MenuShortcuts`, `lib/ui/widgets/menu_shortcuts.dart`):
+  there a press of it plays the song (opens the playlist) as it is let go, not as it goes down. A TV has no drag, so
+  the queue's and a playlist's songs move by the remote (`MovableSong`, `lib/ui/song/movable_song.dart`, from the song's menu):
   there their lists are plain `SliverList`s that find each line by its key (`findChildIndexCallback`),
   as `SliverReorderableList` keys each line by its index too, and makes it anew as it moves, dropping
   the focus; and a playlist loaded again keeps its entries (`_entriesOf`), for the same reason.

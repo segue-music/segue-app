@@ -793,7 +793,7 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('the menu key, or Shift+F10, on a playlist in the list opens its menu, over it', (tester) async {
+  testWidgets('the menu key, Shift+F10, or OK held on a playlist in the list opens its menu, over it', (tester) async {
     await pumpHome(tester, const Size(1000, 700));
     await openPlaylists(tester);
     Focus.of(tester.element(find.text('Road trip'))).requestFocus();
@@ -813,6 +813,12 @@ void main() {
     await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
     await tester.pumpAndSettle();
     expect(find.text('Excluir a playlist'), findsOneWidget);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    await holdOk(tester);
+    expect(find.text('Excluir a playlist'), findsOneWidget);
+    expect(find.byType(PlaylistPage), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
 }
