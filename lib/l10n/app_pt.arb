@@ -737,6 +737,10 @@
   "@hideLyrics": {
     "description": "The tooltip of the button that hides the lyrics."
   },
+  "lyrics": "Letra",
+  "@lyrics": {
+    "description": "On a phone, under the full-screen player, beside an arrow up: that a drag up (or a tap) brings in the song's lyrics; with them in, the arrow points down, and a drag down (or a tap) takes them out."
+  },
   "devices": "Aparelhos",
   "@devices": {
     "description": "The tooltip of the button that opens the device picker."

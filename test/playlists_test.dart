@@ -9,6 +9,7 @@ import 'package:http/testing.dart';
 import 'package:segue/connect/connect.dart';
 import 'package:segue/l10n/app_localizations.dart';
 import 'package:segue/player/player.dart';
+import 'package:segue/server/models.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
@@ -410,6 +411,29 @@ void main() {
     expect(titles(tester), ['Sweet Emotion', 'Dream Police', 'Walk This Way']);
     await tester.pumpWidget(const SizedBox());
   });
+
+  for (final (device, size, player) in [
+    ('on a phone, the full-screen player\'s button at the bottom right', const Size(360, 640), true),
+    ('on a wide screen, the player bar\'s button beside the heart', const Size(1000, 700), false),
+  ]) {
+    testWidgets('$device adds the song that plays to a playlist', (tester) async {
+      final library = Library();
+      final controller = await pumpHome(tester, size, library: library);
+      await controller.playQueue(const [Song(id: 's1', title: 'Walk This Way', artist: 'Aerosmith')], play: false);
+      await tester.pumpAndSettle();
+
+      if (player) {
+        await tap(tester, find.byTooltip('Abrir o player'));
+      }
+
+      await tap(tester, find.byTooltip('Adicionar à playlist'));
+      expect(find.text('chill'), findsNothing, reason: 'another user\'s');
+      await tap(tester, item('Road trip'));
+      expect(find.text('Adicionada a Road trip'), findsOneWidget);
+      expect(library.songsOf('Road trip'), ['s2', 's9', 's1']);
+      await tester.pumpWidget(const SizedBox());
+    });
+  }
 
   testWidgets('the album\'s button adds all its songs, also to a new playlist, named in a dialog', (tester) async {
     final library = Library();

@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:segue/connect/connect.dart';
 import 'package:segue/l10n/app_localizations.dart';
 import 'package:segue/lyrics/lrclib.dart';
@@ -329,15 +330,20 @@ void main() {
       expect(onPage(find.byTooltip(tooltip)), findsOneWidget, reason: tooltip);
     }
 
-    // On a phone, where the bar isn't under the player, the lyrics, the devices and the queue are in a bar of their
-    // own, at the bottom, and the album is at the top.
-    for (final tooltip in ['Mostrar a letra', 'Aparelhos', 'Fila']) {
+    // On a phone, where the bar isn't under the player, the lyrics' handle, the queue, the devices and a playlist to
+    // add the song to are at the bottom, the devices in the middle, and the album is at the top.
+    for (final tooltip in ['Mostrar a letra', 'Fila', 'Aparelhos', 'Adicionar à playlist']) {
       expect(
         tester.getRect(onPage(find.byTooltip(tooltip))).top,
         greaterThan(tester.getRect(onPage(find.byTooltip('Tocar'))).bottom),
         reason: tooltip,
       );
     }
+
+    final devices = tester.getRect(onPage(find.byTooltip('Aparelhos')));
+    expect(tester.getRect(onPage(find.byTooltip('Fila'))).right, lessThan(devices.left));
+    expect(tester.getRect(onPage(find.byTooltip('Adicionar à playlist'))).left, greaterThan(devices.right));
+    expect(devices.center.dx, 180);
 
     expect(find.descendant(of: onPage(find.byType(AppBar)), matching: find.text('Toys in the Attic')), findsOneWidget);
 
@@ -430,7 +436,7 @@ void main() {
     expect(above, greaterThan(8), reason: 'with room to spare');
     expect(above, moreOrLessEquals(below, epsilon: 1));
 
-    for (final tooltip in ['Mostrar a letra', 'Aparelhos', 'Fila']) {
+    for (final tooltip in ['Mostrar a letra', 'Fila', 'Aparelhos', 'Adicionar à playlist']) {
       final button = tester.getRect(onPage(find.byTooltip(tooltip)));
       expect(button.top, greaterThanOrEqualTo(room.bottom), reason: tooltip);
       expect(button.bottom, lessThanOrEqualTo(915 - 48), reason: tooltip);
@@ -1311,6 +1317,44 @@ void main() {
     await tester.fling(playerCover, const Offset(0, -200), 1000);
     await tester.pumpAndSettle();
     expect(tester.getRect(top).top, 0);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a phone, where the player has no button for the lyrics, a handle under it says that a drag up brings '
+      'them in: its arrow turns down with the finger as they come, for a drag down to take them out; a tap does the '
+      'same', (tester) async {
+    await pumpBar(tester, server: withLyrics(verse));
+    await openPlayer(tester);
+    final lyrics = onPage(find.byType(LyricsView));
+    final handle = onPage(find.ancestor(of: find.text('Letra'), matching: find.byType(TextButton)));
+    double turns() => tester
+        .widget<RotationTransition>(find.descendant(of: handle, matching: find.byType(RotationTransition)))
+        .turns
+        .value;
+    expect(onPage(themedIcon(HugeIcons.strokeRoundedMicVocal)), findsNothing);
+    expect(tester.getRect(handle).top, greaterThan(tester.getRect(onPage(find.byTooltip('Tocar'))).bottom));
+    expect(tester.getCenter(handle).dx, 180, reason: 'in the middle');
+    expect(turns(), 0, reason: 'up');
+
+    final finger = await tester.startGesture(tester.getCenter(playerCover));
+    await finger.moveBy(const Offset(0, -20)); // past the slop, where the drag starts
+    await finger.moveBy(const Offset(0, -40));
+    await tester.pump();
+    expect(turns(), inExclusiveRange(0, 0.5), reason: 'with the finger');
+    await finger.moveBy(const Offset(0, -200));
+    await finger.up();
+    await tester.pumpAndSettle();
+    expect(lyrics, findsOneWidget);
+    expect(turns(), 0.5, reason: 'down');
+    expect(tester.getRect(handle).top, greaterThanOrEqualTo(tester.getRect(lyrics).bottom), reason: 'under them');
+
+    await tester.tap(handle);
+    await tester.pumpAndSettle();
+    expect(lyrics, findsNothing);
+    expect(turns(), 0);
+    await tester.tap(handle);
+    await tester.pumpAndSettle();
+    expect(lyrics, findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 

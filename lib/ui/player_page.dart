@@ -18,6 +18,7 @@ import 'lyrics_view.dart';
 import 'now_playing_bar.dart';
 import 'page_area.dart';
 import 'player_controls.dart';
+import 'playlist_dialogs.dart';
 import 'queue_page.dart';
 import 'sleep_timer_button.dart';
 import 'song_link.dart';
@@ -29,7 +30,8 @@ import 'themed_icon.dart';
 class PlayerPage extends StatefulWidget {
   const PlayerPage(this._lyrics, {super.key});
 
-  /// Whether the lyrics show: turned on and off at the top, or, on a wide screen, in the bar under the player.
+  /// Whether the lyrics show: turned on and off, on a phone, by a drag or the handle under the player ([_LyricsHandle]),
+  /// and on a wide screen in the bar under it.
   final ValueNotifier<bool> _lyrics;
 
   /// How long the lyrics take to come in, beside the player or under it, and to go.
@@ -84,7 +86,8 @@ class _PlayerPageState extends State<PlayerPage> with SingleTickerProviderStateM
     void close() => Navigator.of(context).maybePop();
 
     // On a wide screen the bar stays under the player, with what would be at its top: the lyrics, the
-    // queue and the devices. On a phone, which has no bar there, they go in one of their own, at the bottom.
+    // queue and the devices. On a phone, which has no bar there, the queue and the devices go in one of their own, at
+    // the bottom, with a playlist to add the song to, under a handle that says that a drag brings the lyrics in.
     final wide = MediaQuery.sizeOf(context).width >= NowPlayingBar.wideFrom;
     return CallbackShortcuts(
       bindings: {const SingleActivator(LogicalKeyboardKey.escape): close},
@@ -143,29 +146,28 @@ class _PlayerPageState extends State<PlayerPage> with SingleTickerProviderStateM
                           top: false,
                           child: Padding(
                             padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                IconButton(
-                                  tooltip: lyrics ? strings.hideLyrics : strings.showLyrics,
-                                  icon: ThemedIcon(
-                                    HugeIcons.strokeRoundedMicVocal,
-                                    color: lyrics ? colors.primary : null,
-                                  ),
-                                  onPressed: () => widget._lyrics.value = !lyrics,
-                                ),
-                                IconButton(
-                                  tooltip: strings.devices,
-                                  icon: ThemedIcon(
-                                    HugeIcons.strokeRoundedMonitorSpeaker,
-                                    color: device == null ? null : colors.primary,
-                                  ),
-                                  onPressed: () => showDevicesSheet(context),
-                                ),
-                                IconButton(
-                                  tooltip: strings.queue,
-                                  icon: const ThemedIcon(HugeIcons.strokeRoundedPlaylist03),
-                                  onPressed: () => QueuePage.open(context),
+                                _LyricsHandle(_shown, lyrics: lyrics, onPressed: () => widget._lyrics.value = !lyrics),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    IconButton(
+                                      tooltip: strings.queue,
+                                      icon: const ThemedIcon(HugeIcons.strokeRoundedPlaylist03),
+                                      onPressed: () => QueuePage.open(context),
+                                    ),
+                                    IconButton(
+                                      tooltip: strings.devices,
+                                      icon: ThemedIcon(
+                                        HugeIcons.strokeRoundedMonitorSpeaker,
+                                        color: device == null ? null : colors.primary,
+                                      ),
+                                      onPressed: () => showDevicesSheet(context),
+                                    ),
+                                    AddToPlaylistButton(now),
+                                  ],
                                 ),
                               ],
                             ),
@@ -708,6 +710,43 @@ class _ClosingScrollPhysics extends ScrollPhysics {
   @override
   bool shouldAcceptUserOffset(ScrollMetrics position) =>
       (position is _ClosingScrollPosition && position._drag != null) || super.shouldAcceptUserOffset(position);
+}
+
+/// On a phone, under the player, what says that a drag up brings the lyrics in, where it has no button for them: their
+/// name beside an arrow up, which turns down as they come in, with the finger too as it drags them, and then says that
+/// a drag down takes them out. A tap does the same, for whoever doesn't drag (with a screen reader, a keyboard).
+class _LyricsHandle extends StatelessWidget {
+  const _LyricsHandle(this.shown, {required this.lyrics, required this.onPressed});
+
+  /// How far the lyrics have come in, from 0 (gone) to 1 (there).
+  final Animation<double> shown;
+
+  /// Whether they show, or are on their way in.
+  final bool lyrics;
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = AppLocalizations.of(context);
+    return Tooltip(
+      message: lyrics ? strings.hideLyrics : strings.showLyrics,
+      child: TextButton.icon(
+        // Quiet, and close to the buttons under it: a hint more than a button.
+        style: TextButton.styleFrom(
+          foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
+          visualDensity: VisualDensity.compact,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+        onPressed: onPressed,
+        icon: RotationTransition(
+          turns: shown.drive(Tween(begin: 0, end: 0.5)),
+          child: const ThemedIcon(HugeIcons.strokeRoundedArrowUp01),
+        ),
+        label: Text(strings.lyrics),
+      ),
+    );
+  }
 }
 
 class _Player extends StatelessWidget {

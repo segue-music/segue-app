@@ -10,6 +10,7 @@ import 'focus_ring.dart';
 import 'page_area.dart';
 import 'player_controls.dart';
 import 'player_page.dart';
+import 'playlist_dialogs.dart';
 import 'queue_page.dart';
 import 'sleep_timer_button.dart';
 import 'song_link.dart';
@@ -155,9 +156,13 @@ class NowPlayingBar extends StatelessWidget {
                                 ),
                               ),
                             ),
-                            // On a wide screen, the heart that makes the song one of the user's favorites, by it; on a
-                            // phone, the full-screen player's title has it.
-                            if (wide && now.songId != null) FavoriteButton(FavoriteKind.song, now.songId!),
+                            // On a wide screen, the heart that makes the song one of the user's favorites, by it, and
+                            // a playlist to add it to; on a phone, the full-screen player's title has the heart, and
+                            // its buttons at the bottom the playlist.
+                            if (wide && now.songId != null) ...[
+                              FavoriteButton(FavoriteKind.song, now.songId!),
+                              AddToPlaylistButton(now),
+                            ],
                             if (wide) ShuffleButton(now),
                             IconButton(
                               tooltip: strings.previous,

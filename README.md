@@ -107,10 +107,12 @@ the device it runs on.
   a phone or a tablet, they keep the screen on); a wide bar's lyrics button opens the player with them. The bar stays put from page to page, and on a wide screen under the
   full-screen player too, whose top then leaves the lyrics, the queue and the devices to it, and the
   player the seek bar and the buttons, showing the song alone; on a phone it has them all, the
-  lyrics, the devices and the queue in a bar at the bottom, and the album's name at the top, and a
+  queue, the devices and a playlist to add the song to in a bar at the bottom, and the album's name at the top, and a
   drag down takes it down with the finger and closes it (let go past a third of the way, or flung), or, with the
   lyrics under it, takes them out, from anywhere but the lyrics, which scroll (taller than the screen, it scrolls to
-  its top first); a drag up brings them in with the finger, and with them in, opens them full screen. A swipe on
+  its top first); a drag up brings them in with the finger, and with them in, opens them full screen. There they
+  have no button: over the bar at the bottom, a handle, their name beside an arrow up, says so, the arrow turning
+  down as they come in, and a tap on it brings them in, or takes them out, as well. A swipe on
   its cover goes to the next song (to the left) or the previous one (to the right). In both,
   the song's title
   opens its album (as does the album's name, in the full-screen player) and each of its artists
@@ -179,8 +181,10 @@ the device it runs on.
 - making and changing playlists: a new one, from a button over the list of them, named in a dialog; a
   song added to one, from its menu (a button after its duration, wherever songs are listed: an album's
   page, an artist's, a playlist's, search; for the keyboard and the remote, which stop at the song
-  alone, the menu key or Shift+F10 on it), or an album, all its songs, from the button beside its play
-  button, to one of those the user can change, picked in a dialog, or to a new one named there; on the
+  alone, the menu key or Shift+F10 on it), the song that plays from the player (on a phone, the full-screen
+  player's button at the bottom right; on a wider screen, the player bar's, beside the heart), or an album, all its
+  songs, from the button beside its play button, to one of those the user can change, picked in a dialog, or to a new
+  one named there; on the
   page of one the user can change, a song taken out from its menu, a song moved by dragging it (on a
   touch screen, once held a moment), and the playlist renamed or deleted (once asked) from its own
   menu, which in the list of them a long press on it opens too (with a finger or the mouse), or the menu key. Another user's playlist, or one the server makes from rules (Navidrome's smart playlists), as
@@ -329,8 +333,7 @@ the device it runs on.
   takes the background too.
   On a computer the window opens maximized.
 
-Not yet: moving a playlist's or the queue's songs with the remote (a TV has no drag), adding the song that plays to a
-playlist from the player, turning another device's autoplay on or off from here, a sleep timer for another device, the media controls on macOS and Windows, on a Jellyfin server the cover of a song that came from another device
+Not yet: moving a playlist's or the queue's songs with the remote (a TV has no drag), turning another device's autoplay on or off from here, a sleep timer for another device, the media controls on macOS and Windows, on a Jellyfin server the cover of a song that came from another device
 when its file has none of its own (Jellyfin doesn't fall back to the album's) and an artist's popular songs (Jellyfin
 knows only its users' plays), sending the music
 to speakers and TVs that don't run the app (Google Cast, UPnP/DLNA), and CarPlay as an app of its own (browsing the library

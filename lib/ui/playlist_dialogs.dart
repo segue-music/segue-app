@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
+import '../connect/connect.dart';
 import '../l10n/app_localizations.dart';
 import '../server/models.dart';
 import '../services.dart';
@@ -127,6 +128,36 @@ Future<void> addToPlaylist(BuildContext context, List<Song> songs) async {
     messenger.showSnackBar(SnackBar(content: Text(strings.addedToPlaylist(songs.length, playlist.name))));
   } on Object catch (error) {
     messenger.showSnackBar(SnackBar(content: Text(strings.couldNotChangePlaylist('$error'))));
+  }
+}
+
+/// A button of the player that adds the song that plays ([now]) to a playlist, as its menu does elsewhere
+/// ([addToPlaylist]). Disabled with nothing playing, and for a song the hub couldn't give in the app's API.
+class AddToPlaylistButton extends StatelessWidget {
+  const AddToPlaylistButton(this.now, {super.key});
+
+  final NowPlaying? now;
+
+  @override
+  Widget build(BuildContext context) {
+    final now = this.now;
+    final songId = now?.songId;
+    return IconButton(
+      tooltip: AppLocalizations.of(context).addToPlaylist,
+      icon: const ThemedIcon(HugeIcons.strokeRoundedPlayListAdd),
+      onPressed: now == null || songId == null
+          ? null
+          : () => addToPlaylist(context, [
+              Song(
+                id: songId,
+                title: now.title ?? '',
+                artist: now.artist,
+                album: now.album,
+                coverArt: now.coverArt,
+                duration: now.duration,
+              ),
+            ]),
+    );
   }
 }
 

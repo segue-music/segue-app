@@ -120,6 +120,7 @@
   "closePlayer": "Close player",
   "showLyrics": "Show lyrics",
   "hideLyrics": "Hide lyrics",
+  "lyrics": "Lyrics",
   "devices": "Devices",
   "playingOn": "Playing on {device}",
   "pausedOn": "Paused on {device}",

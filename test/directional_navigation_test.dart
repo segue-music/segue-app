@@ -168,8 +168,9 @@ String? focusedTip() {
       context?.findAncestorWidgetOfExactType<Tooltip>()?.message;
 }
 
+/// Tabs until [there]: from the top of the screen, through the home's rows of 30 albums, before the bar.
 Future<void> tabTo(WidgetTester tester, bool Function() there) async {
-  for (var i = 0; i < 100 && !there(); i++) {
+  for (var i = 0; i < 200 && !there(); i++) {
     await tester.sendKeyEvent(LogicalKeyboardKey.tab);
     await tester.pump();
   }

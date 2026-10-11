@@ -120,6 +120,7 @@
   "closePlayer": "Cerrar reproductor",
   "showLyrics": "Mostrar letra",
   "hideLyrics": "Ocultar letra",
+  "lyrics": "Letra",
   "devices": "Dispositivos",
   "playingOn": "Sonando en {device}",
   "pausedOn": "En pausa en {device}",
