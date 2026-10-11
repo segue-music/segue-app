@@ -329,9 +329,12 @@ Running two app instances on one machine as different devices:
   `Sessions/Playing` counts them). Only `Services.start` makes one: widget tests that build
   `Services` themselves have none, since its timer would outlive them. Its tests run in fake time
   (`fake_async`), which is why it and `FakeEngine` read the time from `clock`.
-- `AudioInterruptions` (`lib/player/audio_interruptions.dart`), on iOS only, sets the audio session
-  up for music and pauses the local player for calls (resuming after, when iOS says to) and when the
-  car or headphones go away. libmpv knows of neither.
+- `AudioInterruptions` (`lib/player/audio_interruptions.dart`), on iOS and Android, sets the audio
+  session up for music and pauses the local player for calls (resuming after, when the system says
+  to), for another app's music and when the car or headphones go away. libmpv knows of none of it.
+  On Android it also asks for the audio focus as the local player starts playing (audio_session's
+  `setActive`), which tells the app that had it to stop: without it, another app's music played on
+  alongside. Refused (during a call), the music pauses.
 - The app's words are in `lib/l10n/`'s ARB files, one per language (Portuguese, English, Spanish),
   from which gen-l10n makes `AppLocalizations` (`l10n.yaml`). `LanguageChoice`
   (`lib/language_choice.dart`) is the language shown: the system's, of those the app has the first

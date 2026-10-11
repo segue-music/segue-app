@@ -337,8 +337,9 @@ It does:
   to the phone, or else songs at random; what it doesn't find, it says. Its queue shows the tracks around the current
   one, which play as picked. Android's media controls offer the song that played last to resume, after the app has
   closed too;
-- on iOS, playing in the background and with the silent switch on; a call pauses the music, which
-  plays again after it, and leaving the car or unplugging the headphones pauses it;
+- on iOS, playing in the background and with the silent switch on; on iOS and Android, a call pauses
+  the music, which plays again after it, and leaving the car or unplugging the headphones pauses it;
+  on Android, playing pauses another app's music, and another app playing pauses this one;
 - the interface in Portuguese, English or Spanish: the system's language, where the app has it
   (English where it has none of the system's), until the settings (or, before signing in, the
   language menu in the sign-in's corner) pick one, which the app keeps. Dates, numbers of albums and songs, and Material's own words (tooltips, the text
@@ -374,7 +375,7 @@ has been tried on a tablet and on an Android TV, and the iOS build on an iPhone,
 | `lib/jellyfin/` | The Jellyfin API: sign-in by name for this device, the same library calls, and signing out |
 | `lib/downloads/` | `Downloads`, the albums and playlists downloaded to the device, and `ServerWithDownloads`, the media server as the app sees it: downloaded songs and covers from their files, and with the server out of reach, what was downloaded |
 | `lib/segue/` | The Segue protocol in Dart (its `SPEC.md` is in the segue repository), the hub client (reconnects by itself) and hub discovery |
-| `lib/player/` | `PlayerController` (queue, commands, state reports, each song's ReplayGain, the equalizer) over an `AudioEngine`; `MediaKitEngine` is the real one, and `CrossfadeEngine` crossfades on two of them. `MediaControls`: the system's media controls, and Android Auto, which browses `BrowseTree`. `AudioInterruptions`: calls and the like pausing the music, on iOS |
+| `lib/player/` | `PlayerController` (queue, commands, state reports, each song's ReplayGain, the equalizer) over an `AudioEngine`; `MediaKitEngine` is the real one, and `CrossfadeEngine` crossfades on two of them. `MediaControls`: the system's media controls, and Android Auto, which browses `BrowseTree`. `AudioInterruptions`: calls and the like pausing the music, on iOS and Android, and Android's audio focus |
 | `lib/connect/` | `ConnectController`: which device the app controls, and moving the music between devices |
 | `lib/lyrics/` | LRCLIB (lrclib.net), where lyrics come from when the media server has none, and LRC |
 | `lib/pictures/` | fanart.tv, where more pictures of an artist than the media server's one come from, for their biography, and their picture where the server has none |
