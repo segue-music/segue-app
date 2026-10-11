@@ -14,7 +14,9 @@ the device it runs on.
 > **Vibe-coded.** The app was written by Claude (through Claude Code), with a person deciding what
 > to build and trying it on real devices. Every commit says so.
 
-**Status: skeleton.** It does:
+**Status: skeleton.** Nothing is released: the Android APK is signed with a debug key and in no
+store, the Linux build is only a tarball, and the iOS one reaches only TestFlight's internal group.
+It does:
 - signing in with the media server's own account, with only its address: the app finds out whether
   it speaks Subsonic (Navidrome, other OpenSubsonic servers) or Jellyfin (a Jellyfin server, or
   Navidrome's Jellyfin API at `/jellyfin`, experimental since Navidrome 0.64 and turned on with
