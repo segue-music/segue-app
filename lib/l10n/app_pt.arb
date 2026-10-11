@@ -1067,6 +1067,14 @@
   "@removeFromQueue": {
     "description": "The menu item that takes a track out of the queue, in the queue's page."
   },
+  "move": "Mover",
+  "@move": {
+    "description": "On a TV, which has no drag, the menu item of a song in the queue or in a playlist the user can change that starts moving it with the remote's arrows up and down."
+  },
+  "moveHint": "Para cima e para baixo movem a música; OK a deixa aí, e Voltar desfaz.",
+  "@moveHint": {
+    "description": "On a TV, the message at the bottom while the remote moves a song in the queue or in a playlist: the arrows up and down move it a place at a time, the OK button (the D-pad's center) leaves it where it is, and the back button puts it back where it was."
+  },
   "download": "Baixar",
   "@download": {
     "description": "The tooltip of the button that downloads an album or a playlist to the device, to play without the server."

@@ -18,9 +18,11 @@ import 'package:segue/ui/now_playing_bar.dart';
 import 'package:segue/ui/playlist_menu.dart';
 import 'package:segue/ui/playlist_page.dart';
 import 'package:segue/ui/playlists_view.dart';
+import 'package:segue/ui/shortcuts.dart';
 import 'package:segue/ui/themed_icon.dart';
 
 import 'fakes.dart';
+import 'remote.dart';
 import 'sections.dart';
 import 'side_rail.dart';
 
@@ -182,8 +184,8 @@ class Library {
   }
 }
 
-/// The home page on a screen of [size], over the [library]'s server; returns its player.
-Future<PlayerController> pumpHome(WidgetTester tester, Size size, {Library? library}) async {
+/// The home page on a screen of [size], over the [library]'s server, as on a TV with [television]; returns its player.
+Future<PlayerController> pumpHome(WidgetTester tester, Size size, {Library? library, bool television = false}) async {
   const credentials = SubsonicCredentials(username: 'a', token: 't', salt: 's');
   final server = library ?? Library();
   final api = SubsonicApi(
@@ -205,7 +207,10 @@ Future<PlayerController> pumpHome(WidgetTester tester, Size size, {Library? libr
     MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: const [Locale('pt')],
-      builder: (context, child) => ServicesScope(services: services, child: child!),
+      builder: (context, child) => ServicesScope(
+        services: services,
+        child: DirectionalNavigation(enabled: television, child: child!),
+      ),
       home: HomePage(onSignOut: () {}),
     ),
   );
@@ -447,6 +452,52 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('2 faixas adicionadas a Aerosmith'), findsOneWidget);
     expect(library.songsOf('Aerosmith'), ['s1', 's2']);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a TV, which has no drag, a song moves by the remote: from its menu, up and down take it along, the '
+      'focus on it, OK leaves it there, the server moving it only then, and Back puts it back', (tester) async {
+    final library = Library();
+    await pumpHome(tester, const Size(1280, 720), library: library, television: true);
+    await openPlaylist(tester, 'Road trip');
+    expect(find.byType(SliverReorderableList), findsNothing);
+    bool focusedOn(String title) => Focus.of(tester.element(find.text(title))).hasPrimaryFocus;
+    Focus.of(tester.element(find.text('Sweet Emotion'))).requestFocus();
+    await tester.pump();
+
+    await pressOnRemote(tester, LogicalKeyboardKey.contextMenu);
+    await pickByRemote(tester, 'Mover');
+    expect(moveHint, findsOneWidget);
+    await pressOnRemote(tester, LogicalKeyboardKey.arrowDown);
+    expect(titles(tester), ['Dream Police', 'Sweet Emotion']);
+    expect(focusedOn('Sweet Emotion'), isTrue);
+    expect(library.songsOf('Road trip'), ['s2', 's9'], reason: 'not yet');
+    await pressOnRemote(tester, LogicalKeyboardKey.select);
+    expect(library.songsOf('Road trip'), ['s9', 's2']);
+    expect(titles(tester), ['Dream Police', 'Sweet Emotion']);
+    expect(focusedOn('Sweet Emotion'), isTrue);
+    expect(moveHint, findsNothing);
+
+    await pressOnRemote(tester, LogicalKeyboardKey.contextMenu);
+    await pickByRemote(tester, 'Mover');
+    await pressOnRemote(tester, LogicalKeyboardKey.arrowUp);
+    expect(titles(tester), ['Sweet Emotion', 'Dream Police']);
+    await pressOnRemote(tester, LogicalKeyboardKey.goBack);
+    expect(find.byType(PlaylistPage), findsOneWidget, reason: 'it stays');
+    expect(titles(tester), ['Dream Police', 'Sweet Emotion']);
+    expect(focusedOn('Sweet Emotion'), isTrue);
+    expect(library.songsOf('Road trip'), ['s9', 's2']);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a TV, the songs of another user\'s playlist don\'t move', (tester) async {
+    await pumpHome(tester, const Size(1280, 720), television: true);
+    await openPlaylist(tester, 'chill');
+    Focus.of(tester.element(find.text('Sweet Emotion'))).requestFocus();
+    await tester.pump();
+    await pressOnRemote(tester, LogicalKeyboardKey.contextMenu);
+    expect(find.text('Adicionar à playlist'), findsOneWidget);
+    expect(find.text('Mover'), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
 

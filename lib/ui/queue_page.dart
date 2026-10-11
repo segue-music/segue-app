@@ -9,6 +9,7 @@ import '../server/models.dart';
 import '../services.dart';
 import 'autoplay_switch.dart';
 import 'cover.dart';
+import 'movable_song.dart';
 import 'now_playing_bar.dart';
 import 'page_area.dart';
 import 'player_controls.dart';
@@ -17,8 +18,8 @@ import 'song_menu.dart';
 
 /// The queue of the device the app controls, in its play order (shuffled, or not): the current
 /// track on top, the next ones under it, and what played before above it. A tap on a track plays it
-/// there. Where the device takes it, the tracks from the one on top down move by dragging them, and any but the
-/// current one goes out of the queue by its menu. After the last, this device's queue has the switch of autoplay, which
+/// there. Where the device takes it, the tracks from the one on top down move by dragging them (on a TV, which has no
+/// drag, by the remote, from their menu: [MovableSong]), and any but the current one goes out of the queue by its menu. After the last, this device's queue has the switch of autoplay, which
 /// goes on with songs like it.
 class QueuePage extends StatefulWidget {
   const QueuePage({super.key});
@@ -58,6 +59,10 @@ class _QueuePageState extends State<QueuePage> {
   /// A change made here until the queue shows it ([_QueueChange]).
   _QueueChange? _change;
 
+  /// On a TV, the track the remote moves ([MovableSong]), by its key, as the queue may come anew meanwhile, and how many
+  /// places it has gone so far, up (below zero) or down.
+  ({Key key, int by})? _moving;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -95,7 +100,25 @@ class _QueuePageState extends State<QueuePage> {
 
             final top = _top!.clamp(0, tracks.length);
             final editable = connect.canEditQueue;
-            final keys = _keys(tracks);
+            var keys = _keys(tracks);
+            // On a TV, which has no drag, a track from the one on top down moves by the remote: the queue shows it where
+            // it has gone so far, and once it's left there, the device moves it.
+            final (base, baseIndex) = (tracks, index);
+            final moving = television && editable ? _moving : null;
+            final from = moving == null ? -1 : keys.indexOf(moving.key);
+            int? movingTo;
+
+            if (moving != null && from >= top) {
+              final to = (from + moving.by).clamp(top, tracks.length - 1);
+              movingTo = to;
+              tracks = withMove(tracks, from: from, to: to);
+              keys = withMove(keys, from: from, to: to);
+              index = indexAfterMove(index, from: from, to: to);
+            } else {
+              // Gone from the queue meanwhile, or above the one on top now.
+              _moving = null;
+            }
+
             final theme = Theme.of(context);
             final touch = switch (theme.platform) {
               TargetPlatform.android || TargetPlatform.iOS || TargetPlatform.fuchsia => true,
@@ -124,11 +147,27 @@ class _QueuePageState extends State<QueuePage> {
                 return line(null);
               }
 
+              // On a TV, from the one on top down, where the remote moves it.
+              final byRemote = television && editable && i >= top;
               return SongMenu(
                 Song.fromQueueItem(track),
                 list: SongList.queue,
+                onMove: byRemote ? () => setState(() => _moving = (key: keys[i], by: 0)) : null,
                 onRemove: editable && !current ? () => _remove(connect, tracks, index, i) : null,
-                builder: (context, menu) => line(menu),
+                builder: (context, menu) => byRemote
+                    ? MovableSong(
+                        moving: i == movingTo,
+                        onStep: (step) => setState(
+                          () => _moving = (key: keys[i], by: (i + step).clamp(top, tracks.length - 1) - from),
+                        ),
+                        onDrop: () {
+                          setState(() => _moving = null);
+                          _move(connect, base, baseIndex, from, i);
+                        },
+                        onCancel: () => setState(() => _moving = null),
+                        child: line(menu),
+                      )
+                    : line(menu),
               );
             }
 
@@ -141,60 +180,74 @@ class _QueuePageState extends State<QueuePage> {
                   : ReorderableDragStartListener(key: key, index: i, child: tile(top + i));
             }
 
-            return Scaffold(
-              appBar: AppBar(
-                // Under a wide screen's top bar, whose arrow goes back: no arrow of its own.
-                automaticallyImplyLeading: !PageArea.holdsUnderTopBar(context),
-                centerTitle: true,
-                title: Text(switch (now?.device) {
-                  null => strings.queue,
-                  final device => strings.queueOn(device),
-                }),
-              ),
-              bottomNavigationBar: const NowPlayingBar(),
-              body: tracks.isEmpty
-                  ? Center(child: Text(strings.queueEmpty))
-                  // The header stays over the tracks, which go up from the one on top as much as down from it.
-                  : Column(
-                      children: [
-                        const SongListHeader(menus: true),
-                        Expanded(
-                          // The list starts at the track on top; the ones before it go up from there.
-                          child: CustomScrollView(
-                            center: _fromTop,
-                            slivers: [
-                              SliverList.builder(itemCount: top, itemBuilder: (_, i) => tile(top - 1 - i)),
-                              if (editable)
-                                SliverReorderableList(
-                                  key: _fromTop,
-                                  itemCount: tracks.length - top,
-                                  itemBuilder: movable,
-                                  onReorderItem: (from, to) => _move(connect, tracks, index, top + from, top + to),
-                                  // The track moving, lifted over the others, on the page's color: in the overlay,
-                                  // over the page.
-                                  proxyDecorator: (child, _, _) => Material(
-                                    elevation: 4,
-                                    color: theme.colorScheme.surfaceContainerHigh,
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: child,
+            // While a track moves, back (the top bar's arrow, say) puts it back rather than leaving.
+            return PopScope(
+              canPop: movingTo == null,
+              onPopInvokedWithResult: (didPop, _) {
+                if (!didPop) {
+                  setState(() => _moving = null);
+                }
+              },
+              child: Scaffold(
+                appBar: AppBar(
+                  // Under a wide screen's top bar, whose arrow goes back: no arrow of its own.
+                  automaticallyImplyLeading: !PageArea.holdsUnderTopBar(context),
+                  centerTitle: true,
+                  title: Text(switch (now?.device) {
+                    null => strings.queue,
+                    final device => strings.queueOn(device),
+                  }),
+                ),
+                bottomNavigationBar: const NowPlayingBar(),
+                body: tracks.isEmpty
+                    ? Center(child: Text(strings.queueEmpty))
+                    // The header stays over the tracks, which go up from the one on top as much as down from it.
+                    : Column(
+                        children: [
+                          const SongListHeader(menus: true),
+                          Expanded(
+                            // The list starts at the track on top; the ones before it go up from there.
+                            child: CustomScrollView(
+                              center: _fromTop,
+                              slivers: [
+                                SliverList.builder(itemCount: top, itemBuilder: (_, i) => tile(top - 1 - i)),
+                                if (editable && !television)
+                                  SliverReorderableList(
+                                    key: _fromTop,
+                                    itemCount: tracks.length - top,
+                                    itemBuilder: movable,
+                                    onReorderItem: (from, to) => _move(connect, tracks, index, top + from, top + to),
+                                    // The track moving, lifted over the others, on the page's color: in the overlay,
+                                    // over the page.
+                                    proxyDecorator: (child, _, _) => Material(
+                                      elevation: 4,
+                                      color: theme.colorScheme.surfaceContainerHigh,
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: child,
+                                    ),
+                                  )
+                                else
+                                  SliverList.builder(
+                                    key: _fromTop,
+                                    itemCount: tracks.length - top,
+                                    // By their keys, so that a track the remote moves keeps its line, and the focus.
+                                    itemBuilder: (_, i) => KeyedSubtree(key: keys[top + i], child: tile(top + i)),
+                                    findChildIndexCallback: (key) {
+                                      final i = keys.indexOf(key);
+                                      return i < top ? null : i - top;
+                                    },
                                   ),
-                                )
-                              else
-                                SliverList.builder(
-                                  key: _fromTop,
-                                  itemCount: tracks.length - top,
-                                  itemBuilder: (_, i) => tile(top + i),
-                                ),
-                              // Another device's goes on, or not, as that device has it.
-                              if (autoplay != null && connect.activeId == null)
-                                SliverToBoxAdapter(
-                                  child: Column(children: [const Divider(height: 17), AutoplaySwitch(autoplay)]),
-                                ),
-                            ],
+                                // Another device's goes on, or not, as that device has it.
+                                if (autoplay != null && connect.activeId == null)
+                                  SliverToBoxAdapter(
+                                    child: Column(children: [const Divider(height: 17), AutoplaySwitch(autoplay)]),
+                                  ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
+              ),
             );
           },
         ),

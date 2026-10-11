@@ -181,6 +181,8 @@
   "addedToQueue": "{count, plural, =1{Añadida a la cola} other{{count} canciones añadidas a la cola}}",
   "removeFromPlaylist": "Quitar de la playlist",
   "removeFromQueue": "Quitar de la cola",
+  "move": "Mover",
+  "moveHint": "Arriba y abajo mueven la canción; OK la deja ahí, y Atrás lo deshace.",
   "download": "Descargar",
   "downloaded": "Descargado: suena sin el servidor",
   "downloading": "Descargando: {done} de {total} canciones",

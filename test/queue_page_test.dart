@@ -25,6 +25,7 @@ import 'package:shared_preferences_platform_interface/in_memory_shared_preferenc
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 import 'fakes.dart';
+import 'remote.dart';
 
 const credentials = SubsonicCredentials(username: 'a', token: 't', salt: 's');
 
@@ -183,6 +184,10 @@ Future<void> dragTrack(WidgetTester tester, String title, int rows) async {
   await gesture.up();
   await tester.pumpAndSettle();
 }
+
+/// Whether the track [title] in the queue has the focus.
+bool focusedOn(WidgetTester tester, String title) =>
+    Focus.of(tester.element(inQueue(find.text(title)))).hasPrimaryFocus;
 
 /// The titles in the queue's list from the one on top down, out of sight too: those before it, above, aren't built until
 /// the list scrolls up to them.
@@ -426,6 +431,82 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Adicionar à playlist'), findsOneWidget);
       expect(find.text('Remover da fila'), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('on a TV, which has no drag, a track moves by the remote: from its menu, up and down take it along, '
+        'the focus on it, and OK leaves it there, the device moving it only then', (tester) async {
+      final player = await pumpBar(tester, size: const Size(1000, 600), television: true);
+      await openQueue(tester);
+      expect(find.byType(SliverReorderableList), findsNothing);
+      expect(focusedOn(tester, 'Two'), isTrue);
+
+      await pressOnRemote(tester, LogicalKeyboardKey.contextMenu);
+      await pickByRemote(tester, 'Mover');
+      expect(moveHint, findsOneWidget);
+      expect(focusedOn(tester, 'Two'), isTrue);
+      await pressOnRemote(tester, LogicalKeyboardKey.arrowDown);
+      await pressOnRemote(tester, LogicalKeyboardKey.arrowDown);
+      expect(titlesFromTop(tester), ['Three', 'Four', 'Two']);
+      expect(focusedOn(tester, 'Two'), isTrue);
+      expect(tile(tester, 'Two').selected, isTrue, reason: 'the current track, wherever it goes');
+      expect(player.queue.map((song) => song.title), ['One', 'Two', 'Three', 'Four'], reason: 'not yet');
+
+      await pressOnRemote(tester, LogicalKeyboardKey.arrowDown);
+      expect(titlesFromTop(tester), ['Three', 'Four', 'Two'], reason: 'the last already');
+      await pressOnRemote(tester, LogicalKeyboardKey.arrowUp);
+      expect(titlesFromTop(tester), ['Three', 'Two', 'Four']);
+      await pressOnRemote(tester, LogicalKeyboardKey.select);
+      expect(player.queue.map((song) => song.title), ['One', 'Three', 'Two', 'Four']);
+      expect(player.current?.title, 'Two');
+      expect(player.playing, isTrue);
+      expect(titlesFromTop(tester), ['Three', 'Two', 'Four']);
+      expect(focusedOn(tester, 'Two'), isTrue);
+      expect(moveHint, findsNothing);
+
+      // Up and down move the focus again.
+      await pressOnRemote(tester, LogicalKeyboardKey.arrowDown);
+      expect(focusedOn(tester, 'Four'), isTrue);
+      expect(titlesFromTop(tester), ['Three', 'Two', 'Four']);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('on a TV, Back, or Esc, puts the track moving back where it was, and the page stays', (tester) async {
+      final player = await pumpBar(tester, size: const Size(1000, 600), television: true);
+      await openQueue(tester);
+
+      for (final back in [LogicalKeyboardKey.goBack, LogicalKeyboardKey.escape]) {
+        await pressOnRemote(tester, LogicalKeyboardKey.contextMenu);
+        await pickByRemote(tester, 'Mover');
+        await pressOnRemote(tester, LogicalKeyboardKey.arrowDown);
+        expect(titlesFromTop(tester), ['Three', 'Two', 'Four']);
+        await pressOnRemote(tester, back);
+        expect(find.byType(QueuePage), findsOneWidget, reason: '$back');
+        expect(titlesFromTop(tester), ['Two', 'Three', 'Four']);
+        expect(focusedOn(tester, 'Two'), isTrue);
+        expect(moveHint, findsNothing);
+      }
+
+      expect(player.queue.map((song) => song.title), ['One', 'Two', 'Three', 'Four']);
+
+      // And the system's back, as Android's comes where the keys don't take it.
+      await pressOnRemote(tester, LogicalKeyboardKey.contextMenu);
+      await pickByRemote(tester, 'Mover');
+      await pressOnRemote(tester, LogicalKeyboardKey.arrowDown);
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.byType(QueuePage), findsOneWidget);
+      expect(titlesFromTop(tester), ['Two', 'Three', 'Four']);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('only on a TV does a track\'s menu move it; elsewhere a drag does', (tester) async {
+      await pumpBar(tester, size: const Size(1000, 600));
+      await openQueue(tester);
+      await tester.tap(menuOf('Three'));
+      await tester.pumpAndSettle();
+      expect(find.text('Remover da fila'), findsOneWidget);
+      expect(find.text('Mover'), findsNothing);
       await tester.pumpWidget(const SizedBox());
     });
 

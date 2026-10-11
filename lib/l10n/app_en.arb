@@ -181,6 +181,8 @@
   "addedToQueue": "{count, plural, =1{Added to the queue} other{{count} tracks added to the queue}}",
   "removeFromPlaylist": "Remove from playlist",
   "removeFromQueue": "Remove from queue",
+  "move": "Move",
+  "moveHint": "Up and down move the song; OK leaves it there, and Back undoes it.",
   "download": "Download",
   "downloaded": "Downloaded: plays without the server",
   "downloading": "Downloading: {done} of {total} tracks",

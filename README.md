@@ -154,8 +154,9 @@ the device it runs on.
 - the queue of whichever device the app controls, from the full-screen player or, on a wide
   screen, the player bar: the current track on top, the next ones under it and what played before
   above it. A tap on a track plays it there. On a device that takes it, a track moves by dragging it,
-  from the one on top down (on a touch screen, once held a moment), and goes out of the queue from its
-  menu, but for the current one, which plays on either way, wherever it goes. Shuffled, a move changes
+  from the one on top down (on a touch screen, once held a moment; on a TV, which has no drag, by the remote, as
+  below), and goes out of the queue from its menu, but for the current one, which plays on either way, wherever it
+  goes. Shuffled, a move changes
   the play order alone, which turning shuffle off forgets. The queue shows the change at once, and on
   another device until its queue comes; one the device refuses goes back, and a message says why;
 - songs played next, right after the one that plays, or added at the end of the queue, on whichever
@@ -186,12 +187,18 @@ the device it runs on.
   songs, from the button beside its play button, to one of those the user can change, picked in a dialog, or to a new
   one named there; on the
   page of one the user can change, a song taken out from its menu, a song moved by dragging it (on a
-  touch screen, once held a moment), and the playlist renamed or deleted (once asked) from its own
+  touch screen, once held a moment; on a TV by the remote, as below), and the playlist renamed or deleted (once asked)
+  from its own
   menu, which in the list of them a long press on it opens too (with a finger or the mouse), or the menu key. Another user's playlist, or one the server makes from rules (Navidrome's smart playlists), as
   OpenSubsonic says, has none of these: its menu only plays it next or adds it to the queue. Each change goes to the server as it's made, one after another,
   and what shows the playlists then loads them again as the server has them; one the server refuses
   says so. On a Subsonic server a song moves as the playlist's songs go back in their new order, which
   a server with OpenSubsonic's formPost (Navidrome) takes in a form's body, rather than in the URL;
+- on a TV, which has no drag, a song of the queue (from the one on top down) or of a playlist the user can change
+  moves by the remote: "Mover" in its menu lifts it, as a drag does, the arrows up and down take it along a place at a
+  time, the list scrolling and the focus staying on it, a message at the bottom saying how, and OK leaves it there,
+  the device or the server moving it only then, once; Back, or Esc, puts it back where it was. A playlist loaded
+  again after a change keeps the focus where it was;
 - favorites: a heart makes a song, an album or an artist one of the user's favorites (Subsonic's star, Jellyfin's
   favorite), and filled, takes it out of them: on an album's page beside its play button, on an artist's after how many
   albums they have, in the full-screen player at the end of the song's title (on a phone; on a wider screen, in the
@@ -333,7 +340,7 @@ the device it runs on.
   takes the background too.
   On a computer the window opens maximized.
 
-Not yet: moving a playlist's or the queue's songs with the remote (a TV has no drag), turning another device's autoplay on or off from here, a sleep timer for another device, the media controls on macOS and Windows, on a Jellyfin server the cover of a song that came from another device
+Not yet: turning another device's autoplay on or off from here, a sleep timer for another device, the media controls on macOS and Windows, on a Jellyfin server the cover of a song that came from another device
 when its file has none of its own (Jellyfin doesn't fall back to the album's) and an artist's popular songs (Jellyfin
 knows only its users' plays), sending the music
 to speakers and TVs that don't run the app (Google Cast, UPnP/DLNA), and CarPlay as an app of its own (browsing the library
