@@ -170,12 +170,15 @@ class MediaControls extends BaseAudioHandler with SeekHandler {
         _attached.complete();
 
         // The car may have asked before the app had a handler, as Android starts it for the car: audio_service drops
-        // that, unanswered. Told that the root changed, the car asks again.
+        // that, unanswered. Told that the root changed, the car asks again. With options, though none: Android
+        // refuses the notice without them.
         if (Platform.isAndroid) {
           unawaited(
             AudioServicePlatform.instance
-                .notifyChildrenChanged(const NotifyChildrenChangedRequest(parentMediaId: AudioService.browsableRootId))
-                .catchError((Object _) {}),
+                .notifyChildrenChanged(
+                  const NotifyChildrenChangedRequest(parentMediaId: AudioService.browsableRootId, options: {}),
+                )
+                .catchError((Object e) => debugPrint('telling the car the root changed: $e')),
           );
         }
       }
