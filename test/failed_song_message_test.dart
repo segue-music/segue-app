@@ -9,7 +9,7 @@ import 'package:segue/server/models.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
-import 'package:segue/ui/failed_song_message.dart';
+import 'package:segue/ui/player/failed_song_message.dart';
 
 import 'fakes.dart';
 

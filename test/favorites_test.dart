@@ -13,13 +13,13 @@ import 'package:segue/server/models.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
-import 'package:segue/ui/album_page.dart';
-import 'package:segue/ui/albums_view.dart';
-import 'package:segue/ui/favorite_button.dart';
-import 'package:segue/ui/favorite_songs_page.dart';
-import 'package:segue/ui/now_playing_bar.dart';
-import 'package:segue/ui/player_page.dart';
-import 'package:segue/ui/playlists_view.dart';
+import 'package:segue/ui/album/album_page.dart';
+import 'package:segue/ui/album/albums_view.dart';
+import 'package:segue/ui/player/now_playing_bar.dart';
+import 'package:segue/ui/player/player_page.dart';
+import 'package:segue/ui/playlist/favorite_songs_page.dart';
+import 'package:segue/ui/playlist/playlists_view.dart';
+import 'package:segue/ui/song/favorite_button.dart';
 
 import 'fakes.dart';
 

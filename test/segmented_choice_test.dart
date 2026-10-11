@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hugeicons/hugeicons.dart';
-import 'package:segue/ui/focus_ring.dart';
-import 'package:segue/ui/segmented_choice.dart';
-import 'package:segue/ui/theme.dart';
+import 'package:segue/ui/app/theme.dart';
+import 'package:segue/ui/widgets/focus_ring.dart';
+import 'package:segue/ui/widgets/segmented_choice.dart';
 
 /// A choice between [options], "Suas mais tocadas" and "Populares" unless given, the first picked, in the app's theme,
 /// as wide as it asks up to [width]; what is picked goes to [picks], and is then the one picked. With [icons], each

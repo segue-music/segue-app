@@ -16,11 +16,11 @@ import 'package:segue/server/models.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
-import 'package:segue/ui/equalizer.dart';
-import 'package:segue/ui/now_playing_bar.dart';
-import 'package:segue/ui/player_page.dart';
-import 'package:segue/ui/queue_page.dart';
-import 'package:segue/ui/shortcuts.dart';
+import 'package:segue/ui/app/shortcuts.dart';
+import 'package:segue/ui/player/now_playing_bar.dart';
+import 'package:segue/ui/player/player_page.dart';
+import 'package:segue/ui/player/queue_page.dart';
+import 'package:segue/ui/widgets/equalizer.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 

@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:segue/l10n/app_localizations.dart';
-import 'package:segue/ui/spinner.dart';
+import 'package:segue/ui/widgets/spinner.dart';
 
 void main() {
   Future<void> pumpSpinner(WidgetTester tester) => tester.pumpWidget(

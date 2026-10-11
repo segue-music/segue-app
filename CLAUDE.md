@@ -185,8 +185,14 @@ Running two app instances on one machine as different devices:
   restores the last playback on first connect, paused, or playing for a play pressed before it came back
   (`playRestoredBy`: `MediaControls` holds a headphone's play that opened the app on Android). It links the player and the hub:
   `player.onReport → client.sendState` and `client.onCommand → player.obey`.
+- `lib/ui/` goes by subject, so that what changes together is together: `album/`, `artist/`, `genre/` and
+  `playlist/` each hold their section's list (`*_view`) and their pages, `song/` a song's line, menu and links,
+  `player/` the player bar, the full-screen player and what opens from them, `settings/` the settings and their
+  pages, `home/` the home's rows and the search, and `app/` the frame around the pages (sign-in, `HomePage` and its
+  bars, the page area, theme, shortcuts). `widgets/` holds what several subjects use (`Cover`, `Spinner`,
+  `ThemedIcon`, `describeError`, ...): a piece only one subject uses stays in its folder.
 - On a wide screen, `HomePage` keeps its bars (the top one, the side rail, the player's) and opens
-  pages between them, in a nested navigator, the page area (`lib/ui/page_area.dart`), whose
+  pages between them, in a nested navigator, the page area (`lib/ui/app/page_area.dart`), whose
   `PageHistory` the top bar's arrows and the keyboard's left and right go back and forward through.
   From outside it (the player bar), pages open with `PageArea.navigatorOf(context)`, not
   `Navigator.of`; the full-screen cover and the sheets open in the app's navigator, over the window.
@@ -248,7 +254,7 @@ Running two app instances on one machine as different devices:
 - Mixes (`lib/mixes.dart`): a `Mix` is songs of the library at random (`MediaServer.randomSongs`: Subsonic's
   getRandomSongs, Jellyfin's `Items` sorted `Random`, out of reach the downloaded albums'), of a genre (`GenreMix`) or
   a decade (`DecadeMix`), 100 of them, after which autoplay goes on from the last. `SuggestedMixes` are the home's
-  (`MixRow`, `lib/ui/mix_row.dart`, above the albums' rows): two genres, then a decade, and so on, 6 of the 12 genres
+  (`MixRow`, `lib/ui/home/mix_row.dart`, above the albums' rows): two genres, then a decade, and so on, 6 of the 12 genres
   the user plays most (before anything has played, of those with the most albums) and 3 of the 6 decades
   (`MediaServer.mostPlayedDecades`), picked at random each time the home loads, the higher one ranks the likelier
   (`_pickedByRank`; the tests give it a seeded `Random`); each with its first songs and their first artist, asked for
@@ -263,7 +269,7 @@ Running two app instances on one machine as different devices:
   show at once and go to the server one after another (`setFavorite`: star and unstar; `UserFavoriteItems/{id}`), a
   refused one undone; once none is left, they load again. `Services.start` loads them, and again as the server comes
   back in reach; the pages that list them (`FavoriteSongsPage`, first among the playlists, the albums' and the
-  artists' "Favoritos" chips) load them as they open. `FavoriteButton` (`lib/ui/favorite_button.dart`) is the
+  artists' "Favoritos" chips) load them as they open. `FavoriteButton` (`lib/ui/song/favorite_button.dart`) is the
   heart, filled (`filledHeart`, Hugeicons' outline with a fill, as its free icons have no filled heart) while the item
   is a favorite: on an album's page, an artist's, the phone's full-screen player (by the title) and the wide player
   bar; a song's menu has it as an item. A favorite song's line in a list has it too, filled, before its duration
@@ -281,10 +287,10 @@ Running two app instances on one machine as different devices:
   most, as MusicBrainz asks, and remembers what it found for the session. `Services.start` gives it
   one; tests leave `Services.musicBrainz` null, so that none goes out to the internet.
 - `lib/pictures/fanart_tv.dart`: fanart.tv, where more pictures of an artist than the media server's one come from,
-  for their biography's gallery (`PictureGallery`, `lib/ui/picture_gallery.dart`): its square ones (artist thumbs),
+  for their biography's gallery (`PictureGallery`, `lib/ui/artist/picture_gallery.dart`): its square ones (artist thumbs),
   the most liked first, by the artist's MusicBrainz id, and only by it. Where the server has no picture of an artist
   (`coverArt` null: Jellyfin without a primary image, Navidrome since 0.64, which before gave its placeholder), the
-  most liked is theirs, wherever it shows (`ArtistPicture` and `FanartPicture`, `lib/ui/cover.dart`; `Cover` takes a
+  most liked is theirs, wherever it shows (`ArtistPicture` and `FanartPicture`, `lib/ui/widgets/cover.dart`; `Cover` takes a
   picture's URL where it has no cover id). It asks with the app's own key (a project's), `fanartTvKey`, given as the
   app is built, and remembers what it found for the session, at once (`foundPictures`) for a picture built again, as a
   list scrolls back to it. `Services.start` gives it one where the build has the key; tests leave
@@ -337,7 +343,7 @@ Running two app instances on one machine as different devices:
 - `Session` keeps the token (Subsonic's, with its salt, or Jellyfin's access token) in secure
   storage and everything else in `shared_preferences`, with the API under `api` (none: a session
   saved before Jellyfin, so Subsonic). The password itself is never stored.
-- Android TV: the remote drives the app through focus. `segueTheme` (`lib/ui/theme.dart`) gives
+- Android TV: the remote drives the app through focus. `segueTheme` (`lib/ui/app/theme.dart`) gives
   focused buttons a ring and everything else a strong tint, and `FocusRing` draws a ring on tiles
   whose image hides the tint. `FocusRing` must keep the same widget tree with or without focus,
   since rebuilding the child would drop its focus as soon as it arrived. On a TV
@@ -347,7 +353,7 @@ Running two app instances on one machine as different devices:
   (on a TV, left and right too). A text field opens the keyboard as the focus comes to it, and on a
   TV the keyboard covers half the screen and takes the D-pad, so there the home's search bar stays
   read-only until the center button (its `onTap`) opens it. A TV has no drag, so the queue's and a
-  playlist's songs move by the remote (`MovableSong`, `lib/ui/movable_song.dart`, from the song's menu):
+  playlist's songs move by the remote (`MovableSong`, `lib/ui/song/movable_song.dart`, from the song's menu):
   there their lists are plain `SliverList`s that find each line by its key (`findChildIndexCallback`),
   as `SliverReorderableList` keys each line by its index too, and makes it anew as it moves, dropping
   the focus; and a playlist loaded again keeps its entries (`_entriesOf`), for the same reason.
@@ -367,7 +373,7 @@ Running two app instances on one machine as different devices:
   put together. The Dart code (`lib/l10n/app_localizations*.dart`, not in git) comes from the ARB
   files on `pub get` and on every build, but not on `test` or `analyze`: after editing one,
   `tool/flutter.sh gen-l10n`. Code, comments and `README.md` are in English. Error codes from the
-  hub and players become messages in `describeError` (`lib/ui/errors.dart`), so a new error string
+  hub and players become messages in `describeError` (`lib/ui/widgets/errors.dart`), so a new error string
   needs an entry there.
 - Commit messages are in Portuguese: a short title and a body explaining the behaviour and why.
 - `README.md` lists what the app does and what it doesn't do yet. Update it when a feature lands,
@@ -383,7 +389,7 @@ Running two app instances on one machine as different devices:
   abbreviations, noun phrases for values, verbs for side effects, no `get` prefix, ...) are by hand.
   `avoid_positional_boolean_parameters` stays off: the guideline exempts setters, and a method like
   `setShuffle(true)` is one that can't be a setter, being async.
-- Icons come from Hugeicons (`ThemedIcon(HugeIcons.strokeRounded...)`, `lib/ui/themed_icon.dart`),
+- Icons come from Hugeicons (`ThemedIcon(HugeIcons.strokeRounded...)`, `lib/ui/widgets/themed_icon.dart`),
   which draws them as SVG paths, and never through its own `HugeIcon`: that one is 24 pixels
   whatever the `IconTheme` says, so an icon button's `iconSize` or a navigation bar's theme would
   miss it. No Material icon is left, and `test/icons_test.dart` keeps it so; the back arrow Flutter

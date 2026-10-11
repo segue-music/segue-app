@@ -4,8 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:segue/l10n/app_localizations.dart';
 import 'package:segue/player/libmpv_licenses.dart';
-import 'package:segue/ui/licenses_page.dart';
-import 'package:segue/ui/theme.dart';
+import 'package:segue/ui/app/theme.dart';
+import 'package:segue/ui/settings/licenses_page.dart';
 
 /// [licenses] in place of those Flutter gathers, until the test ends.
 void useLicenses(List<LicenseEntry> licenses) {

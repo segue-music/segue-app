@@ -1,7 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:segue/ui/theme.dart';
+import 'package:segue/ui/app/theme.dart';
 
 /// An app in the app's theme, on a page that opens a second, with a row that goes on sideways and a button counted in
 /// [presses]. Opens the second.

@@ -75,7 +75,7 @@ static FlValue* lookup_int(FlValue* args, const gchar* key) {
              : nullptr;
 }
 
-// Answers the app's calls on segue/window (lib/ui/title_bar.dart): setTitleBarColors gives the header bar the
+// Answers the app's calls on segue/window (lib/ui/app/title_bar.dart): setTitleBarColors gives the header bar the
 // theme's background and foreground.
 static void window_method_call_cb(FlMethodChannel* channel,
                                   FlMethodCall* method_call,

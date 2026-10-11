@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' show decodePng;
 import 'package:segue/l10n/app_localizations.dart';
 import 'package:segue/theme_choice.dart';
-import 'package:segue/ui/theme.dart';
+import 'package:segue/ui/app/theme.dart';
 
 double hue(Color color) => HSLColor.fromColor(color).hue;
 

@@ -11,11 +11,11 @@ import 'package:segue/server/models.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
-import 'package:segue/ui/albums_view.dart';
-import 'package:segue/ui/genre_page.dart';
-import 'package:segue/ui/genres_view.dart';
-import 'package:segue/ui/home_page.dart';
-import 'package:segue/ui/now_playing_bar.dart';
+import 'package:segue/ui/album/albums_view.dart';
+import 'package:segue/ui/app/home_page.dart';
+import 'package:segue/ui/genre/genre_page.dart';
+import 'package:segue/ui/genre/genres_view.dart';
+import 'package:segue/ui/player/now_playing_bar.dart';
 
 import 'fakes.dart';
 import 'sections.dart';

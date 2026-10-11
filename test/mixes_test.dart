@@ -13,9 +13,9 @@ import 'package:segue/server/models.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
-import 'package:segue/ui/cover.dart';
-import 'package:segue/ui/home_view.dart';
-import 'package:segue/ui/mix_row.dart';
+import 'package:segue/ui/home/home_view.dart';
+import 'package:segue/ui/home/mix_row.dart';
+import 'package:segue/ui/widgets/cover.dart';
 
 import 'fakes.dart';
 

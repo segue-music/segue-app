@@ -11,9 +11,9 @@ import 'package:segue/server/models.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
-import 'package:segue/ui/cover.dart';
-import 'package:segue/ui/now_playing_bar.dart';
-import 'package:segue/ui/themed_icon.dart';
+import 'package:segue/ui/player/now_playing_bar.dart';
+import 'package:segue/ui/widgets/cover.dart';
+import 'package:segue/ui/widgets/themed_icon.dart';
 
 import 'fakes.dart';
 import 'player_page_test.dart' show pumpBar, tvPlaying;

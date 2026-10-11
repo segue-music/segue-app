@@ -6,9 +6,9 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hugeicons/hugeicons.dart';
-import 'package:segue/ui/cover.dart';
-import 'package:segue/ui/page_bar.dart';
-import 'package:segue/ui/theme.dart';
+import 'package:segue/ui/app/page_bar.dart';
+import 'package:segue/ui/app/theme.dart';
+import 'package:segue/ui/widgets/cover.dart';
 
 /// A page with a [PageBar] titled Aerosmith over [under], with [shade] of the page's color, in the theme of
 /// [brightness], opened over another, so that it has the back arrow.

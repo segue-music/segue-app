@@ -14,12 +14,12 @@ import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
 import 'package:segue/server/server.dart';
-import 'package:segue/ui/albums_view.dart';
-import 'package:segue/ui/download_button.dart';
-import 'package:segue/ui/downloads_page.dart';
-import 'package:segue/ui/playlists_view.dart';
-import 'package:segue/ui/settings_page.dart';
-import 'package:segue/ui/spinner.dart';
+import 'package:segue/ui/album/albums_view.dart';
+import 'package:segue/ui/widgets/download_button.dart';
+import 'package:segue/ui/settings/downloads_page.dart';
+import 'package:segue/ui/playlist/playlists_view.dart';
+import 'package:segue/ui/settings/settings_page.dart';
+import 'package:segue/ui/widgets/spinner.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 

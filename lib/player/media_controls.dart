@@ -17,7 +17,7 @@ import '../segue/protocol.dart';
 import '../server/favorites.dart';
 import '../server/models.dart';
 import '../server/server.dart';
-import '../ui/errors.dart';
+import '../ui/widgets/errors.dart';
 import 'browse_tree.dart';
 
 /// The system's media controls (MPRIS on Linux: media keys, the desktop's player widget, KDE
@@ -108,7 +108,7 @@ class MediaControls extends BaseAudioHandler with SeekHandler {
           androidNotificationChannelId: 'io.github.mateusguilherme.segue',
           androidNotificationChannelName: 'Segue',
           // The ring and the note in white (tool/icons.dart), as Android takes only the alpha of the
-          // notification's icon, on the pink of the app's icon (iconPink, lib/ui/theme.dart).
+          // notification's icon, on the pink of the app's icon (iconPink, lib/ui/app/theme.dart).
           androidNotificationIcon: 'drawable/ic_notification',
           notificationColor: Color(0xFFF9358E),
           androidBrowsableRootExtras: BrowseTree.rootExtras,

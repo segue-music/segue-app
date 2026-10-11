@@ -374,7 +374,7 @@ has been tried on a tablet and on an Android TV, and the iOS build on an iPhone,
 | `lib/lyrics/` | LRCLIB (lrclib.net), where lyrics come from when the media server has none, and LRC |
 | `lib/pictures/` | fanart.tv, where more pictures of an artist than the media server's one come from, for their biography, and their picture where the server has none |
 | `lib/releases/` | MusicBrainz (musicbrainz.org), where an album's release date and record labels come from when the media server doesn't say them, its credits where the server has none, where it was recorded, mixed and mastered, who made its cover, a band's years and members, and where an artist comes from; `AlbumCredits`, the server's credits and MusicBrainz's together, by person |
-| `lib/ui/` | The pages: sign-in, home, albums, artists, genres, playlists, album, artist, playlist, search, player bar and full-screen player, queue, device picker |
+| `lib/ui/` | The pages and their pieces, by subject: `app/` (sign-in, the home page with its bars, the page area, theme, keyboard shortcuts), `home/` (the home's rows, search), `album/`, `artist/`, `genre/`, `playlist/` (each section's list and its pages), `song/` (a song's line, menu and links), `player/` (player bar and full-screen player, queue, lyrics, device picker), `settings/`; and `widgets/`, what several of them use |
 | `lib/l10n/` | The app's words in each language, as ARB files (Portuguese's, the template, says what each is); the Dart code comes from them on `pub get` and on every build |
 | `test/` | Unit and widget tests, and tests against the real Go hub (`hub_test.dart`) |
 | `tool/` | A Docker image and script to build and test without installing Flutter; `icons.dart` makes every icon from the artwork, `icon.png` |

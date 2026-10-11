@@ -14,9 +14,9 @@ import 'package:segue/server/models.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
-import 'package:segue/ui/album_page.dart';
-import 'package:segue/ui/equalizer.dart';
-import 'package:segue/ui/search_results.dart';
+import 'package:segue/ui/album/album_page.dart';
+import 'package:segue/ui/home/search_results.dart';
+import 'package:segue/ui/widgets/equalizer.dart';
 
 import 'fakes.dart';
 

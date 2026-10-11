@@ -16,17 +16,17 @@ import 'package:segue/server/models.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
-import 'package:segue/ui/album_page.dart';
-import 'package:segue/ui/albums_view.dart';
-import 'package:segue/ui/artist_page.dart';
-import 'package:segue/ui/cover.dart';
-import 'package:segue/ui/cover_page.dart';
-import 'package:segue/ui/credits_page.dart';
-import 'package:segue/ui/now_playing_bar.dart';
-import 'package:segue/ui/page_bar.dart';
-import 'package:segue/ui/song_list_header.dart';
-import 'package:segue/ui/text_link.dart';
-import 'package:segue/ui/tile_row.dart';
+import 'package:segue/ui/album/album_page.dart';
+import 'package:segue/ui/album/albums_view.dart';
+import 'package:segue/ui/album/cover_page.dart';
+import 'package:segue/ui/album/credits_page.dart';
+import 'package:segue/ui/app/page_bar.dart';
+import 'package:segue/ui/artist/artist_page.dart';
+import 'package:segue/ui/player/now_playing_bar.dart';
+import 'package:segue/ui/song/song_list_header.dart';
+import 'package:segue/ui/widgets/cover.dart';
+import 'package:segue/ui/widgets/text_link.dart';
+import 'package:segue/ui/widgets/tile_row.dart';
 
 import 'fakes.dart';
 

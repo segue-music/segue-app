@@ -3,8 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:segue/l10n/app_localizations.dart';
 import 'package:segue/server/models.dart';
-import 'package:segue/ui/albums_view.dart';
-import 'package:segue/ui/theme.dart';
+import 'package:segue/ui/album/albums_view.dart';
+import 'package:segue/ui/app/theme.dart';
 
 /// How many things on screen have a ring drawn around them.
 int rings(WidgetTester tester) => tester

@@ -16,14 +16,14 @@ import 'replay_gain_choice.dart';
 import 'services.dart';
 import 'session.dart';
 import 'theme_choice.dart';
-import 'ui/failed_song_message.dart';
-import 'ui/home_page.dart';
-import 'ui/login_page.dart';
-import 'ui/shortcuts.dart';
-import 'ui/spinner.dart';
-import 'ui/theme.dart';
-import 'ui/theme_fade.dart';
-import 'ui/title_bar.dart';
+import 'ui/app/home_page.dart';
+import 'ui/app/login_page.dart';
+import 'ui/app/shortcuts.dart';
+import 'ui/app/theme.dart';
+import 'ui/app/theme_fade.dart';
+import 'ui/app/title_bar.dart';
+import 'ui/player/failed_song_message.dart';
+import 'ui/widgets/spinner.dart';
 
 class SegueApp extends StatefulWidget {
   const SegueApp({

@@ -3,7 +3,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:segue/l10n/app_localizations.dart';
 import 'package:segue/server/models.dart';
-import 'package:segue/ui/artist_link.dart';
+import 'package:segue/ui/artist/artist_link.dart';
 
 const runDmc = Artist(id: 'ar2', name: 'Run-DMC');
 const aerosmith = Artist(id: 'ar1', name: 'Aerosmith');

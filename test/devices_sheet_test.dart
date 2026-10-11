@@ -11,9 +11,9 @@ import 'package:segue/segue/protocol.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
-import 'package:segue/ui/devices_sheet.dart';
-import 'package:segue/ui/equalizer.dart';
-import 'package:segue/ui/themed_icon.dart';
+import 'package:segue/ui/player/devices_sheet.dart';
+import 'package:segue/ui/widgets/equalizer.dart';
+import 'package:segue/ui/widgets/themed_icon.dart';
 
 import 'fakes.dart';
 import 'themed_icons.dart';

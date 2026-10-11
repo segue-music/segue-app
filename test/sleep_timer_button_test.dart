@@ -3,9 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:segue/segue/protocol.dart';
 import 'package:segue/services.dart';
-import 'package:segue/ui/now_playing_bar.dart';
-import 'package:segue/ui/player_page.dart';
-import 'package:segue/ui/themed_icon.dart';
+import 'package:segue/ui/player/now_playing_bar.dart';
+import 'package:segue/ui/player/player_page.dart';
+import 'package:segue/ui/widgets/themed_icon.dart';
 
 import 'player_page_test.dart' show onPage, openPlayer, pumpBar, tvPlaying;
 

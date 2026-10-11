@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:segue/l10n/app_localizations.dart';
-import 'package:segue/ui/equalizer.dart';
+import 'package:segue/ui/widgets/equalizer.dart';
 
 void main() {
   setUp(() => Equalizer.moves = true);

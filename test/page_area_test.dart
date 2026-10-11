@@ -3,11 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:segue/player/player.dart';
 import 'package:segue/server/models.dart';
-import 'package:segue/ui/album_page.dart';
-import 'package:segue/ui/cover.dart';
-import 'package:segue/ui/home_page.dart';
-import 'package:segue/ui/player_page.dart';
-import 'package:segue/ui/queue_page.dart';
+import 'package:segue/ui/album/album_page.dart';
+import 'package:segue/ui/app/home_page.dart';
+import 'package:segue/ui/player/player_page.dart';
+import 'package:segue/ui/player/queue_page.dart';
+import 'package:segue/ui/widgets/cover.dart';
 
 import 'home_search_test.dart' show pumpHome;
 

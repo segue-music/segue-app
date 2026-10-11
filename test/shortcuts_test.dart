@@ -10,7 +10,7 @@ import 'package:segue/server/models.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
-import 'package:segue/ui/shortcuts.dart';
+import 'package:segue/ui/app/shortcuts.dart';
 
 import 'fakes.dart';
 
