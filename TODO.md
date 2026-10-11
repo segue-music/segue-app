@@ -139,3 +139,46 @@ two). Only where the server has it: Navidrome's plugins (AudioMuse-AI) and OpenS
 
 A talking DJ, playlists from a prompt, videos, podcasts, messages, Canvas: little use where they were measured (14% of
 those who got Spotify's prompted playlists), complaints of a cluttered app, and Plexamp took its own out.
+
+## From Spotube
+
+Spotube (`team-spotube/spotube`, 5.1.2), a player in Flutter, takes its catalog from metadata plugins (an unofficial
+Spotify one, through the web player's internal API; MusicBrainz and ListenBrainz) and its audio from audio-source
+plugins (YouTube's, searched for each track). Looked at on 2026-10-11 for what the app could take from it. Its Connect
+has nothing the protocol lacks but working without a hub, over the local network, which is left out (SPEC.md's hub signs
+devices in with the media server).
+
+### Playlists from other services
+
+Spotube finds each track's audio by its ISRC, else by its title and artists, ranks what it found (the title has the
+track's name, the channel is the artist), keeps the match, and lets the user swap a wrong one for another of the
+results. The same, aimed at the library rather than YouTube, brings in a playlist from elsewhere: each track searched
+for by title and artist, and confirmed by its ISRC or MusicBrainz id where the server gives them (OpenSubsonic's song
+has both), else by its length; the match kept, and correctable; the playlist made through `PlaylistEditor`, with what
+the library lacks listed. From a file exported (Exportify's CSV, JSPF, M3U) or from ListenBrainz. What Spotify's public
+API still lets a new app read wasn't checked.
+
+### ListenBrainz's recommendations as mixes
+
+Spotube's MusicBrainz and ListenBrainz plugin makes radios of the user's top artists (LB Radio), playlists by mood, and
+shows the playlists ListenBrainz makes for each user (Weekly Jams, Weekly Exploration). Navidrome already sends the
+plays to ListenBrainz. Matched to the library as above, by the user's ListenBrainz name, they would be more `Mix`es
+(`lib/mixes.dart`), of the songs the library has. Navidrome 0.60's plugin imports the daily ones as playlists ("Smaller
+ones", above), on that server only.
+
+### A queue edit that checks its track
+
+Spotube takes a track out of the queue by its id. SPEC.md's `moveInQueue` and `removeFromQueue` go by its place, which
+the queue page keeps right for its own edits (`_QueueChange`, and the commands arrive in order), but two controllers
+editing one queue at once can hit the wrong track. An optional `id` in both, which the player checks against the track
+at `index`, failing where it differs, would close that; an id alone, as Spotube's, can't tell apart a song that is twice
+in the queue. SPEC.md, the hub and the app together. Not urgent.
+
+### Left out on purpose
+
+A mode without a media server, streaming as Spotube does (Spotify's catalog, YouTube's audio). The App Store's
+guideline 5.2.3 forbids playing or downloading media of third parties (YouTube by name) without their leave, so the
+whole app would be refused, not the mode: Spotube is on iOS only as an IPA to sideload. The hub signs devices in with
+the media server, and the queue's ids are the server's (SPEC.md, sections 2 and 8), so Connect would need another
+sign-in and other ids. And both sides are reverse-engineered, to be chased as they change: the Spotify plugin's token
+needs a TOTP secret that Spotify versions, and YouTube changes the JavaScript challenges a stream's address needs.
