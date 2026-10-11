@@ -33,12 +33,14 @@ class _LicensesPageState extends State<LicensesPage> {
     }
 
     final packages = licenses.keys.toList()..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+
     return [for (final package in packages) (package: package, licenses: licenses[package]!)];
   }
 
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context);
+
     return Scaffold(
       appBar: AppBar(
         // Under a wide screen's top bar, whose arrow goes back: no arrow of its own.
@@ -60,6 +62,7 @@ class _LicensesPageState extends State<LicensesPage> {
             itemCount: packages.length,
             itemBuilder: (context, i) {
               final (:package, :licenses) = packages[i];
+
               return ListTile(
                 title: Text(package),
                 subtitle: Text(strings.licenseCount(licenses.length)),

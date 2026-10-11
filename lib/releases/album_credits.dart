@@ -67,6 +67,7 @@ class AlbumCredits {
         for (final session in track?.sessions ?? const <RecordingSession>[]) (session, {i}),
       for (final session in musicBrainz?.sessions ?? const <RecordingSession>[]) (session, all),
     ], songs.length);
+
     return AlbumCredits(sections: sections, venues: venues, fromMusicBrainz: fromMusicBrainz || venues.isNotEmpty);
   }
 
@@ -92,6 +93,7 @@ List<ReleaseTrack?> _tracks(List<Song> songs, ReleaseCredits? musicBrainz) {
   final byId = {
     for (final track in tracks) ...{track.recording: track, track.id: track},
   };
+
   return [
     for (final (i, song) in songs.indexed)
       switch (song.musicBrainzId) {
@@ -129,8 +131,10 @@ List<CreditedPerson> _people(List<(Credit, Set<int>)> credits, int count) {
       final (one, other) = (people[a], people[b]);
       final more = other.songs.length.compareTo(one.songs.length);
       final earlier = one.songs.reduce(min).compareTo(other.songs.reduce(min));
+
       return more != 0 ? more : (earlier != 0 ? earlier : a.compareTo(b));
     });
+
   return [
     for (final i in order)
       (
@@ -154,8 +158,10 @@ List<CreditedRole> _ordered(List<(CreditRole, String?, Set<int>)> roles, int cou
       final kind = role.index.compareTo(otherRole.index);
       final voices = (voice(otherPart) ? 1 : 0).compareTo(voice(part) ? 1 : 0);
       final more = otherSongs.length.compareTo(songs.length);
+
       return kind != 0 ? kind : (voices != 0 ? voices : (more != 0 ? more : a.compareTo(b)));
     });
+
   return [for (final i in order) (role: roles[i].$1, part: roles[i].$2, tracks: _numbers(roles[i].$3, count))];
 }
 
@@ -193,5 +199,6 @@ List<int> _numbers(Set<int> songs, int count) =>
 int _compare(ReleaseDate a, ReleaseDate b) {
   final year = a.year.compareTo(b.year);
   final month = (a.month ?? 0).compareTo(b.month ?? 0);
+
   return year != 0 ? year : (month != 0 ? month : (a.day ?? 0).compareTo(b.day ?? 0));
 }

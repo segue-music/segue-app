@@ -45,6 +45,7 @@ enum AlbumOrder {
 List<K> rankedByCount<K>(Map<K, int> counts) {
   final ranked = [for (final (i, MapEntry(:key, :value)) in counts.entries.indexed) (key: key, count: value, i: i)]
     ..sort((a, b) => a.count != b.count ? b.count.compareTo(a.count) : a.i.compareTo(b.i));
+
   return [for (final entry in ranked) entry.key];
 }
 

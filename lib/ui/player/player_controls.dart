@@ -18,6 +18,7 @@ String formatDuration(Duration? duration) {
   }
 
   final seconds = duration.inSeconds;
+
   return '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}';
 }
 
@@ -67,6 +68,7 @@ class _NowPlayingBuilderState extends State<NowPlayingBuilder> {
   @override
   Widget build(BuildContext context) {
     final connect = ServicesScope.of(context).connect;
+
     return ListenableBuilder(
       listenable: connect,
       builder: (context, _) => widget.builder(context, connect, connect.nowPlaying),
@@ -183,6 +185,7 @@ class ShuffleButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final connect = ServicesScope.of(context).connect;
     final strings = AppLocalizations.of(context);
+
     return IconButton(
       tooltip: now.shuffle ? strings.turnShuffleOff : strings.turnShuffleOn,
       icon: ThemedIcon(
@@ -204,6 +207,7 @@ class RepeatButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final connect = ServicesScope.of(context).connect;
     final strings = AppLocalizations.of(context);
+
     return IconButton(
       tooltip: switch (now.repeat) {
         Repeat.off => strings.repeatAll,
@@ -239,6 +243,7 @@ class PlaybackButtons extends StatelessWidget {
   Widget build(BuildContext context) {
     final connect = ServicesScope.of(context).connect;
     final strings = AppLocalizations.of(context);
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [

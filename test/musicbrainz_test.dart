@@ -46,6 +46,7 @@ MusicBrainz musicBrainz({
   remembersCountries: remembersCountries,
   client: MockClient((request) async {
     asked?.add(request);
+
     return switch (request.url.pathSegments) {
       [..., 'release', _] when release != null => json(release),
       [..., 'artist', _] when artist != null => json(artist),
@@ -357,6 +358,7 @@ void main() {
       spacing: Duration.zero,
       client: MockClient((request) async {
         asked.add(request);
+
         return status == 200 ? json(reissue) : http.Response('', status);
       }),
     );
@@ -378,6 +380,7 @@ void main() {
       final brainz = MusicBrainz(
         client: MockClient((request) async {
           asked.add(request);
+
           return statuses.removeAt(0) == 200 ? json(reissue) : http.Response('', 503);
         }),
       );
@@ -732,6 +735,7 @@ void main() {
       spacing: Duration.zero,
       client: MockClient((request) async {
         asked.add(request);
+
         return switch (request.url.pathSegments.last) {
           'mb1' => json({
             ...lifeSpan(),
@@ -758,6 +762,7 @@ void main() {
       spacing: Duration.zero,
       client: MockClient((request) async {
         asked.add(request);
+
         return status == 200 ? json(lifeSpan(begin: '1966')) : http.Response('', status);
       }),
     );
@@ -917,6 +922,7 @@ void main() {
       spacing: Duration.zero,
       client: MockClient((request) async {
         requests++;
+
         return fails
             ? json({'error': 'oops'}, 500)
             : json({

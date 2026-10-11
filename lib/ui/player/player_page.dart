@@ -89,6 +89,7 @@ class _PlayerPageState extends State<PlayerPage> with SingleTickerProviderStateM
     // queue and the devices. On a phone, which has no bar there, the queue and the devices go in one of their own, at
     // the bottom, with a playlist to add the song to, under a handle that says that a drag brings the lyrics in.
     final wide = MediaQuery.sizeOf(context).width >= NowPlayingBar.wideFrom;
+
     return CallbackShortcuts(
       bindings: {const SingleActivator(LogicalKeyboardKey.escape): close},
       child: Focus(
@@ -104,6 +105,7 @@ class _PlayerPageState extends State<PlayerPage> with SingleTickerProviderStateM
                 final colors = Theme.of(context).colorScheme;
                 final device = now?.device;
                 final strings = AppLocalizations.of(context);
+
                 return Scaffold(
                   appBar: AppBar(
                     // The background's color, always: neither the lyrics nor, on a phone, the page tint it as
@@ -222,6 +224,7 @@ class PlayerRoute extends PageRouteBuilder<void> {
   /// curve, unless it is [dragged], with the finger.
   static Animation<Offset> _slide(Animation<double> animation, {required bool dragged}) {
     final slide = Tween(begin: const Offset(0, 1), end: Offset.zero);
+
     return (dragged ? slide : slide.chain(CurveTween(curve: Curves.easeOutCubic))).animate(animation);
   }
 
@@ -283,6 +286,7 @@ class _LyricsRoute extends PageRoute<void> {
     Widget child,
   ) {
     final down = _down;
+
     return SlideTransition(
       position: down
           ? PlayerRoute._slide(animation, dragged: popGestureInProgress)
@@ -362,6 +366,7 @@ class _CloseDrag implements _PlayerDrag {
 
     final moving = max(down, -(1 - _controller.value) * _height);
     _controller.value -= moving / _height;
+
     return down - moving;
   }
 
@@ -456,6 +461,7 @@ class _LyricsDrag implements _PlayerDrag {
   double update(double down) {
     final before = _shown.value;
     _shown.value -= down / _distance;
+
     return moved ? 0 : down - (before - _shown.value) * _distance;
   }
 
@@ -503,6 +509,7 @@ class _FullScreenDrag implements _PlayerDrag {
   double update(double down) {
     final before = _up;
     _up = max(before - down, 0);
+
     return moved ? 0 : down - before;
   }
 
@@ -560,6 +567,7 @@ class _DragToCloseState extends State<_DragToClose> {
     }
 
     final height = context.size!.height;
+
     return switch (route) {
       PlayerRoute() when !route.secondaryAnimation!.isDismissed => null,
       PlayerRoute() => widget.lyrics?.call(height, down: down) ?? (down ? route._startClosing(height) : null),
@@ -729,6 +737,7 @@ class _LyricsHandle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context);
+
     return Tooltip(
       message: lyrics ? strings.hideLyrics : strings.showLyrics,
       child: TextButton.icon(
@@ -1008,6 +1017,7 @@ class _SwipeToSkipState extends State<_SwipeToSkip> with SingleTickerProviderSta
     }
 
     final previous = connect.queue.index - 1;
+
     return previous < 0 ? null : () => connect.jump(previous);
   }
 
@@ -1040,6 +1050,7 @@ class _SwipeToSkipState extends State<_SwipeToSkip> with SingleTickerProviderSta
   @override
   Widget build(BuildContext context) {
     final leaving = _leaving;
+
     return GestureDetector(
       onHorizontalDragStart: (_) {
         _offset.stop();

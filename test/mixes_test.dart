@@ -191,6 +191,7 @@ Future<PlayerController> pumpHome(
     ),
   );
   await tester.pumpAndSettle();
+
   return player;
 }
 

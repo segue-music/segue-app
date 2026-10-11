@@ -8,6 +8,7 @@ Future<void> pickByRemote(WidgetTester tester, String text) async {
     // An item: not the menu, which has the focus as it opens.
     final focus = FocusManager.instance.primaryFocus;
     final context = focus is FocusScopeNode ? null : focus?.context;
+
     return context != null &&
         find
             .descendant(of: find.byElementPredicate((element) => element == context), matching: find.text(text))

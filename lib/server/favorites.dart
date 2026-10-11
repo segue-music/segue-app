@@ -105,6 +105,7 @@ class Favorites extends ChangeNotifier {
             unawaited(load().catchError((Object _) {}));
           }
         });
+
     return done;
   }
 

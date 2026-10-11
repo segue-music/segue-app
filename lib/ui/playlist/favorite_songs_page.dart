@@ -28,6 +28,7 @@ class FavoritesPicture extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(radius),
       child: ColoredBox(
@@ -130,11 +131,13 @@ class _FavoriteSongsPageState extends State<FavoriteSongsPage> {
     final narrow = MediaQuery.sizeOf(context).width < 600;
     final strings = AppLocalizations.of(context);
     final favorites = ServicesScope.of(context).favorites;
+
     return ListenableBuilder(
       listenable: favorites,
       builder: (context, _) {
         final error = _error;
         final shown = favorites.loaded;
+
         return Scaffold(
           appBar: PageArea.holdsUnderTopBar(context)
               ? null
@@ -158,6 +161,7 @@ class _FavoriteSongsPageState extends State<FavoriteSongsPage> {
   /// The page under its bar: the top, and the songs.
   Widget _songs(List<Song> songs, {required bool narrow}) {
     final strings = AppLocalizations.of(context);
+
     return CustomScrollView(
       slivers: [
         if (!narrow) PageBarSliver(title: strings.favoriteSongs, shade: _shade, leading: _playButton(songs)),
@@ -249,6 +253,7 @@ class _FavoriteSongsPageState extends State<FavoriteSongsPage> {
   /// The song at [index], which plays them from it; on a [narrow] screen, its artists are plain text.
   Widget _song(List<Song> songs, int index, {required bool narrow}) {
     final song = songs[index];
+
     return CurrentSong(
       song,
       key: ObjectKey(song),

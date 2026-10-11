@@ -260,6 +260,7 @@ class _SegueAppState extends State<SegueApp> {
     final services = _services;
     final ThemeSettings(:mode, :palette, :highContrast) = _themeChoice.value;
     final mediaControls = widget.mediaControls;
+
     return MaterialApp(
       title: 'Segue',
       debugShowCheckedModeBanner: false,
@@ -298,6 +299,7 @@ class _SegueAppState extends State<SegueApp> {
                   ),
           ),
         );
+
         return mediaControls == null ? app : _MediaControlsStrings(controls: mediaControls, child: app);
       },
       home: services != null
@@ -317,6 +319,7 @@ class _SegueAppState extends State<SegueApp> {
           ? Builder(
               builder: (context) {
                 final strings = AppLocalizations.of(context);
+
                 return Scaffold(
                   body: Center(
                     child: Column(

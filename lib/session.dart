@@ -71,6 +71,7 @@ class Session {
     }
 
     final hub = await _prefs.getString('hub');
+
     return Session(
       server: Uri.parse(server),
       credentials: credentials,
@@ -108,6 +109,7 @@ class Session {
   /// again; null where none was.
   static Future<Uri?> foundHub(Uri server) async {
     final hub = await _prefs.getString('foundHub');
+
     return hub != null && await _prefs.getString('foundHubServer') == server.toString() ? Uri.parse(hub) : null;
   }
 
@@ -144,6 +146,7 @@ class Session {
 
     final id = const Uuid().v4();
     await _prefs.setString('deviceId', id);
+
     return id;
   }
 
@@ -155,5 +158,6 @@ class Session {
 /// What the user typed as the server, as a URL: https unless they said otherwise.
 Uri normalizeServer(String input) {
   final text = input.trim();
+
   return Uri.parse(text.contains('://') ? text : 'https://$text');
 }

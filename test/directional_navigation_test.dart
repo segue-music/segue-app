@@ -93,6 +93,7 @@ Future<void> pumpTvHome(WidgetTester tester, {bool followingAnotherDevice = fals
       }
 
       final albums = [for (var i = 0; i < 30; i++) '{"id": "a$i", "name": "Album $i"}'].join(',');
+
       return http.Response(
         '{"subsonic-response": {"status": "ok", "albumList2": {"album": [$albums]}}}',
         200,
@@ -156,6 +157,7 @@ SegueClient _anotherDevicePlaying() {
       queue: const [QueueItem(id: 's1', title: 'Dream On', artist: 'Aerosmith', durationMs: 240000)],
     ),
   );
+
   return client;
 }
 
@@ -164,6 +166,7 @@ bool inBar() => FocusManager.instance.primaryFocus?.context?.findAncestorWidgetO
 /// The tooltip of what has the focus: a button's, or the song's ("Abrir o player").
 String? focusedTip() {
   final context = FocusManager.instance.primaryFocus?.context;
+
   return context?.findAncestorWidgetOfExactType<IconButton>()?.tooltip ??
       context?.findAncestorWidgetOfExactType<Tooltip>()?.message;
 }

@@ -50,6 +50,7 @@ class _NameDialogState extends State<_NameDialog> {
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context);
     final renaming = widget.name != null;
+
     return AlertDialog(
       title: Text(renaming ? strings.renamePlaylist : strings.newPlaylist),
       content: TextField(
@@ -88,6 +89,7 @@ Future<bool> confirmPlaylistDeletion(BuildContext context, Playlist playlist) as
       ],
     ),
   );
+
   return delete ?? false;
 }
 
@@ -142,6 +144,7 @@ class AddToPlaylistButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final now = this.now;
     final songId = now?.songId;
+
     return IconButton(
       tooltip: AppLocalizations.of(context).addToPlaylist,
       icon: const ThemedIcon(HugeIcons.strokeRoundedPlayListAdd),
@@ -189,6 +192,7 @@ class _PlaylistPickerState extends State<_PlaylistPicker> {
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context);
+
     return SimpleDialog(
       title: Text(strings.addToPlaylist),
       children: [

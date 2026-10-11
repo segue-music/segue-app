@@ -18,6 +18,7 @@ class MenuItemLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     final (icon, detail) = (this.icon, this.detail);
     final theme = Theme.of(context);
+
     return Row(
       children: [
         SizedBox.square(dimension: 24, child: icon == null ? null : ThemedIcon(icon)),

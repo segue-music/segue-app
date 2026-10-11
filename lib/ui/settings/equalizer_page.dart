@@ -20,6 +20,7 @@ class EqualizerPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context);
+
     return Scaffold(
       appBar: AppBar(
         // Under a wide screen's top bar, whose arrow goes back: no arrow of its own.
@@ -30,6 +31,7 @@ class EqualizerPage extends StatelessWidget {
         listenable: choice,
         builder: (context, _) {
           final settings = choice.value;
+
           return ListView(
             // At the end, clear of the bars a phone's home has over it.
             padding: EdgeInsets.only(bottom: 16 + MediaQuery.paddingOf(context).bottom),
@@ -187,6 +189,7 @@ class _EqualizerBandState extends State<EqualizerBand> {
       color: enabled ? colors.onSurfaceVariant : colors.onSurface.withValues(alpha: 0.38),
       fontFeatures: const [FontFeature.tabularFigures()],
     );
+
     return Semantics(
       slider: true,
       enabled: enabled,

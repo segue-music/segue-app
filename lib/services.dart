@@ -163,6 +163,7 @@ class Services {
         unawaited(services._loadFavorites());
       }
     });
+
     return services;
   }
 
@@ -274,6 +275,7 @@ class Services {
     final account = base64Url
         .encode(utf8.encode('${session.server}\n${session.credentials.username}'))
         .replaceAll('=', '');
+
     return Directory('${(await getApplicationSupportDirectory()).path}/downloads/$account');
   }
 

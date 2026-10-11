@@ -425,6 +425,7 @@ class AlbumGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final lines = AlbumTile.linesHeight(context);
     final heading = this.heading;
+
     return CustomScrollView(
       slivers: [
         ?bar,
@@ -477,6 +478,7 @@ class _AlbumGridDelegate extends SliverGridDelegateWithMaxCrossAxisExtent {
   SliverGridLayout getLayout(SliverConstraints constraints) {
     final layout = super.getLayout(constraints) as SliverGridRegularTileLayout;
     final height = layout.childCrossAxisExtent + lines;
+
     return SliverGridRegularTileLayout(
       crossAxisCount: layout.crossAxisCount,
       mainAxisStride: height + mainAxisSpacing,
@@ -523,6 +525,7 @@ class AlbumTile extends StatefulWidget {
       )..layout();
       final height = painter.height;
       painter.dispose();
+
       return height;
     }
 
@@ -541,6 +544,7 @@ class _AlbumTileState extends State<AlbumTile> {
   Widget build(BuildContext context) {
     final album = widget.album;
     final text = Theme.of(context).textTheme;
+
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),

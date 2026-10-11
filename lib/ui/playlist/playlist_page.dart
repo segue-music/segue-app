@@ -205,6 +205,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
     final (playlist, entries, error) = (_playlist, _entries, _error);
     final shown = playlist != null && entries != null;
     final moving = _moving;
+
     // While a song moves, back (the top bar's arrow, say) puts it back rather than leaving.
     return PopScope(
       canPop: moving == null || !(entries?.contains(moving.entry) ?? false),
@@ -324,6 +325,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
                   itemBuilder: song,
                   findChildIndexCallback: (key) {
                     final index = shown.indexWhere((entry) => ObjectKey(entry) == key);
+
                     return index < 0 ? null : index;
                   },
                 )
@@ -430,6 +432,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
   /// page.
   Widget _menu(Playlist playlist, List<Song> songs) {
     final strings = AppLocalizations.of(context);
+
     return PopupMenuButton<PlaylistAction>(
       tooltip: strings.moreOptions,
       icon: const ThemedIcon(HugeIcons.strokeRoundedMoreVertical),
@@ -455,6 +458,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
     Widget Function(Widget line)? movable,
   }) {
     final song = songs[index];
+
     return CurrentSong(
       song,
       builder: (context, current, playing) => SongMenu(
@@ -476,6 +480,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
             trailing: SongTrailing(song.id, song.duration, menu),
             onTap: () => _play(songs, index),
           );
+
           return movable?.call(line) ?? line;
         },
       ),

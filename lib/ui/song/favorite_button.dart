@@ -44,10 +44,12 @@ class FavoriteButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final favorites = ServicesScope.of(context).favorites;
     final strings = AppLocalizations.of(context);
+
     return ListenableBuilder(
       listenable: favorites,
       builder: (context, _) {
         final favorite = favorites.contains(kind, id);
+
         return IconButton(
           tooltip: favorite ? strings.removeFromFavorites : strings.addToFavorites,
           isSelected: favorite,

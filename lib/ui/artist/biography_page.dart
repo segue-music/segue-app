@@ -81,6 +81,7 @@ class BiographyPage extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final strings = AppLocalizations.of(context);
     final source = biography.source;
+
     return ReadingPage.gallery(
       picture: picture,
       morePictures: morePictures,
@@ -154,6 +155,7 @@ class BiographyPage extends StatelessWidget {
   Widget _place(BuildContext context, String place) {
     final theme = Theme.of(context);
     final television = MediaQuery.navigationModeOf(context) == NavigationMode.directional;
+
     return TextLink(
       place,
       tooltip: AppLocalizations.of(context).showOnMap,
@@ -197,6 +199,7 @@ class BiographyPage extends StatelessWidget {
       final code? => strings.countryName(code),
       null => '',
     };
+
     return switch ((origin.place, country)) {
       (final place?, '') => place,
       (final place?, _) => strings.placeInCountry(place, country),

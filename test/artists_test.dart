@@ -331,6 +331,7 @@ Future<FakeEngine> pumpHome(
     ),
   );
   await tester.pumpAndSettle();
+
   return engine;
 }
 
@@ -363,6 +364,7 @@ FanartTv fanartTv({List<http.Request>? asked}) => FanartTv(
   apiKey: 'key',
   client: MockClient((request) async {
     asked?.add(request);
+
     return http.Response(
       jsonEncode({
         if (request.url.path.endsWith('/mb1'))
@@ -411,6 +413,7 @@ class FakeUrlLauncher extends UrlLauncherPlatform {
   Future<bool> launchUrl(String url, LaunchOptions options) async {
     launched.add(url);
     modes.add(options.mode);
+
     return opens(url);
   }
 }
@@ -1352,6 +1355,7 @@ void main() {
       spacing: Duration.zero,
       client: MockClient((request) async {
         asked.add(request.url);
+
         return http.Response(
           jsonEncode({
             'id': 'mb1',

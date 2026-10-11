@@ -86,6 +86,7 @@ void main() {
 
   bool progressIs(int done, int failed) {
     final download = downloads.ofAlbum('al1');
+
     return download != null && downloads.progressOf(download) == (done: done, failed: failed, total: 2);
   }
 

@@ -169,10 +169,12 @@ class _AlbumPageState extends State<AlbumPage> {
     // and the songs have no header naming their columns.
     final narrow = MediaQuery.sizeOf(context).width < 600;
     final strings = AppLocalizations.of(context);
+
     return FutureBuilder(
       future: _album,
       builder: (context, snapshot) {
         final data = snapshot.data;
+
         return Scaffold(
           // On a phone with the name, the link's until the album comes; under a wide screen's top bar, none.
           appBar: PageArea.holdsUnderTopBar(context)
@@ -301,6 +303,7 @@ class _AlbumPageState extends State<AlbumPage> {
 
     // Asked of the server as the phone's, which a screen of more than one pixel per point needs at this size.
     const size = _wideCover;
+
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -428,6 +431,7 @@ class _AlbumPageState extends State<AlbumPage> {
   /// text.
   Widget _song(List<Song> songs, int index, {required bool narrow}) {
     final song = songs[index];
+
     return CurrentSong(
       song,
       builder: (context, current, playing) => SongMenu(
@@ -601,6 +605,7 @@ class _LastSong extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final style = theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant);
+
     return FutureBuilder(
       future: release,
       initialData: (date: album.releaseDate, labels: album.recordLabels, type: album.releaseType),
@@ -611,6 +616,7 @@ class _LastSong extends StatelessWidget {
           ?length,
           if (labels.isNotEmpty) labels.join(', '),
         ];
+
         // The same widgets around the song, with or without the lines under it: rebuilt, it would lose the focus.
         return Focus(
           canRequestFocus: false,

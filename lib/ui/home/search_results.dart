@@ -122,6 +122,7 @@ class _AlbumResultState extends State<_AlbumResult> {
   @override
   Widget build(BuildContext context) {
     final album = widget.album;
+
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),

@@ -101,6 +101,7 @@ class _AlbumPlayButtonState extends State<AlbumPlayButton> {
   Widget _button(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final iconSize = widget.small ? 18.0 : 28.0;
+
     // Out of the focus's way, as the album's artist is: for the keyboard the album stays one stop.
     return ExcludeFocus(
       child: IconButton.filled(

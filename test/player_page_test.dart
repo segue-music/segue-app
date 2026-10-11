@@ -109,6 +109,7 @@ http.Response library(http.Request request) {
     'getArtist.view' => artists[id] == null ? null : {'artist': artists[id]},
     _ => null,
   };
+
   return found == null ? http.Response('', 404) : subsonic(found);
 }
 
@@ -137,6 +138,7 @@ SegueClient tvPlaying(QueueItem song) {
       queue: [song],
     ),
   );
+
   return client;
 }
 
@@ -197,6 +199,7 @@ Future<PlayerController> pumpBar(
           : const Scaffold(body: SizedBox.expand(), bottomNavigationBar: NowPlayingBar()),
     ),
   );
+
   return player;
 }
 
@@ -271,8 +274,10 @@ Finder inPlayer(bool Function(Widget widget) matches) => find.byElementPredicate
   element.visitAncestorElements((ancestor) {
     inBar |= ancestor.widget is NowPlayingBar;
     inPage |= ancestor.widget is PlayerPage;
+
     return !inPage;
   });
+
   return inPage && !inBar;
 });
 
@@ -295,6 +300,7 @@ class CoverRequests extends Fake implements HttpClient {
   @override
   Future<HttpClientRequest> getUrl(Uri url) async {
     _urls.add(url);
+
     return _NoCoverRequest();
   }
 }
@@ -840,6 +846,7 @@ void main() {
       final material = tester.widget<Material>(
         find.descendant(of: onPage(find.byType(AppBar)), matching: find.byType(Material)).first,
       );
+
       return (material.color, material.elevation);
     }
 
@@ -959,6 +966,7 @@ void main() {
     final lrclib = Lrclib(
       client: MockClient((request) async {
         asked.add(request);
+
         return request.url.path == '/api/get'
             ? http.Response(
                 jsonEncode({
@@ -1747,6 +1755,7 @@ void main() {
       ),
       server: (request) {
         asked.add(request);
+
         return library(request);
       },
       size: const Size(1000, 600),
@@ -1777,6 +1786,7 @@ void main() {
       client: tvPlaying(const QueueItem(title: 'Dream On', artist: 'Aerosmith')),
       server: (request) {
         asked.add(request);
+
         return library(request);
       },
     );

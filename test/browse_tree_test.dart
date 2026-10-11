@@ -17,6 +17,7 @@ const groupTitle = 'android.media.browse.CONTENT_STYLE_GROUP_TITLE_HINT';
 /// The tree of [musicLibrary], in Portuguese, its covers at `cover:<id>`; out of reach with [offline].
 BrowseTree tree({SubsonicApi? api, bool favorites = true, bool offline = false}) {
   final server = api ?? musicLibrary();
+
   return BrowseTree(
     server,
     strings: () => lookupAppLocalizations(const Locale('pt')),

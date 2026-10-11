@@ -34,6 +34,7 @@ class _GenrePageState extends State<GenrePage> {
   Widget build(BuildContext context) {
     final mostPlayed = _mostPlayed!;
     final strings = AppLocalizations.of(context);
+
     return Scaffold(
       appBar: AppBar(
         // Under a wide screen's top bar, whose arrow goes back: no arrow of its own.

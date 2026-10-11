@@ -61,6 +61,7 @@ class _HomeViewState extends State<HomeView> {
   Widget build(BuildContext context) {
     final onShowAll = widget.onShowAll;
     final strings = AppLocalizations.of(context);
+
     return RefreshIndicator(
       onRefresh: () async {
         setState(_load);

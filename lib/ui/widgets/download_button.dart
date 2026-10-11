@@ -33,6 +33,7 @@ class DownloadButton extends StatelessWidget {
     }
 
     final strings = AppLocalizations.of(context);
+
     return ListenableBuilder(
       listenable: downloads,
       builder: (context, _) {

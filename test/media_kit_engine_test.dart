@@ -92,6 +92,7 @@ Uint8List _id3(Map<String, String> tags) {
 
   // Its size in 7 bits a byte.
   final size = frames.length;
+
   return Uint8List.fromList([
     ...ascii.encode('ID3'),
     3,
@@ -118,6 +119,7 @@ TrackSource tone(
 /// but at its edges, where one track's gain may still hold for the next.
 List<int> loudestBySecond(File file, {int sampleRate = rate}) {
   final samples = ByteData.sublistView(file.readAsBytesSync());
+
   return [
     for (var start = 0; start + sampleRate * 2 <= samples.lengthInBytes; start += sampleRate * 2)
       [

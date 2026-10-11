@@ -100,6 +100,7 @@ void main() {
       artistPicture: artistPicture,
     );
     opened.add(downloads);
+
     return downloads;
   }
 
@@ -263,6 +264,7 @@ void main() {
 
     Future<Lyrics?> lyricsOf(Song song) async {
       asked++;
+
       return song.id == 's1'
           ? const Lyrics([LyricLine('Backstroke lover', start: Duration(seconds: 12))], provider: 'LRCLIB')
           : null;

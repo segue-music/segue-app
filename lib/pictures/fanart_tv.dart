@@ -85,6 +85,7 @@ class FanartTv {
           if (thumb case {'url': final String url} when Uri.tryParse(url) != null)
             _secure(Uri.parse(url)): int.tryParse('${thumb['likes']}') ?? 0,
     };
+
     return rankedByCount(likes);
   }
 

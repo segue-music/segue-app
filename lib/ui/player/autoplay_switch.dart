@@ -15,6 +15,7 @@ class AutoplaySwitch extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context);
+
     return ListenableBuilder(
       listenable: choice,
       builder: (context, _) => SwitchListTile(

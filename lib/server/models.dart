@@ -171,6 +171,7 @@ class ReplayGain {
         ? (albumGain, albumPeak)
         : (trackGain, trackPeak);
     final headroom = peak != null && peak > 0 ? -20 * log(peak) / ln10 : 0.0;
+
     return min((gain ?? 0) + preamp, headroom);
   }
 }
@@ -321,6 +322,7 @@ class Biography {
       for (final line in _withoutEntities(text).split('\n'))
         if (line.replaceAll(RegExp(r'\s+'), ' ').trim() case final paragraph when paragraph.isNotEmpty) paragraph,
     ];
+
     return paragraphs.isEmpty ? null : Biography(paragraphs, source: lastFm.hasMatch(html) ? 'Last.fm' : null);
   }
 

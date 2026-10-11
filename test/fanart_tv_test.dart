@@ -20,6 +20,7 @@ FanartTv fanartTv(http.Response Function() answer, {List<http.Request>? asked}) 
   apiKey: 'key',
   client: MockClient((request) async {
     asked?.add(request);
+
     return answer();
   }),
 );

@@ -27,6 +27,7 @@ void main() {
       credentials,
       client: MockClient((request) async {
         asked = request.url;
+
         return subsonic({'status': 'ok'});
       }),
     );
@@ -51,6 +52,7 @@ void main() {
       client: MockClient((request) async {
         asked++;
         expect(request.url.path, '/rest/getOpenSubsonicExtensions.view');
+
         return subsonic({
           'status': 'ok',
           'openSubsonicExtensions': [
@@ -200,6 +202,7 @@ void main() {
           ),
         );
         final date = (await api.album('a1')).$1.releaseDate;
+
         return (date?.year, date?.month, date?.day);
       }
 
@@ -233,6 +236,7 @@ void main() {
           }),
         ),
       );
+
       return (await api.album('a1')).$1.releaseType;
     }
 
@@ -286,6 +290,7 @@ void main() {
       credentials,
       client: MockClient((request) async {
         asked = request.url;
+
         return subsonic({
           'status': 'ok',
           'song': {
@@ -441,6 +446,7 @@ void main() {
       credentials,
       client: MockClient((request) async {
         asked.add(request.url);
+
         return subsonic({'status': 'ok', 'albumList2': <String, Object?>{}});
       }),
     );
@@ -459,6 +465,7 @@ void main() {
       credentials,
       client: MockClient((request) async {
         asked = request.url;
+
         return subsonic({
           'status': 'ok',
           'type': 'navidrome', // OpenSubsonic's name of the server
@@ -531,6 +538,7 @@ void main() {
       credentials,
       client: MockClient((request) async {
         asked = request.url;
+
         return subsonic({'status': 'ok', 'albumList2': <String, Object?>{}});
       }),
     );
@@ -548,6 +556,7 @@ void main() {
       credentials,
       client: MockClient((request) async {
         asked = request.url;
+
         return subsonic({'status': 'ok', 'albumList2': <String, Object?>{}});
       }),
     );
@@ -673,6 +682,7 @@ void main() {
     credentials,
     client: MockClient((request) async {
       asked.add(request);
+
       return switch (request.url.pathSegments.last) {
         'getOpenSubsonicExtensions.view' => subsonic({
           'status': 'ok',
@@ -783,6 +793,7 @@ void main() {
       credentials,
       client: MockClient((request) async {
         asked = request.url;
+
         return subsonic({
           'status': 'ok',
           'albumList2': {
@@ -809,6 +820,7 @@ void main() {
         credentials,
         client: MockClient((request) async {
           asked = request.url;
+
           return subsonic({
             'status': 'ok',
             'albumList2': {
@@ -854,6 +866,7 @@ void main() {
       credentials,
       client: MockClient((request) async {
         asked = request.url;
+
         return subsonic({
           'status': 'ok',
           'albumList2': {
@@ -901,6 +914,7 @@ void main() {
       credentials,
       client: MockClient((request) async {
         asked = request.url;
+
         return subsonic({
           'status': 'ok',
           'albumList2': {
@@ -931,6 +945,7 @@ void main() {
       credentials,
       client: MockClient((request) async {
         asked++;
+
         return subsonic({
           'status': 'ok',
           'albumList2': {
@@ -958,6 +973,7 @@ void main() {
       client: MockClient((request) async {
         expect(request.url.path, '/rest/getRandomSongs.view');
         asked.add(request.url.queryParameters);
+
         return subsonic({
           'status': 'ok',
           'randomSongs': {
@@ -1025,6 +1041,7 @@ void main() {
             {'id': 's4', 'title': 'Back in the Saddle', 'playCount': 4},
           ],
         };
+
         return subsonic({
           'status': 'ok',
           'album': {'id': id, 'name': 'Album $id', 'song': songs},
@@ -1053,6 +1070,7 @@ void main() {
       credentials,
       client: MockClient((request) async {
         asked.add(request.url);
+
         return subsonic({
           'status': 'ok',
           'artist': {
@@ -1120,6 +1138,7 @@ void main() {
       credentials,
       client: MockClient((request) async {
         asked.add(request.url);
+
         return subsonic({
           'status': 'ok',
           'artistInfo2': {
@@ -1164,6 +1183,7 @@ void main() {
       credentials,
       client: MockClient((request) async {
         asked.add(request.url);
+
         return subsonic({
           'status': 'ok',
           'artistInfo2': {
@@ -1200,6 +1220,7 @@ void main() {
       credentials,
       client: MockClient((request) async {
         asked.add(request.url.path);
+
         return subsonic({
           'status': 'ok',
           'artistInfo2': {
@@ -1228,6 +1249,7 @@ void main() {
       credentials,
       client: MockClient((request) async {
         asked.add(request.url);
+
         return subsonic({
           'status': 'ok',
           'topSongs': {
@@ -1254,6 +1276,7 @@ void main() {
       credentials,
       client: MockClient((request) async {
         asked.add(request.url);
+
         return subsonic({'status': 'ok', 'topSongs': <String, Object?>{}});
       }),
     );
@@ -1271,6 +1294,7 @@ void main() {
       credentials,
       client: MockClient((request) async {
         asked.add(request.url);
+
         return request.url.queryParameters['id'] == 's1' && !songIds
             ? subsonic({
                 'status': 'failed',
@@ -1316,6 +1340,7 @@ void main() {
       credentials,
       client: MockClient((request) async {
         asked = request.url;
+
         return subsonic({
           'status': 'ok',
           'searchResult3': {
@@ -1349,6 +1374,7 @@ void main() {
       credentials,
       client: MockClient((request) async {
         asked = request.url;
+
         return subsonic({
           'status': 'ok',
           'artists': {
@@ -1458,6 +1484,7 @@ void main() {
       credentials,
       client: MockClient((request) async {
         asked.add(request.url);
+
         return subsonic({'status': 'ok', 'albumList2': <String, Object?>{}});
       }),
     );
@@ -1472,6 +1499,7 @@ void main() {
       credentials,
       client: MockClient((request) async {
         asked = request.url;
+
         return subsonic({
           'status': 'ok',
           'artist': {
@@ -1512,6 +1540,7 @@ void main() {
       credentials,
       client: MockClient((request) async {
         expect(request.url.path, '/rest/getStarred2.view');
+
         return subsonic({
           'status': 'ok',
           'starred2': {
@@ -1554,6 +1583,7 @@ void main() {
       credentials,
       client: MockClient((request) async {
         asked.add(request.url);
+
         return subsonic({'status': 'ok'});
       }),
     );

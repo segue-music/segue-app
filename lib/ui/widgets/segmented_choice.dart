@@ -52,6 +52,7 @@ class SegmentedChoice<T> extends StatelessWidget {
       ),
       for (final option in options) _option(context, option, duration),
     ];
+
     // On the thumb the theme's focus tint, in its color, would hardly show.
     return FocusRing(
       borderRadius: const BorderRadius.all(Radius.circular(100)),
@@ -102,6 +103,7 @@ class SegmentedChoice<T> extends StatelessWidget {
               builder: (context, color, _) => ThemedIcon(icon(option), size: 20, color: color),
             ),
     );
+
     return icon == null ? content : Tooltip(message: label(option), child: content);
   }
 }
@@ -178,6 +180,7 @@ class _RenderOptions extends RenderBox
     }
 
     final share = room / sharing;
+
     return [
       for (final (i, size) in sizes.indexed)
         size.width <= share ? size : layoutChild(options[i], loose.copyWith(maxWidth: share)),
@@ -187,6 +190,7 @@ class _RenderOptions extends RenderBox
   @override
   Size computeDryLayout(BoxConstraints constraints) {
     final sizes = _sizes(constraints, ChildLayoutHelper.dryLayoutChild);
+
     return constraints.constrain(
       Size(
         sizes.fold(0.0, (sum, size) => sum + size.width),

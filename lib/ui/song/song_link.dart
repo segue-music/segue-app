@@ -66,6 +66,7 @@ class _SongLinkState extends State<SongLink> {
 
     final song = ServicesScope.of(context).api.song(id);
     _song = (id, song);
+
     return song;
   }
 

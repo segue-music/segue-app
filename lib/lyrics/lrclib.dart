@@ -44,6 +44,7 @@ class Lrclib {
       for (final other in found is List ? found : const [])
         if (other is Map<String, dynamic> && _same(other, title, duration)) other,
     ];
+
     // Synced ones first, from any of them; then the plain ones of the song, or else of another.
     return [...others.where(_timed), ?song, ...others].map(_lyrics).nonNulls.firstOrNull;
   }
@@ -56,6 +57,7 @@ class Lrclib {
   static bool _same(Map<String, dynamic> song, String title, Duration? duration) {
     final name = song['trackName'] as String? ?? '';
     final length = song['duration'] as num?;
+
     return name.trim().toLowerCase() == title.trim().toLowerCase() &&
         (duration == null ||
             length == null ||
@@ -75,6 +77,7 @@ class Lrclib {
             for (final line in const LineSplitter().convert(song['plainLyrics'] as String? ?? ''))
               LyricLine(line.trim()),
           ];
+
     return lines.isEmpty ? null : Lyrics(lines, provider: 'LRCLIB');
   }
 
@@ -129,5 +132,6 @@ List<LyricLine> parseLrc(String lrc) {
   }
 
   lines.sort((a, b) => a.start!.compareTo(b.start!));
+
   return [for (final line in lines) LyricLine(line.text, start: line.start! - shift)];
 }

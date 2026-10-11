@@ -51,6 +51,7 @@ class _ThemeFadeState extends State<ThemeFade> with SingleTickerProviderStateMix
     var painted = true;
     assert(() {
       painted = !boundary.debugNeedsPaint;
+
       return true;
     }());
 
@@ -81,6 +82,7 @@ class _ThemeFadeState extends State<ThemeFade> with SingleTickerProviderStateMix
   @override
   Widget build(BuildContext context) {
     final old = _old;
+
     return Stack(
       alignment: Alignment.topLeft,
       children: [

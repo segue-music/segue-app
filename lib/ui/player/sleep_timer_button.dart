@@ -26,6 +26,7 @@ class SleepTimerButton extends StatelessWidget {
         final colors = Theme.of(context).colorScheme;
         final strings = AppLocalizations.of(context);
         final minutes = timer.minutesLeft;
+
         return IconButton(
           tooltip: _state(strings, timer) ?? strings.sleepTimer,
           icon: Badge(

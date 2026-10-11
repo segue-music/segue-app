@@ -13,6 +13,7 @@ String formatDate(AppLocalizations strings, ReleaseDate date) {
   }
 
   final name = _monthName(strings, year, month);
+
   return switch (day) {
     null => strings.releaseMonth(name, '$year'),
     _ => strings.releaseDay(day, name, '$year'),

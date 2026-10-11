@@ -24,6 +24,7 @@ class LyricsPage extends StatelessWidget {
     void close() => Navigator.of(context).maybePop();
 
     final wide = MediaQuery.sizeOf(context).width >= NowPlayingBar.wideFrom;
+
     return KeepScreenOn(
       child: CallbackShortcuts(
         bindings: {const SingleActivator(LogicalKeyboardKey.escape): close},
@@ -34,6 +35,7 @@ class LyricsPage extends StatelessWidget {
               final text = Theme.of(context).textTheme;
               final muted = Theme.of(context).colorScheme.onSurfaceVariant;
               final strings = AppLocalizations.of(context);
+
               return Scaffold(
                 appBar: AppBar(
                   // The background's color, always: the lyrics don't tint it as they scroll under it.

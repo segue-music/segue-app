@@ -16,6 +16,7 @@ SubsonicApi musicLibrary({List<(String, Map<String, String>)>? asked}) => Subson
     final query = request.url.queryParameters;
     asked?.add((endpoint, query));
     final found = _answer(endpoint, query);
+
     return found == null
         ? http.Response('', 404)
         : http.Response(
@@ -99,6 +100,7 @@ Map<String, Object?>? _answer(String endpoint, Map<String, String> query) {
   Map<String, Object?> playlist(String id, {bool entries = false}) {
     final playlist = _playlists[id]!;
     final songs = playlist['entry']! as List<String>;
+
     return {
       for (final MapEntry(:key, :value) in playlist.entries)
         if (key != 'entry') key: value,

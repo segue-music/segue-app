@@ -110,6 +110,7 @@ class _MixTileState extends State<_MixTile> {
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final strings = AppLocalizations.of(context);
+
     return FocusRing(
       child: InkWell(
         mouseCursor: WidgetStateMouseCursor.clickable,
@@ -121,6 +122,7 @@ class _MixTileState extends State<_MixTile> {
             future: widget.mixes.firstSongs(widget.mix),
             builder: (context, snapshot) {
               final songs = snapshot.data ?? const <Song>[];
+
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -183,6 +185,7 @@ class _MixTileState extends State<_MixTile> {
       DecadeMix() => HugeIcons.strokeRoundedCalendar03,
     };
     final cover = songs.firstOrNull?.coverArt;
+
     return FutureBuilder(
       future: widget.mixes.firstArtist(widget.mix),
       builder: (context, snapshot) => switch (snapshot) {
@@ -205,6 +208,7 @@ class _MixTileState extends State<_MixTile> {
         if (song.artist case final artist? when artist.isNotEmpty) artist,
     };
     final named = artists.take(_artistsNamed).join(', ');
+
     return artists.length > _artistsNamed ? strings.mixArtists(named) : named;
   }
 }
@@ -219,6 +223,7 @@ class _PlayBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+
     return DecoratedBox(
       decoration: BoxDecoration(color: colors.primary, shape: BoxShape.circle),
       child: SizedBox.square(

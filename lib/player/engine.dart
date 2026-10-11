@@ -455,6 +455,7 @@ class MediaKitEngine implements Deck {
     }
 
     final since = DateTime.now().difference(_movedAt);
+
     return playing ? _movedTo! + since : _movedTo!;
   }
 
@@ -532,6 +533,7 @@ class MediaKitEngine implements Deck {
   Future<T> _inTurn<T>(Future<T> Function() change) {
     final done = _rearrangements.then((_) => change());
     _rearrangements = done.then<void>((_) {}, onError: (Object _) {});
+
     return done;
   }
 
@@ -574,6 +576,7 @@ class MediaKitEngine implements Deck {
   @override
   Future<int> add(List<TrackSource> tracks, {required bool next}) {
     final opens = _opens;
+
     return _inTurn(() => _add(tracks, next: next, opens: opens));
   }
 
@@ -604,12 +607,14 @@ class MediaKitEngine implements Deck {
         }
       },
     );
+
     return at;
   }
 
   @override
   Future<({int from, int to})?> move(int from, int to) {
     final opens = _opens;
+
     return _inTurn(() => _move(from, to, opens: opens));
   }
 
@@ -642,12 +647,14 @@ class MediaKitEngine implements Deck {
         ..removeAt(from)
         ..insert(to, track),
     );
+
     return unshuffled;
   }
 
   @override
   Future<int> remove(int index) {
     final opens = _opens;
+
     return _inTurn(() => _remove(index, opens: opens));
   }
 
@@ -686,6 +693,7 @@ class MediaKitEngine implements Deck {
     }
 
     _changes.add(null);
+
     return at;
   }
 
@@ -822,6 +830,7 @@ class MediaKitEngine implements Deck {
   /// ([_ours]), and whose place in the play order and the order unshuffled stays.
   Future<void> _rename(String track, String name) {
     final opens = _opens;
+
     return _inTurn(() async {
       final native = _player.platform as NativePlayer;
       final playing = int.tryParse(await native.getProperty('playlist-playing-pos')) ?? -1;
@@ -863,6 +872,7 @@ class MediaKitEngine implements Deck {
     _index = index;
     _offset = Duration.zero;
     _restart = null;
+
     return _playFrom(position, () => (_player.platform as NativePlayer).command(['playlist-play-index', '$index']));
   }
 
@@ -932,6 +942,7 @@ class MediaKitEngine implements Deck {
   @override
   Future<void> pause() {
     _playOnLoad = false;
+
     return _player.pause();
   }
 
@@ -946,6 +957,7 @@ class MediaKitEngine implements Deck {
     _restart = null;
     _seekOnLoad = null;
     _moved(Duration.zero);
+
     return _player.stop();
   }
 
@@ -1153,6 +1165,7 @@ class MediaKitEngine implements Deck {
       play: play,
       hold: true,
     );
+
     return true;
   }
 
@@ -1274,6 +1287,7 @@ class MediaKitEngine implements Deck {
 
     return (frequency) {
       final w = 2 * pi * frequency / _equalizerRate;
+
       return 10 * log(squared(b0, b1, b2, w) / squared(a0, a1, a2, w)) / ln10;
     };
   }

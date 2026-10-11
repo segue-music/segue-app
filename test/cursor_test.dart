@@ -132,6 +132,7 @@ Future<TestGesture> pumpApp(WidgetTester tester) async {
     ),
   );
   await tester.pumpAndSettle();
+
   return addMouse(tester);
 }
 
@@ -141,6 +142,7 @@ Future<TestGesture> addMouse(WidgetTester tester) async {
   await gesture.addPointer(location: const Offset(999, 699));
   addTearDown(gesture.removePointer);
   await tester.pumpAndSettle();
+
   return gesture;
 }
 
@@ -148,6 +150,7 @@ Future<TestGesture> addMouse(WidgetTester tester) async {
 Future<MouseCursor?> cursorOver(WidgetTester tester, TestGesture gesture, Finder finder) async {
   await gesture.moveTo(tester.getCenter(finder));
   await tester.pumpAndSettle();
+
   return RendererBinding.instance.mouseTracker.debugDeviceActiveCursor(1); // the test's mouse
 }
 

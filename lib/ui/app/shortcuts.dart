@@ -20,6 +20,7 @@ class PlaybackShortcuts extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final connect = ServicesScope.of(context).connect;
+
     return Shortcuts(
       shortcuts: {
         const SingleActivator(LogicalKeyboardKey.space): const PlayPauseIntent(),
@@ -69,12 +70,14 @@ class _PlayPauseAction extends Action<PlayPauseIntent> {
     }
 
     final focused = FocusManager.instance.primaryFocus?.context;
+
     return focused == null || !_inTextField(focused);
   }
 
   @override
   Object? invoke(PlayPauseIntent intent) {
     _playPause();
+
     return null;
   }
 }
@@ -147,12 +150,14 @@ class _SearchAction extends Action<_SearchIntent> {
   @override
   bool isEnabled(_SearchIntent intent) {
     final focused = FocusManager.instance.primaryFocus?.context;
+
     return focused == null || !_inTextField(focused);
   }
 
   @override
   Object? invoke(_SearchIntent intent) {
     _search();
+
     return null;
   }
 }
@@ -197,6 +202,7 @@ class _BackAction extends Action<_BackIntent> {
     }
 
     final route = ModalRoute.of(focused);
+
     // As the app bar decides on its back arrow.
     return route is MaterialPageRoute && route.isCurrent && route.impliesAppBarDismissal ? route : null;
   }
@@ -208,6 +214,7 @@ class _BackAction extends Action<_BackIntent> {
   @override
   Object? invoke(_BackIntent intent) {
     _page(intent)?.navigator?.maybePop();
+
     return null;
   }
 }
@@ -297,12 +304,14 @@ class _UnfocusAction extends Action<_UnfocusIntent> {
   @override
   bool isEnabled(_UnfocusIntent intent) {
     final focused = FocusManager.instance.primaryFocus;
+
     return focused != null && focused is! FocusScopeNode;
   }
 
   @override
   Object? invoke(_UnfocusIntent intent) {
     FocusManager.instance.primaryFocus?.unfocus();
+
     return null;
   }
 }

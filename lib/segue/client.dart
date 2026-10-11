@@ -251,6 +251,7 @@ class SegueClient extends ChangeNotifier {
     final answer = Completer<Result>();
     _waiting[id] = answer;
     _send({...msg, 'id': id});
+
     return answer.future;
   }
 

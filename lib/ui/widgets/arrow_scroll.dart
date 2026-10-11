@@ -33,6 +33,7 @@ class ArrowScroll extends StatelessWidget {
     }
 
     position.animateTo(to, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+
     return KeyEventResult.handled;
   }
 

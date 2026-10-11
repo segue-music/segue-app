@@ -81,6 +81,7 @@ class _ReadingPageState extends State<ReadingPage> {
     }
 
     final shows = _scroll.offset < (_gallery.currentContext?.size?.height ?? 0);
+
     return shows && gallery.turn(by) ? KeyEventResult.handled : KeyEventResult.ignored;
   }
 
@@ -203,6 +204,7 @@ class NameTable extends StatelessWidget {
     final strings = AppLocalizations.of(context);
     final name = text.bodyLarge?.copyWith(color: Colors.white.withValues(alpha: 0.87));
     final detail = text.bodyLarge?.copyWith(color: Colors.white54);
+
     return Table(
       columnWidths: {0: MinColumnWidth(const IntrinsicColumnWidth(), FractionColumnWidth(nameWidth))},
       defaultVerticalAlignment: TableCellVerticalAlignment.baseline,

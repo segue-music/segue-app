@@ -29,6 +29,7 @@ List<PopupMenuEntry<SongAction>> songMenuItems(
   SongList? removableFrom,
 }) {
   final strings = AppLocalizations.of(context);
+
   return [
     if (ServicesScope.of(context).connect.canAddToQueue) ...[
       PopupMenuItem(
@@ -109,6 +110,7 @@ Future<bool> addToQueue(BuildContext context, List<Song> songs, {required bool n
     _ => strings.addedToQueue(songs.length),
   };
   messenger?.showSnackBar(SnackBar(content: Text(said)));
+
   return result.ok;
 }
 
@@ -176,6 +178,7 @@ class _SongMenuState extends State<SongMenu> {
         ),
       ),
     );
+
     return CallbackShortcuts(
       bindings: {
         const SingleActivator(LogicalKeyboardKey.contextMenu): _open,

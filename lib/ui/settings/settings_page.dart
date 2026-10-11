@@ -67,6 +67,7 @@ class SettingsPage extends StatelessWidget {
     );
     final packageInfo = this.packageInfo;
     final downloadChoice = this.downloadChoice;
+
     return Scaffold(
       appBar: AppBar(
         // Under a wide screen's top bar, whose arrow goes back: no arrow of its own.
@@ -299,6 +300,7 @@ class SettingsPage extends StatelessWidget {
               ],
             ),
           ];
+
           return ListView(
             children: [
               for (final (name, lines) in groups)
@@ -334,6 +336,7 @@ class _Choice extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final picked = options.where((option) => option.picked).firstOrNull;
+
     return ListTile(
       leading: ThemedIcon(icon),
       title: Text(title),
@@ -383,6 +386,7 @@ class _Heading extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
       child: Semantics(
@@ -407,6 +411,7 @@ class _Option extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final detail = this.detail;
+
     return ListTile(
       leading: leading,
       title: Text(name),

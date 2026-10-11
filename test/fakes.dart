@@ -138,6 +138,7 @@ class FakeEngine implements Deck {
     opened = [...opened.take(at), ...tracks, ...opened.skip(at)];
     this.tracks = [...this.tracks.take(at), for (final track in tracks) track.address(), ...this.tracks.skip(at)];
     _changes.add(null);
+
     return at;
   }
 
@@ -167,6 +168,7 @@ class FakeEngine implements Deck {
     }
 
     _changes.add(null);
+
     return unshuffled;
   }
 
@@ -189,6 +191,7 @@ class FakeEngine implements Deck {
     opened = [...opened]..removeAt(at);
     tracks = [...tracks]..removeAt(at);
     _changes.add(null);
+
     return at;
   }
 

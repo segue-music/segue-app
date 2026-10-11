@@ -156,6 +156,7 @@ class ServerWithDownloads implements MediaServer {
       _either(() => server.randomSongs(size: size, genre: genre, years: years), () {
         bool chosen(Album album) {
           final year = album.year ?? album.releaseDate?.year;
+
           return (genre == null || album.genres.any((other) => other.id == genre)) &&
               (years == null || (year != null && year >= years.from && year <= years.to));
         }
@@ -164,6 +165,7 @@ class ServerWithDownloads implements MediaServer {
           for (final download in downloads.all)
             if (download.album case final album? when chosen(album)) ...download.songs,
         ]..shuffle();
+
         return songs.take(size).toList();
       });
 
@@ -178,6 +180,7 @@ class ServerWithDownloads implements MediaServer {
   @override
   Future<(Album, List<Song>)> album(String id) => _either(() => server.album(id), () {
     final download = downloads.ofAlbum(id) ?? (throw unreachable);
+
     return (download.album!, download.songs);
   });
 
@@ -197,6 +200,7 @@ class ServerWithDownloads implements MediaServer {
   @override
   Future<(Playlist, List<Song>)> playlist(String id) => _either(() => server.playlist(id), () {
     final download = downloads.ofPlaylist(id) ?? (throw unreachable);
+
     return (download.playlist!, download.songs);
   });
 
@@ -240,6 +244,7 @@ class ServerWithDownloads implements MediaServer {
           for (final download in downloads.all)
             for (final song in download.songs) song.id: song,
         }.values;
+
         return (
           artists: [
             for (final artist in _artists())
@@ -308,6 +313,7 @@ class ServerWithDownloads implements MediaServer {
   @override
   Future<(Artist, List<Album>)> artist(String id) => _either(() => server.artist(id), () {
     final artist = _artists().where((artist) => artist.id == id).firstOrNull ?? (throw unreachable);
+
     return (
       artist,
       [
@@ -348,6 +354,7 @@ class ServerWithDownloads implements MediaServer {
   Future<void> scrobble(String songId, {required DateTime time}) async {
     final counted = await _either(() async {
       await server.scrobble(songId, time: time);
+
       return true;
     }, () => false);
 
@@ -367,6 +374,7 @@ class ServerWithDownloads implements MediaServer {
   @override
   Future<Uint8List> coverArt(String id, {int size = 300}) async {
     final file = downloads.coverFile(id);
+
     return file != null ? file.readAsBytes() : _only(() => server.coverArt(id, size: size));
   }
 

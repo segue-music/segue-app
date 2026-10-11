@@ -21,6 +21,7 @@ class DownloadsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final downloads = ServicesScope.of(context).downloads!;
     final strings = AppLocalizations.of(context);
+
     return Scaffold(
       appBar: AppBar(
         // Under a wide screen's top bar, whose arrow goes back: no arrow of its own.
@@ -69,6 +70,7 @@ class _DownloadTile extends StatelessWidget {
     final (:done, :failed, :total) = downloads.progressOf(download);
     final album = download.album;
     final playlist = download.playlist;
+
     return ListTile(
       leading: Thumbnail(download.coverArt, icon: playlist == null ? null : HugeIcons.strokeRoundedPlaylist01),
       title: Text(download.name, maxLines: 1, overflow: TextOverflow.ellipsis),
@@ -133,6 +135,7 @@ class _DownloadsSizeState extends State<DownloadsSize> {
   @override
   Widget build(BuildContext context) {
     final bytes = _bytes;
+
     return Text(
       bytes == null ? '' : AppLocalizations.of(context).downloadsSize(formatSize(context, bytes)),
       style: widget.style,

@@ -22,6 +22,7 @@ class LanguageChoice extends ValueNotifier<Locale?> {
   /// The language picked last; the system's (null) when none was, or one the app no longer has.
   static Future<LanguageChoice> load() async {
     final code = await _prefs.getString(_key);
+
     return LanguageChoice(
       AppLocalizations.supportedLocales.where((language) => language.languageCode == code).firstOrNull,
     );
@@ -34,6 +35,7 @@ class LanguageChoice extends ValueNotifier<Locale?> {
   static Locale resolve(List<Locale>? system, Iterable<Locale> supported) {
     final languageCodes = {for (final language in supported) language.languageCode};
     final shared = [...?system].where((language) => languageCodes.contains(language.languageCode)).toList();
+
     return shared.isEmpty ? _fallback : basicLocaleListResolution(shared, supported);
   }
 

@@ -16,6 +16,7 @@ class SubsonicCredentials implements Credentials {
   factory SubsonicCredentials.fromPassword(String username, String password) {
     final random = Random.secure();
     final salt = List.generate(12, (_) => random.nextInt(16).toRadixString(16)).join();
+
     return SubsonicCredentials(
       username: username,
       token: md5.convert(utf8.encode(password + salt)).toString(),
@@ -83,6 +84,7 @@ class SubsonicApi implements MediaServer {
     }
 
     final mostPlayed = await _mostPlayedAlbumItems();
+
     return [
       for (final json in mostPlayed)
         if (_albumGenres(json).contains(genre)) _album(json),
@@ -112,6 +114,7 @@ class SubsonicApi implements MediaServer {
   }) async {
     final body = await _get('getAlbumList2', {...query, 'size': '$size', 'offset': '$offset'});
     final list = (body['albumList2'] as Map<String, dynamic>?)?['album'] as List? ?? const [];
+
     return [for (final album in list) album as Map<String, dynamic>];
   }
 
@@ -120,6 +123,7 @@ class SubsonicApi implements MediaServer {
   Future<List<Genre>> genres() async {
     final body = await _get('getGenres');
     final list = (body['genres'] as Map<String, dynamic>?)?['genre'] as List? ?? const [];
+
     return [for (final genre in list) _genre(genre as Map<String, dynamic>)];
   }
 
@@ -168,6 +172,7 @@ class SubsonicApi implements MediaServer {
       'fromYear': ?years?.from.toString(),
       'toYear': ?years?.to.toString(),
     });
+
     return [
       for (final json in (body['randomSongs'] as Map<String, dynamic>?)?['song'] as List? ?? const [])
         _song(json as Map<String, dynamic>),
@@ -192,6 +197,7 @@ class SubsonicApi implements MediaServer {
         for (final song in (body['album'] as Map<String, dynamic>)['song'] as List? ?? const [])
           if (_playCount(song as Map<String, dynamic>) > 0) _song(song): _playCount(song),
     };
+
     return rankedByCount(plays).take(size).toList();
   }
 
@@ -204,6 +210,7 @@ class SubsonicApi implements MediaServer {
     }
 
     final body = await _get('getTopSongs', {'artist': artist.name, 'count': '$size'});
+
     return [
       for (final song in (body['topSongs'] as Map<String, dynamic>?)?['song'] as List? ?? const [])
         _song(song as Map<String, dynamic>),
@@ -214,6 +221,7 @@ class SubsonicApi implements MediaServer {
   Future<(Album, List<Song>)> album(String id) async {
     final json = (await _get('getAlbum', {'id': id}))['album'] as Map<String, dynamic>;
     final songs = json['song'] as List? ?? const [];
+
     return (_album(json), [for (final song in songs) _song(song as Map<String, dynamic>)]);
   }
 
@@ -226,6 +234,7 @@ class SubsonicApi implements MediaServer {
   Future<List<Playlist>> playlists() async {
     final body = await _get('getPlaylists');
     final list = (body['playlists'] as Map<String, dynamic>?)?['playlist'] as List? ?? const [];
+
     return [for (final playlist in list) _playlist(playlist as Map<String, dynamic>, credentials.username)];
   }
 
@@ -234,6 +243,7 @@ class SubsonicApi implements MediaServer {
   Future<(Playlist, List<Song>)> playlist(String id) async {
     final json = (await _get('getPlaylist', {'id': id}))['playlist'] as Map<String, dynamic>;
     final songs = json['entry'] as List? ?? const [];
+
     return (_playlist(json, credentials.username), [for (final song in songs) _song(song as Map<String, dynamic>)]);
   }
 
@@ -327,6 +337,7 @@ class SubsonicApi implements MediaServer {
           ),
     ];
     final type = body['type'] as String? ?? '';
+
     return lines.isEmpty
         ? null
         : Lyrics(lines, provider: type.isEmpty ? null : '${type[0].toUpperCase()}${type.substring(1)}');
@@ -342,6 +353,7 @@ class SubsonicApi implements MediaServer {
       'songCount': '$songs',
     });
     final result = body['searchResult3'] as Map<String, dynamic>? ?? const {};
+
     return (
       artists: [for (final artist in result['artist'] as List? ?? const []) _artist(artist as Map<String, dynamic>)],
       albums: [for (final album in result['album'] as List? ?? const []) _album(album as Map<String, dynamic>)],
@@ -354,6 +366,7 @@ class SubsonicApi implements MediaServer {
   Future<List<Artist>> artists() async {
     final body = await _get('getArtists');
     final index = (body['artists'] as Map<String, dynamic>?)?['index'] as List? ?? const [];
+
     return [
       for (final letter in index)
         for (final artist in (letter as Map<String, dynamic>)['artist'] as List? ?? const [])
@@ -378,6 +391,7 @@ class SubsonicApi implements MediaServer {
     }
 
     final artists = {for (final artist in await this.artists()) artist.id: artist};
+
     return [for (final id in rankedByCount(plays)) ?artists[id]].take(size).toList();
   }
 
@@ -386,6 +400,7 @@ class SubsonicApi implements MediaServer {
   Future<(Artist, List<Album>)> artist(String id) async {
     final json = await _artistJson(id);
     final albums = json['album'] as List? ?? const [];
+
     return (_artist(json), [for (final album in albums) _album(album as Map<String, dynamic>)]);
   }
 
@@ -409,6 +424,7 @@ class SubsonicApi implements MediaServer {
   Future<List<Song>> similarSongs(Song song, {int size = 50}) async {
     Future<List<Song>> like(String id) async {
       final body = await _get('getSimilarSongs2', {'id': id, 'count': '$size'});
+
       return [
         for (final json in (body['similarSongs2'] as Map<String, dynamic>?)?['song'] as List? ?? const [])
           _song(json as Map<String, dynamic>),
@@ -475,6 +491,7 @@ class SubsonicApi implements MediaServer {
   /// The names of the OpenSubsonic extensions the server has (getOpenSubsonicExtensions).
   Future<Set<String>> _extensions() async {
     final extensions = (await _get('getOpenSubsonicExtensions'))['openSubsonicExtensions'] as List? ?? const [];
+
     return {for (final extension in extensions) (extension as Map<String, dynamic>)['name'] as String};
   }
 
@@ -541,6 +558,7 @@ class SubsonicApi implements MediaServer {
       headers: {'content-type': 'application/x-www-form-urlencoded'},
       body: _url(endpoint, params).query,
     );
+
     return _decode(response);
   }
 
@@ -608,6 +626,7 @@ ReleaseDate? _releaseDate(Map<String, dynamic>? json) {
   };
 
   final year = part('year');
+
   return year == null ? null : ReleaseDate(year, month: part('month'), day: part('day'));
 }
 
@@ -677,6 +696,7 @@ ReplayGain? _replayGain(Object? json) {
   };
 
   final (trackGain, albumGain) = (value('trackGain'), value('albumGain'));
+
   return trackGain == null && albumGain == null
       ? null
       : ReplayGain(

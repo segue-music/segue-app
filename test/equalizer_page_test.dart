@@ -30,6 +30,7 @@ Future<EqualizerChoice> pumpPage(
       home: EqualizerPage(choice: choice),
     ),
   );
+
   return choice;
 }
 
@@ -41,6 +42,7 @@ Finder band(int frequency) =>
 /// room, its gain over it, the room over the track), down.
 Offset at(WidgetTester tester, int frequency, int gain) {
   final rect = tester.getRect(band(frequency));
+
   return Offset(rect.center.dx, rect.top + 40 + (maxBandGain - gain) * 7.5);
 }
 

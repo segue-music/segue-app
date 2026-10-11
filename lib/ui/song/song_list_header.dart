@@ -84,6 +84,7 @@ class _FavoriteHeart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final favorites = ServicesScope.of(context).favorites;
+
     return ListenableBuilder(
       listenable: favorites,
       builder: (context, _) {
@@ -126,6 +127,7 @@ class SongListTopLine extends StatelessWidget {
         ? (kMinInteractiveDimension - SongMenu.width) / 2
         : 0.0;
     final button = this.button;
+
     return Padding(
       padding: EdgeInsets.fromLTRB(16, 16, 16 - around, 16),
       child: Row(
@@ -165,6 +167,7 @@ class SongListHeader extends StatelessWidget {
     final muted = Theme.of(context).colorScheme.onSurfaceVariant;
     final style = Theme.of(context).textTheme.labelLarge?.copyWith(color: muted);
     final strings = AppLocalizations.of(context);
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -210,6 +213,7 @@ String? songsLength(AppLocalizations strings, List<Song> songs) {
 
   final length = songs.fold(Duration.zero, (sum, song) => sum + song.duration!);
   final (hours, minutes) = (length.inHours, length.inMinutes % 60);
+
   return switch ((hours, minutes)) {
     (0, 0) => strings.lengthSeconds(length.inSeconds),
     (0, _) => strings.lengthMinutes(minutes),

@@ -71,6 +71,7 @@ class _PlaylistsViewState extends State<PlaylistsView> {
     }
 
     final strings = AppLocalizations.of(context);
+
     // As the albums' chips, at the top, their line the whole width.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -172,6 +173,7 @@ class _FavoritesTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final favorites = ServicesScope.of(context).favorites;
     final strings = AppLocalizations.of(context);
+
     return ListenableBuilder(
       listenable: favorites,
       builder: (context, _) => ListTile(
@@ -239,6 +241,7 @@ class _PlaylistTileState extends State<_PlaylistTile> {
       onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => PlaylistPage(playlist))),
       onLongPress: () => _openMenu(at: _pressedAt),
     );
+
     return CallbackShortcuts(
       bindings: {
         const SingleActivator(LogicalKeyboardKey.contextMenu): _openMenu,

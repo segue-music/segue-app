@@ -34,6 +34,7 @@ class _SpinnerState extends State<Spinner> with SingleTickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
     return SizedBox.square(
       dimension: widget.size,
       child: CustomPaint(
@@ -128,6 +129,7 @@ class ProgressRing extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
     return SizedBox.square(
       dimension: size,
       child: CustomPaint(

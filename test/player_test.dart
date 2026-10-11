@@ -678,6 +678,7 @@ void main() {
         client: MockClient((request) async {
           asked.add(request.url.queryParameters['id']!);
           await held?.future;
+
           return fails
               ? http.Response('', 500)
               : http.Response(
@@ -867,6 +868,7 @@ void main() {
         crossfade: crossfade,
         crossfadeEngine: () {
           made.add(FakeEngine());
+
           return made.last;
         },
       );

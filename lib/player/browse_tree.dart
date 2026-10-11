@@ -133,6 +133,7 @@ class BrowseTree {
   Future<List<MediaItem>> search(String query) async {
     final strings = this.strings();
     final found = await _server.search(query, artists: 5, albums: 10, songs: 30);
+
     return [
       for (final song in found.songs) _song(_id(['song', song.id]), song, group: strings.songs),
       for (final album in found.albums) _album(album, group: strings.albums),
@@ -216,11 +217,13 @@ class BrowseTree {
   /// Something to play, for "toca música" with nothing to go on: songs of the library at random.
   Future<(List<Song>, int)?> anything() async {
     final songs = await _server.randomSongs(size: Mix.size);
+
     return songs.isEmpty ? null : (songs, 0);
   }
 
   List<MediaItem> _tabs() {
     final strings = this.strings();
+
     return [
       MediaItem(id: home, title: strings.home, playable: false),
       MediaItem(id: playlists, title: strings.playlists, playable: false),
@@ -252,6 +255,7 @@ class BrowseTree {
       for (final mix in suggested) mixes.firstSongs(mix).catchError((Object _) => const <Song>[]),
     ]);
     final shown = <String>{};
+
     return [
       for (final (i, mix) in suggested.indexed)
         MediaItem(
@@ -272,6 +276,7 @@ class BrowseTree {
   Future<List<MediaItem>> _playlists() async {
     final (found, favorite) = await (_server.playlists(), _favoriteSongs()).wait;
     found.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+
     return [
       if (favorite.isNotEmpty)
         MediaItem(
@@ -299,6 +304,7 @@ class BrowseTree {
     }
 
     await favorites.load().catchError((Object _) {});
+
     return favorites.songs;
   }
 
@@ -313,6 +319,7 @@ class BrowseTree {
 
     final first = await mixes.firstSongs(mix).catchError((Object _) => const <Song>[]);
     final songs = await mix.queue(_server, first: first);
+
     return songs.isEmpty ? null : (songs, 0);
   }
 
@@ -328,6 +335,7 @@ class BrowseTree {
     }
 
     final songs = (await _server.playlist(playlist.id)).$2;
+
     return songs.isEmpty ? null : (songs, 0);
   }
 
@@ -340,6 +348,7 @@ class BrowseTree {
     }
 
     final songs = await GenreMix(genre).queue(_server);
+
     return songs.isEmpty ? null : (songs, 0);
   }
 
@@ -351,6 +360,7 @@ class BrowseTree {
         found.where((album) => by != null && _has(album.artist, by)).firstOrNull ??
         found.where((album) => _same(album.name, name)).firstOrNull ??
         found.firstOrNull;
+
     return album == null ? null : _albumSongs(album);
   }
 
@@ -358,6 +368,7 @@ class BrowseTree {
   Future<(List<Song>, int)?> _artistNamed(String name) async {
     final found = (await _server.search(name, artists: 5, albums: 1, songs: 1)).artists;
     final artist = found.where((artist) => _same(artist.name, name)).firstOrNull ?? found.firstOrNull;
+
     return artist == null ? null : _artistSongs(artist);
   }
 
@@ -368,11 +379,13 @@ class BrowseTree {
         found.where((song) => by != null && _has(song.artist, by)).firstOrNull ??
         found.where((song) => _same(song.title, title)).firstOrNull ??
         found.firstOrNull;
+
     return song == null ? null : ([song], 0);
   }
 
   Future<(List<Song>, int)?> _albumSongs(Album album) async {
     final songs = (await _server.album(album.id)).$2;
+
     return songs.isEmpty ? null : (songs, 0);
   }
 
@@ -382,6 +395,7 @@ class BrowseTree {
     final songs = [
       for (final album in await Future.wait([for (final album in albums) _server.album(album.id)])) ...album.$2,
     ]..shuffle(_random);
+
     return songs.isEmpty ? null : (songs.take(Mix.size).toList(), 0);
   }
 
@@ -425,6 +439,7 @@ class BrowseTree {
         if (song.artist case final artist? when artist.isNotEmpty) artist,
     };
     final named = artists.take(_artistsNamed).join(', ');
+
     return artists.length > _artistsNamed ? strings.mixArtists(named) : named;
   }
 
@@ -439,6 +454,7 @@ class BrowseTree {
   /// [songs] from the one at [index], where it has one there.
   static (List<Song>, int)? _at(List<Song> songs, String index) {
     final i = int.tryParse(index);
+
     return i == null || i < 0 || i >= songs.length ? null : (songs, i);
   }
 

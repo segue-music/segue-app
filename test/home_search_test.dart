@@ -67,6 +67,7 @@ Future<(PlayerController, List<String?>)> pumpHome(WidgetTester tester, Size siz
       }
 
       queries.add(request.url.queryParameters['query']);
+
       return subsonic({
         'searchResult3': {
           'album': [
@@ -101,6 +102,7 @@ Future<(PlayerController, List<String?>)> pumpHome(WidgetTester tester, Size siz
     ),
   );
   await tester.pump();
+
   return (player, queries);
 }
 

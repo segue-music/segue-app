@@ -80,6 +80,7 @@ Future<PlayerController> pumpBar(
       home: const Scaffold(body: SizedBox.expand(), bottomNavigationBar: NowPlayingBar()),
     ),
   );
+
   return player;
 }
 
@@ -94,12 +95,14 @@ Future<void> openQueue(WidgetTester tester) async {
 /// What [finder] finds in the queue itself, rather than in the bar under it. Each call looks afresh.
 Finder inQueue(Finder finder) {
   Set<Element>? inside;
+
   return find.byElementPredicate((element) {
     inside ??= find
         .descendant(of: find.byType(QueuePage), matching: finder)
         .evaluate()
         .toSet()
         .difference(find.descendant(of: find.byType(NowPlayingBar), matching: finder).evaluate().toSet());
+
     return inside!.contains(element);
   });
 }
@@ -139,6 +142,7 @@ SegueClient clientWithTv({required List<CommandAction> capabilities, SegueClient
       ],
     ),
   );
+
   return client;
 }
 
@@ -157,6 +161,7 @@ class WaitingClient extends SegueClient {
   @override
   Future<Result> command(String target, Command command) {
     sent.add(command);
+
     return answer.future;
   }
 }
@@ -200,6 +205,7 @@ List<String> titlesFromTop(WidgetTester tester) {
           .dy
           .compareTo((b.renderObject! as RenderBox).localToGlobal(Offset.zero).dy),
     );
+
   return [for (final line in lines) ((line.widget as ListTile).title! as Text).data!];
 }
 

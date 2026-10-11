@@ -51,6 +51,7 @@ class PlaylistEditor extends ChangeNotifier {
         notifyListeners();
       }
     });
+
     return done;
   }
 

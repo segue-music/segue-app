@@ -37,6 +37,7 @@ class MobileData extends ValueNotifier<bool> {
       (connections) => mobileData.value = inUse(connections),
       onError: (Object e) => debugPrint('no news of the connection: $e'),
     );
+
     return mobileData;
   }
 

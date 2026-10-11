@@ -107,6 +107,7 @@ class ConnectController extends ChangeNotifier {
   List<Device> get devices {
     final list = [...?client?.devices.values.where((d) => d.info.isPlayer && d.online)];
     list.sort((a, b) => a.info.name.compareTo(b.info.name));
+
     return list;
   }
 
@@ -140,6 +141,7 @@ class ConnectController extends ChangeNotifier {
 
     final state = device.state;
     final item = state?.current;
+
     return NowPlaying(
       songId: item?.id,
       title: item?.title,
@@ -183,6 +185,7 @@ class ConnectController extends ChangeNotifier {
 
     final tracks = device.state?.queue ?? const [];
     final index = (device.state?.index ?? 0) + offset;
+
     return index >= 0 && index < tracks.length ? tracks[index].id : null;
   }
 
@@ -284,6 +287,7 @@ class ConnectController extends ChangeNotifier {
 
     _active = deviceId;
     notifyListeners();
+
     return const Result(ok: true);
   }
 

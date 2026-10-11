@@ -145,6 +145,7 @@ class CrossfadeEngine implements AudioEngine {
   /// How long [track], on [deck], is: as its stream says, or else as the media server does; zero where neither says.
   static Duration _lengthOf(TrackSource track, Deck deck) {
     final known = deck.duration;
+
     return known > Duration.zero ? known : track.duration ?? Duration.zero;
   }
 
@@ -211,6 +212,7 @@ class CrossfadeEngine implements AudioEngine {
     _order = [...moved.take(place), for (var i = 0; i < tracks.length; i++) at + i, ...moved.skip(place)];
     _tracks = [..._tracks.take(at), ...tracks, ..._tracks.skip(at)];
     _tellChange();
+
     return at;
   }
 
@@ -239,6 +241,7 @@ class CrossfadeEngine implements AudioEngine {
 
     _index = _order.indexWhere((i) => identical(_tracks[i], current));
     _tellChange();
+
     return unshuffled;
   }
 
@@ -260,6 +263,7 @@ class CrossfadeEngine implements AudioEngine {
 
     _tracks = [..._tracks]..removeAt(at);
     _tellChange();
+
     return at;
   }
 

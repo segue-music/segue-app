@@ -34,6 +34,7 @@ class _GenresViewState extends State<GenresView> {
     // A shortcut, which the list goes without when the server fails to give it.
     final mostPlayed = api.mostPlayedGenres().catchError((_) => const <Genre>[]);
     final genres = await api.genres();
+
     return (
       all: [
         for (final genre in genres)
@@ -62,6 +63,7 @@ class _GenresViewState extends State<GenresView> {
       final (:all, :mostPlayed) = genres;
       // Before anything has played, the list alone.
       final header = mostPlayed.isEmpty ? 0 : 1;
+
       return RefreshIndicator(
         onRefresh: () async {
           final reload = _load();
@@ -81,6 +83,7 @@ class _GenresViewState extends State<GenresView> {
             }
 
             final genre = all[i - header];
+
             return ListTile(
               title: Text(genre.name),
               subtitle: genre.albumCount == null ? null : Text(albumCount(strings, genre.albumCount)),
@@ -104,6 +107,7 @@ class _MostPlayed extends StatelessWidget {
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final strings = AppLocalizations.of(context);
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Column(

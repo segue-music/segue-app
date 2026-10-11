@@ -138,6 +138,7 @@ Future<Color?> averageColorOf(ui.Image image, Rect region) async {
 
   // The bytes are premultiplied by the alpha: over the alpha's sum, each channel's sum is the color's own.
   int channel(int sum) => min(sum * 255 ~/ alpha, 255);
+
   return Color.fromARGB(alpha ~/ pixels, channel(red), channel(green), channel(blue));
 }
 

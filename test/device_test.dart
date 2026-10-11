@@ -51,6 +51,7 @@ void main() {
     final keptOn = <Object?>[];
     messenger.setMockMethodCallHandler(channel, (call) async {
       keptOn.add(call.arguments);
+
       return null;
     });
     Widget keeping({required bool first, required bool second}) => Column(

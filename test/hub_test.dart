@@ -72,6 +72,7 @@ class App {
   Future<App> start() async {
     await client.connect();
     addTearDown(client.close);
+
     return this;
   }
 }

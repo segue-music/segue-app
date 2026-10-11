@@ -46,6 +46,7 @@ ThemeData segueTheme(Brightness brightness, {Palette palette = Palette.segue, bo
     (states) => states.contains(WidgetState.focused) ? BorderSide(color: colors.onSurface, width: 3) : null,
   );
   final buttons = ButtonStyle(side: ring, mouseCursor: WidgetStateMouseCursor.clickable);
+
   return ThemeData(
     colorScheme: colors,
     focusColor: colors.primary.withValues(alpha: 0.35),
@@ -141,6 +142,7 @@ ColorScheme segueColors(Brightness brightness, {Palette palette = Palette.segue,
     surfaceDim: background,
     surfaceContainerLowest: background,
   );
+
   return palette == Palette.wine ? _onWine(darkColors) : darkColors;
 }
 

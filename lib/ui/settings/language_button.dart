@@ -27,6 +27,7 @@ class LanguageButton extends StatelessWidget {
     // By language code, and '' for the system's: a menu takes a null for no pick.
     String code(Locale? language) => language?.languageCode ?? '';
     final picked = code(choice.value);
+
     return PopupMenuButton<String>(
       tooltip: strings.language,
       icon: const ThemedIcon(HugeIcons.strokeRoundedTranslate),

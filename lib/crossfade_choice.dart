@@ -24,6 +24,7 @@ class CrossfadeChoice extends ValueNotifier<Duration> {
   /// The length picked last; none where none was, or one the app no longer offers.
   static Future<CrossfadeChoice> load() async {
     final seconds = await _prefs.getInt(_key);
+
     return CrossfadeChoice(lengths.firstWhere((length) => length.inSeconds == seconds, orElse: () => Duration.zero));
   }
 

@@ -171,6 +171,7 @@ void main() {
         },
         _ => null,
       };
+
       return body == null ? http.Response('', 404) : http.Response(jsonEncode(body), 200);
     });
     await tester.pumpWidget(

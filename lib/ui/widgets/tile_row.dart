@@ -93,6 +93,7 @@ class _TileRowState extends State<TileRow> {
       TargetPlatform.linux || TargetPlatform.macOS || TargetPlatform.windows => false,
     };
     final television = MediaQuery.navigationModeOf(context) == NavigationMode.directional;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -145,6 +146,7 @@ class _TileRowState extends State<TileRow> {
         minimumSize: const Size.square(32),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       );
+
       return ExcludeFocus(
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -170,6 +172,7 @@ class _TileRowState extends State<TileRow> {
   Widget _strip(List<Widget> tiles) => NotificationListener<ScrollMetricsNotification>(
     onNotification: (notification) {
       _metrics.value = notification.metrics;
+
       return false;
     },
     child: ScrollConfiguration(

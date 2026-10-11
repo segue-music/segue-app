@@ -146,6 +146,7 @@ class Downloads extends ChangeNotifier {
     }
 
     unawaited(opened._fetch());
+
     return opened;
   }
 
@@ -583,6 +584,7 @@ Map<String, Object?> _downloadJson(Download download) => {
 Download _download(Map<String, dynamic> json) {
   final songs = [for (final song in json['songs'] as List) _song(song as Map<String, dynamic>)];
   final added = DateTime.fromMillisecondsSinceEpoch((json['added'] as num).toInt());
+
   return switch ((json['album'], json['playlist'])) {
     (final Map<String, dynamic> album, _) => Download.album(_album(album), songs, added: added),
     (_, final Map<String, dynamic> playlist) => Download.playlist(_playlist(playlist), songs, added: added),
@@ -732,5 +734,6 @@ Lyrics? _lyrics(Map<String, dynamic> json) {
         },
       ),
   ];
+
   return lines.isEmpty ? null : Lyrics(lines, provider: json['provider'] as String?);
 }

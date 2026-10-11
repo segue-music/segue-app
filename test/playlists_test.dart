@@ -101,6 +101,7 @@ class Library {
 
   Map<String, Object?> _playlist(String id, {bool withSongs = false}) {
     final playlist = playlists[id]!;
+
     return {
       'id': id,
       'name': playlist.name,
@@ -215,6 +216,7 @@ Future<PlayerController> pumpHome(WidgetTester tester, Size size, {Library? libr
     ),
   );
   await tester.pumpAndSettle();
+
   return player;
 }
 
@@ -250,6 +252,7 @@ List<String> titles(WidgetTester tester) {
       if (((element.widget as ListTile).title as Text?)?.data case final title? when titles.contains(title))
         (title, (element.renderObject! as RenderBox).localToGlobal(Offset.zero).dy),
   ]..sort((a, b) => a.$2.compareTo(b.$2));
+
   return [for (final (title, _) in tiles) title];
 }
 

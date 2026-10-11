@@ -252,6 +252,7 @@ class PlayerController extends ChangeNotifier {
       }
     });
     _edits = done.then<void>((_) {}, onError: (Object _) {});
+
     return done;
   }
 
@@ -344,6 +345,7 @@ class PlayerController extends ChangeNotifier {
     _tracks = [..._tracks]..removeAt(at);
     _order = const [];
     _queueChanged = true;
+
     return true;
   }
 
@@ -358,6 +360,7 @@ class PlayerController extends ChangeNotifier {
       gain: () => _gain(song, _tracks.indexOf(track)),
       duration: song.duration,
     );
+
     return track;
   }
 
@@ -377,6 +380,7 @@ class PlayerController extends ChangeNotifier {
       _ => false,
     };
     final replayGain = song.replayGain;
+
     return replayGain == null
         ? TrackGain.tagged(album: album, preamp: replayGainPreamp)
         : TrackGain(replayGain.decibels(album: album, preamp: replayGainPreamp));
@@ -407,6 +411,7 @@ class PlayerController extends ChangeNotifier {
   /// it loads: transcoded, since the files as they are can seek.
   Future<Uri?> _streamFrom(String songId, Duration from) async {
     final maxBitRate = _quality?.call().maxBitRate;
+
     return maxBitRate == null ? null : _api.transcodedStreamUrl(songId, maxBitRate: maxBitRate, from: from);
   }
 
@@ -568,6 +573,7 @@ class PlayerController extends ChangeNotifier {
   /// place unshuffled (SPEC.md, section 4).
   PlayerState report({bool full = false}) {
     final queue = full || _queueChanged;
+
     return PlayerState(
       status: status,
       positionMs: position.inMilliseconds,

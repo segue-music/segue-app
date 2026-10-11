@@ -80,6 +80,7 @@ Future<List<String>> pumpAlbums(
         _ => const <String>[],
       };
       final page = inOrder.skip(offset).take(int.parse(query['size']!));
+
       return subsonic({
         'albumList2': {
           'album': [
@@ -116,6 +117,7 @@ Future<List<String>> pumpAlbums(
   await tester.pumpAndSettle();
   asked.clear(); // the home's rows
   await openSection(tester, 'Álbuns');
+
   return asked;
 }
 

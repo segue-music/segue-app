@@ -97,6 +97,7 @@ class PictureGalleryState extends State<PictureGallery> {
     }
 
     pages.animateToPage(to, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+
     return true;
   }
 
@@ -117,6 +118,7 @@ class PictureGalleryState extends State<PictureGallery> {
       }
 
       final pixels = (side * MediaQuery.devicePixelRatioOf(context)).ceil();
+
       return MouseRegion(
         onEnter: (_) => setState(() => _hovered = true),
         onExit: (_) => setState(() => _hovered = false),
@@ -171,6 +173,7 @@ class PictureGalleryState extends State<PictureGallery> {
           );
     // The same tree in the middle or beside it, so that the picture stays as it comes and goes.
     final beside = i != _page;
+
     return MouseRegion(
       cursor: beside ? SystemMouseCursors.click : MouseCursor.defer,
       child: GestureDetector(
@@ -186,6 +189,7 @@ class PictureGalleryState extends State<PictureGallery> {
   Widget _arrow({required bool back}) {
     final strings = AppLocalizations.of(context);
     final shown = _hovered && (back ? _page > 0 : _page < _count - 1);
+
     return PositionedDirectional(
       start: back ? 4 : null,
       end: back ? null : 4,

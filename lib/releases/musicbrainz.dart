@@ -183,6 +183,7 @@ class MusicBrainz {
         if (group['first-release-date'] case final String text) text: ?_date(text),
     };
     final types = {for (final group in matched) ?_type(group)};
+
     return (
       dates: dates.length == 1 ? [dates.values.single] : const <ReleaseDate>[],
       labels: const <String>[],
@@ -217,6 +218,7 @@ class MusicBrainz {
     }
 
     final relations = _maps(found['relations']);
+
     return (
       tracks: [
         for (final medium in _maps(found['media']))
@@ -545,6 +547,7 @@ RecordingSession? _session(Map<String, dynamic> relation) {
     ),
     _ => null,
   };
+
   return stage == null || place == null
       ? null
       : (place: place, stage: stage, begin: _date(relation['begin']), end: _date(relation['end']));
@@ -554,6 +557,7 @@ RecordingSession? _session(Map<String, dynamic> relation) {
 BandYears? _years(Map<String, dynamic> dates) {
   final begin = _date(dates['begin'])?.year;
   final end = _date(dates['end'])?.year;
+
   return begin == null && end == null ? null : (begin: begin, end: end, ended: end != null || dates['ended'] == true);
 }
 
@@ -595,6 +599,7 @@ List<BandMember> _members(Object? relations) {
   return members..sort((a, b) {
     final earlier = arrival(a).compareTo(arrival(b));
     final longer = _length(b.years).compareTo(_length(a.years));
+
     return earlier != 0 ? earlier : (longer != 0 ? longer : sortNames[a.id]!.compareTo(sortNames[b.id]!));
   });
 }
@@ -666,6 +671,7 @@ String _phrase(String text) => '"${text.replaceAll(r'\', r'\\').replaceAll('"', 
 /// "Run-DMC, Aerosmith" "Run‐DMC & Aerosmith". A name of punctuation alone stays as it is.
 String _key(String text) {
   final letters = text.toLowerCase().replaceAll(RegExp(r'[^\p{L}\p{N}]', unicode: true), '');
+
   return letters.isEmpty ? text.trim() : letters;
 }
 
@@ -673,6 +679,7 @@ String _key(String text) {
 bool _byArtist(Map<String, dynamic> group, String artist) {
   final credit = [for (final name in group['artist-credit'] as List? ?? const []) name as Map<String, dynamic>];
   final all = [for (final name in credit) '${name['name'] ?? ''}${name['joinphrase'] ?? ''}'].join();
+
   return credit.isNotEmpty &&
       (_key(artist) == _key(all) || _key(artist) == _key(credit.first['name'] as String? ?? ''));
 }
@@ -687,6 +694,7 @@ ReleaseType? _type(Map<String, dynamic>? group) => ReleaseType.named([
 /// A date of MusicBrainz's, as precise as it is: "1975-04-08", "1975-04" or "1975"; none for an empty one.
 ReleaseDate? _date(Object? text) {
   final parts = text is String ? text.split('-').map(int.tryParse).toList() : const <int?>[];
+
   return switch (parts) {
     [final int year, final int month, final int day] => ReleaseDate(year, month: month, day: day),
     [final int year, final int month] => ReleaseDate(year, month: month),

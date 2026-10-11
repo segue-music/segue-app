@@ -82,6 +82,7 @@ class EqualizerChoice extends ValueNotifier<EqualizerSettings> {
   static Future<EqualizerChoice> load() async {
     final saved = await _prefs.getStringList(_customKey);
     final custom = saved?.map(int.tryParse).toList();
+
     return EqualizerChoice(
       EqualizerSettings(
         on: await _prefs.getBool(_onKey) ?? false,

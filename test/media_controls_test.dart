@@ -40,6 +40,7 @@ SegueClient tvPlaying() {
       queue: const [QueueItem(id: 's4', title: 'So What', artist: 'Miles Davis')],
     ),
   );
+
   return client;
 }
 

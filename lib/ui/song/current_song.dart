@@ -16,11 +16,13 @@ class CurrentSong extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final connect = ServicesScope.of(context).connect;
+
     return ListenableBuilder(
       listenable: connect,
       builder: (context, _) {
         final now = connect.nowPlaying;
         final current = now != null && now.songId == song.id;
+
         return builder(context, current, current && now.playing);
       },
     );

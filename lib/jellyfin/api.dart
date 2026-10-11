@@ -133,6 +133,7 @@ class JellyfinApi implements MediaServer {
     final albums = {
       for (final json in await _items({'Ids': ids.join(',')})) json['Id'] as String: _album(json),
     };
+
     return [for (final id in ids) ?albums[id]];
   }
 
@@ -233,6 +234,7 @@ class JellyfinApi implements MediaServer {
       }),
     ]);
     final album = _only(albums, id);
+
     return (_album(album), [for (final json in songs) _song(json, albumGain: _number(album['NormalizationGain']))]);
   }
 
@@ -252,6 +254,7 @@ class JellyfinApi implements MediaServer {
       _items({'Ids': id, 'Fields': 'ChildCount'}),
       _playlistItems(id),
     ]);
+
     return (_playlist(_only(playlists, id)), [for (final json in songs) _song(json)]);
   }
 
@@ -316,6 +319,7 @@ class JellyfinApi implements MediaServer {
       _items({'IncludeItemTypes': 'MusicAlbum', 'Filters': 'IsFavorite', 'SortBy': 'SortName'}),
       _items({'IncludeItemTypes': 'Audio', 'Filters': 'IsFavorite', 'SortBy': 'SortName'}),
     ]);
+
     return (
       artists: [for (final json in artists) _artist(json)],
       albums: [for (final json in albums) _album(json)],
@@ -351,6 +355,7 @@ class JellyfinApi implements MediaServer {
             start: synced && line['Start'] is num ? Duration(microseconds: (line['Start'] as num).toInt() ~/ 10) : null,
           ),
     ];
+
     return lines.isEmpty ? null : Lyrics(lines, provider: 'Jellyfin');
   }
 
@@ -363,6 +368,7 @@ class JellyfinApi implements MediaServer {
       _items({'searchTerm': query, 'IncludeItemTypes': 'MusicAlbum', 'Limit': '$albums'}),
       _items({'searchTerm': query, 'IncludeItemTypes': 'Audio', 'Limit': '$songs'}),
     ]);
+
     return (
       artists: [for (final json in foundArtists) _artist(json)],
       albums: [for (final json in foundAlbums) _album(json)],
@@ -396,6 +402,7 @@ class JellyfinApi implements MediaServer {
     }
 
     final artists = {for (final artist in await this.artists()) artist.id: artist};
+
     return [for (final id in rankedByCount(plays)) ?artists[id]].take(size).toList();
   }
 
@@ -413,6 +420,7 @@ class JellyfinApi implements MediaServer {
       }),
     ]);
     final found = _artist(_only(artists, id));
+
     return (
       Artist(
         id: found.id,
@@ -429,6 +437,7 @@ class JellyfinApi implements MediaServer {
   @override
   Future<Biography?> biography(String artistId) async {
     final artist = _only(await _items({'Ids': artistId, 'Fields': 'Overview'}), artistId);
+
     return Biography.fromHtml(artist['Overview'] as String?);
   }
 
@@ -564,6 +573,7 @@ class JellyfinApi implements MediaServer {
 
   Future<List<Map<String, dynamic>>> _list(String path, Map<String, String> query) async {
     final json = await _get(path, {'userId': credentials.userId, ...query});
+
     return [for (final item in (json as Map<String, dynamic>)['Items'] as List? ?? const []) item];
   }
 
@@ -623,6 +633,7 @@ class JellyfinApi implements MediaServer {
       'Token': ?token,
     };
     final pairs = [for (final MapEntry(:key, :value) in fields.entries) '$key="${Uri.encodeComponent(value)}"'];
+
     return 'MediaBrowser ${pairs.join(', ')}';
   }
 }
@@ -654,6 +665,7 @@ double? _number(Object? json) => switch (json) {
 
 Duration? _duration(Map<String, dynamic> json) {
   final ticks = json['RunTimeTicks'] as num?; // 10 million to the second
+
   return ticks == null ? null : Duration(microseconds: ticks.toInt() ~/ 10);
 }
 

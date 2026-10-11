@@ -47,6 +47,7 @@ class _EqualizerState extends State<Equalizer> with SingleTickerProviderStateMix
   Widget build(BuildContext context) {
     final theme = IconTheme.of(context);
     final color = widget.color ?? theme.color ?? Theme.of(context).colorScheme.onSurface;
+
     return RepaintBoundary(
       child: SizedBox.square(
         dimension: theme.size ?? 24,

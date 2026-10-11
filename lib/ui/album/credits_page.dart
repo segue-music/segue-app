@@ -58,6 +58,7 @@ class CreditsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final byline = [?album.artist, if (album.year case final year?) '$year'].join(' · ');
+
     return ReadingPage(
       picture: album.coverArt,
       icon: HugeIcons.strokeRoundedCd,
@@ -169,6 +170,7 @@ class CreditsPage extends StatelessWidget {
       formatPeriod(strings, venue.begin, venue.end),
     ].where((part) => part.isNotEmpty).join(', ');
     final tracks = venue.tracks;
+
     return switch ((done, tracks)) {
       (_, []) => done,
       ('', _) => strings.onTracks(tracks.length, _numbers(tracks)),

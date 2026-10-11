@@ -71,6 +71,7 @@ RenderObject material(WidgetTester tester) =>
 /// Whether the choice has the focus ring around it.
 bool ringed(WidgetTester tester) {
   final ring = find.descendant(of: find.byType(FocusRing), matching: find.byType(DecoratedBox)).first;
+
   return (tester.widget<DecoratedBox>(ring).decoration as BoxDecoration).border != null;
 }
 

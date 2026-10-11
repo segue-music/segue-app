@@ -151,6 +151,7 @@ Future<FakeEngine> pumpAlbum(
     ),
   );
   await tester.pumpAndSettle();
+
   return engine;
 }
 
@@ -1115,6 +1116,7 @@ void main() {
       // What is beside the name, on its line.
       String detail(String name, [int index = 0]) {
         final line = tester.getTopLeft(inPage(name).at(index)).dy;
+
         return [
           for (final element in find.descendant(of: page, matching: find.byType(Text)).evaluate())
             if ((element.widget as Text).data case final text? when text != name)

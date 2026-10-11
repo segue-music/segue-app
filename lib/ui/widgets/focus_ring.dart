@@ -33,6 +33,7 @@ class _FocusRingState extends State<FocusRing> {
   @override
   Widget build(BuildContext context) {
     final shown = _focused && FocusManager.instance.highlightMode == FocusHighlightMode.traditional;
+
     return Focus(
       canRequestFocus: false,
       skipTraversal: true,

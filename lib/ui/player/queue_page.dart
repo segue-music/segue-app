@@ -149,6 +149,7 @@ class _QueuePageState extends State<QueuePage> {
 
               // On a TV, from the one on top down, where the remote moves it.
               final byRemote = television && editable && i >= top;
+
               return SongMenu(
                 Song.fromQueueItem(track),
                 list: SongList.queue,
@@ -175,6 +176,7 @@ class _QueuePageState extends State<QueuePage> {
             // moment, since a drag scrolls the list, and with a mouse at once.
             Widget movable(BuildContext context, int i) {
               final key = keys[top + i];
+
               return touch
                   ? ReorderableDelayedDragStartListener(key: key, index: i, child: tile(top + i))
                   : ReorderableDragStartListener(key: key, index: i, child: tile(top + i));
@@ -234,6 +236,7 @@ class _QueuePageState extends State<QueuePage> {
                                     itemBuilder: (_, i) => KeyedSubtree(key: keys[top + i], child: tile(top + i)),
                                     findChildIndexCallback: (key) {
                                       final i = keys.indexOf(key);
+
                                       return i < top ? null : i - top;
                                     },
                                   ),
@@ -297,6 +300,7 @@ class _QueuePageState extends State<QueuePage> {
   /// is reported again, its items made anew, and as it moves past others.
   static List<Key> _keys(List<QueueItem> tracks) {
     final seen = <String?, int>{};
+
     return [for (final track in tracks) ValueKey((track.id, seen[track.id] = (seen[track.id] ?? -1) + 1))];
   }
 }

@@ -304,6 +304,7 @@ class MediaControls extends BaseAudioHandler with SeekHandler {
     }
 
     unawaited(_coverFile(coverId));
+
     return Uri(scheme: 'content', host: _coverAuthority, path: '/${_coverName(coverId)}');
   }
 
@@ -375,6 +376,7 @@ class MediaControls extends BaseAudioHandler with SeekHandler {
   @override
   Future<List<MediaItem>> search(String query, [Map<String, dynamic>? extras]) async {
     final tree = await _browsable();
+
     return await tree?.search(query) ?? const [];
   }
 
@@ -397,6 +399,7 @@ class MediaControls extends BaseAudioHandler with SeekHandler {
     }
 
     final recent = _recent;
+
     return recent == null ? const [] : [recent];
   }
 

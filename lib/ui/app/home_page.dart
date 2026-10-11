@@ -630,6 +630,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         if (results != null) SearchResultsList(results),
       ],
     );
+
     return SearchShortcut(
       onSearch: _focusSearch,
       child: HistoryShortcuts(
@@ -779,6 +780,7 @@ class _KeptAliveState extends State<_KeptAlive> with AutomaticKeepAliveClientMix
   @override
   Widget build(BuildContext context) {
     super.build(context);
+
     return widget.child;
   }
 }
@@ -824,6 +826,7 @@ class _SideRail extends StatelessWidget {
         (states) => states.contains(WidgetState.selected) ? colors.onSecondaryContainer : colors.onSurfaceVariant,
       ),
     );
+
     return SizedBox(
       width: 56,
       child: Column(

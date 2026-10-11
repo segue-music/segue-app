@@ -22,6 +22,7 @@ class ArtistLink extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final artistId = this.artistId;
+
     return TextLink(
       name,
       tooltip: AppLocalizations.of(context).openArtist,

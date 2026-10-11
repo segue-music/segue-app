@@ -37,12 +37,14 @@ class PageArea extends InheritedWidget {
   /// screen's); elsewhere, the app's, over everything.
   static NavigatorState playerNavigatorOf(BuildContext context) {
     final area = maybeOf(context);
+
     return area != null && area.underTopBar ? area.navigator.currentState! : Navigator.of(context);
   }
 
   /// Whether [context] is in a page of the page area, rather than around it.
   static bool holds(BuildContext context) {
     final area = maybeOf(context);
+
     return area != null && Navigator.maybeOf(context) == area.navigator.currentState;
   }
 

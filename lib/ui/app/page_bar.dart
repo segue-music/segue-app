@@ -60,6 +60,7 @@ class PageBar extends StatelessWidget implements PreferredSizeWidget {
     final (foreground, halo) = _contrast(colors.surface, behind) > _contrast(colors.onSurface, behind)
         ? (colors.surface, colors.onSurface)
         : (colors.onSurface, colors.surface);
+
     return AppBar(
       backgroundColor: background,
       foregroundColor: foreground,
@@ -88,6 +89,7 @@ class PageBar extends StatelessWidget implements PreferredSizeWidget {
     final style = ThemeData.estimateBrightnessForColor(foreground) == Brightness.dark
         ? SystemUiOverlayStyle.dark
         : SystemUiOverlayStyle.light;
+
     return SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarBrightness: style.statusBarBrightness,
@@ -99,6 +101,7 @@ class PageBar extends StatelessWidget implements PreferredSizeWidget {
   /// How much [a] stands out from [b], as WCAG measures contrast: from 1, none, to 21, black on white.
   static double _contrast(Color a, Color b) {
     final (one, other) = (a.computeLuminance(), b.computeLuminance());
+
     return (max(one, other) + 0.05) / (min(one, other) + 0.05);
   }
 }
@@ -144,6 +147,7 @@ class PageBarSliver extends StatelessWidget {
   Widget _bar(BuildContext context) {
     final leading = this.leading;
     final theme = Theme.of(context);
+
     return Material(
       color: theme.colorScheme.surface,
       child: Column(

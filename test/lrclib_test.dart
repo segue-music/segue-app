@@ -32,6 +32,7 @@ Lrclib lrclib({Map<String, Object?>? get, List<Map<String, Object?>> search = co
     Lrclib(
       client: MockClient((request) async {
         asked?.add(request);
+
         return switch (request.url.path) {
           '/api/get' when get != null => json(get),
           '/api/get' => json({'code': 404, 'name': 'TrackNotFound'}, 404),
@@ -48,6 +49,7 @@ Future<List<(Duration?, String)>?> lines(Lrclib lrclib) async {
     album: 'Toys in the Attic',
     duration: const Duration(seconds: 274),
   );
+
   return lyrics == null ? null : [for (final line in lyrics.lines) (line.start, line.text)];
 }
 

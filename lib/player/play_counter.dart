@@ -41,6 +41,7 @@ class PlayCounter {
     }
 
     final half = duration ~/ 2;
+
     return half < countAfter ? half : countAfter;
   }
 

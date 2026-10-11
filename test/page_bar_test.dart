@@ -43,6 +43,7 @@ Future<void> pumpBar(
   final system = tester.widget<AnnotatedRegion<SystemUiOverlayStyle>>(
     find.descendant(of: find.byType(AppBar), matching: find.byType(AnnotatedRegion<SystemUiOverlayStyle>)),
   );
+
   return (title?.color, halo?.color, arrow.color, system.value.statusBarIconBrightness);
 }
 

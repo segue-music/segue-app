@@ -125,6 +125,7 @@ Future<List<Map<String, String>>> pumpHome(
   addTearDown(tester.view.reset);
   Widget app() {
     final ThemeSettings(:mode, :palette, :highContrast) = themeChoice?.value ?? const ThemeSettings();
+
     return MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: const [Locale('pt')],
@@ -154,6 +155,7 @@ Future<List<Map<String, String>>> pumpHome(
     themeChoice == null ? app() : ListenableBuilder(listenable: themeChoice, builder: (context, _) => app()),
   );
   await tester.pumpAndSettle();
+
   return asked;
 }
 

@@ -55,6 +55,7 @@ class ArtistPage extends StatefulWidget {
       for (final album in newest)
         if (short.contains(album.releaseType)) album,
     ];
+
     return [
       if (full.isNotEmpty) (title: strings.albums, albums: full),
       if (singles.isNotEmpty) (title: strings.singlesAndEps, albums: singles),
@@ -129,10 +130,12 @@ class _ArtistPageState extends State<ArtistPage> {
     // On a phone, or a window as narrow (as the home counts it), the picture goes across the top of the page, under its
     // bar, which has the name: beside it, a picture of some size would leave the name no room.
     final narrow = MediaQuery.sizeOf(context).width < 600;
+
     return FutureBuilder(
       future: _artist,
       builder: (context, snapshot) {
         final data = snapshot.data;
+
         // Where the server has no picture of them, fanart.tv's: of the artist the page opened with until theirs comes,
         // with the MusicBrainz id a list may not have given.
         return FanartPicture(
@@ -214,6 +217,7 @@ class _ArtistPageState extends State<ArtistPage> {
   /// mostly is, but half a short window at most.
   double get _pictureHeight {
     final screen = MediaQuery.sizeOf(context);
+
     return min(screen.width, screen.height / 2);
   }
 
@@ -250,12 +254,14 @@ class _ArtistPageState extends State<ArtistPage> {
         }
       }),
     );
+
     return last;
   }
 
   /// Where the top [height] of a picture [image] big is, as it fills [box], as a cover does ([BoxFit.cover], centered).
   static Rect _topOf(Size image, Size box, double height) {
     final shown = Alignment.center.inscribe(applyBoxFit(BoxFit.cover, image, box).source, Offset.zero & image);
+
     return Rect.fromLTWH(shown.left, shown.top, shown.width, shown.height * height / box.height);
   }
 
@@ -414,6 +420,7 @@ class _ArtistPageState extends State<ArtistPage> {
     }
 
     final surface = Theme.of(context).colorScheme.surface;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -479,6 +486,7 @@ class _ArtistPageState extends State<ArtistPage> {
       textAlign: end ? TextAlign.end : null,
     );
     final favorite = FavoriteButton(FavoriteKind.artist, widget.artist.id, compact: true);
+
     return FutureBuilder(
       future: _biography,
       builder: (context, snapshot) => switch (snapshot.data) {
@@ -540,6 +548,7 @@ class _ArtistPageState extends State<ArtistPage> {
     future: _similar,
     builder: (context, snapshot) {
       final strings = AppLocalizations.of(context);
+
       return switch (snapshot.data) {
         null || [] => const SizedBox.shrink(),
         final artists => Padding(
@@ -601,6 +610,7 @@ class _ArtistPageState extends State<ArtistPage> {
     final theme = Theme.of(context);
     final strings = AppLocalizations.of(context);
     final style = theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant);
+
     return Material(
       type: MaterialType.transparency,
       child: Wrap(
@@ -632,6 +642,7 @@ class _ArtistPageState extends State<ArtistPage> {
       (0, _) => strings.epCount(eps),
       _ => strings.singleAndEpCount(singles + eps),
     };
+
     return [if (full > 0 || short == null) albumCount(strings, full), ?short].join(' · ');
   }
 }
@@ -746,6 +757,7 @@ class _ArtistSongsState extends State<_ArtistSongs> {
               )
             : Text(shown.label(strings), style: text.titleLarge);
         final trailing = widget.trailing;
+
         return widget.builder(
           Padding(
             padding: EdgeInsets.fromLTRB(16, lists.length > 1 ? 20 : 24, 16, 8),

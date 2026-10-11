@@ -61,6 +61,7 @@ Services fakeServices({SegueClient? client}) {
     ),
   );
   final player = PlayerController(FakeEngine(), api);
+
   return Services(
     Session(server: Uri.parse('https://music.test'), credentials: credentials, deviceId: 'me', deviceName: 'me'),
     api,

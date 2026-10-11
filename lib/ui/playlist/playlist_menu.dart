@@ -20,6 +20,7 @@ List<PopupMenuEntry<PlaylistAction>> playlistMenuItems(
   required bool hasSongs,
 }) {
   final strings = AppLocalizations.of(context);
+
   return [
     if (hasSongs && ServicesScope.of(context).connect.canAddToQueue) ...[
       PopupMenuItem(

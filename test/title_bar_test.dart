@@ -9,6 +9,7 @@ const channel = MethodChannel('segue/window');
 /// What the window is told to paint its title bar, in the theme of [brightness].
 Map<String, int> titleBarColors(Brightness brightness) {
   final colors = segueTheme(brightness).colorScheme;
+
   return {'background': colors.surface.toARGB32(), 'foreground': colors.onSurface.toARGB32()};
 }
 

@@ -48,6 +48,7 @@ class DownloadChoice extends ValueNotifier<DownloadSettings> {
   /// says ([hasMobileData]).
   static Future<DownloadChoice> load({@visibleForTesting bool? mobileData}) async {
     final quality = StreamQuality.values.asNameMap()[await _prefs.getString(_qualityKey)];
+
     return DownloadChoice(
       value: DownloadSettings(
         quality: qualities.contains(quality) ? quality! : StreamQuality.original,

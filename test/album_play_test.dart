@@ -107,6 +107,7 @@ Future<PlayerController> pumpAlbums(
   );
   await tester.pumpAndSettle();
   await openSection(tester, 'Álbuns');
+
   return player;
 }
 
@@ -143,6 +144,7 @@ Future<TestGesture> mouse(WidgetTester tester) async {
     }
   });
   await tester.pumpAndSettle();
+
   return gesture;
 }
 

@@ -189,6 +189,7 @@ class _LyricsViewState extends State<LyricsView> {
         }
 
         final lyrics = snapshot.data;
+
         return lyrics == null ? _Message(strings.noLyrics, style: style) : _lines(lyrics);
       },
     );
@@ -234,6 +235,7 @@ class _LyricsViewState extends State<LyricsView> {
     final ink = Theme.of(context).colorScheme.onSurface;
     // Faded, but for the line that plays; whole when none does, as in lyrics that aren't synced.
     final faded = lyrics.synced ? ink.withValues(alpha: 0.4) : ink;
+
     // Out of the focus's way: for the remote, the player's controls are what matters.
     return ExcludeFocus(
       child: Scrollbar(
@@ -244,6 +246,7 @@ class _LyricsViewState extends State<LyricsView> {
           blendMode: BlendMode.dstIn,
           shaderCallback: (bounds) {
             final edge = bounds.height > 0 ? min(LyricsView.edgeFade / bounds.height, 0.5) : 0.0;
+
             return LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,

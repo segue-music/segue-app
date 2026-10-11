@@ -16,6 +16,7 @@ Future<PlayerController> pumpWide(WidgetTester tester) async {
   final (player, _) = await pumpHome(tester, const Size(1200, 700));
   await player.playQueue(const [Song(id: 's1', title: 'Dream On', artist: 'Aerosmith')]);
   await tester.pumpAndSettle();
+
   return player;
 }
 

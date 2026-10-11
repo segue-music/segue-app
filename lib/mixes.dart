@@ -18,6 +18,7 @@ sealed class Mix {
   /// What it plays: [first] (the songs its tile shows), then more of its own, each song once, [size] in all.
   Future<List<Song>> queue(MediaServer server, {List<Song> first = const []}) async {
     final ids = {for (final song in first) song.id};
+
     return [
       ...first,
       for (final song in await songs(server))
@@ -116,6 +117,7 @@ class SuggestedMixes {
       for (final genre in _pickedByRank(genres.take(_genresToPickFrom).toList(), _genres, random)) GenreMix(genre),
     ];
     final decadeMixes = [for (final decade in _pickedByRank(await decades, _decades, random)) DecadeMix(decade)];
+
     return [
       for (var i = 0; i < genreMixes.length || i ~/ 2 < decadeMixes.length; i += 2) ...[
         ...genreMixes.skip(i).take(2),

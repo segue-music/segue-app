@@ -88,6 +88,7 @@ void main() {
           }
 
           pinged = request.url;
+
           return json({
             'subsonic-response': {'status': 'ok'},
           });
@@ -113,6 +114,7 @@ void main() {
         '/System/Info/Public': (_) => jellyfinInfo,
         '/Users/AuthenticateByName': (request) {
           asked = request;
+
           return json({
             'User': {'Name': 'Alice', 'Id': '5f1c0e2a9b8d4c7e8f6a5b4c3d2e1f00'},
             'AccessToken': 'f0e1d2c3b4a5968778695a4b3c2d1e0f',

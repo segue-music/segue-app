@@ -37,6 +37,7 @@ PlayerController counted(List<Map<String, String>> scrobbles) {
   );
   final player = PlayerController(FakeEngine(), api);
   PlayCounter(player, api);
+
   return player;
 }
 

@@ -99,8 +99,10 @@ class _Artwork {
   /// The rounded square alone, with what is around it transparent, [fill] of a [size] × [size] image wide.
   Image shape(int size, double fill) {
     final scale = max(_right - _left, _bottom - _top) / (size * fill);
+
     return _render(size, size, scale, (x, y) {
       final (r, g, b) = _sample(x, y);
+
       return (r, g, b, _inside(x, y) ? 1 : 0);
     });
   }
@@ -110,9 +112,11 @@ class _Artwork {
   Image inside(int size, double fill) {
     const inset = 16.0;
     final scale = 2 * _reach / (size * fill);
+
     return _render(size, size, scale, (x, y) {
       final (px, py) = _nearestInside(x, y, inset);
       final (r, g, b) = _sample(px, py);
+
       return (r, g, b, 1);
     });
   }
@@ -122,6 +126,7 @@ class _Artwork {
   /// takes.
   Image silhouette(int size, double fill) {
     final scale = 2 * _reach / (size * fill);
+
     return _render(size, size, scale, (x, y) {
       final dx = x - _cx, dy = y - _cy;
 
@@ -131,6 +136,7 @@ class _Artwork {
       }
 
       final (red, _, _) = _sample(x, y);
+
       return (1, 1, 1, ((red - 0.2) / 0.4).clamp(0.0, 1.0));
     });
   }
@@ -139,12 +145,14 @@ class _Artwork {
   Image banner(int width, int height) {
     final (br, bg, bb) = _borderColour();
     final scale = this.height / height;
+
     return _render(width, height, scale, (x, y) {
       if (x < 0 || x > this.width || y < 0 || y > this.height) {
         return (br, bg, bb, 1);
       }
 
       final (r, g, b) = _sample(x, y);
+
       return (r, g, b, 1);
     });
   }
@@ -192,6 +200,7 @@ class _Artwork {
 
       final top = at(x0, y0) * (1 - tx) + at(x1, y0) * tx;
       final bottom = at(x0, y1) * (1 - tx) + at(x1, y1) * tx;
+
       return top * (1 - ty) + bottom * ty;
     }
 

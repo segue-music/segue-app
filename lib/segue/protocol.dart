@@ -181,6 +181,7 @@ class StampedState extends PlayerState {
 
   QueueItem? get current {
     final i = index ?? 0;
+
     return queue != null && i < queue!.length ? queue![i] : null;
   }
 
@@ -192,6 +193,7 @@ class StampedState extends PlayerState {
 
     final position = positionMs + max<int>(0, now - at);
     final duration = current?.durationMs;
+
     return duration == null || duration <= 0 ? position : min<int>(position, duration);
   }
 }
@@ -326,6 +328,7 @@ class Command {
 
   factory Command.fromJson(Map<String, dynamic> json) {
     final action = _enum(CommandAction.values, json['action']);
+
     return switch (action) {
       CommandAction.jump => Command.jump((json['index'] as num).toInt()),
       CommandAction.seek => Command.seek((json['positionMs'] as num).toInt()),

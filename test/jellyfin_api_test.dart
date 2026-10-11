@@ -22,6 +22,7 @@ JellyfinApi jellyfin(http.Response Function(http.Request request) answer, [List<
   deviceName: 'laptop',
   client: MockClient((request) async {
     asked?.add(request);
+
     return answer(request);
   }),
 );
@@ -282,6 +283,7 @@ void main() {
 
       // Asked by id, in whatever order the server likes.
       final ids = query['Ids']?.split(',') ?? const [];
+
       return items([
         for (final id in ids.reversed) {...album, 'Id': id, 'Name': 'Album $id'},
       ]);
@@ -541,6 +543,7 @@ void main() {
       }
 
       final fields = query['Fields']?.split(',') ?? const <String>[];
+
       return items([
         {
           ...song,
@@ -578,6 +581,7 @@ void main() {
           ]),
         ).album('a1');
         final date = found.releaseDate;
+
         return (date?.year, date?.month, date?.day);
       }
 

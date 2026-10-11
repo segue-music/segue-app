@@ -13,12 +13,14 @@ double hue(Color color) => HSLColor.fromColor(color).hue;
 /// How far apart two hues are, around the circle.
 double hueDistance(double a, double b) {
   final distance = (a - b).abs() % 360;
+
   return distance > 180 ? 360 - distance : distance;
 }
 
 /// WCAG's contrast ratio, from 1 (none) to 21 (black on white).
 double contrast(Color a, Color b) {
   final (light, dark) = (a.computeLuminance(), b.computeLuminance());
+
   return light > dark ? (light + 0.05) / (dark + 0.05) : (dark + 0.05) / (light + 0.05);
 }
 
@@ -263,6 +265,7 @@ void main() {
         final material = tester.widget<Material>(
           find.descendant(of: find.byType(AppBar), matching: find.byType(Material)).first,
         );
+
         return (material.color, material.elevation);
       }
 

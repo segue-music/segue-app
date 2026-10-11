@@ -84,6 +84,7 @@ class _ArtistsViewState extends State<ArtistsView> {
   Future<List<Artist>> _load() async {
     final services = ServicesScope.of(context);
     final api = services.api;
+
     return switch (_order) {
       _ArtistOrder.name => api.artists(),
       _ArtistOrder.mostPlayed => api.mostPlayedArtists(),
@@ -117,6 +118,7 @@ class _ArtistsViewState extends State<ArtistsView> {
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -211,6 +213,7 @@ class _ArtistTileState extends State<ArtistTile> {
   Widget build(BuildContext context) {
     final artist = widget.artist;
     final text = Theme.of(context).textTheme;
+
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),

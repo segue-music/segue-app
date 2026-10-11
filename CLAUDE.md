@@ -382,8 +382,10 @@ Running two app instances on one machine as different devices:
   `curly_braces_in_flow_control_structures` and `always_put_control_body_on_new_line` enforce it).
   A statement with braces (`if`, `for`, `while`, `do`, `switch`, `try`, a local function) has a
   blank line before and after it, separating it from the statements around it, but not at the
-  start or end of its block. A comment above the statement belongs to it, so the blank line goes
-  above the comment. `dart format` keeps blank lines but never adds them, so this is by hand.
+  start or end of its block. The `return` that ends a function (a method, a closure) has one above
+  it too, where other statements come before it. A comment above the statement belongs to it, so
+  the blank line goes above the comment. `dart format` keeps blank lines but never adds them, so
+  this is by hand.
 - Dart design follows Effective Dart's guidelines (https://dart.dev/effective-dart/design). The ones
   a lint can check are on in `analysis_options.yaml`; the rest (terms used consistently, no
   abbreviations, noun phrases for values, verbs for side effects, no `get` prefix, ...) are by hand.

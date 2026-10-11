@@ -20,6 +20,7 @@ const songs = [
     SubsonicApi(Uri.parse('https://music.test'), const SubsonicCredentials(username: 'a', token: 't', salt: 's')),
   );
   player.playQueue(songs);
+
   return (player, SleepTimer(player));
 }
 
