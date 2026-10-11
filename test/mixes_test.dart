@@ -378,6 +378,23 @@ void main() {
     expect(player.queue, isEmpty);
   });
 
+  testWidgets(
+    'on an iPhone, dragged past its end, the home bounces back to its end, rather than up to its first rows',
+    (tester) async {
+      await pumpHome(tester);
+      // So short that, past the end, the mixes are far out of sight.
+      tester.view.physicalSize = const Size(400, 300);
+      await tester.pumpAndSettle();
+      final home = find.descendant(of: find.byType(HomeView), matching: find.byType(Scrollable)).first;
+      await tester.drag(home, const Offset(0, -900));
+      await tester.pumpAndSettle();
+      final position = tester.state<ScrollableState>(home).position;
+      expect(position.pixels, position.maxScrollExtent);
+      expect(tester.getRect(find.text('Adicionados recentemente')).top, lessThan(300), reason: 'the last row');
+    },
+    variant: TargetPlatformVariant.only(TargetPlatform.iOS),
+  );
+
   testWidgets('a library without genres has no row of mixes, nor its title', (tester) async {
     await pumpHome(tester, played: false, genres: false);
     expect(find.text('Mixes'), findsNothing);
