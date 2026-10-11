@@ -44,7 +44,6 @@ SegueClient tvPlaying() {
   return client;
 }
 
-/// The titles of [player]'s queue.
 List<String> titles(PlayerController player) => [for (final song in player.queue) song.title];
 
 const songs = [

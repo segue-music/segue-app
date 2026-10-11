@@ -391,6 +391,10 @@ Running two app instances on one machine as different devices:
   abbreviations, noun phrases for values, verbs for side effects, no `get` prefix, ...) are by hand.
   `avoid_positional_boolean_parameters` stays off: the guideline exempts setters, and a method like
   `setShuffle(true)` is one that can't be a setter, being async.
+- A comment says what the code can't: why it is so, what it works around, what a number means.
+  One that only says again what the code says (`/// Goes to the playlists.` over
+  `openSection(tester, 'Playlists')`) goes. Where every member of a list of fields or of an enum's
+  values has its doc, the obvious one stays, rather than leave a gap.
 - Icons come from Hugeicons (`ThemedIcon(HugeIcons.strokeRounded...)`, `lib/ui/widgets/themed_icon.dart`),
   which draws them as SVG paths, and never through its own `HugeIcon`: that one is 24 pixels
   whatever the `IconTheme` says, so an icon button's `iconSize` or a navigation bar's theme would

@@ -113,7 +113,6 @@ Future<PlayerController> pumpAlbums(
 
 final playButton = find.byTooltip('Tocar o álbum');
 
-/// The tile of the album named [name].
 Finder tile(String name) => find.ancestor(of: find.text(name), matching: find.byType(AlbumTile));
 
 /// What darkens the cover of the album named [name]: black, a little.

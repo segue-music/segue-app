@@ -418,7 +418,6 @@ class FakeUrlLauncher extends UrlLauncherPlatform {
   }
 }
 
-/// The icon [data] draws.
 Finder icon(HugeIconData data) => find.byWidgetPredicate((widget) => widget is ThemedIcon && widget.icon == data);
 
 /// The tile of the artist named [name], in the artists' grid.

@@ -786,7 +786,6 @@ class _ArtistSongsState extends State<_ArtistSongs> {
                   builder: (context, menu) => ListTile(
                     contentPadding: SongTrailing.tilePadding,
                     selected: current,
-                    // Its place among them, then its cover.
                     leading: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [

@@ -34,7 +34,6 @@ Future<EqualizerChoice> pumpPage(
   return choice;
 }
 
-/// The band at [frequency].
 Finder band(int frequency) =>
     find.byWidgetPredicate((widget) => widget is EqualizerBand && widget.frequency == frequency);
 

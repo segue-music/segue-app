@@ -124,7 +124,6 @@ Future<List<String>> pumpAlbums(
 /// The chip of the albums tab that picks the order [label] names.
 Finder order(String label) => find.widgetWithText(ChoiceChip, label);
 
-/// Whether [label]'s order is the one picked.
 bool picked(WidgetTester tester, String label) => tester.widget<ChoiceChip>(order(label)).selected;
 
 /// Scrolls the albums down as far as they go, [times] times.

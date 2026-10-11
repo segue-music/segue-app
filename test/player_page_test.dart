@@ -239,7 +239,6 @@ const verse = [
   size(Theme.of(tester.element(onPage(find.byType(LyricsView)))).textTheme)?.fontSize,
 );
 
-/// How opaque the lyrics' [line] is.
 double? opacity(WidgetTester tester, String line) => tester.widget<Text>(onPage(find.text(line))).style?.color?.a;
 
 /// Whether the lyrics mark [line] as the one that plays.

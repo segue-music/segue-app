@@ -207,7 +207,6 @@ Future<void> pick(WidgetTester tester, String name) async {
   await tester.pumpAndSettle();
 }
 
-/// The genre mix of [mixes] named [name].
 GenreMix genre(List<Mix> mixes, String name) => mixes.whereType<GenreMix>().firstWhere((mix) => mix.genre.name == name);
 
 /// A library whose most played albums are each of another genre, the first one the most played, and of another of

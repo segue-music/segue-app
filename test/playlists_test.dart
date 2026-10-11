@@ -220,7 +220,6 @@ Future<PlayerController> pumpHome(WidgetTester tester, Size size, {Library? libr
   return player;
 }
 
-/// Goes to the playlists.
 Future<void> openPlaylists(WidgetTester tester) => openSection(tester, 'Playlists');
 
 /// Opens the playlist named [name], from the playlists.
