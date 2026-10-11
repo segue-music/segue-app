@@ -43,6 +43,60 @@ void main() {
     });
   }
 
+  testWidgets('on a wide screen, the playback\'s buttons are in the middle, play filled, between the heart and the '
+      'lyrics, over the slider; a playlist to add the song to, the queue and the devices are at the end', (
+    tester,
+  ) async {
+    await pumpBar(tester, size: const Size(1280, 700));
+    final bar = find.byType(NowPlayingBar);
+    Rect rect(Finder finder) => tester.getRect(find.descendant(of: bar, matching: finder));
+    final play = rect(find.byTooltip('Tocar'));
+
+    // In the middle, but for the bar's edges: the song's own room inside takes some from its side.
+    expect(play.center.dx, moreOrLessEquals(640, epsilon: 2));
+    // Its button's, around the icon and the tooltip.
+    final playButton = find.ancestor(
+      of: find.descendant(of: bar, matching: find.byTooltip('Tocar')),
+      matching: find.byType(Material),
+    );
+    expect(
+      tester.widget<Material>(playButton.first).color,
+      Theme.of(tester.element(bar)).colorScheme.primary,
+      reason: 'filled',
+    );
+
+    final buttons = [
+      for (final tooltip in [
+        'Adicionar aos favoritos',
+        'Ativar aleatório',
+        'Anterior',
+        'Próxima',
+        'Repetir a lista',
+        'Mostrar a letra',
+      ])
+        rect(find.byTooltip(tooltip)),
+    ];
+    expect(play.center.dx - buttons.first.center.dx, moreOrLessEquals(buttons.last.center.dx - play.center.dx));
+    final slider = rect(find.byType(Slider));
+    expect(slider.center.dx, moreOrLessEquals(640, epsilon: 2));
+
+    for (final button in [play, ...buttons]) {
+      expect(button.center.dy, moreOrLessEquals(play.center.dy, epsilon: 1));
+      expect(button.bottom, lessThanOrEqualTo(slider.top + 1));
+      expect(button.left, greaterThanOrEqualTo(slider.left - 40));
+      expect(button.right, lessThanOrEqualTo(slider.right + 40));
+    }
+
+    expect(slider.bottom, lessThanOrEqualTo(tester.getRect(bar).bottom - 8), reason: 'room under it');
+
+    for (final tooltip in ['Adicionar à playlist', 'Fila', 'Aparelhos']) {
+      expect(rect(find.byTooltip(tooltip)).left, greaterThan(slider.right), reason: tooltip);
+    }
+
+    expect(rect(find.byTooltip('Aparelhos')).right, moreOrLessEquals(1280 - 8, epsilon: 1));
+    await tester.pumpWidget(const SizedBox()); // stops the bar's timer
+  });
+
   testWidgets('on a phone, the bar is slightly see-through, its corners slightly rounded; on a wide screen, opaque and '
       'square', (tester) async {
     Material material() =>
@@ -57,15 +111,29 @@ void main() {
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
   });
 
-  testWidgets('the song in the bar has room around its cover and lines, where its tint and ring show', (tester) async {
-    await pumpBar(tester, size: const Size(960, 540));
+  testWidgets('on a phone, the song in the bar has room around its cover and lines, where its tint and ring show', (
+    tester,
+  ) async {
+    await pumpBar(tester);
     final bar = find.byType(NowPlayingBar);
     final cover = tester.getRect(find.descendant(of: bar, matching: find.byType(Cover)));
     final song = tester.getRect(find.descendant(of: bar, matching: find.byTooltip('Abrir o player')));
     expect(cover.left - song.left, moreOrLessEquals(4));
     expect(cover.top - song.top, moreOrLessEquals(4));
     expect(song.bottom - cover.bottom, moreOrLessEquals(4));
+    expect(song.right, greaterThan(tester.getRect(find.descendant(of: bar, matching: find.text('Aerosmith'))).right));
     expect(cover.left, moreOrLessEquals(8), reason: 'where it was, the room taken from the bar\'s edge');
+    await tester.pumpWidget(const SizedBox()); // stops the bar's timer
+  });
+
+  testWidgets('on a wide screen, only the cover opens the player, nothing around the song lighting up for it', (
+    tester,
+  ) async {
+    await pumpBar(tester, size: const Size(960, 540));
+    final bar = find.byType(NowPlayingBar);
+    final cover = tester.getRect(find.descendant(of: bar, matching: find.byType(Cover)));
+    expect(tester.getRect(find.descendant(of: bar, matching: find.byTooltip('Abrir o player'))), cover);
+    expect(cover.left, moreOrLessEquals(8));
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
   });
 

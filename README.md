@@ -97,7 +97,7 @@ It does:
   the album page, whose cover opens full screen; search (artists, albums and songs); and playback
   through media_kit (libmpv), with a seek bar, shuffle and repeat (the queue, or the track until
   another one is picked), in the player bar and in a full-screen player that the song in the bar
-  opens, which shows the song's lyrics beside it, or under it on a phone (OpenSubsonic's songLyrics,
+  opens (on a wider screen, its cover), which shows the song's lyrics beside it, or under it on a phone (OpenSubsonic's songLyrics,
   as Navidrome's from the file's tags or
   a .lrc next to it, or Jellyfin's; when the server has none, LRCLIB's, from lrclib.net, by the
   song's title, artist, album and length, synced ones wherever it has them, also in another entry
@@ -135,7 +135,10 @@ It does:
   song would often land on them, that open from the player only (on an album's or a playlist's page);
 - on a wide screen (a computer, a tablet, a TV), the top bar, the side rail and the player bar stay,
   and pages (an album, an artist, a genre, the queue, the full-screen player) open between them, with
-  the search bar in the middle of the top bar. Arrows beside the app's icon go back and forward through
+  the search bar in the middle of the top bar. The player bar is in three parts, as most players on a computer have
+  it: the song, whose cover opens the full-screen player; in the middle, over the seek bar, its times at its sides,
+  shuffle, previous, play (filled), next and repeat, between what has to do with the song, the heart and the lyrics;
+  at the end, a playlist to add the song to, the queue, the sleep timer and the devices. Arrows beside the app's icon go back and forward through
   those pages, as a browser's do, and so do the keyboard's left and right (on a phone, left goes back
   from a page with a back arrow). A section, or a search, closes them. On a touch screen, a page with a
   back arrow also goes back with a finger swiped to the right from anywhere on it, the page following the
@@ -185,7 +188,8 @@ It does:
   song added to one, from its menu (a button after its duration, wherever songs are listed: an album's
   page, an artist's, a playlist's, search; for the keyboard and the remote, which stop at the song
   alone, the menu key or Shift+F10 on it, or OK held, as a TV's remote seldom has a menu key), the song that plays from the player (on a phone, the full-screen
-  player's button at the bottom right; on a wider screen, the player bar's, beside the heart), or an album, all its
+  player's button at the bottom right; on a wider screen, the player bar's, or the menu of the song in the bar,
+  right-clicked, held by its cover, or with the menu key or OK held on it, as a song's in a list), or an album, all its
   songs, from the button beside its play button, to one of those the user can change, picked in a dialog, or to a new
   one named there; on the
   page of one the user can change, a song taken out from its menu, a song moved by dragging it (on a

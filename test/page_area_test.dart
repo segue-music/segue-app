@@ -245,7 +245,7 @@ void main() {
     await tapAndSettle(tester, find.byTooltip('Esconder a letra'));
     expect(find.byTooltip('Mostrar a letra'), findsOneWidget);
     expect(find.byType(PlayerPage), findsOneWidget);
-    await tapAndSettle(tester, find.byTooltip('Fechar o player'));
+    await tapAndSettle(tester, find.descendant(of: find.byTooltip('Fechar o player'), matching: find.byType(Cover)));
     expect(find.byType(PlayerPage), findsNothing);
     expect(find.byTooltip('Abrir o player'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
@@ -267,7 +267,7 @@ void main() {
     await tapAndSettle(tester, button);
     expect(queue, findsNothing, reason: 'going back from it too');
 
-    await tapAndSettle(tester, find.byTooltip('Abrir o player'));
+    await tapAndSettle(tester, find.descendant(of: find.byTooltip('Abrir o player'), matching: find.byType(Cover)));
     await tapAndSettle(tester, button);
     expect(queue, findsOneWidget);
     await tapAndSettle(tester, button);

@@ -200,15 +200,15 @@ Future<void> press(WidgetTester tester, LogicalKeyboardKey key) async {
 }
 
 void main() {
-  testWidgets('on a TV, down from the slider goes to the buttons, without moving the song', (tester) async {
+  testWidgets('on a TV, up from the slider goes to the buttons over it, without moving the song', (tester) async {
     final player = await pumpBarOnSlider(tester, television: true);
     expect(sliderFocused(), isTrue);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
     await tester.pump();
     expect(player.position, const Duration(minutes: 1));
     expect(sliderFocused(), isFalse);
     // Left and right still move it.
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
     await tester.pump();
     expect(sliderFocused(), isTrue);
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
@@ -225,13 +225,15 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('the bar is the floor: down from its last row stays there, not in the albums under it', (tester) async {
+  testWidgets('the bar is the floor: down from its last row, the slider, stays there, not in the albums under it', (
+    tester,
+  ) async {
     await pumpTvHome(tester);
-    await tabTo(tester, sliderFocused);
+    await tabTo(tester, () => focusedTip() == 'Próxima');
     await press(tester, LogicalKeyboardKey.arrowDown); // to the bar's last row
-    expect(inBar() && !sliderFocused(), isTrue);
+    expect(sliderFocused(), isTrue);
     await press(tester, LogicalKeyboardKey.arrowDown);
-    expect(inBar(), isTrue, reason: 'still in the bar');
+    expect(sliderFocused(), isTrue, reason: 'still in the bar');
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -242,6 +244,8 @@ void main() {
     expect(focusedTip(), 'Repetir a lista');
     await press(tester, LogicalKeyboardKey.arrowRight);
     expect(focusedTip(), 'Mostrar a letra');
+    await press(tester, LogicalKeyboardKey.arrowRight);
+    expect(focusedTip(), 'Adicionar à playlist');
     await press(tester, LogicalKeyboardKey.arrowRight);
     expect(focusedTip(), 'Fila');
     await press(tester, LogicalKeyboardKey.arrowRight);
@@ -260,13 +264,15 @@ void main() {
     await press(tester, LogicalKeyboardKey.arrowRight);
     expect(focusedTip(), 'Mostrar a letra');
     await press(tester, LogicalKeyboardKey.arrowRight);
+    expect(focusedTip(), 'Adicionar à playlist');
+    await press(tester, LogicalKeyboardKey.arrowRight);
     expect(focusedTip(), 'Fila');
     await press(tester, LogicalKeyboardKey.arrowRight);
     expect(focusedTip(), 'Aparelhos');
     await press(tester, LogicalKeyboardKey.arrowRight);
     expect(focusedTip(), 'Aparelhos');
 
-    for (var i = 0; i < 5; i++) {
+    for (var i = 0; i < 6; i++) {
       await press(tester, LogicalKeyboardKey.arrowLeft);
     }
 
@@ -282,11 +288,14 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('up from the buttons goes to the slider, and up from the slider leaves the bar', (tester) async {
+  testWidgets('down from the buttons goes to the slider under them, up from it back to them, and up from them out of '
+      'the bar', (tester) async {
     await pumpTvHome(tester);
     await tabTo(tester, () => focusedTip() == 'Próxima');
-    await press(tester, LogicalKeyboardKey.arrowUp);
+    await press(tester, LogicalKeyboardKey.arrowDown);
     expect(sliderFocused(), isTrue);
+    await press(tester, LogicalKeyboardKey.arrowUp);
+    expect(inBar() && !sliderFocused(), isTrue);
     await press(tester, LogicalKeyboardKey.arrowUp);
     expect(inBar(), isFalse);
     await tester.pumpWidget(const SizedBox());

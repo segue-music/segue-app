@@ -16,9 +16,11 @@ import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/app/home_page.dart';
 import 'package:segue/ui/app/shortcuts.dart';
 import 'package:segue/ui/player/now_playing_bar.dart';
+import 'package:segue/ui/player/player_page.dart';
 import 'package:segue/ui/playlist/playlist_menu.dart';
 import 'package:segue/ui/playlist/playlist_page.dart';
 import 'package:segue/ui/playlist/playlists_view.dart';
+import 'package:segue/ui/widgets/cover.dart';
 import 'package:segue/ui/widgets/themed_icon.dart';
 
 import 'fakes.dart';
@@ -243,6 +245,12 @@ Finder songMenu(String title) => find.descendant(of: tile(title), matching: find
 /// A menu's item, or a dialog's option or button, that says [text]: over the page, last.
 Finder item(String text) => find.text(text).last;
 
+/// The cover of the song in the player bar, which opens the full-screen player: its title and artist link elsewhere.
+final barCover = find.descendant(
+  of: find.descendant(of: find.byType(NowPlayingBar), matching: find.byTooltip('Abrir o player')),
+  matching: find.byType(Cover),
+);
+
 /// The titles of the songs on the playlist's page, from the top.
 List<String> titles(WidgetTester tester) {
   final titles = {for (final song in songs.values) song['title']! as String};
@@ -421,7 +429,7 @@ void main() {
 
   for (final (device, size, player) in [
     ('on a phone, the full-screen player\'s button at the bottom right', const Size(360, 640), true),
-    ('on a wide screen, the player bar\'s button beside the heart', const Size(1000, 700), false),
+    ('on a wide screen, the player bar\'s button', const Size(1000, 700), false),
   ]) {
     testWidgets('$device adds the song that plays to a playlist', (tester) async {
       final library = Library();
@@ -430,7 +438,7 @@ void main() {
       await tester.pumpAndSettle();
 
       if (player) {
-        await tap(tester, find.byTooltip('Abrir o player'));
+        await tap(tester, barCover);
       }
 
       await tap(tester, find.byTooltip('Adicionar à playlist'));
@@ -441,6 +449,35 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     });
   }
+
+  testWidgets('the song in the player bar, right-clicked, held, or with OK held, opens its menu, which adds it to a '
+      'playlist', (tester) async {
+    final library = Library();
+    final controller = await pumpHome(tester, const Size(1000, 700), library: library);
+    await controller.playQueue(const [Song(id: 's1', title: 'Walk This Way', artist: 'Aerosmith')], play: false);
+    await tester.pumpAndSettle();
+
+    await tester.tap(barCover, buttons: kSecondaryButton);
+    await tester.pumpAndSettle();
+    expect(find.text('Adicionar à playlist'), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+
+    await tester.longPress(barCover);
+    await tester.pumpAndSettle();
+    expect(find.text('Adicionar à playlist'), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+
+    Focus.of(tester.element(barCover)).requestFocus();
+    await tester.pump();
+    await holdOk(tester);
+    await tap(tester, item('Adicionar à playlist'));
+    await tap(tester, item('Road trip'));
+    expect(library.songsOf('Road trip'), ['s2', 's9', 's1']);
+    expect(find.byType(PlayerPage), findsNothing, reason: 'none of these opens the player');
+    await tester.pumpWidget(const SizedBox());
+  });
 
   testWidgets('the album\'s button adds all its songs, also to a new playlist, named in a dialog', (tester) async {
     final library = Library();

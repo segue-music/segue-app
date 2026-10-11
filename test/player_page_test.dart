@@ -246,7 +246,7 @@ bool marked(WidgetTester tester, String line) =>
     tester.widget<Text>(onPage(find.text(line))).style?.fontWeight == FontWeight.bold;
 
 Future<void> openPlayer(WidgetTester tester) async {
-  await tester.tap(find.byTooltip('Abrir o player'));
+  await tester.tap(find.descendant(of: find.byTooltip('Abrir o player'), matching: find.byType(Cover)));
   await tester.pumpAndSettle();
 }
 
@@ -1084,7 +1084,12 @@ void main() {
     expect(onPage(find.byType(LyricsView)), findsNothing);
 
     // Its song closes the full-screen player.
-    await tester.tap(find.descendant(of: bar, matching: find.byTooltip('Fechar o player')));
+    await tester.tap(
+      find.descendant(
+        of: find.descendant(of: bar, matching: find.byTooltip('Fechar o player')),
+        matching: find.byType(Cover),
+      ),
+    );
     await tester.pumpAndSettle();
     expect(find.byType(PlayerPage), findsNothing);
     await tester.pumpWidget(const SizedBox());
@@ -1113,7 +1118,7 @@ void main() {
   testWidgets('on a wide screen the bar stays put as the full-screen player slides up over the page', (tester) async {
     await pumpBar(tester, size: const Size(1280, 800));
     final devices = tester.getRect(find.byTooltip('Aparelhos')); // in the bar alone
-    await tester.tap(find.byTooltip('Abrir o player'));
+    await tester.tap(find.descendant(of: find.byTooltip('Abrir o player'), matching: find.byType(Cover)));
     await tester.pump();
 
     for (var i = 0; i < 4; i++) {
@@ -1798,7 +1803,7 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('a wide bar links too: the title to the album, the artist to their page; the rest opens the player', (
+  testWidgets('a wide bar links too: the title to the album, the artist to their page; the cover opens the player', (
     tester,
   ) async {
     await pumpBar(tester, server: library, size: const Size(1000, 600));

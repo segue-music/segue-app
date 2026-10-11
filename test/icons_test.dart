@@ -16,6 +16,7 @@ import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/app/home_page.dart';
 import 'package:segue/ui/app/theme.dart';
+import 'package:segue/ui/widgets/cover.dart';
 import 'package:segue/ui/widgets/themed_icon.dart';
 
 import 'fakes.dart';
@@ -136,7 +137,7 @@ void main() {
     await tap(tester, find.text('Toys in the Attic').first);
     expect(otherIcons, findsNothing, reason: 'an album');
 
-    await tap(tester, find.byTooltip('Abrir o player'));
+    await tap(tester, find.descendant(of: find.byTooltip('Abrir o player'), matching: find.byType(Cover)));
     expect(otherIcons, findsNothing, reason: 'the player');
 
     await tap(tester, find.byTooltip('Fila'));

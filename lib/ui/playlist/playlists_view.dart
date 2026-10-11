@@ -211,18 +211,9 @@ class _PlaylistTileState extends State<_PlaylistTile> {
       return;
     }
 
-    final overlay = Overlay.of(context).context.findRenderObject()! as RenderBox;
-    final tile = context.findRenderObject()! as RenderBox;
-    final area = switch (at) {
-      final point? => Rect.fromPoints(overlay.globalToLocal(point), overlay.globalToLocal(point)),
-      null => Rect.fromPoints(
-        tile.localToGlobal(Offset.zero, ancestor: overlay),
-        tile.localToGlobal(tile.size.bottomRight(Offset.zero), ancestor: overlay),
-      ),
-    };
     final action = await showMenu<PlaylistAction>(
       context: context,
-      position: RelativeRect.fromRect(area, Offset.zero & overlay.size),
+      position: menuPosition(context, at: at),
       items: items,
     );
 

@@ -70,3 +70,19 @@ class _MenuShortcutsState extends State<MenuShortcuts> {
     child: Focus(canRequestFocus: false, skipTraversal: true, onKeyEvent: _onKey, child: widget.child),
   );
 }
+
+/// Where the menu of the item [context] builds opens ([showMenu]): at [at], in the window, where a pointer pressed the
+/// item, or else over it.
+RelativeRect menuPosition(BuildContext context, {Offset? at}) {
+  final overlay = Overlay.of(context).context.findRenderObject()! as RenderBox;
+  final item = context.findRenderObject()! as RenderBox;
+  final area = switch (at) {
+    final point? => Rect.fromPoints(overlay.globalToLocal(point), overlay.globalToLocal(point)),
+    null => Rect.fromPoints(
+      item.localToGlobal(Offset.zero, ancestor: overlay),
+      item.localToGlobal(item.size.bottomRight(Offset.zero), ancestor: overlay),
+    ),
+  };
+
+  return RelativeRect.fromRect(area, Offset.zero & overlay.size);
+}

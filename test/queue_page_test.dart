@@ -20,6 +20,7 @@ import 'package:segue/ui/app/shortcuts.dart';
 import 'package:segue/ui/player/now_playing_bar.dart';
 import 'package:segue/ui/player/player_page.dart';
 import 'package:segue/ui/player/queue_page.dart';
+import 'package:segue/ui/widgets/cover.dart';
 import 'package:segue/ui/widgets/equalizer.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -86,7 +87,7 @@ Future<PlayerController> pumpBar(
 
 /// Opens the full-screen player, and the queue from it.
 Future<void> openQueue(WidgetTester tester) async {
-  await tester.tap(find.byTooltip('Abrir o player'));
+  await tester.tap(find.descendant(of: find.byTooltip('Abrir o player'), matching: find.byType(Cover)));
   await tester.pumpAndSettle();
   await tester.tap(find.descendant(of: find.byType(PlayerPage), matching: find.byTooltip('Fila')));
   await tester.pumpAndSettle();

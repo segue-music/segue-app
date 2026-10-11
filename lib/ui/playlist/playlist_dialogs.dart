@@ -142,24 +142,12 @@ class AddToPlaylistButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final now = this.now;
-    final songId = now?.songId;
+    final song = now?.song;
 
     return IconButton(
       tooltip: AppLocalizations.of(context).addToPlaylist,
       icon: const ThemedIcon(HugeIcons.strokeRoundedPlayListAdd),
-      onPressed: now == null || songId == null
-          ? null
-          : () => addToPlaylist(context, [
-              Song(
-                id: songId,
-                title: now.title ?? '',
-                artist: now.artist,
-                album: now.album,
-                coverArt: now.coverArt,
-                duration: now.duration,
-              ),
-            ]),
+      onPressed: song == null ? null : () => addToPlaylist(context, [song]),
     );
   }
 }

@@ -56,6 +56,20 @@ class NowPlaying {
   final bool canRepeat;
   final bool canShuffle;
   final bool canJump;
+
+  /// It as a song of the library, for what takes one (a playlist to add it to, its menu); null where [songId] is.
+  Song? get song => switch (songId) {
+    final id? => Song(
+      id: id,
+      title: title ?? '',
+      artist: artist,
+      album: album,
+      coverArt: coverArt,
+      duration: duration,
+      artists: artists,
+    ),
+    null => null,
+  };
 }
 
 /// The Connect model: the app controls one device at a time, this one or another, and everything you

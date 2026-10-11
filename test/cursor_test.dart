@@ -20,6 +20,7 @@ import 'package:segue/ui/settings/equalizer_page.dart';
 import 'package:segue/ui/app/home_page.dart';
 import 'package:segue/ui/app/login_page.dart';
 import 'package:segue/ui/app/theme.dart';
+import 'package:segue/ui/widgets/cover.dart';
 
 import 'fakes.dart';
 
@@ -229,7 +230,7 @@ void main() {
     await expectHand('the one picked', find.text('Suas mais tocadas'));
 
     // The full-screen player's lyrics.
-    await tester.tap(find.byTooltip('Abrir o player'));
+    await tester.tap(find.descendant(of: find.byTooltip('Abrir o player'), matching: find.byType(Cover)));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Mostrar a letra'));
     await tester.pumpAndSettle();
