@@ -43,6 +43,9 @@ abstract final class CloseCode {
 
 T _enum<T extends Enum>(List<T> values, Object? name) => values.firstWhere((v) => v.name == name);
 
+/// A list of places in a queue, as an `order` comes (SPEC.md, section 4); null without one.
+List<int>? _places(Object? json) => (json as List?)?.map((place) => (place as num).toInt()).toList();
+
 /// The credentials the app already uses with the media server.
 class Auth {
   const Auth.subsonic({required String this.username, required String this.token, required String this.salt})
@@ -105,6 +108,7 @@ class PlayerState {
     this.volume,
     this.repeat,
     this.shuffle,
+    this.order,
   });
 
   final PlaybackStatus status;
@@ -117,6 +121,10 @@ class PlayerState {
   /// Whether [queue] is in a shuffled order.
   final bool? shuffle;
 
+  /// For a shuffled [queue], each item's place in the queue unshuffled, which shuffle going off goes back to (SPEC.md,
+  /// section 4). It comes and goes with [queue].
+  final List<int>? order;
+
   Map<String, Object?> toJson() => {
     'status': status.name,
     'positionMs': positionMs,
@@ -125,6 +133,7 @@ class PlayerState {
     'volume': ?volume,
     'repeat': ?repeat?.name,
     'shuffle': ?shuffle,
+    'order': ?order,
   };
 }
 
@@ -139,6 +148,7 @@ class StampedState extends PlayerState {
     super.volume,
     super.repeat,
     super.shuffle,
+    super.order,
   });
 
   factory StampedState.fromJson(Map<String, dynamic> json) => StampedState(
@@ -150,6 +160,7 @@ class StampedState extends PlayerState {
     volume: (json['volume'] as num?)?.toInt(),
     repeat: json['repeat'] == null ? null : _enum(Repeat.values, json['repeat']),
     shuffle: json['shuffle'] as bool?,
+    order: _places(json['order']),
   );
 
   final int at;
@@ -164,6 +175,8 @@ class StampedState extends PlayerState {
     volume: report.volume ?? volume,
     repeat: report.repeat ?? repeat,
     shuffle: report.shuffle ?? shuffle,
+    // With the queue it orders: a queue that comes without one leaves none.
+    order: report.queue != null ? report.order : order,
   );
 
   QueueItem? get current {
@@ -193,7 +206,8 @@ class Command {
       repeat = null,
       shuffle = null,
       next = null,
-      to = null;
+      to = null,
+      order = null;
 
   const Command.jump(int this.index)
     : action = CommandAction.jump,
@@ -204,7 +218,8 @@ class Command {
       repeat = null,
       shuffle = null,
       next = null,
-      to = null;
+      to = null,
+      order = null;
 
   const Command.seek(int this.positionMs)
     : action = CommandAction.seek,
@@ -215,7 +230,8 @@ class Command {
       repeat = null,
       shuffle = null,
       next = null,
-      to = null;
+      to = null,
+      order = null;
 
   const Command.setVolume(int this.volume)
     : action = CommandAction.setVolume,
@@ -226,17 +242,22 @@ class Command {
       repeat = null,
       shuffle = null,
       next = null,
-      to = null;
+      to = null,
+      order = null;
 
+  /// Replaces the player's queue with [queue], from the item at [index], at [positionMs], playing if [play]. With
+  /// [repeat] and [shuffle], in those modes: shuffled, [queue] is in its play order, and [order] gives each item its
+  /// place unshuffled; without them, in the player's own (SPEC.md, section 5).
   const Command.setQueue({
     required List<QueueItem> this.queue,
     required int this.index,
     required int this.positionMs,
     required bool this.play,
+    this.repeat,
+    this.shuffle,
+    this.order,
   }) : action = CommandAction.setQueue,
        volume = null,
-       repeat = null,
-       shuffle = null,
        next = null,
        to = null;
 
@@ -250,7 +271,8 @@ class Command {
       play = null,
       repeat = null,
       shuffle = null,
-      to = null;
+      to = null,
+      order = null;
 
   /// Moves the track at [index] of the player's queue to [to], the place it then has, the current track playing on
   /// (SPEC.md, section 5).
@@ -262,7 +284,8 @@ class Command {
       play = null,
       repeat = null,
       shuffle = null,
-      next = null;
+      next = null,
+      order = null;
 
   /// Takes the track at [index] out of the player's queue; not the current one (SPEC.md, section 5).
   const Command.removeFromQueue(int this.index)
@@ -274,7 +297,8 @@ class Command {
       repeat = null,
       shuffle = null,
       next = null,
-      to = null;
+      to = null,
+      order = null;
 
   const Command.setRepeat(Repeat this.repeat)
     : action = CommandAction.setRepeat,
@@ -285,7 +309,8 @@ class Command {
       play = null,
       shuffle = null,
       next = null,
-      to = null;
+      to = null,
+      order = null;
 
   const Command.setShuffle(bool this.shuffle)
     : action = CommandAction.setShuffle,
@@ -296,7 +321,8 @@ class Command {
       play = null,
       repeat = null,
       next = null,
-      to = null;
+      to = null,
+      order = null;
 
   factory Command.fromJson(Map<String, dynamic> json) {
     final action = _enum(CommandAction.values, json['action']);
@@ -309,6 +335,9 @@ class Command {
         index: (json['index'] as num).toInt(),
         positionMs: (json['positionMs'] as num).toInt(),
         play: json['play'] as bool,
+        repeat: json['repeat'] == null ? null : _enum(Repeat.values, json['repeat']),
+        shuffle: json['shuffle'] as bool?,
+        order: _places(json['order']),
       ),
       CommandAction.setRepeat => Command.setRepeat(_enum(Repeat.values, json['repeat'])),
       CommandAction.setShuffle => Command.setShuffle(json['shuffle'] as bool),
@@ -340,6 +369,9 @@ class Command {
   /// Where [CommandAction.moveInQueue] takes the track at [index]: the place it then has.
   final int? to;
 
+  /// For the shuffled queue of [CommandAction.setQueue], each item's place in the queue unshuffled.
+  final List<int>? order;
+
   Map<String, Object?> toJson() => {
     'action': action.name,
     'positionMs': ?positionMs,
@@ -351,6 +383,7 @@ class Command {
     'shuffle': ?shuffle,
     'next': ?next,
     'to': ?to,
+    'order': ?order,
   };
 }
 

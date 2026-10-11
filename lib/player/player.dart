@@ -78,6 +78,10 @@ class PlayerController extends ChangeNotifier {
   bool _editing = false;
   bool _changeHeld = false;
 
+  // While a queue opens in modes it was given (playQueue's repeat and shuffle): the engine's changes wait as for an
+  // edit, since the queue before, shuffled anew as shuffle goes on, isn't what is to play.
+  bool _opening = false;
+
   // The last song of the queue that autoplay asked for songs like, as it played: once for each song in a queue, until
   // it goes off. And the songs it added to the queue, by themselves rather than their ids: the same song added otherwise
   // isn't one of them.
@@ -108,7 +112,7 @@ class PlayerController extends ChangeNotifier {
   /// Takes [engine]'s changes, and the songs it plays to their end, for this player's.
   void _follow(AudioEngine engine) {
     _subscription = engine.changes.listen((_) {
-      if (_editing) {
+      if (_editing || _opening) {
         _changeHeld = true;
       } else {
         _changed();
@@ -180,14 +184,42 @@ class PlayerController extends ChangeNotifier {
       ? PlaybackStatus.playing
       : PlaybackStatus.paused;
 
-  Future<void> playQueue(List<Song> songs, {int index = 0, Duration position = Duration.zero, bool play = true}) async {
-    _queue = _opened = List.unmodifiable(songs);
-    _autoplayedAfter = null; // the same songs again, as an album played again, go on again
-    _autoplayed.clear();
-    _tracks = [for (final song in songs) _track(song)];
-    _order = const []; // so that the engine's order, shuffled or not, is taken up
-    _queueChanged = true;
-    await _engine.open(_tracks, index: index, position: position, play: play);
+  /// Plays [songs] from the one at [index], at [position], or, unless [play], only takes them there. With [repeat] and
+  /// [shuffle], in those modes, and otherwise in the player's own: shuffled, in [order] where given (for each place in
+  /// the play order, the index of its song in [songs]), else in one of its own. [index] is in [songs] either way.
+  Future<void> playQueue(
+    List<Song> songs, {
+    int index = 0,
+    Duration position = Duration.zero,
+    bool play = true,
+    Repeat? repeat,
+    bool? shuffle,
+    List<int>? order,
+  }) async {
+    _opening = repeat != null || shuffle != null;
+
+    try {
+      // The modes first: the engine takes the order it is given only with shuffle on. Then the songs, as the engine
+      // gets them, so that they never show with the place in the queue before.
+      if (repeat != null) {
+        await _engine.setRepeat(repeat);
+      }
+
+      if (shuffle != null) {
+        await _engine.setShuffle(shuffle);
+      }
+
+      _queue = _opened = List.unmodifiable(songs);
+      _autoplayedAfter = null; // the same songs again, as an album played again, go on again
+      _autoplayed.clear();
+      _tracks = [for (final song in songs) _track(song)];
+      _order = const []; // so that the engine's order, shuffled or not, is taken up
+      _queueChanged = true;
+      await _engine.open(_tracks, index: index, position: position, play: play, order: order);
+    } finally {
+      _opening = false;
+    }
+
     _changed();
   }
 
@@ -461,25 +493,7 @@ class PlayerController extends ChangeNotifier {
       case CommandAction.setShuffle:
         await setShuffle(command.shuffle!);
       case CommandAction.setQueue:
-        // Items the hub couldn't express in this device's API can't be played here: skip them,
-        // keeping the current track current.
-        final items = command.queue!;
-        final playable = [
-          for (final item in items)
-            if (item.id != null) Song.fromQueueItem(item),
-        ];
-
-        if (playable.isEmpty) {
-          throw const CommandFailed('nothing playable');
-        }
-
-        final skippedBefore = items.take(command.index!).where((item) => item.id == null).length;
-        await playQueue(
-          playable,
-          index: (command.index! - skippedBefore).clamp(0, playable.length - 1),
-          position: Duration(milliseconds: command.positionMs!),
-          play: command.play!,
-        );
+        await _setQueue(command);
       case CommandAction.addToQueue:
         // As for setQueue, the items the hub couldn't express in this device's API are skipped.
         final playable = [
@@ -499,16 +513,72 @@ class PlayerController extends ChangeNotifier {
     }
   }
 
-  /// This player's state for the hub. The queue goes only when it changed, or when [full].
-  PlayerState report({bool full = false}) => PlayerState(
-    status: status,
-    positionMs: position.inMilliseconds,
-    queue: full || _queueChanged ? [for (final song in _queue) song.toQueueItem()] : null,
-    index: index,
-    volume: volume,
-    repeat: repeat,
-    shuffle: shuffle,
-  );
+  /// Plays the queue of a setQueue, from its current item, in the modes it brings where it brings them (SPEC.md, section
+  /// 5). Items the hub couldn't express in this device's API can't be played here: they are skipped, the same track
+  /// staying current (skipped itself, the next one). Shuffled, the items come in their play order, which they play in,
+  /// with each one's place unshuffled ([Command.order]), which shuffle going off takes them back to; without one, the
+  /// order they came in.
+  Future<void> _setQueue(Command command) async {
+    final items = command.queue!;
+    final shuffle = command.shuffle;
+    final given = command.order;
+    // Each item's place unshuffled: as it came, unless shuffled with its places.
+    final places = shuffle == true && given != null && given.length == items.length
+        ? given
+        : [for (var i = 0; i < items.length; i++) i];
+    final unshuffled = List<QueueItem?>.filled(items.length, null);
+
+    for (final (i, item) in items.indexed) {
+      unshuffled[places[i]] = item;
+    }
+
+    // The playable ones, unshuffled, and the place each of those has among them.
+    final kept = <int, int>{};
+    final songs = <Song>[];
+
+    for (final (place, item) in unshuffled.indexed) {
+      if (item?.id != null) {
+        kept[place] = songs.length;
+        songs.add(Song.fromQueueItem(item!));
+      }
+    }
+
+    if (songs.isEmpty) {
+      throw const CommandFailed('nothing playable');
+    }
+
+    final order = [
+      for (final (i, item) in items.indexed)
+        if (item.id != null) kept[places[i]]!,
+    ];
+    final skippedBefore = items.take(command.index!).where((item) => item.id == null).length;
+    final current = order[(command.index! - skippedBefore).clamp(0, order.length - 1)];
+    await playQueue(
+      songs,
+      index: current,
+      position: Duration(milliseconds: command.positionMs!),
+      play: command.play!,
+      repeat: command.repeat,
+      shuffle: shuffle,
+      order: shuffle == true ? order : null,
+    );
+  }
+
+  /// This player's state for the hub. The queue goes only when it changed, or when [full]; shuffled, with each song's
+  /// place unshuffled (SPEC.md, section 4).
+  PlayerState report({bool full = false}) {
+    final queue = full || _queueChanged;
+    return PlayerState(
+      status: status,
+      positionMs: position.inMilliseconds,
+      queue: queue ? [for (final song in _queue) song.toQueueItem()] : null,
+      index: index,
+      volume: volume,
+      repeat: repeat,
+      shuffle: shuffle,
+      order: queue && shuffle && _order.length == _queue.length ? _order : null,
+    );
+  }
 
   Future<void> _jump(int to) async {
     if (to < 0 || to >= _queue.length) {

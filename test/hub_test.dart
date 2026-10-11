@@ -5,6 +5,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:segue/connect/connect.dart';
@@ -27,6 +28,13 @@ const songs = [
   Song(id: '5QFKvMsJrd57QE2Le2dKKo', title: 'Dream On', artist: 'Aerosmith', duration: Duration(seconds: 268)),
   Song(id: '7N42dgm5tFLK9N8MT7fHC7', title: 'Other', duration: Duration(seconds: 200)),
 ];
+
+/// Three songs, which the fake engine shuffles into another order, the current one first.
+const three = [...songs, Song(id: '1qqqqqqqqqqqqqqqqqqqqq', title: 'Third', duration: Duration(seconds: 150))];
+const unshuffled = ['Dream On', 'Other', 'Third'];
+
+/// The titles of [player]'s queue, in its play order.
+List<String> titles(PlayerController player) => [for (final song in player.queue) song.title];
 
 late Process hub;
 late Uri hubUrl;
@@ -505,6 +513,44 @@ void main() {
       'the phone to see the laptop stopped, not paused',
     );
     expect(phone.connect.nowPlaying?.device, isNull);
+  });
+
+  test('the music moved here plays on repeating as it did, shuffled in the same order, which shuffle going off takes '
+      'back here too', () async {
+    final user = newUser();
+    final laptop = await App(user, 'laptop').start();
+    final phone = await App(user, 'phone').start();
+    await laptop.player.playQueue(three, index: 1);
+    await laptop.player.setRepeat(Repeat.all);
+    await laptop.player.setShuffle(true);
+    final shuffled = titles(laptop.player);
+    expect(shuffled, isNot(unshuffled), reason: 'the fake\'s shuffle');
+    await until(() => phone.client.devices['laptop']?.state?.order != null, 'the laptop\'s order');
+
+    expect((await phone.connect.switchTo(null)).ok, isTrue);
+    expect(titles(phone.player), shuffled);
+    expect(phone.player.current?.title, 'Other');
+    expect((phone.player.shuffle, phone.player.repeat), (true, Repeat.all));
+    await phone.player.setShuffle(false);
+    expect(titles(phone.player), unshuffled);
+    expect(phone.player.current?.title, 'Other');
+  });
+
+  test('the last playback comes back in its modes, shuffled in the same order', () async {
+    final user = newUser();
+    final laptop = await App(user, 'laptop').start();
+    await laptop.player.playQueue(three, index: 1);
+    await laptop.player.setRepeat(Repeat.one);
+    await laptop.player.setShuffle(true);
+    final shuffled = titles(laptop.player);
+    await Future<void>.delayed(const Duration(milliseconds: 100)); // the report reaches the hub
+    await laptop.client.close();
+
+    final reopened = await App(user, 'laptop').start();
+    await until(() => listEquals(titles(reopened.player), shuffled), 'the queue to come back, shuffled as it was');
+    expect((reopened.player.shuffle, reopened.player.repeat), (true, Repeat.one));
+    await reopened.player.setShuffle(false);
+    expect(titles(reopened.player), unshuffled);
   });
 
   test('playing an album while another device is picked plays it there', () async {

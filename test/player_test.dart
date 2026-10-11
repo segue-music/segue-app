@@ -337,6 +337,75 @@ void main() {
     expect(player.playing, isFalse);
   });
 
+  test('setQueue plays in the modes it brings: shuffled, in the order it came, which shuffle going off takes back to '
+      'the one unshuffled, the items it skips left out; and repeating', () async {
+    await player.obey(
+      const Command.setQueue(
+        // Unshuffled: Untranslatable, One, Two, Three.
+        queue: [
+          QueueItem(id: 's3', title: 'Three'),
+          QueueItem(title: 'Untranslatable'),
+          QueueItem(id: 's1', title: 'One'),
+          QueueItem(id: 's2', title: 'Two'),
+        ],
+        index: 2,
+        positionMs: 0,
+        play: false,
+        repeat: Repeat.all,
+        shuffle: true,
+        order: [3, 0, 1, 2],
+      ),
+    );
+    expect(player.queue.map((song) => song.title), ['Three', 'One', 'Two'], reason: 'as it came, not shuffled again');
+    expect(player.current?.title, 'One');
+    expect((player.shuffle, player.repeat), (true, Repeat.all));
+    expect(player.report(full: true).order, [2, 0, 1], reason: 'each song\'s place among them unshuffled');
+
+    await player.setShuffle(false);
+    expect(player.queue.map((song) => song.title), ['One', 'Two', 'Three']);
+    expect(player.current?.title, 'One');
+    expect(player.report(full: true).order, isNull, reason: 'none, unshuffled');
+
+    // Not shuffled, as it comes; without modes, in the player's own.
+    await player.setShuffle(true);
+    await player.obey(
+      const Command.setQueue(
+        queue: [
+          QueueItem(id: 's2', title: 'Two'),
+          QueueItem(id: 's1', title: 'One'),
+        ],
+        index: 0,
+        positionMs: 0,
+        play: false,
+        shuffle: false,
+      ),
+    );
+    expect(player.queue.map((song) => song.title), ['Two', 'One']);
+    expect(player.shuffle, isFalse);
+    expect(player.repeat, Repeat.all, reason: 'as it was');
+  });
+
+  test('a queue opening in modes tells of itself alone: not of the one before, shuffled as shuffle goes on', () async {
+    await player.playQueue([...songs, const Song(id: 's3', title: 'Three')]);
+    reports.clear();
+    await player.obey(
+      const Command.setQueue(
+        queue: [
+          QueueItem(id: 's5', title: 'Five'),
+          QueueItem(id: 's4', title: 'Four'),
+        ],
+        index: 0,
+        positionMs: 0,
+        play: true,
+        shuffle: true,
+        order: [1, 0],
+      ),
+    );
+    expect(reports, hasLength(1));
+    expect(reports.single.queue?.map((item) => item.title), ['Five', 'Four']);
+    expect(reports.single.order, [1, 0]);
+  });
+
   test('next after the last track goes to the first, unless repeat is off', () async {
     await player.playQueue(songs, index: 1);
     await expectLater(player.next(), throwsA(isA<CommandFailed>()));

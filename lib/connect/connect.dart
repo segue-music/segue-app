@@ -335,8 +335,17 @@ class ConnectController extends ChangeNotifier {
     }
 
     try {
+      // In the modes it played in, shuffled in the same order (SPEC.md, section 7).
       await player.obey(
-        Command.setQueue(queue: queue, index: last.state.index ?? 0, positionMs: last.state.positionMs, play: false),
+        Command.setQueue(
+          queue: queue,
+          index: last.state.index ?? 0,
+          positionMs: last.state.positionMs,
+          play: false,
+          repeat: last.state.repeat,
+          shuffle: last.state.shuffle,
+          order: last.state.order,
+        ),
       );
     } on CommandFailed {
       // nothing in it can be played here
@@ -398,6 +407,9 @@ class ConnectController extends ChangeNotifier {
           index: state.index ?? 0,
           positionMs: client!.positionMs(device.id) ?? state.positionMs,
           play: false,
+          repeat: state.repeat,
+          shuffle: state.shuffle,
+          order: state.order,
         ),
       );
     } on CommandFailed {
