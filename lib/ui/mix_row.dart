@@ -14,12 +14,6 @@ import 'spinner.dart';
 import 'themed_icon.dart';
 import 'tile_row.dart';
 
-/// What [mix] is called: its genre's name, or its decade's ("Anos 80").
-String mixName(AppLocalizations strings, Mix mix) => switch (mix) {
-  GenreMix(:final genre) => genre.name,
-  DecadeMix(:final decade) => strings.decade('$decade'),
-};
-
 /// Plays [mix], with [first] first: the songs its tile shows. Says why where it can't.
 Future<void> playMix(BuildContext context, Mix mix, {List<Song> first = const []}) async {
   final services = ServicesScope.of(context);
@@ -27,12 +21,7 @@ Future<void> playMix(BuildContext context, Mix mix, {List<Song> first = const []
   final strings = AppLocalizations.of(context);
 
   try {
-    final ids = {for (final song in first) song.id};
-    final songs = [
-      ...first,
-      for (final song in await mix.songs(services.api))
-        if (ids.add(song.id)) song,
-    ].take(Mix.size).toList();
+    final songs = await mix.queue(services.api, first: first);
 
     if (songs.isEmpty) {
       messenger.showSnackBar(SnackBar(content: Text(strings.mixEmpty)));

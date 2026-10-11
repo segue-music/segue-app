@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- An app of music for Android Auto (AndroidManifest.xml's com.google.android.gms.car.application):
+     the car browses it through the media session's service, as lib/player/browse_tree.dart lays it out. -->
+<automotiveApp>
+    <uses name="media"/>
+</automotiveApp>

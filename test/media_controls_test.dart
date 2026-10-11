@@ -1,3 +1,4 @@
+import 'package:audio_service/audio_service.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -12,6 +13,38 @@ import 'package:segue/server/models.dart';
 import 'package:segue/subsonic/api.dart';
 
 import 'fakes.dart';
+import 'music_library.dart';
+
+/// A hub client that sees the device tv play, which the app then follows.
+SegueClient tvPlaying() {
+  final client = SegueClient(
+    url: Uri.parse('ws://unused'),
+    auth: const Auth.subsonic(username: 'a', token: 't', salt: 's'),
+    device: const DeviceInfo(id: 'me', name: 'me', client: 'test', api: Api.subsonic, roles: [], capabilities: []),
+  );
+  client.devices['tv'] = Device(
+    info: const DeviceInfo(
+      id: 'tv',
+      name: 'tv',
+      client: 'test',
+      api: Api.subsonic,
+      roles: [Role.player],
+      capabilities: CommandAction.values,
+    ),
+    online: true,
+    state: StampedState(
+      status: PlaybackStatus.playing,
+      positionMs: 0,
+      at: DateTime.now().millisecondsSinceEpoch,
+      index: 0,
+      queue: const [QueueItem(id: 's4', title: 'So What', artist: 'Miles Davis')],
+    ),
+  );
+  return client;
+}
+
+/// The titles of [player]'s queue.
+List<String> titles(PlayerController player) => [for (final song in player.queue) song.title];
 
 const songs = [
   Song(id: 's1', title: 'Dream On', artist: 'Aerosmith', duration: Duration(minutes: 4)),
@@ -118,5 +151,126 @@ void main() {
     controls.attach(connect, null);
     expect(connect.playRestoredBy, isNotNull);
     controls.attach(null, null);
+  });
+
+  group('in the car (Android Auto)', () {
+    test('what the car asks for before the app has a session waits for it, the app closed opening for it', () async {
+      final controls = MediaControls();
+      var opened = 0;
+      controls.open = () => opened++;
+      final tabs = controls.getChildren(AudioService.browsableRootId);
+      await pumpEventQueue();
+      expect(opened, 1);
+
+      final api = musicLibrary();
+      controls.attach(ConnectController(player: PlayerController(FakeEngine(), api)), api);
+      expect((await tabs).map((tab) => tab.title), ['Home', 'Playlists', 'Albums', 'Artists'], reason: 'English first');
+      controls.strings = lookupAppLocalizations(const Locale('pt'));
+      expect((await controls.getChildren(AudioService.browsableRootId)).map((tab) => tab.title), [
+        'Início',
+        'Playlists',
+        'Álbuns',
+        'Artistas',
+      ], reason: 'in the app\'s words, once it has them');
+      controls.attach(null, null);
+    });
+
+    test('the car is told that what it opened changed, as the session or the language does, and asks again', () async {
+      final controls = MediaControls();
+      final told = <Map<String, dynamic>>[];
+      controls.subscribeToChildren(AudioService.browsableRootId).listen(told.add);
+      final api = musicLibrary();
+      controls.attach(ConnectController(player: PlayerController(FakeEngine(), api)), api);
+      await pumpEventQueue();
+      expect(told, hasLength(1));
+      controls.strings = lookupAppLocalizations(const Locale('pt'));
+      await pumpEventQueue();
+      expect(told, hasLength(2));
+      controls.attach(null, null);
+      await pumpEventQueue();
+      expect(told, hasLength(3));
+    });
+
+    test(
+      'what the car picks plays here, whose sound the car\'s is, also where the app controls another device',
+      () async {
+        final api = musicLibrary();
+        final client = tvPlaying();
+        final player = PlayerController(FakeEngine(), api);
+        final connect = ConnectController(player: player, client: client);
+        // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
+        client.notifyListeners(); // as when the TV's state arrives
+        expect(connect.activeId, 'tv');
+
+        final controls = MediaControls()..attach(connect, api);
+        final albums = await controls.getChildren('albums');
+        final songs = await controls.getChildren(albums.last.id);
+        await controls.playFromMediaId(songs.last.id);
+        expect(titles(player), ['Sweet Emotion', 'Walk This Way']);
+        expect(player.current?.title, 'Walk This Way');
+        expect(player.playing, isTrue);
+        expect(connect.activeId, isNull, reason: 'the app follows this device');
+        controls.attach(null, null);
+      },
+    );
+
+    test('said to the car, what it finds plays here; nothing said, the music the app has, or else any; and what it '
+        'doesn\'t find, it says', () async {
+      final api = musicLibrary();
+      final player = PlayerController(FakeEngine(), api);
+      final controls = MediaControls()..attach(ConnectController(player: player), api);
+      controls.strings = lookupAppLocalizations(const Locale('pt'));
+
+      await controls.playFromSearch('');
+      expect(player.queue, hasLength(4), reason: 'songs at random');
+      expect(player.playing, isTrue);
+      await controls.playFromSearch('pump');
+      expect(titles(player), ['Love in an Elevator']);
+      await player.pause();
+      await controls.playFromSearch('');
+      expect(titles(player), ['Love in an Elevator'], reason: 'the music it had, on');
+      expect(player.playing, isTrue);
+
+      await controls.playFromSearch('zzz');
+      expect(controls.playbackState.value.processingState, AudioProcessingState.error);
+      expect(controls.playbackState.value.errorMessage, 'Nada encontrado.');
+      expect(titles(player), ['Love in an Elevator'], reason: 'as it was');
+      controls.attach(null, null);
+    });
+
+    test('the car shows a stretch of the queue around the current track, and plays the track picked in it', () async {
+      final api = musicLibrary();
+      final player = PlayerController(FakeEngine(), api);
+      await player.playQueue([for (var i = 0; i < 150; i++) Song(id: 's$i', title: 'Song $i')], index: 50, play: false);
+      final controls = MediaControls()..attach(ConnectController(player: player), api);
+      expect(controls.queue.value.first.title, 'Song 40');
+      expect(controls.queue.value.last.title, 'Song 149');
+      expect(controls.playbackState.value.queueIndex, 10);
+
+      await controls.skipToQueueItem(15);
+      expect(player.index, 55);
+      expect(controls.queue.value.first.title, 'Song 45', reason: 'around it again');
+      expect(controls.playbackState.value.queueIndex, 10);
+      controls.attach(null, null);
+      expect(controls.queue.value, isEmpty);
+    });
+
+    test(
+      'the music to resume is the song that played last, which plays on, known also once the app has closed',
+      () async {
+        final api = musicLibrary();
+        final player = PlayerController(FakeEngine(), api);
+        final controls = MediaControls()..attach(ConnectController(player: player), api);
+        await player.playQueue(songs, play: false);
+        final recent = await controls.getChildren(AudioService.recentRootId);
+        expect(recent.single.title, 'Dream On');
+        expect(recent.single.playable, isTrue);
+
+        await controls.playFromMediaId(recent.single.id);
+        expect(player.playing, isTrue);
+        controls.attach(null, null); // closed
+        expect((await controls.getChildren(AudioService.recentRootId)).single.title, 'Dream On');
+      },
+    );
   });
 }

@@ -48,6 +48,19 @@
                 <action android:name="android.media.browse.MediaBrowserService"/>
             </intent-filter>
         </service>
+        <!-- Android Auto: an app of music (res/xml/automotive_app_desc.xml), which the car browses through
+             the service above, with its icon in white (Android takes its alpha alone), and the covers
+             it lists from the app's cache (CoverProvider.kt), which Android Auto, another app, reads. -->
+        <meta-data
+            android:name="com.google.android.gms.car.application"
+            android:resource="@xml/automotive_app_desc"/>
+        <meta-data
+            android:name="androidx.car.app.TintableAttributionIcon"
+            android:resource="@drawable/ic_notification"/>
+        <provider
+            android:name=".CoverProvider"
+            android:authorities="${applicationId}.covers"
+            android:exported="true"/>
         <receiver
             android:name="com.ryanheise.audioservice.MediaButtonReceiver"
             android:exported="true">

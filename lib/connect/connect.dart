@@ -202,6 +202,18 @@ class ConnectController extends ChangeNotifier {
     return result;
   }
 
+  /// Plays [songs] from the one at [index] on this device, whichever the app controls: what the car asks for (Android
+  /// Auto), whose sound is this device's. As it starts, the hub stops the device that played (SPEC.md, section 4), and
+  /// the app follows this one.
+  Future<Result> playHere(List<Song> songs, int index) async {
+    try {
+      await player.playQueue(songs, index: index);
+      return const Result(ok: true);
+    } on CommandFailed catch (e) {
+      return Result(ok: false, error: e.message);
+    }
+  }
+
   /// Whether the device the app controls takes [addToQueue].
   bool get canAddToQueue =>
       _active == null || (activeDevice?.info.capabilities.contains(CommandAction.addToQueue) ?? false);

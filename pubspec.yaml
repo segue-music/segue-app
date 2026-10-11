@@ -25,6 +25,11 @@ dependencies:
   audio_service: ^0.18.19
   audio_session: ^0.2.4
   audio_service_mpris: ^0.2.1
+  # The streams audio_service takes, as that the browsed music changed (lib/player/media_controls.dart).
+  rxdart: ^0.28.0
+  # audio_service's own way to Android, to tell the car what it asked before audio_service could take it
+  # (lib/player/media_controls.dart).
+  audio_service_platform_interface: ^0.1.3
   path_provider: ^2.1.6
   # SVG paths since 1.0, drawn through ThemedIcon (lib/ui/themed_icon.dart). Their thin strokes need
   # Skia on Linux (linux/runner/my_application.cc): Flutter 3.47's Impeller left them jagged there.

@@ -320,6 +320,16 @@ the device it runs on.
   notification keeps the app running while the music plays; swiped out of the recent apps, the app
   closes, as closing its window does on a computer: the music this device plays stops, paused where it
   was, and opens there again, and another device's plays on;
+- Android Auto: in the car, the app's tabs are the home (its mixes, which play at once, and its rows of albums; out of
+  reach, the downloaded albums), the playlists (the favorite songs first), the albums and the artists, by name, with
+  their covers; an album or a playlist opens its songs, which play it from the one picked, and an artist their albums.
+  What the car plays, it plays on the phone, whose sound the car's is, also where the app was controlling another
+  device, which then stops, as when any device starts playing. The car searches its tabs, and takes what is said to
+  it ("Ok Google, toca Aerosmith no Segue"): a playlist, a genre's mix, an album, an artist's songs mixed, or a song,
+  as Android took the words or as they name one; with nothing to go on ("toca música"), the music the app has, moved
+  to the phone, or else songs at random; what it doesn't find, it says. Its queue shows the tracks around the current
+  one, which play as picked. Android's media controls offer the song that played last to resume, after the app has
+  closed too;
 - on iOS, playing in the background and with the silent switch on; a call pauses the music, which
   plays again after it, and leaving the car or unplugging the headphones pauses it;
 - the interface in Portuguese, English or Spanish: the system's language, where the app has it
@@ -356,7 +366,7 @@ has been tried on a tablet and on an Android TV, and the iOS build on an iPhone,
 | `lib/jellyfin/` | The Jellyfin API: sign-in by name for this device, the same library calls, and signing out |
 | `lib/downloads/` | `Downloads`, the albums and playlists downloaded to the device, and `ServerWithDownloads`, the media server as the app sees it: downloaded songs and covers from their files, and with the server out of reach, what was downloaded |
 | `lib/segue/` | The Segue protocol in Dart (its `SPEC.md` is in the segue repository), the hub client (reconnects by itself) and hub discovery |
-| `lib/player/` | `PlayerController` (queue, commands, state reports, each song's ReplayGain, the equalizer) over an `AudioEngine`; `MediaKitEngine` is the real one, and `CrossfadeEngine` crossfades on two of them. `MediaControls`: the system's media controls. `AudioInterruptions`: calls and the like pausing the music, on iOS |
+| `lib/player/` | `PlayerController` (queue, commands, state reports, each song's ReplayGain, the equalizer) over an `AudioEngine`; `MediaKitEngine` is the real one, and `CrossfadeEngine` crossfades on two of them. `MediaControls`: the system's media controls, and Android Auto, which browses `BrowseTree`. `AudioInterruptions`: calls and the like pausing the music, on iOS |
 | `lib/connect/` | `ConnectController`: which device the app controls, and moving the music between devices |
 | `lib/lyrics/` | LRCLIB (lrclib.net), where lyrics come from when the media server has none, and LRC |
 | `lib/pictures/` | fanart.tv, where more pictures of an artist than the media server's one come from, for their biography, and their picture where the server has none |
@@ -460,6 +470,18 @@ adb install -r segue-android.apk
 The port changes each time wireless debugging is turned on, and the address can change too when
 the device rejoins the network. Over a slow Wi-Fi link the APK can take a while: copying it to the
 device and opening it there (allowing that app to install apps) does the same.
+
+Android Auto lists an app installed by hand only from "unknown sources": in the Android Auto app's
+settings, tap "Version" ten times for its developer settings, and there check "Unknown sources". Then
+the app is in the car, or in the Desktop Head Unit, which shows the car's screen on a computer: in the
+Android SDK's manager, "Android Auto Desktop Head Unit Emulator" (in `extras/google/auto/`), and on the
+phone, connected by USB, Android Auto's "Start head unit server" (in its menu, with the developer
+settings on). Then:
+
+```sh
+adb forward tcp:5277 tcp:5277
+<Android SDK>/extras/google/auto/desktop-head-unit
+```
 
 ## Running on iOS
 

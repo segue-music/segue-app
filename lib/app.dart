@@ -152,7 +152,12 @@ class _SegueAppState extends State<SegueApp> {
       }
 
       setState(() => _services = services);
-      widget.mediaControls?.attach(services.connect, services.api);
+      widget.mediaControls?.attach(
+        services.connect,
+        services.api,
+        favorites: services.favorites,
+        reachability: services.reachability,
+      );
       widget.interruptions?.attach(services.player);
     } on Exception catch (e) {
       if (mounted) {

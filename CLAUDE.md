@@ -307,7 +307,17 @@ Running two app instances on one machine as different devices:
   pauses, the media controls let go of it and the services go, but the process stays, idle, until Android ends it or
   the app opens in it again (`_reopen`, as its screen shows or for a headphone's play). Ended at once, it came back
   without a screen: as a media session ends, Android's media controls bind to the app's `MediaBrowserService` to look
-  for music to resume, and audio_service's service starts the Flutter engine, and with it the whole app.
+  for music to resume, and audio_service's service starts the Flutter engine, and with it the whole app. That
+  `MediaBrowserService` is also Android Auto's: `MediaControls` answers what the car browses from a `BrowseTree`
+  (`lib/player/browse_tree.dart`: tabs, home, playlists, albums, artists; search; what is said, from Android's
+  `MediaStore` extras), plays what it picks on this device (`ConnectController.playHere`, the hub then stopping the
+  device that played, SPEC.md section 4), shows a stretch of the queue, and gives the song that played last as the
+  music to resume (the `recent` root), without opening the app again for it. What the car asks before the app has a
+  session waits for one, the app closed (`_close`) opening again for it. audio_service drops, unanswered, what the car
+  asks before Dart has a handler (the app starting for the car), so the root is told changed once there is a session.
+  The car reads covers only as `content://`: `CoverProvider.kt` serves the files `MediaControls` downloads to the cache
+  (`segue-covers`, written whole under another name, then renamed), waiting a while for one still coming; the media
+  server's address of a cover carries the login. The manifest declares the car app (`res/xml/automotive_app_desc.xml`).
 - `PlayCounter` (`lib/player/play_counter.dart`) counts the songs this device's player plays toward
   the user's most played (`MediaServer.scrobble`; a no-op on Jellyfin, where the hub's
   `Sessions/Playing` counts them). Only `Services.start` makes one: widget tests that build

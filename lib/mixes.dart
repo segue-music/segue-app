@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'l10n/app_localizations.dart';
 import 'server/models.dart';
 import 'server/server.dart';
 
@@ -13,7 +14,23 @@ sealed class Mix {
 
   /// Its songs, [size] at most, at random.
   Future<List<Song>> songs(MediaServer server, {int size = size});
+
+  /// What it plays: [first] (the songs its tile shows), then more of its own, each song once, [size] in all.
+  Future<List<Song>> queue(MediaServer server, {List<Song> first = const []}) async {
+    final ids = {for (final song in first) song.id};
+    return [
+      ...first,
+      for (final song in await songs(server))
+        if (ids.add(song.id)) song,
+    ].take(size).toList();
+  }
 }
+
+/// What [mix] is called: its genre's name, or its decade's ("Anos 80").
+String mixName(AppLocalizations strings, Mix mix) => switch (mix) {
+  GenreMix(:final genre) => genre.name,
+  DecadeMix(:final decade) => strings.decade('$decade'),
+};
 
 class GenreMix extends Mix {
   const GenreMix(this.genre);
