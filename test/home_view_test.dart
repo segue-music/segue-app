@@ -123,29 +123,32 @@ Future<List<Map<String, String>>> pumpHome(
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
-  Widget app() => MaterialApp(
-    localizationsDelegates: AppLocalizations.localizationsDelegates,
-    supportedLocales: const [Locale('pt')],
-    theme: themeChoice == null ? null : segueTheme(Brightness.light),
-    darkTheme: themeChoice == null ? null : segueTheme(Brightness.dark),
-    themeMode: themeChoice?.value ?? ThemeMode.system,
-    themeAnimationDuration: Duration.zero,
-    builder: (context, child) => ThemeFade(
-      child: ServicesScope(
-        services: services,
-        child: DirectionalNavigation(enabled: television, child: child!),
+  Widget app() {
+    final ThemeSettings(:mode, :palette, :highContrast) = themeChoice?.value ?? const ThemeSettings();
+    return MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: const [Locale('pt')],
+      theme: themeChoice == null ? null : segueTheme(Brightness.light, palette: palette, highContrast: highContrast),
+      darkTheme: themeChoice == null ? null : segueTheme(Brightness.dark, palette: palette, highContrast: highContrast),
+      themeMode: mode,
+      themeAnimationDuration: Duration.zero,
+      builder: (context, child) => ThemeFade(
+        child: ServicesScope(
+          services: services,
+          child: DirectionalNavigation(enabled: television, child: child!),
+        ),
       ),
-    ),
-    home: HomePage(
-      onSignOut: onSignOut ?? () {},
-      themeChoice: themeChoice,
-      languageChoice: languageChoice,
-      qualityChoice: qualityChoice,
-      replayGainChoice: replayGainChoice,
-      equalizerChoice: equalizerChoice,
-      packageInfo: packageInfo,
-    ),
-  );
+      home: HomePage(
+        onSignOut: onSignOut ?? () {},
+        themeChoice: themeChoice,
+        languageChoice: languageChoice,
+        qualityChoice: qualityChoice,
+        replayGainChoice: replayGainChoice,
+        equalizerChoice: equalizerChoice,
+        packageInfo: packageInfo,
+      ),
+    );
+  }
 
   await tester.pumpWidget(
     themeChoice == null ? app() : ListenableBuilder(listenable: themeChoice, builder: (context, _) => app()),
@@ -410,6 +413,9 @@ void main() {
         'Aparência',
         'Tema',
         'Tema do sistema',
+        'Cores',
+        'Segue',
+        'Alto contraste',
         'Idioma',
         'Idioma do sistema',
         'Sobre',
@@ -437,6 +443,8 @@ void main() {
 
       for (final (item, data) in [
         ('Tema', HugeIcons.strokeRoundedContrast),
+        ('Cores', HugeIcons.strokeRoundedPaintBoard),
+        ('Alto contraste', HugeIcons.strokeRoundedView),
         ('Idioma', HugeIcons.strokeRoundedTranslate),
         ('Versão', HugeIcons.strokeRoundedInformationCircle),
         ('Licenças de código aberto', HugeIcons.strokeRoundedLicense),
@@ -451,6 +459,8 @@ void main() {
 
       expect(tester.widget<ListTile>(settingsItem('Versão')).onTap, isNull, reason: 'only shown');
       expect(says('Tema', 'Tema do sistema'), isTrue, reason: 'the system\'s theme and language, until a pick');
+      expect(says('Cores', 'Segue'), isTrue, reason: 'the icon\'s pink, until a pick');
+      expect(tester.widget<SwitchListTile>(find.widgetWithText(SwitchListTile, 'Alto contraste')).value, isFalse);
       expect(says('Idioma', 'Idioma do sistema'), isTrue);
 
       // The themes, in a sheet over the window, under the choice's name.
@@ -657,7 +667,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(ThemeFade.oldThemeKey), findsNothing, reason: 'faded away');
     expect(find.byType(BottomSheet), findsNothing, reason: 'the pick closed the sheet');
-    expect((await ThemeChoice.load()).value, ThemeMode.dark, reason: 'kept for the next launch');
+    expect((await ThemeChoice.load()).value.mode, ThemeMode.dark, reason: 'kept for the next launch');
     expect(find.byType(SettingsPage), findsOneWidget, reason: 'still open');
     expect(says('Tema', 'Tema escuro'), isTrue);
 
@@ -665,8 +675,78 @@ void main() {
     expect([checked('Tema do sistema'), checked('Tema escuro')], [false, true], reason: 'the check moved');
     await pick(tester, 'Tema do sistema');
     expect(shown(), Brightness.light, reason: 'the system\'s again');
-    expect((await ThemeChoice.load()).value, ThemeMode.system);
+    expect((await ThemeChoice.load()).value.mode, ThemeMode.system);
     expect(says('Tema', 'Tema do sistema'), isTrue);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('the settings pick the colors, each beside its own, and turn the high contrast on and off, the old theme '
+      'fading away each time', (tester) async {
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
+    addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+    final choice = ThemeChoice();
+    addTearDown(choice.dispose);
+    await pumpHome(tester, const Size(360, 640), themeChoice: choice);
+    ColorScheme shown() => Theme.of(tester.element(find.byType(HomePage))).colorScheme;
+    final fading = find.byKey(ThemeFade.oldThemeKey);
+    expect(shown().surface, iconBlack);
+
+    await openSettings(tester);
+    await openChoice(tester, 'Cores');
+    final palettes = ['Segue', 'Vinho', 'Neutro'];
+    final tops = [for (final text in palettes) tester.getTopLeft(option(text)).dy];
+    expect([...tops]..sort(), tops, reason: 'in this order, top to bottom');
+    expect([for (final text in palettes) checked(text)], [true, false, false]);
+    expect(
+      find.descendant(
+        of: option('Vinho'),
+        matching: find.text('O vinho de dentro do ícone no escuro, e fundos rosados no claro'),
+      ),
+      findsOneWidget,
+      reason: 'what it is, under it',
+    );
+
+    // Beside each, its colors, in the theme shown: its background and its pink.
+    for (final (text, palette) in [('Segue', Palette.segue), ('Vinho', Palette.wine), ('Neutro', Palette.neutral)]) {
+      final colors = segueColors(Brightness.dark, palette: palette);
+      // The circle, and the dot in it.
+      final circles = find.descendant(
+        of: option(text),
+        matching: find.byWidgetPredicate(
+          (widget) => widget is Container && (widget.decoration as BoxDecoration?)?.shape == BoxShape.circle,
+        ),
+      );
+      final (swatch, dot) = (
+        tester.widget<Container>(circles.first).decoration! as BoxDecoration,
+        tester.widget<Container>(circles.last).decoration! as BoxDecoration,
+      );
+      expect(swatch.gradient?.colors.first, colors.surface, reason: text);
+      expect(dot.color, colors.primary, reason: text);
+    }
+
+    await tester.tap(option('Vinho'));
+    await tester.pump();
+    expect(shown().surface, iconWine, reason: 'at once');
+    expect(fading, findsOneWidget, reason: 'the app as it was, on the black');
+    await tester.pumpAndSettle();
+    expect(fading, findsNothing);
+    expect(find.byType(BottomSheet), findsNothing, reason: 'the pick closed the sheet');
+    expect(says('Cores', 'Vinho'), isTrue);
+    expect((await ThemeChoice.load()).value.palette, Palette.wine, reason: 'kept for the next launch');
+
+    final highContrast = find.widgetWithText(SwitchListTile, 'Alto contraste');
+    await tester.tap(highContrast);
+    await tester.pump();
+    expect(shown(), segueColors(Brightness.dark, palette: Palette.wine, highContrast: true), reason: 'with the colors');
+    expect(fading, findsOneWidget);
+    await tester.pumpAndSettle();
+    expect(tester.widget<SwitchListTile>(highContrast).value, isTrue);
+    expect((await ThemeChoice.load()).value.highContrast, isTrue, reason: 'kept for the next launch');
+
+    await tester.tap(highContrast);
+    await tester.pumpAndSettle();
+    expect(shown(), segueColors(Brightness.dark, palette: Palette.wine));
+    expect((await ThemeChoice.load()).value, const ThemeSettings(palette: Palette.wine));
     await tester.pumpWidget(const SizedBox());
   });
 

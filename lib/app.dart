@@ -46,7 +46,8 @@ class SegueApp extends StatefulWidget {
   /// The saved session, if any: then the app opens straight on the library.
   final Session? session;
 
-  /// The theme picked, light or dark; with none, the app follows the system's.
+  /// The theme picked, light or dark, its colors and its contrast; with none, the app follows the system's, in the
+  /// icon's pink on its black.
   final ThemeChoice? themeChoice;
 
   /// The language picked; with none, the app follows the system's.
@@ -252,6 +253,7 @@ class _SegueAppState extends State<SegueApp> {
   /// The app, in the theme and the language picked.
   Widget _app(BuildContext context, Widget? _) {
     final services = _services;
+    final ThemeSettings(:mode, :palette, :highContrast) = _themeChoice.value;
     final mediaControls = widget.mediaControls;
     return MaterialApp(
       title: 'Segue',
@@ -261,9 +263,9 @@ class _SegueAppState extends State<SegueApp> {
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       localeListResolutionCallback: LanguageChoice.resolve,
-      theme: segueTheme(Brightness.light),
-      darkTheme: segueTheme(Brightness.dark),
-      themeMode: _themeChoice.value,
+      theme: segueTheme(Brightness.light, palette: palette, highContrast: highContrast),
+      darkTheme: segueTheme(Brightness.dark, palette: palette, highContrast: highContrast),
+      themeMode: mode,
       // At once, under the app in the old theme fading away (ThemeFade), rather than each color going to the new one's on
       // its own, which would build the app again on every frame.
       themeAnimationDuration: Duration.zero,

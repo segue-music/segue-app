@@ -48,7 +48,7 @@ class HomePage extends StatefulWidget {
 
   final VoidCallback onSignOut;
 
-  /// The theme picked, in the settings: light, dark or the system's; none, no choice of it.
+  /// The theme picked, in the settings: light, dark or the system's, its colors and its contrast; none, no choice of it.
   final ThemeChoice? themeChoice;
 
   /// The language picked, in the settings; none, no choice of it.

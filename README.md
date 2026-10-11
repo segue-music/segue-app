@@ -21,7 +21,7 @@ the device it runs on.
   `ND_JELLYFIN_ENABLED=true`). The password isn't kept: the system's secure storage gets a Subsonic
   token, or Jellyfin's access token, which signing out ends on a Jellyfin server (Navidrome's keeps
   it until the password changes). Signing out is at the end of the settings (a page the top bar's
-  button opens, in groups: the appearance, with the theme and the language, the playback, with the quality, the volume's
+  button opens, in groups: the appearance, with the theme, its colors and its contrast, and the language, the playback, with the quality, the volume's
   normalization, the equalizer and the crossfade, and about the app, its version and the open source licenses; each choice a line that
   says the option picked and opens a sheet of them all), under the user and the server it signs out of;
 - the open source licenses: the app's own, Flutter's and the Dart packages', and, where the app
@@ -321,7 +321,12 @@ the device it runs on.
   light or dark (as the system's, until the settings pick one, or the system's again, which the app
   keeps, the old theme fading into the new one), takes the icon's colors: its pink,
   the deep and the light pink of the ring around the note, and in the dark the black around it, as
-  the background. On Linux the window's title bar, with the close button, takes the background too.
+  the background. The settings pick other colors, all the icon's, each light and dark: the wine
+  (in the dark, the wine inside the icon's square as the background, with the bars and tiles in
+  wines too; in the light, a rosé, pink backgrounds with text in the wine) and the neutral (grays,
+  the pinks only for what stands out); and a high contrast, for any of them, Material's text and
+  outlines at 7:1 at least, the pink kept. On Linux the window's title bar, with the close button,
+  takes the background too.
   On a computer the window opens maximized.
 
 Not yet: moving a playlist's or the queue's songs with the remote (a TV has no drag), adding the song that plays to a

@@ -17,11 +17,12 @@ import 'equalizer_page.dart';
 import 'language_button.dart';
 import 'licenses_page.dart';
 import 'page_area.dart';
+import 'theme.dart';
 import 'theme_fade.dart';
 import 'themed_icon.dart';
 
-/// What the user picks for the app, and signing out, in groups under their names: the appearance (the theme, the
-/// language), the playback (the quality, the volume's normalization, the equalizer's page, the crossfade, autoplay) and
+/// What the user picks for the app, and signing out, in groups under their names: the appearance (the theme, its colors
+/// and its contrast, the language), the playback (the quality, the volume's normalization, the equalizer's page, the crossfade, autoplay) and
 /// the app itself (its version, the licenses' page); a line between the groups, and after the last, signing out, under
 /// the account it signs out of. Each choice is a line that says the option picked, which opens a sheet of them all ([_Choice]), or, on
 /// or off, a switch. In the page area, from the top bar's button; a choice missing (none given), its line too, a group
@@ -91,7 +92,8 @@ class SettingsPage extends StatelessWidget {
             (
               strings.appearance,
               [
-                if (themeChoice != null)
+                // The old theme fades into the new one, whatever changes it.
+                if (themeChoice != null) ...[
                   _Choice(
                     icon: HugeIcons.strokeRoundedContrast,
                     title: strings.theme,
@@ -104,15 +106,50 @@ class SettingsPage extends StatelessWidget {
                         (
                           name: name,
                           detail: null,
-                          picked: mode == themeChoice.value,
-                          // The old theme fades into the new one.
+                          leading: null,
+                          picked: mode == themeChoice.value.mode,
                           onPicked: () {
                             ThemeFade.start(context);
-                            themeChoice.pick(mode);
+                            themeChoice.pickMode(mode);
                           },
                         ),
                     ],
                   ),
+                  // Each palette with what it is under it, and its colors beside it, in the theme shown, light or dark.
+                  _Choice(
+                    icon: HugeIcons.strokeRoundedPaintBoard,
+                    title: strings.themeColors,
+                    options: [
+                      for (final palette in Palette.values)
+                        (
+                          name: strings.palette(palette.name),
+                          detail: strings.paletteDetail(palette.name),
+                          leading: _PaletteSwatch(
+                            segueColors(
+                              Theme.of(context).brightness,
+                              palette: palette,
+                              highContrast: themeChoice.value.highContrast,
+                            ),
+                          ),
+                          picked: palette == themeChoice.value.palette,
+                          onPicked: () {
+                            ThemeFade.start(context);
+                            themeChoice.pickPalette(palette);
+                          },
+                        ),
+                    ],
+                  ),
+                  SwitchListTile(
+                    secondary: const ThemedIcon(HugeIcons.strokeRoundedView),
+                    title: Text(strings.highContrast),
+                    subtitle: Text(strings.highContrastDetail),
+                    value: themeChoice.value.highContrast,
+                    onChanged: (on) {
+                      ThemeFade.start(context);
+                      themeChoice.turnHighContrast(on);
+                    },
+                  ),
+                ],
                 if (languageChoice != null)
                   _Choice(
                     icon: HugeIcons.strokeRoundedTranslate,
@@ -122,6 +159,7 @@ class SettingsPage extends StatelessWidget {
                         (
                           name: name,
                           detail: null,
+                          leading: null,
                           picked: language?.languageCode == languageChoice.value?.languageCode,
                           onPicked: () => languageChoice.pick(language),
                         ),
@@ -146,6 +184,7 @@ class SettingsPage extends StatelessWidget {
                                   StreamQuality.automatic.inUse(onMobileData: true).maxBitRate!,
                                 )
                               : null,
+                          leading: null,
                           picked: quality == qualityChoice.value,
                           onPicked: () => qualityChoice.pick(quality),
                         ),
@@ -161,6 +200,7 @@ class SettingsPage extends StatelessWidget {
                         (
                           name: strings.replayGainMode(mode.name),
                           detail: strings.replayGainModeDetail(mode.name),
+                          leading: null,
                           picked: mode == replayGainChoice.value,
                           onPicked: () => replayGainChoice.pick(mode),
                         ),
@@ -190,6 +230,7 @@ class SettingsPage extends StatelessWidget {
                         (
                           name: strings.crossfadeLength(length.inSeconds),
                           detail: length == Duration.zero ? strings.crossfadeOffDetail : null,
+                          leading: null,
                           picked: length == crossfade.value,
                           onPicked: () => crossfade.pick(length),
                         ),
@@ -211,6 +252,7 @@ class SettingsPage extends StatelessWidget {
                         (
                           name: strings.streamQuality(quality.name, quality.maxBitRate ?? 0),
                           detail: null,
+                          leading: null,
                           picked: quality == downloadChoice.value.quality,
                           onPicked: () => downloadChoice.pickQuality(quality),
                         ),
@@ -275,8 +317,9 @@ class SettingsPage extends StatelessWidget {
   }
 }
 
-/// An option of a [_Choice]: its name, what it does where it says, whether it is the one picked, and what picks it.
-typedef _ChoiceOption = ({String name, String? detail, bool picked, VoidCallback onPicked});
+/// An option of a [_Choice]: its name, what it does where it says, what shows before it where something does, whether
+/// it is the one picked, and what picks it.
+typedef _ChoiceOption = ({String name, String? detail, Widget? leading, bool picked, VoidCallback onPicked});
 
 /// A choice: a line with its [icon] and [title], which says the option picked, under it. A tap opens a sheet of its
 /// [options] over the window, under its title, each with what it does under it where it says, the one picked with a
@@ -315,10 +358,11 @@ class _Choice extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Text(title, style: Theme.of(sheet).textTheme.titleLarge),
         ),
-        for (final (:name, :detail, :picked, :onPicked) in options)
+        for (final (:name, :detail, :leading, :picked, :onPicked) in options)
           _Option(
             name,
             detail: detail,
+            leading: leading,
             picked: picked,
             onTap: () {
               onPicked();
@@ -350,12 +394,13 @@ class _Heading extends StatelessWidget {
 }
 
 /// One of a choice's options, in its sheet, the one [picked] with a check and in the theme's color; [detail] under it,
-/// what it does.
+/// what it does, and [leading] before it.
 class _Option extends StatelessWidget {
-  const _Option(this.name, {required this.picked, required this.onTap, this.detail});
+  const _Option(this.name, {required this.picked, required this.onTap, this.detail, this.leading});
 
   final String name;
   final String? detail;
+  final Widget? leading;
   final bool picked;
   final VoidCallback onTap;
 
@@ -363,6 +408,7 @@ class _Option extends StatelessWidget {
   Widget build(BuildContext context) {
     final detail = this.detail;
     return ListTile(
+      leading: leading,
       title: Text(name),
       subtitle: detail == null ? null : Text(detail),
       selected: picked,
@@ -370,4 +416,35 @@ class _Option extends StatelessWidget {
       onTap: onTap,
     );
   }
+}
+
+/// A palette's [colors] in small, before its name: a circle of its background and its bars, half and half, with a dot of
+/// its pink in the middle, and around it a line in the colors shown, so that it stands out of the sheet whatever its
+/// own.
+class _PaletteSwatch extends StatelessWidget {
+  const _PaletteSwatch(this.colors);
+
+  final ColorScheme colors;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 36,
+    height: 36,
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      shape: BoxShape.circle,
+      border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [colors.surface, colors.surface, colors.surfaceContainerHighest, colors.surfaceContainerHighest],
+        stops: const [0, 0.5, 0.5, 1],
+      ),
+    ),
+    child: Container(
+      width: 14,
+      height: 14,
+      decoration: BoxDecoration(shape: BoxShape.circle, color: colors.primary),
+    ),
+  );
 }

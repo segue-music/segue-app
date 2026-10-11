@@ -908,7 +908,7 @@
   },
   "appearance": "Aparência",
   "@appearance": {
-    "description": "The settings' heading over the theme and the language."
+    "description": "The settings' heading over the theme, its colors and its contrast, and the language."
   },
   "playback": "Reprodução",
   "@playback": {
@@ -1217,6 +1217,36 @@
   "systemTheme": "Tema do sistema",
   "@systemTheme": {
     "description": "On a phone, the settings' first choice of theme: light or dark as the system is."
+  },
+  "themeColors": "Cores",
+  "@themeColors": {
+    "description": "In the settings, the line of the choice of the app's colors (a palette, each in a light and a dark version, all the icon's), and the title of its sheet."
+  },
+  "palette": "{palette, select, wine{Vinho} neutral{Neutro} other{Segue}}",
+  "@palette": {
+    "description": "A palette of the app's colors, in the settings: wine (the dark wine inside the icon's pink square), neutral (grays) or, the first, the app's own name, Segue (the icon's pink).",
+    "placeholders": {
+      "palette": {
+        "type": "String"
+      }
+    }
+  },
+  "paletteDetail": "{palette, select, wine{O vinho de dentro do ícone no escuro, e fundos rosados no claro} neutral{Cinzas, com o rosa só nos destaques} other{O rosa do ícone, e no escuro o preto em volta dele}}",
+  "@paletteDetail": {
+    "description": "Under a palette of the app's colors, in the settings, what it is: wine, the dark wine inside the icon in the dark theme, and rosy backgrounds in the light one; neutral, grays, with the icon's pink only for what stands out (buttons, what is selected); Segue, the icon's pink, and in the dark theme the black around the icon.",
+    "placeholders": {
+      "palette": {
+        "type": "String"
+      }
+    }
+  },
+  "highContrast": "Alto contraste",
+  "@highContrast": {
+    "description": "In the settings, the switch that makes the theme's text, icons and outlines stand out more from what they are on."
+  },
+  "highContrastDetail": "Textos, ícones e bordas mais fortes",
+  "@highContrastDetail": {
+    "description": "Under the high contrast switch, in the settings, what it does."
   },
   "noHub": "Sem hub: só toca neste aparelho",
   "@noHub": {

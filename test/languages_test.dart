@@ -279,9 +279,14 @@ void main() {
 
         await tap(tester, find.byTooltip(strings.settings));
         expect(find.text(strings.appearance), findsOneWidget, reason: 'the settings');
-        // Each choice's sheet, with all its options and what they do.
+        expect(find.text(strings.highContrastDetail), findsOneWidget);
+        expect(find.text(strings.playback), findsOneWidget);
+        final list = find.descendant(of: find.byType(SettingsPage), matching: find.byType(Scrollable));
+        // Each choice's sheet, with all its options and what they do, down the settings, clear of a phone's bars at the
+        // bottom.
         for (final (choice, options) in [
           (strings.theme, [strings.systemTheme, strings.lightTheme, strings.darkTheme]),
+          (strings.themeColors, [for (final palette in Palette.values) strings.paletteDetail(palette.name)]),
           (strings.language, [strings.systemLanguage, 'English', 'Español', 'Português']),
           (strings.audioQuality, [strings.streamQuality('original', 0), strings.automaticQualityDetail(160)]),
           (
@@ -289,7 +294,9 @@ void main() {
             [for (final mode in ReplayGainMode.values) strings.replayGainModeDetail(mode.name)],
           ),
         ]) {
-          await tap(tester, find.widgetWithText(ListTile, choice));
+          final line = find.widgetWithText(ListTile, choice).hitTestable();
+          await tester.scrollUntilVisible(line, 100, scrollable: list);
+          await tap(tester, line);
 
           for (final text in options) {
             expect(find.descendant(of: find.byType(BottomSheet), matching: find.text(text)), findsOneWidget);
@@ -299,9 +306,7 @@ void main() {
           await tester.pumpAndSettle();
         }
 
-        expect(find.text(strings.playback), findsOneWidget);
         // Down to the end, clear of a phone's bars at the bottom, and from there to the equalizer's page.
-        final list = find.descendant(of: find.byType(SettingsPage), matching: find.byType(Scrollable));
         await tester.scrollUntilVisible(find.text(strings.signedInAs('a', 'music.test')), 100, scrollable: list);
         expect(find.text(strings.about), findsOneWidget);
         expect(find.text(strings.appVersionNumber('0.1.0', '214')), findsOneWidget);
