@@ -182,3 +182,27 @@ whole app would be refused, not the mode: Spotube is on iOS only as an IPA to si
 the media server, and the queue's ids are the server's (SPEC.md, sections 2 and 8), so Connect would need another
 sign-in and other ids. And both sides are reverse-engineered, to be chased as they change: the Spotify plugin's token
 needs a TOTP secret that Spotify versions, and YouTube changes the JavaScript challenges a stream's address needs.
+
+## Asking Lidarr or SoulSync for what the library lacks
+
+SoulSync's own search, watchlist and wishlist are poor to use, and the app could do them where the user already is,
+sending them on: on an artist's page, a button that follows the artist (the watchlist), and in the discography the
+albums the library lacks (MusicBrainz's release groups, by the artist's MusicBrainz id, as in "New releases of the
+library's artists" above), each with a button that wants it (the wishlist); and a page of the requests, with the artists
+followed, the albums wanted and what is downloading. Searching for the files, their sources and their quality stay the
+service's. Looked at on 2026-10-11.
+
+- Behind an interface with one implementation for each service, as `MediaServer` has `SubsonicApi` and `JellyfinApi`,
+  in MusicBrainz's terms, which the app already speaks (Navidrome's and Jellyfin's ids, `lib/releases/musicbrainz.dart`).
+- Lidarr first: its API (`/api/v1`, the key in `X-Api-Key`) goes by MusicBrainz ids (the artist's, the release
+  group's); its monitored artists are the watchlist, its wanted (missing) albums the wishlist, its queue the downloads.
+  Soulseek, where that is why SoulSync is used, comes to Lidarr through a plugin (Tubifarry, by slskd) or Soularr (not
+  checked).
+- SoulSync's API (`/api/v1`, 87 endpoints, a `Bearer` key; `Support/API.md` in `Nezreka/SoulSync`) doesn't fit yet:
+  its wishlist takes one track at a time, with Spotify's data (`spotify_track_data`), its watchlist takes Spotify's or
+  iTunes's artist ids, and nothing gives an artist's albums or an album's tracks from outside the library. The app would
+  find each by its name in Spotify's terms, which breaks easily, and the API changes from one version to the next. To
+  ask its author for, or to contribute: an album wanted at once, and MusicBrainz ids.
+- From the app, with the service's address and key in the settings, not through the hub: it isn't Connect's. Either
+  service's key can do anything to it, so this fits a server of one user, or only the user who sets the key; a server
+  several people use would need something between them that holds the key.
