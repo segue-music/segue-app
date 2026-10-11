@@ -170,6 +170,9 @@ static void my_application_activate(GApplication* application) {
   // for transparent.
   gdk_rgba_parse(&background_color, "#000000");
   fl_view_set_background_color(view, &background_color);
+  // No narrower than 960: below that, the player bar's middle buttons go past the ends of the seek bar under them
+  // (NowPlayingBar; now_playing_bar_test.dart has the same width).
+  gtk_widget_set_size_request(GTK_WIDGET(view), 960, -1);
   gtk_widget_show(GTK_WIDGET(view));
   gtk_container_add(GTK_CONTAINER(window), GTK_WIDGET(view));
 

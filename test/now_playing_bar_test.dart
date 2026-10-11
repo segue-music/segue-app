@@ -97,6 +97,25 @@ void main() {
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
   });
 
+  testWidgets('at 960 wide, the narrowest a computer\'s window gets, the middle buttons\' icons are over the seek bar, '
+      'none past its ends', (tester) async {
+    // The runners keep the window no narrower (linux/runner/my_application.cc, macos/Runner/MainFlutterWindow.swift,
+    // windows/runner/win32_window.cpp): with another layout, another width there.
+    await pumpBar(tester, size: const Size(960, 700));
+    final bar = find.byType(NowPlayingBar);
+    Rect icon(String tooltip) => tester.getRect(
+      find.descendant(
+        of: find.descendant(of: bar, matching: find.byTooltip(tooltip)),
+        matching: find.byType(ThemedIcon),
+      ),
+    );
+    // Where its track goes, inside the slider's room around it.
+    final track = tester.getRect(find.descendant(of: bar, matching: find.byType(Slider))).deflate(14);
+    expect(icon('Adicionar aos favoritos').left, greaterThanOrEqualTo(track.left - 1));
+    expect(icon('Mostrar a letra').right, lessThanOrEqualTo(track.right + 1));
+    await tester.pumpWidget(const SizedBox()); // stops the bar's timer
+  });
+
   testWidgets('on a phone, the bar is slightly see-through, its corners slightly rounded; on a wide screen, opaque and '
       'square', (tester) async {
     Material material() =>

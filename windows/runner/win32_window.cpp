@@ -198,6 +198,18 @@ Win32Window::MessageHandler(HWND hwnd,
 
       return 0;
     }
+    case WM_GETMINMAXINFO: {
+      // No narrower than 960 (at 96 DPI) inside its frame: below that, the player bar's middle buttons go past the
+      // ends of the seek bar under them (NowPlayingBar; now_playing_bar_test.dart has the same width).
+      RECT frame, client;
+      if (GetWindowRect(hwnd, &frame) && GetClientRect(hwnd, &client)) {
+        double scale_factor =
+            FlutterDesktopGetDpiForMonitor(MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST)) / 96.0;
+        auto info = reinterpret_cast<MINMAXINFO*>(lparam);
+        info->ptMinTrackSize.x = Scale(960, scale_factor) + (frame.right - frame.left) - (client.right - client.left);
+      }
+      return 0;
+    }
     case WM_SIZE: {
       RECT rect = GetClientArea();
       if (child_content_ != nullptr) {

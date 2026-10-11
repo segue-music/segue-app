@@ -355,7 +355,8 @@ It does:
   the pinks only for what stands out); and a high contrast, for any of them, Material's text and
   outlines at 7:1 at least, the pink kept. On Linux the window's title bar, with the close button,
   takes the background too.
-  On a computer the window opens maximized.
+  On a computer the window opens maximized, and gets no narrower than 960, so that the player bar's middle buttons
+  stay over its seek bar.
 
 Not yet: turning another device's autoplay on or off from here, a sleep timer for another device, the media controls on macOS and Windows, on a Jellyfin server the cover of a song that came from another device
 when its file has none of its own (Jellyfin doesn't fall back to the album's) and an artist's popular songs (Jellyfin
