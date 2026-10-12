@@ -67,6 +67,27 @@ Future<void> until(WidgetTester tester, bool Function() done) async {
   expect(done(), isTrue);
 }
 
+/// Lets [downloads] go on fetching and writing, as [until] does, until they have been quiet a while. What they do from
+/// a tap goes on in the test's fake time, which nothing moves once the test is over: a file of theirs left open then
+/// (a cover, the index) keeps their folder from going on Windows.
+Future<void> idle(WidgetTester tester, Downloads downloads) async {
+  var changed = false;
+
+  void change() => changed = true;
+
+  downloads.addListener(change);
+  var quiet = 0;
+
+  for (var i = 0; i < 400 && quiet < 10; i++) {
+    changed = false;
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 5)));
+    await tester.pump();
+    quiet = changed ? 0 : quiet + 1;
+  }
+
+  downloads.removeListener(change);
+}
+
 void main() {
   setUpAll(() => SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty());
   late Directory directory;
@@ -84,13 +105,21 @@ void main() {
     addTearDown(downloads.dispose);
   }
 
+  /// A test with downloads ([open]), which ends once they are idle ([idle]).
+  void testDownloads(String description, WidgetTesterCallback body) {
+    testWidgets(description, (tester) async {
+      await body(tester);
+      await idle(tester, downloads);
+    });
+  }
+
   bool progressIs(int done, int failed) {
     final download = downloads.ofAlbum('al1');
 
     return download != null && downloads.progressOf(download) == (done: done, failed: failed, total: 2);
   }
 
-  testWidgets('an album downloads from its button, which shows how far it has got, then that it is there', (
+  testDownloads('an album downloads from its button, which shows how far it has got, then that it is there', (
     tester,
   ) async {
     await open(tester);
@@ -109,7 +138,7 @@ void main() {
     expect(find.byTooltip('Baixado: toca sem o servidor'), findsOneWidget);
   });
 
-  testWidgets('a downloaded album asks before going off the device', (tester) async {
+  testDownloads('a downloaded album asks before going off the device', (tester) async {
     await open(tester);
     await tester.runAsync(() => downloads.addAlbum(album, songs));
     await pumpWith(tester, server, downloads, const Center(child: DownloadButton.album(album, songs)));
@@ -130,7 +159,7 @@ void main() {
     expect(find.byTooltip('Baixar'), findsOneWidget);
   });
 
-  testWidgets('songs that failed to come are tried again from the button', (tester) async {
+  testDownloads('songs that failed to come are tried again from the button', (tester) async {
     await open(tester);
     server.failing.add('s2');
     await pumpWith(tester, server, downloads, const Center(child: DownloadButton.album(album, songs)));
@@ -148,7 +177,7 @@ void main() {
     expect(find.byType(IconButton), findsNothing);
   });
 
-  testWidgets('the downloads\' page lists them, the latest first, under the room they take', (tester) async {
+  testDownloads('the downloads\' page lists them, the latest first, under the room they take', (tester) async {
     await open(tester);
     await tester.runAsync(() async {
       await downloads.addAlbum(album, songs);
@@ -164,7 +193,7 @@ void main() {
     expect(find.text('2 faixas, 7 min'), findsOneWidget);
   });
 
-  testWidgets('the albums tab\'s "Baixados" shows the downloaded albums alone, as they come and go', (tester) async {
+  testDownloads('the albums tab\'s "Baixados" shows the downloaded albums alone, as they come and go', (tester) async {
     await open(tester);
     await tester.runAsync(() => downloads.addAlbum(album, songs));
     var shown = AlbumsShown.downloaded;
@@ -203,7 +232,7 @@ void main() {
     expect(tester.widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'Baixados')).selected, isFalse);
   });
 
-  testWidgets('the playlists tab\'s "Baixadas" shows the downloaded playlists alone', (tester) async {
+  testDownloads('the playlists tab\'s "Baixadas" shows the downloaded playlists alone', (tester) async {
     await open(tester);
     await tester.runAsync(() => downloads.addPlaylist(const Playlist(id: 'p1', name: 'Road trip'), songs));
     await pumpWith(tester, server, downloads, const PlaylistsView());
@@ -231,36 +260,37 @@ void main() {
     expect(find.widgetWithText(ChoiceChip, 'Nome'), findsOneWidget);
   });
 
-  testWidgets('the settings pick the downloads\' quality and whether they go over mobile data, over the list of them', (
-    tester,
-  ) async {
-    await open(tester);
-    final choice = DownloadChoice(mobileData: true);
-    addTearDown(choice.dispose);
-    tester.view.physicalSize = const Size(400, 1600);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-    await pumpWith(tester, server, downloads, SettingsPage(onSignOut: () {}, downloadChoice: choice));
-    expect(find.text('Qualidade dos downloads'), findsOneWidget);
-    expect(find.text('Baixados'), findsOneWidget);
-    expect(
-      tester.getTopLeft(find.text('Qualidade dos downloads')).dy,
-      lessThan(tester.getTopLeft(find.text('Baixados')).dy),
-    );
+  testDownloads(
+    'the settings pick the downloads\' quality and whether they go over mobile data, over the list of them',
+    (tester) async {
+      await open(tester);
+      final choice = DownloadChoice(mobileData: true);
+      addTearDown(choice.dispose);
+      tester.view.physicalSize = const Size(400, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await pumpWith(tester, server, downloads, SettingsPage(onSignOut: () {}, downloadChoice: choice));
+      expect(find.text('Qualidade dos downloads'), findsOneWidget);
+      expect(find.text('Baixados'), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.text('Qualidade dos downloads')).dy,
+        lessThan(tester.getTopLeft(find.text('Baixados')).dy),
+      );
 
-    await tester.tap(find.text('Qualidade dos downloads'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Qualidade baixa · 96 kbps').last);
-    await tester.pumpAndSettle();
-    expect(choice.value.quality, StreamQuality.low);
+      await tester.tap(find.text('Qualidade dos downloads'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Qualidade baixa · 96 kbps').last);
+      await tester.pumpAndSettle();
+      expect(choice.value.quality, StreamQuality.low);
 
-    expect(tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value, isFalse);
-    await tester.tap(find.text('Baixar com dados móveis'));
-    await tester.pump();
-    expect(choice.value.onMobileData, isTrue);
-  });
+      expect(tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value, isFalse);
+      await tester.tap(find.text('Baixar com dados móveis'));
+      await tester.pump();
+      expect(choice.value.onMobileData, isTrue);
+    },
+  );
 
-  testWidgets('without mobile data, downloading over it is no choice', (tester) async {
+  testDownloads('without mobile data, downloading over it is no choice', (tester) async {
     await open(tester);
     final choice = DownloadChoice();
     addTearDown(choice.dispose);
