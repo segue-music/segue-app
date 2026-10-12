@@ -283,11 +283,13 @@ class Services {
     connect.dispose();
     playlistEditor.dispose();
     favorites.dispose();
-    await connect.client?.close();
     playCounter?.dispose();
     sleepTimer?.dispose();
     mobileData?.dispose();
+    // Before the hub's connection, whose close can wait on the network: a window closing waits for the player, which
+    // left playing as the app ends aborts it (app.dart, _exit).
     await player.dispose();
+    await connect.client?.close();
     api.close();
     lrclib?.close();
     musicBrainz?.close();

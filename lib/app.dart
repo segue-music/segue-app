@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show AppExitResponse;
 
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -121,7 +122,7 @@ class _SegueAppState extends State<SegueApp> {
     widget.mediaControls
       ?..close = _close
       ..open = _reopen;
-    _lifecycle = AppLifecycleListener(onResume: _reopen);
+    _lifecycle = AppLifecycleListener(onResume: _reopen, onExitRequested: _exit);
     final session = widget.session;
 
     if (session != null) {
@@ -170,12 +171,12 @@ class _SegueAppState extends State<SegueApp> {
     }
   }
 
-  /// Closes the app, swiped out of Android's recent apps ([MediaControls.close]), as closing its window does on a
-  /// computer: the music this device plays stops, paused where it was, which the hub keeps as the last playback, so that
-  /// the app opens on it again; another device's plays on. The system's media controls let go of it, and the hub hears
-  /// it leave. The process stays, with nothing running, until Android ends it or the app opens again in it
-  /// ([_reopen]): ended at once, it would come back without a screen, as the system's media controls look for music to
-  /// resume in it, and with it the app, signed in to the hub and showing its music there.
+  /// Closes the app, swiped out of Android's recent apps ([MediaControls.close]) or its window closed on a computer
+  /// ([_exit]): the music this device plays stops, paused where it was, which the hub keeps as the last playback, so
+  /// that the app opens on it again; another device's plays on. The system's media controls let go of it, and the hub
+  /// hears it leave. On Android the process stays, with nothing running, until Android ends it or the app opens again in
+  /// it ([_reopen]): ended at once, it would come back without a screen, as the system's media controls look for music
+  /// to resume in it, and with it the app, signed in to the hub and showing its music there.
   Future<void> _close() async {
     final services = _services;
 
@@ -195,6 +196,15 @@ class _SegueAppState extends State<SegueApp> {
     }
 
     await services.dispose();
+  }
+
+  /// The window closed on a computer: the app closes ([_close]) before Flutter ends it. Ended with mpv still playing,
+  /// it aborted, often: mpv went on calling the Dart that had ended (media_kit's wakeup callback), which disposing its
+  /// players stops. A close that takes too long, the hub not answering, doesn't keep the window open.
+  Future<AppExitResponse> _exit() async {
+    await _close().timeout(const Duration(seconds: 3), onTimeout: () {});
+
+    return AppExitResponse.exit;
   }
 
   /// The app closed by [_close] opens again, its screen showing or for a play from the system's media controls: it starts

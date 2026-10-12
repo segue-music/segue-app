@@ -91,7 +91,10 @@ Running two app instances on one machine as different devices:
   `PlayerController` → `ConnectController`, plus a `SegueClient` if a hub was discovered (otherwise
   the app only plays locally). `ServicesScope` hands this down the tree. It sits in
   `MaterialApp.builder` (`app.dart`), above the navigator, so pages, sheets and the keyboard
-  shortcuts all see it.
+  shortcuts all see it. A window closed on a computer disposes them before Flutter ends the app (`_exit`, through
+  `AppLifecycleListener.onExitRequested`), the player before the hub's connection, whose close can wait on the network:
+  ended with mpv still playing, the process aborted, often, mpv calling media_kit's wakeup callback after the Dart that
+  it called had gone ("Callback invoked after it has been deleted").
 - `PlayerController` (`lib/player/`) is this device's player over an `AudioEngine` interface.
   `MediaKitEngine` (libmpv) is the real engine; `test/fakes.dart` has `FakeEngine` for tests.
   `MediaKitEngine` works around media_kit in a few places, each pinned by
