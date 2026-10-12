@@ -1,5 +1,7 @@
 // Makes the app's icons from tool/icon.png, the artwork: a pink rounded square, with a ring around the note, on a
-// near-black background. Run it after changing the artwork: DART=1 tool/flutter.sh run tool/icons.dart
+// near-black background. The square's pink edge says nothing, so no icon has it: where the system gives the icon no
+// shape of its own, it is the ring and what is in it, round, in the room the square took. Run it after changing the
+// artwork: DART=1 tool/flutter.sh run tool/icons.dart
 //
 // - Android: the launcher icon, adaptive (Android 8 and later, mipmap-anydpi-v26/ic_launcher.xml) and as a plain image
 //   before that, the Android TV banner, and the media notification's icon.
@@ -18,6 +20,11 @@ import 'package:image/image.dart';
 /// (the outer edge of the ring around the note), as measured on it. A new artwork needs these measured again.
 const _left = 68.8, _top = 76.8, _right = 590.9, _bottom = 582.7, _radius = 94.0, _reach = 220.0;
 
+/// The ring around the note, as measured on the artwork: the centre of the box around it (a little lower than the
+/// square's, and the ring not quite round: 430 × 419 px) and that box's width, and two distances from that centre, one
+/// within the ring's band all the way round but for its two gaps (at the top and the bottom), and one past it.
+const _ringX = 328.0, _ringY = 338.5, _ringWidth = 430.0, _ringBand = 200.0, _ringPast = 219.0;
+
 const _res = 'android/app/src/main/res';
 
 /// Android's densities, as pixels per dp.
@@ -27,8 +34,8 @@ void main() {
   final art = _Artwork(decodePng(File('tool/icon.png').readAsBytesSync())!);
 
   for (final MapEntry(key: density, value: scale) in _densities.entries) {
-    // Before Android 8: the rounded square as it is, at the size of the square icons in the 48 dp grid (40 dp).
-    _write('$_res/mipmap-$density/ic_launcher.png', art.shape((48 * scale).round(), 40 / 48));
+    // Before Android 8: the ring, at the size of the round icons in the 48 dp grid (44 dp).
+    _write('$_res/mipmap-$density/ic_launcher.png', art.round((48 * scale).round(), 44 / 48));
     // Android 8 and later: the launcher cuts the icon to its own shape (a circle, a squircle...), so the foreground
     // layer, 108 dp of which 72 dp show, is the inside of the square without its edge, stretched to the layer's
     // borders. The ring fits in the 66 dp circle that every shape keeps.
@@ -38,9 +45,10 @@ void main() {
     _write('$_res/drawable-$density/ic_notification.png', art.silhouette((24 * scale).round(), 20 / 24));
   }
 
-  // The Android TV banner, 320 × 180 dp: the whole artwork, on its own background.
-  _write('$_res/drawable-xhdpi/banner.png', art.banner(640, 360));
-  _write('linux/runner/resources/app_icon.png', art.shape(256, 0.84));
+  // The Android TV banner, 320 × 180 dp: the ring, on the artwork's background.
+  _write('$_res/drawable-xhdpi/banner.png', art.banner(640, 360, 0.8));
+  // A round icon looks smaller than a square one as wide, so the ring takes a little more than the square took (0.84).
+  _write('linux/runner/resources/app_icon.png', art.round(256, 0.88));
   // iOS cuts the icon to its own rounded square, so it is the artwork's square from edge to edge, the drawing as big in
   // it as in the artwork. Opaque: App Store Connect refuses an icon with an alpha channel.
   _write(
@@ -48,29 +56,32 @@ void main() {
     art.inside(1024, 2 * _reach / (_right - _left)).convert(numChannels: 3),
   );
 
-  // macOS shows the icon as it is, so it carries its own shape: the rounded square on Apple's grid, 824 px of 1024,
-  // with the rest transparent.
+  // macOS shows the icon as it is, but every app's in the same rounded square, Apple's: 824 px of 1024, its corners
+  // 185.4 px, with the rest transparent. The inside of the artwork's square fills it, as on iOS.
   for (final size in [16, 32, 64, 128, 256, 512, 1024]) {
-    _write('macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_$size.png', art.shape(size, 824 / 1024));
+    _write(
+      'macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_$size.png',
+      art.tile(size, 824 / 1024, 185.4 / 824),
+    );
   }
 
-  // Windows: the rounded square from edge to edge, at the sizes Windows picks from for the taskbar, the title bar and
-  // Explorer, at 100 to 200 % scaling. Not with Linux's margin: Windows's icons fill their square, and the square's dark
-  // inside disappears on a dark taskbar, so with the margin only a ring of 17 pixels of 24 showed there. Each one is a
+  // Windows: the ring from edge to edge, at the sizes Windows picks from for the taskbar, the title bar and Explorer, at
+  // 100 to 200 % scaling. Not with Linux's margin: Windows's icons fill their square, and the disk's dark inside
+  // disappears on a dark taskbar, so with the margin the ring showed smaller than the other apps' icons. Each one is a
   // PNG inside the .ico, which Windows reads since Vista.
   final windowsSizes = [16, 20, 24, 32, 40, 48, 64, 256];
   _writeBytes(
     'windows/runner/resources/app_icon.ico',
-    IcoEncoder().encodeImages([for (final size in windowsSizes) art.shape(size, 1)]),
+    IcoEncoder().encodeImages([for (final size in windowsSizes) art.round(size, 1)]),
   );
 
-  // In the app's top bar: the rounded square from edge to edge, 32 logical pixels, at each density Flutter picks an
-  // asset's variant for (assets/2.0x/logo.png for 2 physical pixels per logical one, and so on). Over the sign-in form,
-  // in place of the app's name: the same, 96 logical pixels (logo_large.png).
+  // In the app's top bar: the ring from edge to edge, 32 logical pixels, at each density Flutter picks an asset's
+  // variant for (assets/2.0x/logo.png for 2 physical pixels per logical one, and so on). Over the sign-in form, in place
+  // of the app's name: the same, 96 logical pixels (logo_large.png).
   for (final density in [1, 2, 3, 4]) {
     final directory = density == 1 ? 'assets' : 'assets/$density.0x';
-    _write('$directory/logo.png', art.shape(32 * density, 1));
-    _write('$directory/logo_large.png', art.shape(96 * density, 1));
+    _write('$directory/logo.png', art.round(32 * density, 1));
+    _write('$directory/logo_large.png', art.round(96 * density, 1));
   }
 }
 
@@ -97,16 +108,9 @@ class _Artwork {
 
   static const _cx = (_left + _right) / 2, _cy = (_top + _bottom) / 2;
 
-  /// The rounded square alone, with what is around it transparent, [fill] of a [size] × [size] image wide.
-  Image shape(int size, double fill) {
-    final scale = max(_right - _left, _bottom - _top) / (size * fill);
-
-    return _render(size, size, scale, (x, y) {
-      final (r, g, b) = _sample(x, y);
-
-      return (r, g, b, _inside(x, y) ? 1 : 0);
-    });
-  }
+  /// The ring and what is in it, with what is around it transparent, [fill] of a [size] × [size] image wide.
+  Image round(int size, double fill) =>
+      _render(size, size, _ringWidth / (size * fill), _ring, centre: (_ringX, _ringY));
 
   /// The inside of the rounded square, 16 px from its edge, carried on to the image's borders by repeating that edge
   /// outwards: opaque, with nothing of the square's shape left. [fill] is how much of the image the drawing takes.
@@ -119,6 +123,23 @@ class _Artwork {
       final (r, g, b) = _sample(px, py);
 
       return (r, g, b, 1);
+    });
+  }
+
+  /// [inside]'s image in a rounded square of its own, [fill] of a [size] × [size] image wide, its corners [radius] of
+  /// its side, with what is around it transparent. The drawing takes as much of it as of the artwork's square.
+  Image tile(int size, double fill, double radius) {
+    const inset = 16.0, side = _right - _left;
+    final corner = radius * side;
+    // The square of the corners' centres, as in [_nearestInside].
+    final k = side / 2 - corner;
+
+    return _render(size, size, side / (size * fill), (x, y) {
+      final (px, py) = _nearestInside(x, y, inset);
+      final (r, g, b) = _sample(px, py);
+      final dx = max((x - _cx).abs() - k, 0.0), dy = max((y - _cy).abs() - k, 0.0);
+
+      return (r, g, b, dx * dx + dy * dy <= corner * corner ? 1 : 0);
     });
   }
 
@@ -138,32 +159,51 @@ class _Artwork {
 
       final (red, _, _) = _sample(x, y);
 
-      return (1, 1, 1, ((red - 0.2) / 0.4).clamp(0.0, 1.0));
+      return (1, 1, 1, _pinkness(red));
     });
   }
 
-  /// The whole artwork, as tall as the image, on the colour of its borders.
-  Image banner(int width, int height) {
+  /// The ring and what is in it, [fill] of the image's height, on the colour of the artwork's borders.
+  Image banner(int width, int height, double fill) {
     final (br, bg, bb) = _borderColour();
-    final scale = this.height / height;
 
-    return _render(width, height, scale, (x, y) {
-      if (x < 0 || x > this.width || y < 0 || y > this.height) {
-        return (br, bg, bb, 1);
-      }
+    return _render(width, height, _ringWidth / (height * fill), centre: (_ringX, _ringY), (x, y) {
+      final (r, g, b, a) = _ring(x, y);
 
-      final (r, g, b) = _sample(x, y);
-
-      return (r, g, b, 1);
+      return (r * a + br * (1 - a), g * a + bg * (1 - a), b * a + bb * (1 - a), 1);
     });
   }
 
-  /// A width × height image centred on the rounded square, each pixel [scale] artwork pixels wide. [paint] gives the
-  /// colour at a point of the artwork; each pixel averages it over a grid of points at least as fine as the artwork's.
-  Image _render(int width, int height, double scale, _Rgba Function(double x, double y) paint) {
+  /// The colour at (x, y) of the ring and what is in it, transparent around it: within the ring's band, the artwork as
+  /// it is; past it, the ring's pink alone, as opaque as it is pink, so that the cut follows the ring's edge, which
+  /// isn't quite round. Where the ring has its gaps, the cut goes into them.
+  _Rgba _ring(double x, double y) {
+    final dx = x - _ringX, dy = y - _ringY;
+    final distance = sqrt(dx * dx + dy * dy);
+
+    if (distance > _ringPast) {
+      return (0, 0, 0, 0);
+    }
+
+    final (r, g, b) = _sample(x, y);
+
+    return (r, g, b, distance <= _ringBand ? 1 : _pinkness(r));
+  }
+
+  /// A width × height image centred on [centre], or else on the rounded square, each pixel [scale] artwork pixels wide.
+  /// [paint] gives the colour at a point of the artwork; each pixel averages it over a grid of points at least as fine
+  /// as the artwork's.
+  Image _render(
+    int width,
+    int height,
+    double scale,
+    _Rgba Function(double x, double y) paint, {
+    (double, double) centre = (_cx, _cy),
+  }) {
     final n = max(1, scale.ceil());
     final image = Image(width: width, height: height, numChannels: 4);
-    final x0 = _cx - width * scale / 2, y0 = _cy - height * scale / 2;
+    final (cx, cy) = centre;
+    final x0 = cx - width * scale / 2, y0 = cy - height * scale / 2;
 
     for (var y = 0; y < height; y++) {
       for (var x = 0; x < width; x++) {
@@ -233,8 +273,9 @@ class _Artwork {
     return (r / n / 255, g / n / 255, b / n / 255);
   }
 
-  /// Whether (x, y) is in the rounded square.
-  static bool _inside(double x, double y) => _nearestInside(x, y, 0) == (x, y);
+  /// How pink a colour of the artwork is, by its red, from 0 (the dark of the square's inside) to 1: the dark is
+  /// nearly without red, every pink of the ring and the note nearly all red.
+  static double _pinkness(double red) => ((red - 0.2) / 0.4).clamp(0.0, 1.0);
 
   /// The point of the rounded square shrunk by [inset] nearest to (x, y): (x, y) itself when it is inside.
   static (double, double) _nearestInside(double x, double y, double inset) {

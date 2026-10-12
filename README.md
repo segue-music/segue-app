@@ -1,4 +1,4 @@
-<p align="center"><img src="linux/runner/resources/app_icon.png" alt="" width="128"></p>
+<p align="center"><img src="linux/runner/resources/app_icon.png" alt="" width="160"></p>
 
 # Segue app
 
@@ -353,8 +353,8 @@ segue-hub ./cmd/segue-hub` in its `hub/`): the one in a clone of segue next to t
 
 After changing the artwork (`tool/icon.png`), `DART=1 tool/flutter.sh run tool/icons.dart` makes every icon again:
 Android's (adaptive, the TV banner, the notification's), Linux's, iOS's, macOS's, Windows's and the app's own. The
-rounded square's position in the artwork is measured at the top of `tool/icons.dart`, so a new artwork needs it
-measured again.
+positions of the rounded square and of the ring in the artwork are measured at the top of `tool/icons.dart`, so a new
+artwork needs them measured again.
 
 ### Keys
 
