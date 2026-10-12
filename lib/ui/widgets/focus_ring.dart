@@ -42,8 +42,10 @@ class _FocusRingState extends State<FocusRing> {
 
   void _highlightModeChanged(FocusHighlightMode mode) => setState(() {});
 
-  /// On a TV, the room a card grows into and its ring in view too, with some room around them, once the focus has
-  /// scrolled the card itself into view: a card at the screen's edge grew past it, its ring cut off.
+  /// On a TV, the room a card grows into above and below and its ring in view too, with some room around them, once the
+  /// focus has scrolled the card itself into view: a card at the screen's bottom grew past it, its ring cut off. Not
+  /// sideways: a row of cards keeps the one with the focus in its first one's place (`TileRow`), and a grid doesn't
+  /// scroll that way.
   void _showGrown() {
     if (!widget.grows || MediaQuery.maybeNavigationModeOf(context) != NavigationMode.directional) {
       return;
@@ -56,12 +58,9 @@ class _FocusRingState extends State<FocusRing> {
         return;
       }
 
-      final grown = box.size * ((FocusRing.grownScale - 1) / 2);
+      final grown = box.size.height * (FocusRing.grownScale - 1) / 2;
       box.showOnScreen(
-        rect: EdgeInsets.symmetric(
-          horizontal: grown.width + _roomAround,
-          vertical: grown.height + _roomAround,
-        ).inflateRect(Offset.zero & box.size),
+        rect: EdgeInsets.symmetric(vertical: grown + _roomAround).inflateRect(Offset.zero & box.size),
         duration: const Duration(milliseconds: 150),
         curve: Curves.easeOut,
       );

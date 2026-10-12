@@ -55,6 +55,11 @@ class TileRow extends StatefulWidget {
   /// computer's arrows say, and a TV has none.
   static const _peek = 0.4;
 
+  /// On a TV, how much further in the row starts, its title and its tiles alike, for the tile with the focus in the
+  /// first one's place to grow into (6% of one about 200 wide, 6 to each side) with its ring clear of what is beside
+  /// the row (the home's rail), as far as from the screen's other edges.
+  static const _grownSide = 8.0;
+
   @override
   State<TileRow> createState() => _TileRowState();
 }
@@ -100,6 +105,7 @@ class _TileRowState extends State<TileRow> {
       TargetPlatform.linux || TargetPlatform.macOS || TargetPlatform.windows => false,
     };
     final television = MediaQuery.navigationModeOf(context) == NavigationMode.directional;
+    final start = television ? TileRow._grownSide : 0.0;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -111,7 +117,7 @@ class _TileRowState extends State<TileRow> {
             // Out of the room at the screen's side, where the system has the app keep out of it (on a TV, its edges):
             // the tiles run on to the side as they scroll, the last stopping out of it.
             Padding(
-              padding: EdgeInsets.fromLTRB(16, 12, 12 + MediaQuery.paddingOf(context).right, 4),
+              padding: EdgeInsets.fromLTRB(16 + start, 12, 12 + MediaQuery.paddingOf(context).right, 4),
               child: SizedBox(
                 // On a computer, as tall with the arrows as without them; on a TV, which has none, as tall as the title.
                 height: television ? null : 48,
@@ -153,7 +159,7 @@ class _TileRowState extends State<TileRow> {
       return size;
     }
 
-    final room = width - TileRow._edge + TileRow._gap;
+    final room = width - TileRow._edge - TileRow._grownSide + TileRow._gap;
     final whole = max(1, (room / (size.width + TileRow._gap) - TileRow._peek).floor());
     final grownWidth = room / (whole + TileRow._peek) - TileRow._gap;
 
@@ -225,15 +231,45 @@ class _TileRowState extends State<TileRow> {
         controller: _scroll,
         scrollDirection: Axis.horizontal,
         padding: EdgeInsets.fromLTRB(
-          TileRow._edge,
+          TileRow._edge + (television ? TileRow._grownSide : 0),
           _grownRoom(size, television),
           TileRow._edge + MediaQuery.paddingOf(context).right,
           _grownRoom(size, television),
         ),
         itemCount: tiles.length,
         separatorBuilder: (_, _) => const SizedBox(width: TileRow._gap),
-        itemBuilder: (context, i) => SizedBox(width: size.width, child: tiles[i]),
+        itemBuilder: (context, i) => SizedBox(
+          width: size.width,
+          child: television
+              ? Focus(
+                  canRequestFocus: false,
+                  skipTraversal: true,
+                  onFocusChange: (focused) {
+                    if (focused) {
+                      _keepAtStart(i, size);
+                    }
+                  },
+                  child: tiles[i],
+                )
+              : tiles[i],
+        ),
       ),
     ),
   );
+
+  /// On a TV, the row scrolled to have the tile [index], which the focus has come to, in its first tile's place, as
+  /// Google TV's rows keep it, the rest moving under it: the tiles after it stay in view, and the piece of one at the
+  /// screen's side ([TileRow._peek]). At the row's ends, as far as it goes.
+  void _keepAtStart(int index, Size size) {
+    if (!_scroll.hasClients) {
+      return;
+    }
+
+    final position = _scroll.position;
+    _scroll.animateTo(
+      (index * (size.width + TileRow._gap)).clamp(position.minScrollExtent, position.maxScrollExtent),
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+    );
+  }
 }

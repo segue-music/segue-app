@@ -409,7 +409,10 @@ Running two app instances on one machine as different devices:
   nor the top bar its back and forward ones: its tiles grow, rather, as much as shows 40% of one at the screen's side
   (`TileRow._peek`), whatever its width, so that the row says it goes on, their pictures growing and their lines
   staying as they are (a row's tiles, as the album grid's, are as tall as their cover and lines,
-  `AlbumRow.tileSize`). `FocusRing` must keep the same widget tree with or without focus, since rebuilding the child
+  `AlbumRow.tileSize`). The card with the focus stays in the first one's place, the row moving under it
+  (`_keepAtStart`), as Google TV's do, so that the cards after it and that piece stay in view; `FocusRing` then
+  only shows it grown above and below. There the row starts 8 further in, its title too (`TileRow._grownSide`), for
+  that card to grow into with its ring clear of the rail. `FocusRing` must keep the same widget tree with or without focus, since rebuilding the child
   would drop its focus as soon as it arrived. On a TV
   (`lib/television.dart`, asking `MainActivity.kt`), focus highlights are always on: Flutter starts
   Android in touch mode and ignores key events from virtual keyboards, which is what

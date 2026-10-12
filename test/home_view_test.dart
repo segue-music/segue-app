@@ -1360,14 +1360,25 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('on a TV, right goes along a row, scrolling it, and down goes to the next row, the card grown with the '
-      'focus in view with its ring, clear of the edges', (tester) async {
+  testWidgets('on a TV, right and left go along a row, which keeps the card with the focus in its first one\'s place, '
+      'as Google TV\'s do, the next ones and a piece of another in view; down goes to the next row, the card grown '
+      'with the focus in view with its ring', (tester) async {
     await pumpHome(
       tester,
       const Size(960, 540),
       mostPlayed: [for (var i = 0; i < 12; i++) 'Most $i'],
       latest: [for (var i = 0; i < 12; i++) 'Latest $i'],
       television: true,
+    );
+
+    final cover = find.descendant(
+      of: find.ancestor(of: find.text('Most 0'), matching: find.byType(AlbumTile)),
+      matching: find.byType(AspectRatio),
+    );
+    expect(
+      tester.getRect(find.text('Mais tocados').first).left,
+      moreOrLessEquals(tester.getRect(cover.first).left),
+      reason: 'the row\'s title over its covers',
     );
 
     for (var i = 0; i < 100 && focusedAlbum() != 'Most 0'; i++) {
@@ -1377,9 +1388,7 @@ void main() {
 
     expect(focusedAlbum(), 'Most 0');
 
-    for (var i = 0; i < 7; i++) {
-      await press(tester, LogicalKeyboardKey.arrowRight);
-    }
+    Rect tile(String album) => tester.getRect(find.ancestor(of: find.text(album), matching: find.byType(AlbumTile)));
 
     // As it shows, grown, the ring at its edges.
     Rect focusedCard() {
@@ -1388,8 +1397,23 @@ void main() {
       return MatrixUtils.transformRect(box.getTransformTo(null), Offset.zero & box.size);
     }
 
+    final first = tile('Most 0').left;
+
+    for (var i = 0; i < 7; i++) {
+      await press(tester, LogicalKeyboardKey.arrowRight);
+    }
+
     expect(focusedAlbum(), 'Most 7');
-    expect(focusedCard().right, lessThanOrEqualTo(960 - 8 + 0.01), reason: 'at the screen\'s side');
+    expect(tile('Most 7').left, moreOrLessEquals(first), reason: 'in the first one\'s place');
+    final row = tester.getRect(find.ancestor(of: find.text('Most 7'), matching: find.byType(Scrollable)).first);
+    expect(focusedCard().left - row.left, greaterThanOrEqualTo(8), reason: 'its ring clear of the rail');
+    expect(tile('Most 11').left, lessThan(960), reason: 'a piece of the last, at the screen\'s side');
+    expect(tile('Most 11').right, greaterThan(960));
+    await press(tester, LogicalKeyboardKey.arrowLeft);
+    expect(focusedAlbum(), 'Most 6');
+    expect(tile('Most 6').left, moreOrLessEquals(first), reason: 'back in the first one\'s place');
+    // Through the next row's title, a link, over its first card.
+    await press(tester, LogicalKeyboardKey.arrowDown);
     await press(tester, LogicalKeyboardKey.arrowDown);
     expect(focusedAlbum(), startsWith('Latest'));
     final page = tester.getRect(find.descendant(of: find.byType(HomeView), matching: find.byType(Scrollable)).first);
