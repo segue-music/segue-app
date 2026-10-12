@@ -374,7 +374,14 @@ Running two app instances on one machine as different devices:
   saved before Jellyfin, so Subsonic). The password itself is never stored.
 - Android TV: the remote drives the app through focus. `segueTheme` (`lib/ui/app/theme.dart`) gives
   focused buttons a ring and everything else a strong tint, and `FocusRing` draws a ring on tiles
-  whose image hides the tint. `FocusRing` must keep the same widget tree with or without focus,
+  whose image hides the tint, and grows a card (`grows`: an album's, an artist's, a mix's) by 6% there, a row of
+  them (`TileRow`) having the room above and below for it. `TelevisionScreen` (`lib/ui/app/television_screen.dart`,
+  around the app on a TV) has the text 15% bigger than the system's and gives the screen's edges Android TV's room
+  (48 by 27, for TVs that cut them off) as the system's padding, which the bars keep out of by themselves, and the
+  home's rail by its `SafeArea`, their backgrounds going on to the edges. The page area goes on to the right edge,
+  the left's padding taken out of it (the rail's), so that a row of tiles runs on to the side as it scrolls, as Google
+  TV's do: `TileRow` keeps its title, its arrows and its last tile out of the right's padding, and the full-screen
+  player keeps out of it all. `FocusRing` must keep the same widget tree with or without focus,
   since rebuilding the child would drop its focus as soon as it arrived. On a TV
   (`lib/television.dart`, asking `MainActivity.kt`), focus highlights are always on: Flutter starts
   Android in touch mode and ignores key events from virtual keyboards, which is what

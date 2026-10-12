@@ -673,13 +673,27 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 centerTitle: true,
                 actions: actions,
               ),
+              // The rail away from the screen's side, where the system has it keep out (a phone's notch, turned; a TV's
+              // edges, which it may cut off), as the bars are: the top bar and the player's keep out of them themselves.
+              // The pages go on to the other side, a row of tiles running off it as it scrolls, and keep out of it what
+              // has to stay in view (a row's title, its arrows and its last tile; the full-screen player): the left's
+              // room is the rail's, not theirs.
               body: Row(
                 children: [
-                  _SideRail(selected: shown, onSelected: _select),
+                  SafeArea(
+                    top: false,
+                    right: false,
+                    bottom: false,
+                    child: _SideRail(selected: shown, onSelected: _select),
+                  ),
                   const VerticalDivider(width: 1),
                   Expanded(
-                    // A Material of its own for the lists' ink, which the page's transition would paint over.
-                    child: pageArea(Material(type: MaterialType.transparency, child: sections)),
+                    child: MediaQuery.removePadding(
+                      context: context,
+                      removeLeft: true,
+                      // A Material of its own for the lists' ink, which the page's transition would paint over.
+                      child: pageArea(Material(type: MaterialType.transparency, child: sections)),
+                    ),
                   ),
                 ],
               ),

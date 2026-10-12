@@ -161,7 +161,9 @@ knows nothing of them, and another device plays as it has them.
   computer the window opens maximized and gets no narrower than 960.
 - **Phone**: the player bar and a bar with the home, the search and the library stay at the bottom, and a swipe goes
   from section to section. Pages open over the rest, and a swipe to the right from anywhere goes back.
-- **TV**: the remote drives the app, a white ring showing where it is. The keyboard opens on the search bar with the
+- **TV**: the remote drives the app, a white ring showing where it is, and an album, an artist or a mix it is on a
+  little bigger. The text is a bit bigger than on a phone, and everything keeps out of the screen's edges, which some
+  TVs cut off, but for the rows of albums, which run on to the side as they scroll, as Google TV's do. The keyboard opens on the search bar with the
   center button, OK held opens a menu, and a song of the queue or of a playlist moves by the remote ("Mover" in its
   menu, then the arrows and OK). The remote's play/pause, next and previous buttons drive playback.
 - **The system's media controls** show and command what the player bar shows, the device it follows included: on

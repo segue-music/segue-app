@@ -20,6 +20,7 @@ import 'theme_choice.dart';
 import 'ui/app/home_page.dart';
 import 'ui/app/login_page.dart';
 import 'ui/app/shortcuts.dart';
+import 'ui/app/television_screen.dart';
 import 'ui/app/theme.dart';
 import 'ui/app/theme_fade.dart';
 import 'ui/app/title_bar.dart';
@@ -293,7 +294,7 @@ class _SegueAppState extends State<SegueApp> {
       themeAnimationDuration: Duration.zero,
       // Above the navigator, so that every page and sheet sees the services and the shortcuts.
       builder: (context, child) {
-        final page = DirectionalNavigation(
+        final page = TelevisionScreen(
           enabled: widget.television,
           child: TextFieldArrowShortcuts(
             // Esc goes back from a page before it takes the focus off what has it there.

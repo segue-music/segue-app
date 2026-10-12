@@ -218,6 +218,7 @@ class _ArtistTileState extends State<ArtistTile> {
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
       child: FocusRing(
+        grows: true,
         child: InkWell(
           mouseCursor: WidgetStateMouseCursor.clickable,
           borderRadius: BorderRadius.circular(8),

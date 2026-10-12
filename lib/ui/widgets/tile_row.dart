@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../../l10n/app_localizations.dart';
+import 'focus_ring.dart';
 import 'text_link.dart';
 import 'themed_icon.dart';
 
@@ -97,8 +98,10 @@ class _TileRowState extends State<TileRow> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Out of the room at the screen's side, where the system has the app keep out of it (on a TV, its edges): the
+        // tiles run on to the side as they scroll, the last stopping out of it.
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 12, 4),
+          padding: EdgeInsets.fromLTRB(16, 12, 12 + MediaQuery.paddingOf(context).right, 4),
           child: SizedBox(
             height: 48, // the same with the arrows or without them
             child: Row(
@@ -119,7 +122,10 @@ class _TileRowState extends State<TileRow> {
             ),
           ),
         ),
-        if (tiles == null) widget.instead else SizedBox(height: widget.tileSize.height, child: _strip(tiles)),
+        if (tiles == null)
+          widget.instead
+        else
+          SizedBox(height: widget.tileSize.height + 2 * _grownRoom(television), child: _strip(tiles, television)),
       ],
     );
   }
@@ -169,7 +175,12 @@ class _TileRowState extends State<TileRow> {
     },
   );
 
-  Widget _strip(List<Widget> tiles) => NotificationListener<ScrollMetricsNotification>(
+  /// The room above and below the tiles, on a TV, for one to grow with the focus ([FocusRing.grows]) without its ring
+  /// cut off by the row's edges.
+  double _grownRoom(bool television) =>
+      television ? (widget.tileSize.height * (FocusRing.grownScale - 1) / 2).ceilToDouble() : 0;
+
+  Widget _strip(List<Widget> tiles, bool television) => NotificationListener<ScrollMetricsNotification>(
     onNotification: (notification) {
       _metrics.value = notification.metrics;
 
@@ -183,7 +194,12 @@ class _TileRowState extends State<TileRow> {
       child: ListView.separated(
         controller: _scroll,
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: TileRow._edge),
+        padding: EdgeInsets.fromLTRB(
+          TileRow._edge,
+          _grownRoom(television),
+          TileRow._edge + MediaQuery.paddingOf(context).right,
+          _grownRoom(television),
+        ),
         itemCount: tiles.length,
         separatorBuilder: (_, _) => const SizedBox(width: TileRow._gap),
         itemBuilder: (context, i) => SizedBox(width: widget.tileSize.width, child: tiles[i]),

@@ -15,6 +15,7 @@ import 'package:segue/server/models.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
+import 'package:segue/ui/app/television_screen.dart';
 import 'package:segue/ui/home/home_view.dart';
 import 'package:segue/ui/home/mix_row.dart';
 import 'package:segue/ui/widgets/cover.dart';
@@ -200,7 +201,8 @@ List<Object> about(List<Mix> mixes) => [
     },
 ];
 
-/// The home, over the library [server] has, with [played], [genres], [songs] and [pictured]. Returns its player.
+/// The home, over the library [server] has, with [played], [genres], [songs] and [pictured]; with [television], as on a
+/// TV. Returns its player.
 Future<PlayerController> pumpHome(
   WidgetTester tester, {
   List<Map<String, String>>? asked,
@@ -208,6 +210,7 @@ Future<PlayerController> pumpHome(
   bool genres = true,
   bool songs = true,
   Set<String>? pictured,
+  bool television = false,
 }) async {
   final server = api(asked: asked, played: played, genres: genres, songs: songs, pictured: pictured);
   final player = PlayerController(FakeEngine(), server);
@@ -224,7 +227,10 @@ Future<PlayerController> pumpHome(
     MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: const [Locale('pt')],
-      builder: (context, child) => ServicesScope(services: services, child: child!),
+      builder: (context, child) => ServicesScope(
+        services: services,
+        child: TelevisionScreen(enabled: television, child: child!),
+      ),
       home: const Scaffold(body: HomeView()),
     ),
   );

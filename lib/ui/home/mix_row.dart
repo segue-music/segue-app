@@ -112,6 +112,7 @@ class _MixTileState extends State<_MixTile> {
     final strings = AppLocalizations.of(context);
 
     return FocusRing(
+      grows: true,
       child: InkWell(
         mouseCursor: WidgetStateMouseCursor.clickable,
         borderRadius: BorderRadius.circular(8),

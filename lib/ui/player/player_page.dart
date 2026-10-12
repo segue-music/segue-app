@@ -196,9 +196,15 @@ class _PlayerPageState extends State<PlayerPage> with SingleTickerProviderStateM
                         SizedBox(width: kToolbarHeight, child: device == null ? const SleepTimerButton() : null),
                     ],
                   ),
+                  // Out of the room at the screen's side, where the system has the app keep out of it (on a TV, its
+                  // edges), as the lyrics' lines would otherwise go on into it.
                   body: now == null
                       ? Center(child: Text(strings.nothingPlaying))
-                      : _Player(now, lyrics: _shown, controls: !wide, scroll: scroll),
+                      : SafeArea(
+                          top: false,
+                          bottom: false,
+                          child: _Player(now, lyrics: _shown, controls: !wide, scroll: scroll),
+                        ),
                   bottomNavigationBar: wide
                       ? NowPlayingBar(lyrics: widget._lyrics)
                       : SafeArea(

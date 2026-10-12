@@ -23,7 +23,7 @@ import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/album/album_page.dart';
 import 'package:segue/ui/album/albums_view.dart';
 import 'package:segue/ui/app/home_page.dart';
-import 'package:segue/ui/app/shortcuts.dart';
+import 'package:segue/ui/app/television_screen.dart';
 import 'package:segue/ui/artist/artist_page.dart';
 import 'package:segue/ui/player/lyrics_page.dart';
 import 'package:segue/ui/player/lyrics_view.dart';
@@ -198,7 +198,7 @@ Future<PlayerController> pumpBar(
       supportedLocales: const [Locale('pt')],
       builder: (context, child) => ServicesScope(
         services: services,
-        child: DirectionalNavigation(enabled: television, child: child!),
+        child: TelevisionScreen(enabled: television, child: child!),
       ),
       home: inHome
           ? HomePage(onSignOut: () {})
@@ -765,9 +765,11 @@ void main() {
     // A TV's screen, as Android gives it to the app: 1920 × 1080 pixels, two to each of its own.
     await pumpBar(tester, server: withLyrics(verse), size: const Size(960, 540), television: true);
     await openPlayer(tester);
+    // Of the screen but the room at its sides, 48 each: 864 wide.
     final lyrics = tester.getRect(onPage(find.byType(LyricsView)));
-    expect((lyrics.left, lyrics.right), (384, 960));
-    expect(tester.getCenter(playerCover).dx, 192, reason: 'in the middle of the rest');
+    expect(lyrics.left, moreOrLessEquals(48 + 864 * 2 / 5));
+    expect(lyrics.right, 960 - 48);
+    expect(tester.getCenter(playerCover).dx, moreOrLessEquals(48 + 864 / 5), reason: 'in the middle of the rest');
     expect(keptOn, [true]);
 
     await tester.tap(onPage(find.byTooltip('Esconder a letra')));
@@ -842,7 +844,7 @@ void main() {
 
     await player.next();
     await tester.pumpAndSettle();
-    expect(tester.getRect(onPage(find.byType(LyricsView))).left, 384);
+    expect(tester.getRect(onPage(find.byType(LyricsView))).left, moreOrLessEquals(48 + 864 * 2 / 5));
     expect(onPage(find.text('That nobody cares')), findsOneWidget);
 
     await player.previous();

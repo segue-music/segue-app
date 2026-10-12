@@ -16,6 +16,7 @@ import 'package:segue/ui/album/album_page.dart';
 import 'package:segue/ui/album/albums_view.dart';
 import 'package:segue/ui/app/home_page.dart';
 import 'package:segue/ui/app/shortcuts.dart';
+import 'package:segue/ui/app/television_screen.dart';
 import 'package:segue/ui/home/home_view.dart';
 import 'package:segue/ui/player/now_playing_bar.dart';
 
@@ -70,8 +71,8 @@ Future<PlayerController> pumpBarOnSlider(
 
 bool sliderFocused() => FocusManager.instance.primaryFocus?.context?.findAncestorWidgetOfExactType<Slider>() != null;
 
-/// The home page on a TV-sized screen, with more albums than fit, and a song in the bar: the grid
-/// builds the next row past the bottom of the screen, under the bar.
+/// The home page on a TV, its screen as Android gives it (1920 × 1080 pixels, two to each of its own), with more albums
+/// than fit, and a song in the bar: the grid builds the next row past the bottom of the screen, under the bar.
 Future<void> pumpTvHome(WidgetTester tester, {bool followingAnotherDevice = false}) async {
   const credentials = SubsonicCredentials(username: 'a', token: 't', salt: 's');
   final api = SubsonicApi(
@@ -122,7 +123,7 @@ Future<void> pumpTvHome(WidgetTester tester, {bool followingAnotherDevice = fals
       supportedLocales: const [Locale('pt')],
       builder: (context, child) => ServicesScope(
         services: services,
-        child: DirectionalNavigation(enabled: true, child: TextFieldArrowShortcuts(child: child!)),
+        child: TelevisionScreen(enabled: true, child: TextFieldArrowShortcuts(child: child!)),
       ),
       home: HomePage(onSignOut: () {}),
     ),
