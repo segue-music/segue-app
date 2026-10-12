@@ -765,11 +765,17 @@ void main() {
     // A TV's screen, as Android gives it to the app: 1920 × 1080 pixels, two to each of its own.
     await pumpBar(tester, server: withLyrics(verse), size: const Size(960, 540), television: true);
     await openPlayer(tester);
-    // Of the screen but the room at its sides, 48 each: 864 wide.
+    // Of the screen but the room at its sides.
+    const side = TelevisionScreen.margins;
+    final width = 960 - 2 * side.left;
     final lyrics = tester.getRect(onPage(find.byType(LyricsView)));
-    expect(lyrics.left, moreOrLessEquals(48 + 864 * 2 / 5));
-    expect(lyrics.right, 960 - 48);
-    expect(tester.getCenter(playerCover).dx, moreOrLessEquals(48 + 864 / 5), reason: 'in the middle of the rest');
+    expect(lyrics.left, moreOrLessEquals(side.left + width * 2 / 5));
+    expect(lyrics.right, 960 - side.right);
+    expect(
+      tester.getCenter(playerCover).dx,
+      moreOrLessEquals(side.left + width / 5),
+      reason: 'in the middle of the rest',
+    );
     expect(keptOn, [true]);
 
     await tester.tap(onPage(find.byTooltip('Esconder a letra')));
@@ -844,7 +850,8 @@ void main() {
 
     await player.next();
     await tester.pumpAndSettle();
-    expect(tester.getRect(onPage(find.byType(LyricsView))).left, moreOrLessEquals(48 + 864 * 2 / 5));
+    final side = TelevisionScreen.margins.left;
+    expect(tester.getRect(onPage(find.byType(LyricsView))).left, moreOrLessEquals(side + (960 - 2 * side) * 2 / 5));
     expect(onPage(find.text('That nobody cares')), findsOneWidget);
 
     await player.previous();

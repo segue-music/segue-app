@@ -10,6 +10,7 @@ import '../playlist/playlist_dialogs.dart';
 import '../song/favorite_button.dart';
 import '../song/song_link.dart';
 import '../song/song_menu.dart';
+import '../widgets/bar_traversal.dart';
 import '../widgets/cover.dart';
 import '../widgets/focus_ring.dart';
 import '../widgets/menu_shortcuts.dart';
@@ -216,7 +217,7 @@ class NowPlayingBar extends StatelessWidget {
             child: SafeArea(
               top: false,
               child: FocusTraversalGroup(
-                policy: _BarTraversalPolicy.instance,
+                policy: BarTraversalPolicy.bottom,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -416,47 +417,5 @@ double _lineHeight(TextStyle? style, TextScaler scaler) {
     return painter.preferredLineHeight;
   } finally {
     painter.dispose();
-  }
-}
-
-/// Moving around the bar with the arrows (a TV remote's): left and right along its row of buttons, up and down
-/// between that row and the slider (over it on a phone, under the playback's buttons on a wide screen), up from its
-/// top out of the bar, and nowhere past its other ends. Flutter's own directional search looks at the whole screen,
-/// where the album grid's rows built past the bottom of the screen lie under the bar, level with its buttons, and
-/// could win.
-class _BarTraversalPolicy extends ReadingOrderTraversalPolicy {
-  _BarTraversalPolicy._();
-
-  static final instance = _BarTraversalPolicy._();
-
-  @override
-  bool inDirection(FocusNode currentNode, TraversalDirection direction) {
-    final here = currentNode.rect;
-    final bar = [
-      for (final node in currentNode.nearestScope!.traversalDescendants)
-        if (node != currentNode && FocusTraversalGroup.maybeOfNode(node) == this) node,
-    ];
-
-    bool level(FocusNode node) => node.rect.top < here.bottom && node.rect.bottom > here.top;
-
-    double away(FocusNode node) => (node.rect.center - here.center).distance;
-
-    FocusNode? closest(Iterable<FocusNode> nodes) =>
-        nodes.isEmpty ? null : nodes.reduce((a, b) => away(a) <= away(b) ? a : b);
-
-    final target = closest(switch (direction) {
-      TraversalDirection.left => bar.where((node) => level(node) && node.rect.center.dx < here.center.dx),
-      TraversalDirection.right => bar.where((node) => level(node) && node.rect.center.dx > here.center.dx),
-      TraversalDirection.up => bar.where((node) => node.rect.bottom <= here.top + 1),
-      TraversalDirection.down => bar.where((node) => node.rect.top >= here.bottom - 1),
-    });
-
-    if (target != null) {
-      requestFocusCallback(target);
-      return true;
-    }
-
-    // From the top of the bar, up goes on as anywhere else; past its other edges, nowhere.
-    return direction == TraversalDirection.up && super.inDirection(currentNode, direction);
   }
 }

@@ -400,6 +400,34 @@ void main() {
     expect(find.byTooltip('Avançar'), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
+
+  testWidgets('left and right stay in the top bar, rather than go to a card scrolled under it, level with the search', (
+    tester,
+  ) async {
+    await pumpTvHome(tester);
+    final search = tester.widget<TextField>(find.descendant(of: find.byType(AppBar), matching: find.byType(TextField)));
+    search.focusNode!.requestFocus();
+    await tester.pumpAndSettle();
+    final page = tester.state<ScrollableState>(
+      find.descendant(of: find.byType(HomeView), matching: find.byType(Scrollable)).first,
+    );
+    page.position.jumpTo(170);
+    await tester.pumpAndSettle();
+
+    final band = FocusManager.instance.primaryFocus!.rect;
+    final under = [
+      for (final tile in tester.widgetList(find.byType(AlbumTile)))
+        if (tester.getRect(find.byWidget(tile)) case final rect when rect.top < band.bottom && rect.bottom > band.top)
+          rect,
+    ];
+    expect(under, isNotEmpty, reason: 'a card under the bar, level with the search');
+
+    await press(tester, LogicalKeyboardKey.arrowLeft);
+    expect(focusedTip(), 'Início');
+    await press(tester, LogicalKeyboardKey.arrowRight);
+    expect(inSearch(), isTrue);
+    await tester.pumpWidget(const SizedBox());
+  });
 }
 
 /// The search bar's text field has the focus.

@@ -42,6 +42,35 @@ class _FocusRingState extends State<FocusRing> {
 
   void _highlightModeChanged(FocusHighlightMode mode) => setState(() {});
 
+  /// On a TV, the room a card grows into and its ring in view too, with some room around them, once the focus has
+  /// scrolled the card itself into view: a card at the screen's edge grew past it, its ring cut off.
+  void _showGrown() {
+    if (!widget.grows || MediaQuery.maybeNavigationModeOf(context) != NavigationMode.directional) {
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final box = mounted ? context.findRenderObject() : null;
+
+      if (!_focused || box is! RenderBox || !box.hasSize) {
+        return;
+      }
+
+      final grown = box.size * ((FocusRing.grownScale - 1) / 2);
+      box.showOnScreen(
+        rect: EdgeInsets.symmetric(
+          horizontal: grown.width + _roomAround,
+          vertical: grown.height + _roomAround,
+        ).inflateRect(Offset.zero & box.size),
+        duration: const Duration(milliseconds: 150),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
+  /// How far a grown card's ring stays from the screen's edges.
+  static const _roomAround = 8.0;
+
   @override
   Widget build(BuildContext context) {
     final shown = _focused && FocusManager.instance.highlightMode == FocusHighlightMode.traditional;
@@ -50,7 +79,13 @@ class _FocusRingState extends State<FocusRing> {
     return Focus(
       canRequestFocus: false,
       skipTraversal: true,
-      onFocusChange: (focused) => setState(() => _focused = focused),
+      onFocusChange: (focused) {
+        setState(() => _focused = focused);
+
+        if (focused) {
+          _showGrown();
+        }
+      },
       // Always the same tree, the border coming and going, the card growing and shrinking: putting the box in only
       // with the focus would rebuild the child, whose focus would then be lost as soon as it got there.
       child: AnimatedScale(

@@ -31,6 +31,7 @@ import '../playlist/playlists_view.dart';
 import '../home/search_results.dart';
 import '../settings/settings_page.dart';
 import 'shortcuts.dart';
+import '../widgets/bar_traversal.dart';
 import '../widgets/themed_icon.dart';
 
 class HomePage extends StatefulWidget {
@@ -644,38 +645,45 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             history: _history,
             underTopBar: true,
             child: Scaffold(
-              appBar: AppBar(
-                // The app's icon, over the side rail, which opens the home, and the arrows beside it. A TV has none: its
-                // remote's back closes the page on top, and the arrows would only be two more stops for the focus on the
-                // way to the icon, with a forward no TV app has.
-                leading: television
-                    ? logo
-                    : ListenableBuilder(
-                        listenable: _history,
-                        builder: (context, _) => Row(
-                          children: [
-                            SizedBox.square(dimension: kToolbarHeight, child: logo),
-                            IconButton(
-                              tooltip: strings.back,
-                              style: arrows,
-                              icon: const ThemedIcon(HugeIcons.strokeRoundedArrowLeft02),
-                              onPressed: _history.canGoBack ? _history.back : null,
+              // Left and right along its buttons, rather than to a card scrolled under it.
+              appBar: PreferredSize(
+                preferredSize: const Size.fromHeight(kToolbarHeight),
+                child: FocusTraversalGroup(
+                  policy: BarTraversalPolicy.top,
+                  child: AppBar(
+                    // The app's icon, over the side rail, which opens the home, and the arrows beside it. A TV has
+                    // none: its remote's back closes the page on top, and the arrows would only be two more stops for
+                    // the focus on the way to the icon, with a forward no TV app has.
+                    leading: television
+                        ? logo
+                        : ListenableBuilder(
+                            listenable: _history,
+                            builder: (context, _) => Row(
+                              children: [
+                                SizedBox.square(dimension: kToolbarHeight, child: logo),
+                                IconButton(
+                                  tooltip: strings.back,
+                                  style: arrows,
+                                  icon: const ThemedIcon(HugeIcons.strokeRoundedArrowLeft02),
+                                  onPressed: _history.canGoBack ? _history.back : null,
+                                ),
+                                IconButton(
+                                  tooltip: strings.forward,
+                                  style: arrows,
+                                  icon: const ThemedIcon(HugeIcons.strokeRoundedArrowRight02),
+                                  onPressed: _history.canGoForward ? _history.forward : null,
+                                ),
+                              ],
                             ),
-                            IconButton(
-                              tooltip: strings.forward,
-                              style: arrows,
-                              icon: const ThemedIcon(HugeIcons.strokeRoundedArrowRight02),
-                              onPressed: _history.canGoForward ? _history.forward : null,
-                            ),
-                          ],
-                        ),
-                      ),
-                leadingWidth: television ? kToolbarHeight : kToolbarHeight + 2 * arrow,
-                // The search bar is the title, which the app bar centers on the window, moving it aside where the
-                // middle has no room for it.
-                title: searchBar,
-                centerTitle: true,
-                actions: actions,
+                          ),
+                    leadingWidth: television ? kToolbarHeight : kToolbarHeight + 2 * arrow,
+                    // The search bar is the title, which the app bar centers on the window, moving it aside where the
+                    // middle has no room for it.
+                    title: searchBar,
+                    centerTitle: true,
+                    actions: actions,
+                  ),
+                ),
               ),
               // The rail away from the screen's side, where the system has it keep out (a phone's notch, turned; a TV's
               // edges, which it may cut off), as the bars are: the top bar and the player's keep out of them themselves.

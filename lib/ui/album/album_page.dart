@@ -407,7 +407,7 @@ class _AlbumPageState extends State<AlbumPage> {
                 for (final album in others.take(AlbumRow.maxAlbums))
                   AlbumTile(album, subtitle: yearAndReleaseType(strings, album)),
               ],
-              tileSize: AlbumRow.tileSize,
+              tileSize: AlbumRow.tileSize(context),
               previousLabel: strings.previousAlbums,
               nextLabel: strings.nextAlbums,
             ),

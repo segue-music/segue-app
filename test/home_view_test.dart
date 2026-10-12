@@ -1236,8 +1236,15 @@ void main() {
           tester.getRect(find.byWidget(tile)),
       ].where((tile) => tile.left < side).toList();
 
+      final size = AlbumRow.tileSize(tester.element(strip));
+
       expect(side, width, reason: 'the row goes on to the screen\'s side');
-      expect(tiles.first.width, greaterThanOrEqualTo(AlbumRow.tileSize.width), reason: 'bigger, never smaller');
+      expect(tiles.first.width, greaterThanOrEqualTo(size.width), reason: 'bigger, never smaller');
+      expect(
+        tiles.first.height - size.height,
+        moreOrLessEquals(tiles.first.width - size.width),
+        reason: 'as much taller as its cover grows, its lines as they are',
+      );
       expect(tiles.last.right, greaterThan(side), reason: 'cut off at $width');
       expect((side - tiles.last.left) / tiles.last.width, moreOrLessEquals(0.4, epsilon: 0.01), reason: '$width');
       await tester.pumpWidget(const SizedBox());
@@ -1281,6 +1288,16 @@ void main() {
     expect(tester.widget<NavigationBar>(bar).selectedIndex, 2);
     expect(tester.widget<TabBar>(find.byType(TabBar)).controller?.index, 0);
     expect(tester.widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'Lançamentos')).selected, isTrue);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('a row\'s tiles are as tall as their cover and the lines under it, as the grid\'s, with no room left '
+      'under them', (tester) async {
+    await pumpHome(tester, const Size(1000, 700));
+    final tile = find.ancestor(of: find.text('Toys in the Attic').first, matching: find.byType(AlbumTile));
+    final cover = tester.getSize(find.descendant(of: tile, matching: find.byType(AspectRatio)).first);
+    final lines = AlbumTile.linesHeight(tester.element(tile));
+    expect(tester.getSize(tile).height, moreOrLessEquals(cover.height + lines + 2 * AlbumTile.padding));
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -1343,7 +1360,8 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('on a TV, right goes along a row, scrolling it, and down goes to the next row', (tester) async {
+  testWidgets('on a TV, right goes along a row, scrolling it, and down goes to the next row, the card grown with the '
+      'focus in view with its ring, clear of the edges', (tester) async {
     await pumpHome(
       tester,
       const Size(960, 540),
@@ -1363,10 +1381,19 @@ void main() {
       await press(tester, LogicalKeyboardKey.arrowRight);
     }
 
+    // As it shows, grown, the ring at its edges.
+    Rect focusedCard() {
+      final box = FocusManager.instance.primaryFocus!.context!.findRenderObject()! as RenderBox;
+
+      return MatrixUtils.transformRect(box.getTransformTo(null), Offset.zero & box.size);
+    }
+
     expect(focusedAlbum(), 'Most 7');
-    expect(tester.getRect(find.text('Most 7')).right, lessThanOrEqualTo(960), reason: 'scrolled into view');
+    expect(focusedCard().right, lessThanOrEqualTo(960 - 8 + 0.01), reason: 'at the screen\'s side');
     await press(tester, LogicalKeyboardKey.arrowDown);
     expect(focusedAlbum(), startsWith('Latest'));
+    final page = tester.getRect(find.descendant(of: find.byType(HomeView), matching: find.byType(Scrollable)).first);
+    expect(focusedCard().bottom, lessThanOrEqualTo(page.bottom - 8 + 0.01), reason: 'at the page\'s bottom');
     await tester.pumpWidget(const SizedBox());
   });
 }

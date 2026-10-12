@@ -31,8 +31,9 @@ class TileRow extends StatefulWidget {
   /// What it shows under its title without tiles: that they are coming, that there are none, or why.
   final Widget instead;
 
-  /// How big each tile is, with the room inside it ([tilePadding]); on a TV, a bit bigger, for a piece of the next one
-  /// to show at the screen's side.
+  /// How big each tile is, with the room inside it ([tilePadding]): a picture as wide as it, less that room, over its
+  /// lines. On a TV, a bit wider, for a piece of the next one to show at the screen's side, and as much taller, as its
+  /// picture grows.
   final Size tileSize;
 
   /// What the arrows scroll back to and forward to, in their tooltips.
@@ -112,7 +113,8 @@ class _TileRowState extends State<TileRow> {
             Padding(
               padding: EdgeInsets.fromLTRB(16, 12, 12 + MediaQuery.paddingOf(context).right, 4),
               child: SizedBox(
-                height: 48, // the same with the arrows or without them
+                // On a computer, as tall with the arrows as without them; on a TV, which has none, as tall as the title.
+                height: television ? null : 48,
                 child: Row(
                   children: [
                     Expanded(
@@ -141,9 +143,9 @@ class _TileRowState extends State<TileRow> {
     );
   }
 
-  /// How big each tile is in a row [width] wide: on a TV, a bit bigger than [TileRow.tileSize], as much as shows
+  /// How big each tile is in a row [width] wide: on a TV, a bit wider than [TileRow.tileSize], as much as shows
   /// [TileRow._peek] of a tile at the screen's side, rather than the tiles that happen to fit, whole, with nothing to
-  /// say that more follow.
+  /// say that more follow; and as much taller, its picture growing as it, and its lines staying as they are.
   Size _tileSize(double width, {required bool television}) {
     final size = widget.tileSize;
 
@@ -153,8 +155,9 @@ class _TileRowState extends State<TileRow> {
 
     final room = width - TileRow._edge + TileRow._gap;
     final whole = max(1, (room / (size.width + TileRow._gap) - TileRow._peek).floor());
+    final grownWidth = room / (whole + TileRow._peek) - TileRow._gap;
 
-    return size * ((room / (whole + TileRow._peek) - TileRow._gap) / size.width);
+    return Size(grownWidth, size.height + grownWidth - size.width);
   }
 
   /// Back and forward, each while there are tiles that way; none when they all fit, nor on a touch screen, where a

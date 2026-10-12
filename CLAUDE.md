@@ -394,7 +394,11 @@ Running two app instances on one machine as different devices:
 - Android TV: the remote drives the app through focus. `segueTheme` (`lib/ui/app/theme.dart`) gives
   focused buttons a ring and everything else a strong tint, and `FocusRing` draws a ring on tiles
   whose image hides the tint, and grows a card (`grows`: an album's, an artist's, a mix's) by 6% there, a row of
-  them (`TileRow`) having the room above and below for it. `TelevisionScreen` (`lib/ui/app/television_screen.dart`,
+  them (`TileRow`) having the room above and below for it, and the page scrolling as far as shows it grown, ring and
+  all (`_showGrown`), past where the focus scrolls the card itself. The top bar and the player's keep the arrows in
+  them (`BarTraversalPolicy`, `lib/ui/widgets/bar_traversal.dart`), leaving only on the page's side: Flutter's
+  directional search looks at the whole screen, where cards scrolled under the top bar, or built under the player's,
+  lie level with their buttons. `TelevisionScreen` (`lib/ui/app/television_screen.dart`,
   around the app on a TV) has the text 15% bigger than the system's and gives the screen's edges room (12 by 6,
   about a quarter of Android TV's 48 by 27, for TVs that cut them off, since the bars keep their own inside it) as
   the system's padding, which the bars keep out of by themselves, and the home's rail by its `SafeArea`, their
@@ -403,8 +407,10 @@ Running two app instances on one machine as different devices:
   TV's do: `TileRow` keeps its title and its last tile out of the right's padding, and the full-screen
   player keeps out of it all. A row has no arrows there, which the remote, going along its tiles, wouldn't reach,
   nor the top bar its back and forward ones: its tiles grow, rather, as much as shows 40% of one at the screen's side
-  (`TileRow._peek`), whatever its width, so that the row says it goes on. `FocusRing` must keep the same widget tree with or without focus,
-  since rebuilding the child would drop its focus as soon as it arrived. On a TV
+  (`TileRow._peek`), whatever its width, so that the row says it goes on, their pictures growing and their lines
+  staying as they are (a row's tiles, as the album grid's, are as tall as their cover and lines,
+  `AlbumRow.tileSize`). `FocusRing` must keep the same widget tree with or without focus, since rebuilding the child
+  would drop its focus as soon as it arrived. On a TV
   (`lib/television.dart`, asking `MainActivity.kt`), focus highlights are always on: Flutter starts
   Android in touch mode and ignores key events from virtual keyboards, which is what
   `adb shell input keyevent` sends. `TextFieldArrowShortcuts` lets up and down leave text fields

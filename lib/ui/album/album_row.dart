@@ -22,9 +22,10 @@ class AlbumRow extends StatelessWidget {
   /// How many albums it shows at most.
   static const maxAlbums = 30;
 
-  /// How big each tile is: covers of 160 pixels, with the tiles' room inside ([AlbumTile.padding]); as tall as a tile of
-  /// the album grid this wide.
-  static const tileSize = Size(160 + 2 * AlbumTile.padding, (160 + 2 * AlbumTile.padding) / 0.75);
+  /// How big each tile is: covers of 160 pixels, with the tiles' room inside ([AlbumTile.padding]); as tall as its cover
+  /// and the lines under it, as a tile of the album grid is, with no room left under them.
+  static Size tileSize(BuildContext context) =>
+      Size(160 + 2 * AlbumTile.padding, 160 + 2 * AlbumTile.padding + AlbumTile.linesHeight(context));
 
   @override
   Widget build(BuildContext context) => FutureBuilder(
@@ -32,6 +33,7 @@ class AlbumRow extends StatelessWidget {
     builder: (context, snapshot) {
       final text = Theme.of(context).textTheme;
       final strings = AppLocalizations.of(context);
+      final tileSize = AlbumRow.tileSize(context);
 
       Widget note(String message) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),

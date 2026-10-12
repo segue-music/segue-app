@@ -58,7 +58,7 @@ class MixRow extends StatelessWidget {
 
       return TileRow(
         title: strings.mixes,
-        tileSize: AlbumRow.tileSize,
+        tileSize: AlbumRow.tileSize(context),
         previousLabel: strings.previousMixes,
         nextLabel: strings.nextMixes,
         tiles: [for (final mix in suggested) _MixTile(mix, mixes: mixes)],
