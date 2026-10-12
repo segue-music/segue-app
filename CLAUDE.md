@@ -372,6 +372,17 @@ Running two app instances on one machine as different devices:
 - `Session` keeps the token (Subsonic's, with its salt, or Jellyfin's access token) in secure
   storage and everything else in `shared_preferences`, with the API under `api` (none: a session
   saved before Jellyfin, so Subsonic). The password itself is never stored.
+- Pairing (`lib/pairing/pairing.dart`): a TV signs in from a phone signed in, the remote typing nothing. The TV's
+  `LoginPage` (in directional mode) starts a `PairingServer`, an HTTP server on a port of its own, and shows its
+  `PairingInvite` as a QR code (qr_flutter): the TV's address on the local network, a random id (the path it takes
+  the sign-in at) and a random key. The phone's `SignInTvPage` (settings, Android and iOS, mobile_scanner) reads it
+  and, once the user confirms, `offerSignIn` posts a `PairingOffer` sealed with that key (AES-GCM, cryptography, the
+  id as associated data): the server, the hub, and on Subsonic the credentials. The TV (`takeOffer`) pings the server
+  with them and saves the session, or on Jellyfin starts a Quick Connect (`JellyfinApi.initiateQuickConnect`), answers
+  its code, which the phone authorizes, and polls until it can sign in with a token of its own. The hub has no part in
+  it: the TV knows neither the server nor the hub before. The answers aren't sealed: they carry no secret. The widget
+  tests reach the TV's server with a real `HttpClient` (`HttpOverrides`, the binding's answering 400) and pump while
+  they wait, its handler running in the test's clock.
 - Android TV: the remote drives the app through focus. `segueTheme` (`lib/ui/app/theme.dart`) gives
   focused buttons a ring and everything else a strong tint, and `FocusRing` draws a ring on tiles
   whose image hides the tint, and grows a card (`grows`: an album's, an artist's, a mix's) by 6% there, a row of

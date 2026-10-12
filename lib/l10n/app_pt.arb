@@ -876,6 +876,68 @@
       }
     }
   },
+  "signInWithPhone": "Entre pelo celular",
+  "@signInWithPhone": {
+    "description": "On a TV's sign-in, over the QR code that a phone signed in reads to sign the TV in."
+  },
+  "signInWithPhoneDetail": "No Segue do celular, em Configurações, toque em Entrar numa TV e aponte a câmera para este código.",
+  "@signInWithPhoneDetail": {
+    "description": "On a TV's sign-in, under the QR code: what to do on the phone. Settings and Sign in on a TV are the settings' title and item (settings, signInTv)."
+  },
+  "signingInWithPhone": "Entrando com o login do celular…",
+  "@signingInWithPhone": {
+    "description": "On a TV's sign-in, under the QR code, as the phone's sign-in has come and the TV signs in with it."
+  },
+  "signInTv": "Entrar numa TV",
+  "@signInTv": {
+    "description": "A settings item, on a phone: it opens the camera to read the QR code a TV shows as it signs in, and signs the TV in with this sign-in."
+  },
+  "signInTvDetail": "Com este login, lendo o código que a TV mostra",
+  "@signInTvDetail": {
+    "description": "Under the settings item that signs a TV in (signInTv)."
+  },
+  "signInTvAim": "Aponte a câmera para o código que a TV mostra ao entrar.",
+  "@signInTvAim": {
+    "description": "Over the camera, as it looks for the TV's QR code."
+  },
+  "signInTvConfirm": "Entrar na TV?",
+  "@signInTvConfirm": {
+    "description": "The title of the dialog that asks, once the TV's QR code is read, before sending it this sign-in."
+  },
+  "signInTvConfirmDetail": "A TV vai entrar como {user} em {server}.",
+  "@signInTvConfirmDetail": {
+    "description": "In the dialog that asks before signing the TV in: with which user, on which server (its host).",
+    "placeholders": {
+      "user": {
+        "type": "String"
+      },
+      "server": {
+        "type": "String"
+      }
+    }
+  },
+  "signedInTv": "{device} entrou com o seu login.",
+  "@signedInTv": {
+    "description": "Once the TV has signed in with the phone's sign-in, with the TV's name.",
+    "placeholders": {
+      "device": {
+        "type": "String"
+      }
+    }
+  },
+  "pairingFailed": "{reason, select, wrongCredentials{O servidor recusou o login.} unreachable{A TV não alcança o servidor.} quickConnectOff{O servidor não permite o Quick Connect. Ative-o no Jellyfin, ou entre na TV com a senha.} busy{A TV já está entrando com outro login.} notFound{Não achei a TV na rede. O celular e a TV estão na mesma rede?} other{A TV não entendeu o código. Tente de novo.}}",
+  "@pairingFailed": {
+    "description": "Why a TV couldn't sign in with the phone's sign-in, on the phone and on the TV.",
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "noCameraAccess": "O Segue não tem acesso à câmera.",
+  "@noCameraAccess": {
+    "description": "In place of the camera, to read a TV's QR code, where the app may not use it."
+  },
   "signOut": "Sair",
   "@signOut": {
     "description": "The button that signs out, on a wide screen, and on a phone the settings' last item."

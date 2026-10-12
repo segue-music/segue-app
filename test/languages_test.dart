@@ -312,6 +312,10 @@ void main() {
         expect(find.text(strings.appVersionNumber('0.1.0', '214')), findsOneWidget);
         expect(find.text(strings.openSourceLicenses), findsOneWidget);
         expect(find.text(strings.signOut), findsOneWidget);
+        expect(find.text(strings.signInTv), findsOneWidget);
+        expect(find.text(strings.signInTvDetail), findsOneWidget);
+        // Back up to the crossfade, which the lines at the end took above the top on a phone.
+        await tester.scrollUntilVisible(find.text(strings.crossfade).hitTestable(), -100, scrollable: list);
         await tap(tester, find.text(strings.crossfade).hitTestable());
 
         for (final text in [strings.crossfadeOffDetail, strings.crossfadeLength(12)]) {

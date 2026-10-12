@@ -1,8 +1,13 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../language_choice.dart';
+import '../../pairing/pairing.dart';
 import '../../server/server.dart';
 import '../../server/sign_in.dart';
 import '../../session.dart';
@@ -10,9 +15,16 @@ import '../settings/language_button.dart';
 import '../widgets/spinner.dart';
 
 /// Server, user and password: the media server's own account, nothing else to create. Whether the
-/// server speaks Subsonic or Jellyfin, the app finds out.
+/// server speaks Subsonic or Jellyfin, the app finds out. On a TV, beside them, a QR code that a phone signed in reads,
+/// sending the TV its sign-in ([PairingServer]): the remote types nothing.
 class LoginPage extends StatefulWidget {
-  const LoginPage({required this.onSignedIn, this.languageChoice, @visibleForTesting this.client, super.key});
+  const LoginPage({
+    required this.onSignedIn,
+    this.languageChoice,
+    @visibleForTesting this.client,
+    @visibleForTesting this.pairingAddress,
+    super.key,
+  });
 
   final void Function(Session session) onSignedIn;
 
@@ -21,6 +33,9 @@ class LoginPage extends StatefulWidget {
 
   /// What talks to the media server, for tests.
   final http.Client? client;
+
+  /// Where the TV listens for a phone's sign-in, for tests (the loopback); otherwise its address on the local network.
+  final InternetAddress? pairingAddress;
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -35,12 +50,72 @@ class _LoginPageState extends State<LoginPage> {
   bool _busy = false;
   String? _error;
 
+  /// On a TV, where it listens for a phone's sign-in, and whether it is signing in with one, or why it couldn't.
+  PairingServer? _pairing;
+  bool _pairingStarted = false;
+  bool _signingInWithPhone = false;
+  PairingError? _phoneError;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    if (!_pairingStarted && MediaQuery.maybeNavigationModeOf(context) == NavigationMode.directional) {
+      _pairingStarted = true;
+      unawaited(_startPairing());
+    }
+  }
+
+  Future<void> _startPairing() async {
+    final pairing = await PairingServer.start(_takeOffer, address: widget.pairingAddress);
+
+    if (!mounted) {
+      await pairing?.close();
+      return;
+    }
+
+    setState(() => _pairing = pairing);
+  }
+
+  /// A phone's sign-in: the TV signs in with it, and goes on as with the form's.
+  Future<PairingAnswer> _takeOffer(PairingOffer offer) async {
+    setState(() {
+      _signingInWithPhone = true;
+      _phoneError = null;
+    });
+
+    final answer = await takeOffer(
+      offer,
+      deviceId: await Session.thisDeviceId(),
+      deviceName: await Session.thisDeviceName(),
+      client: widget.client,
+      signedIn: (session) async {
+        await session.save();
+
+        if (mounted) {
+          widget.onSignedIn(session);
+        }
+      },
+    );
+
+    if (mounted && answer is PairingRefused) {
+      setState(() {
+        _signingInWithPhone = false;
+        _phoneError = answer.error;
+      });
+    }
+
+    return answer;
+  }
+
   @override
   void dispose() {
     for (final controller in [_server, _username, _password, _hub]) {
       controller.dispose();
     }
 
+    // Not at once: the answer to the phone that signed it in may still be on its way.
+    unawaited(_pairing?.close());
     super.dispose();
   }
 
@@ -177,8 +252,26 @@ class _LoginPageState extends State<LoginPage> {
       ),
     );
 
+    final pairing = _pairing;
+    // On a TV, the phone's way in before the form, which the remote would type in: half the screen each, out of its
+    // edges, the code in the middle of its half and the form in the middle of the other.
+    final body = pairing == null
+        ? form
+        : SafeArea(
+            child: Row(
+              children: [
+                Expanded(
+                  child: Center(
+                    child: PhoneSignIn(pairing.invite, signingIn: _signingInWithPhone, error: _phoneError),
+                  ),
+                ),
+                Expanded(child: form),
+              ],
+            ),
+          );
+
     if (languageChoice == null) {
-      return Scaffold(body: form);
+      return Scaffold(body: body);
     }
 
     // The language menu in the top right corner, out of the form's way. For the keyboard's Tab it comes after the form,
@@ -188,7 +281,7 @@ class _LoginPageState extends State<LoginPage> {
         policy: OrderedTraversalPolicy(),
         child: Stack(
           children: [
-            FocusTraversalOrder(order: const NumericFocusOrder(0), child: form),
+            FocusTraversalOrder(order: const NumericFocusOrder(0), child: body),
             SafeArea(
               child: Align(
                 alignment: Alignment.topRight,
@@ -200,6 +293,64 @@ class _LoginPageState extends State<LoginPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// On a TV's sign-in, the QR code that a phone signed in reads to sign the TV in ([invite]), and what to do with it; as
+/// the phone's sign-in comes, that the TV is signing in with it, or why it couldn't.
+class PhoneSignIn extends StatelessWidget {
+  const PhoneSignIn(this.invite, {required this.signingIn, required this.error, super.key});
+
+  final PairingInvite invite;
+  final bool signingIn;
+  final PairingError? error;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = AppLocalizations.of(context);
+    final text = Theme.of(context).textTheme;
+    final colors = Theme.of(context).colorScheme;
+    final error = this.error;
+
+    return SizedBox(
+      width: 280,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(strings.signInWithPhone, style: text.titleLarge, textAlign: TextAlign.center),
+          const SizedBox(height: 16),
+          // Dark on white, as cameras read best, whatever the theme; a white border around it, as QR codes need.
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: QrImageView(
+              data: '$invite',
+              size: 200,
+              padding: const EdgeInsets.all(12),
+              backgroundColor: Colors.white,
+              semanticsLabel: strings.signInWithPhone,
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (signingIn)
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Spinner(size: 16, strokeWidth: 2),
+                const SizedBox(width: 8),
+                Flexible(child: Text(strings.signingInWithPhone, style: text.bodyMedium)),
+              ],
+            )
+          else if (error != null)
+            Text(
+              strings.pairingFailed(error.name),
+              style: text.bodyMedium?.copyWith(color: colors.error),
+              textAlign: TextAlign.center,
+            )
+          else
+            Text(strings.signInWithPhoneDetail, style: text.bodyMedium, textAlign: TextAlign.center),
+        ],
       ),
     );
   }

@@ -42,6 +42,11 @@ dependencies:
   url_launcher: ^6.3.3
   # The app's version and build number, as the build stamped them, which the settings show.
   package_info_plus: ^10.2.2
+  # Signing a TV in from a phone (lib/pairing/pairing.dart): the phone's camera reads the QR code the TV shows, which
+  # qr_flutter draws, and the sign-in goes to the TV sealed with the key it carries (AES-GCM).
+  mobile_scanner: ^7.4.2
+  qr_flutter: ^4.1.0
+  cryptography: ^2.9.0
 
 dev_dependencies:
   flutter_test:

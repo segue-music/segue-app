@@ -34,6 +34,8 @@
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>O Segue usa a câmera para ler o código que uma TV mostra ao entrar, e entrar nela com a sua conta.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>O Segue usa a rede local para tocar do seu servidor de música e para falar com os seus outros aparelhos.</string>
 	<key>UIApplicationSceneManifest</key>

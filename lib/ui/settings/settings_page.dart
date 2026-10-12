@@ -20,6 +20,7 @@ import '../app/page_area.dart';
 import '../app/theme.dart';
 import '../app/theme_fade.dart';
 import '../widgets/themed_icon.dart';
+import 'sign_in_tv_page.dart';
 
 /// What the user picks for the app, and signing out, in groups under their names: the appearance (the theme, its colors
 /// and its contrast, the language), the playback (the quality, the volume's normalization, the equalizer's page, the crossfade, autoplay) and
@@ -305,6 +306,15 @@ class SettingsPage extends StatelessWidget {
             children: [
               for (final (name, lines) in groups)
                 if (lines.isNotEmpty) ...[_Heading(name), ...lines, const Divider(height: 33)],
+              // With the sign-in, as signing out is: on a phone, signing a TV in with it, by the code the TV shows.
+              if (SignInTvPage.available(context))
+                ListTile(
+                  leading: const ThemedIcon(HugeIcons.strokeRoundedQrCode),
+                  title: Text(strings.signInTv),
+                  subtitle: Text(strings.signInTvDetail),
+                  onTap: () =>
+                      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const SignInTvPage())),
+                ),
               ListTile(
                 leading: const ThemedIcon(HugeIcons.strokeRoundedLogout01),
                 title: Text(strings.signOut),

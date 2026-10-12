@@ -916,21 +916,24 @@ void main() {
     },
   );
 
-  testWidgets('on a phone, the settings sign out, and with nothing else to pick have only that and the licenses', (
-    tester,
-  ) async {
-    var signedOut = false;
-    await pumpHome(tester, const Size(360, 640), onSignOut: () => signedOut = true);
-    await openSettings(tester);
-    expect(find.descendant(of: find.byType(SettingsPage), matching: find.byType(ListTile)), findsNWidgets(2));
-    expect(settingsItem('Licenças de código aberto'), findsOneWidget);
-    expect(find.byType(Divider), findsOneWidget, reason: 'between them');
+  testWidgets(
+    'on a phone, the settings sign out, and with nothing else to pick have only that, signing a TV in and the '
+    'licenses',
+    (tester) async {
+      var signedOut = false;
+      await pumpHome(tester, const Size(360, 640), onSignOut: () => signedOut = true);
+      await openSettings(tester);
+      expect(find.descendant(of: find.byType(SettingsPage), matching: find.byType(ListTile)), findsNWidgets(3));
+      expect(settingsItem('Licenças de código aberto'), findsOneWidget);
+      expect(settingsItem('Entrar numa TV'), findsOneWidget);
+      expect(find.byType(Divider), findsOneWidget, reason: 'between them');
 
-    await tester.tap(settingsItem('Sair'));
-    await tester.pumpAndSettle();
-    expect(signedOut, isTrue);
-    await tester.pumpWidget(const SizedBox());
-  });
+      await tester.tap(settingsItem('Sair'));
+      await tester.pumpAndSettle();
+      expect(signedOut, isTrue);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
 
   testWidgets(
     'the hub\'s status sits as far from the settings\' button as two buttons are from each other',

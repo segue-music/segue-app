@@ -161,6 +161,10 @@ knows nothing of them, and another device plays as it has them.
   computer the window opens maximized and gets no narrower than 960.
 - **Phone**: the player bar and a bar with the home, the search and the library stay at the bottom, and a swipe goes
   from section to section. Pages open over the rest, and a swipe to the right from anywhere goes back.
+- **Sign-in on a TV with a phone**: the TV's sign-in shows a QR code, which the app on a phone signed in reads
+  (Settings, "Entrar numa TV"), signing the TV in with no typing on the remote. Over the local network, sealed with
+  a key the code carries (AES-GCM): on Subsonic the phone's credentials; on Jellyfin the TV signs in by Quick Connect,
+  which the phone authorizes, and gets a sign-in of its own (not on Navidrome's Jellyfin API, which has none).
 - **TV**: the remote drives the app, a white ring showing where it is, and an album, an artist or a mix it is on a
   little bigger. The text is a bit bigger than on a phone, and everything keeps out of the screen's edges, which some
   TVs cut off, but for the rows of albums, which run on to the side as they scroll, as Google TV's do. The keyboard opens on the search bar with the

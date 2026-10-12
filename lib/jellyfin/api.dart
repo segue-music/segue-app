@@ -42,19 +42,7 @@ class JellyfinApi implements MediaServer {
         headers: {'Authorization': _authorization(deviceId, deviceName), 'Content-Type': 'application/json'},
         body: jsonEncode({'Username': username, 'Pw': password}),
       );
-      final json = _decode(server, response) as Map<String, dynamic>;
-      final user = json['User'] as Map<String, dynamic>;
-      return JellyfinApi(
-        server,
-        JellyfinCredentials(
-          username: user['Name'] as String,
-          userId: user['Id'] as String,
-          token: json['AccessToken'] as String,
-        ),
-        deviceId: deviceId,
-        deviceName: deviceName,
-        client: httpClient,
-      );
+      return _signedIn(server, _decode(server, response), deviceId, deviceName, httpClient);
     } on Object {
       if (client == null) {
         httpClient.close();
@@ -62,6 +50,117 @@ class JellyfinApi implements MediaServer {
 
       rethrow;
     }
+  }
+
+  /// Starts signing this device in by Quick Connect, Jellyfin's own way of signing a device in from one signed in
+  /// already: the code the user authorizes there ([authorizeQuickConnect]), and the secret that this device signs in
+  /// with once they have ([quickConnectAuthorized], [signInWithQuickConnect]). Refused where the server has Quick
+  /// Connect off ([ServerError.isAuth]); Navidrome's Jellyfin API has none ([ServerError]).
+  static Future<({String code, String secret})> initiateQuickConnect(
+    Uri server, {
+    required String deviceId,
+    required String deviceName,
+    http.Client? client,
+  }) => _withClient(client, (httpClient) async {
+    final url = _withSlash(server).resolve('QuickConnect/Initiate');
+    final headers = {'Authorization': _authorization(deviceId, deviceName)};
+    var response = await httpClient.post(url, headers: headers);
+
+    // Jellyfin 10.8 starts it with a GET.
+    if (response.statusCode == 404 || response.statusCode == 405) {
+      response = await httpClient.get(url, headers: headers);
+    }
+
+    final json = _decode(server, response) as Map<String, dynamic>;
+
+    return (code: '${json['Code']}', secret: json['Secret'] as String);
+  });
+
+  /// Whether the user has authorized the Quick Connect of [secret] ([initiateQuickConnect]).
+  static Future<bool> quickConnectAuthorized(
+    Uri server,
+    String secret, {
+    required String deviceId,
+    required String deviceName,
+    http.Client? client,
+  }) => _withClient(client, (httpClient) async {
+    final response = await httpClient.get(
+      _withSlash(server).resolve('QuickConnect/Connect').replace(queryParameters: {'secret': secret}),
+      headers: {'Authorization': _authorization(deviceId, deviceName)},
+    );
+
+    return (_decode(server, response) as Map<String, dynamic>)['Authenticated'] == true;
+  });
+
+  /// Signs this device in by the Quick Connect of [secret], once authorized ([quickConnectAuthorized]): a sign-in of its
+  /// own, as by its password.
+  static Future<JellyfinApi> signInWithQuickConnect(
+    Uri server,
+    String secret, {
+    required String deviceId,
+    required String deviceName,
+    http.Client? client,
+  }) async {
+    final httpClient = client ?? http.Client();
+
+    try {
+      final response = await httpClient.post(
+        _withSlash(server).resolve('Users/AuthenticateWithQuickConnect'),
+        headers: {'Authorization': _authorization(deviceId, deviceName), 'Content-Type': 'application/json'},
+        body: jsonEncode({'Secret': secret}),
+      );
+
+      return _signedIn(server, _decode(server, response), deviceId, deviceName, httpClient);
+    } on Object {
+      if (client == null) {
+        httpClient.close();
+      }
+
+      rethrow;
+    }
+  }
+
+  /// Authorizes, as this sign-in's user, another device's Quick Connect by its [code] ([initiateQuickConnect]).
+  Future<void> authorizeQuickConnect(String code) async {
+    final response = await _http.post(
+      _withSlash(server)
+          .resolve('QuickConnect/Authorize')
+          .replace(queryParameters: {'code': code, 'userId': credentials.userId}),
+      headers: _headers,
+    );
+
+    _decode(server, response);
+  }
+
+  /// [run] with [client], or with one of its own, closed after.
+  static Future<T> _withClient<T>(http.Client? client, Future<T> Function(http.Client client) run) async {
+    final httpClient = client ?? http.Client();
+
+    try {
+      return await run(httpClient);
+    } finally {
+      if (client == null) {
+        httpClient.close();
+      }
+    }
+  }
+
+  /// The API of a sign-in's answer, [json]: the user, and their token.
+  static JellyfinApi _signedIn(Uri server, Object? json, String deviceId, String deviceName, http.Client client) {
+    final answer = json as Map<String, dynamic>;
+    final user = answer['User'] as Map<String, dynamic>;
+
+    return JellyfinApi(
+      server,
+      JellyfinCredentials(
+        username: user['Name'] as String,
+        userId: user['Id'] as String,
+        token: answer['AccessToken'] as String,
+      ),
+      deviceId: deviceId,
+      deviceName: deviceName,
+      client: client,
+    );
   }
 
   final Uri server;

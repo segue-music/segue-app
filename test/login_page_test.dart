@@ -1,16 +1,21 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:segue/app.dart';
 import 'package:segue/jellyfin/api.dart';
+import 'package:segue/pairing/pairing.dart';
 import 'package:segue/l10n/app_localizations.dart';
 import 'package:segue/session.dart';
+import 'package:segue/subsonic/api.dart';
+import 'package:segue/ui/app/television_screen.dart';
 import 'package:segue/ui/app/login_page.dart';
 import 'package:segue/ui/widgets/spinner.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -38,6 +43,91 @@ void main() {
   FlutterSecureStorage.setMockInitialValues({});
   // The system's name for the device comes from a platform channel, which doesn't answer here.
   setUpAll(() => SharedPreferencesAsync().setString('deviceName', 'laptop'));
+
+  testWidgets('on a TV, the sign-in shows a QR code, with which a phone signed in signs the TV in: the remote types '
+      'nothing', (tester) async {
+    Session? signedIn;
+    final server = MockClient((request) async {
+      final query = request.url.queryParameters;
+      final ok = query['u'] == 'alice' && query['t'] == 't0k3n' && query['s'] == 's4lt';
+      return http.Response(
+        jsonEncode({
+          'subsonic-response': {'status': ok ? 'ok' : 'failed'},
+        }),
+        200,
+        headers: {'content-type': 'application/json'},
+      );
+    });
+    tester.view.physicalSize = const Size(1920, 1080);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: const [Locale('pt')],
+        builder: (context, child) => TelevisionScreen(enabled: true, child: child!),
+        home: LoginPage(
+          onSignedIn: (session) => signedIn = session,
+          client: server,
+          pairingAddress: InternetAddress.loopbackIPv4,
+        ),
+      ),
+    );
+    // Listening takes the network's time, which the test's clock doesn't move.
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 100)));
+    await tester.pump();
+    expect(find.text('Entre pelo celular'), findsOneWidget);
+    expect(find.textContaining('toque em Entrar numa TV'), findsOneWidget);
+    final code = tester.getRect(find.byType(QrImageView));
+    expect(code.right, lessThan(tester.getRect(find.widgetWithText(TextFormField, 'Servidor')).left), reason: 'before');
+    final invite = tester.widget<PhoneSignIn>(find.byType(PhoneSignIn)).invite;
+    expect(PairingInvite.parse('$invite')?.address, invite.address, reason: 'what the code says');
+
+    const credentials = SubsonicCredentials(username: 'alice', token: 't0k3n', salt: 's4lt');
+    final phone = Session(
+      server: Uri.parse('https://music.example'),
+      credentials: credentials,
+      deviceId: 'phone',
+      deviceName: 'Phone',
+    );
+    // Over the network for real: the test's binding answers any request of its own HttpClient with a 400. The TV
+    // answers in the test's clock, which moves as it pumps.
+    Object? device;
+    await tester.runAsync(() async {
+      unawaited(
+        HttpOverrides.runWithHttpOverrides(
+          () => offerSignIn(invite, phone, SubsonicApi(phone.server, credentials, client: server)),
+          _RealHttp(),
+        ).then((name) => device = name, onError: (Object error) => device = error),
+      );
+    });
+
+    for (var i = 0; i < 200 && device == null; i++) {
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 10)));
+      await tester.pump();
+    }
+
+    expect(device, 'laptop', reason: 'the TV\'s name');
+    await tester.pump();
+    expect(signedIn?.server, phone.server);
+    expect(signedIn?.credentials, isA<SubsonicCredentials>().having((c) => c.token, 'token', 't0k3n'));
+    expect((await Session.load())?.server, phone.server, reason: 'kept, as a sign-in with the form is');
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('elsewhere the sign-in has no QR code: the keyboard types', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: const [Locale('pt')],
+        home: LoginPage(onSignedIn: (_) {}, pairingAddress: InternetAddress.loopbackIPv4),
+      ),
+    );
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 100)));
+    await tester.pump();
+    expect(find.byType(QrImageView), findsNothing);
+    expect(find.text('Entre pelo celular'), findsNothing);
+  });
 
   testWidgets('asks for server, user and password before trying', (tester) async {
     var signedIn = false;
@@ -204,3 +294,6 @@ void main() {
     expect(normalizeServer('http://127.0.0.1:8480').toString(), 'http://127.0.0.1:8480');
   });
 }
+
+/// Network requests as the app makes them, out of a test's binding.
+class _RealHttp extends HttpOverrides {}
