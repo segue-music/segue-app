@@ -9,8 +9,8 @@ import 'focus_ring.dart';
 import 'text_link.dart';
 import 'themed_icon.dart';
 
-/// A titled row of tiles (albums, artists), which scrolls sideways: dragged, by the remote going along its tiles, or, on a
-/// computer, by the arrows in its right corner.
+/// A titled row of tiles (albums, artists), which scrolls sideways: dragged, by the remote going along its tiles, or,
+/// on a computer, by the arrows in its right corner.
 class TileRow extends StatefulWidget {
   const TileRow({
     required this.title,
@@ -31,7 +31,8 @@ class TileRow extends StatefulWidget {
   /// What it shows under its title without tiles: that they are coming, that there are none, or why.
   final Widget instead;
 
-  /// How big each tile is, with the room inside it ([tilePadding]).
+  /// How big each tile is, with the room inside it ([tilePadding]); on a TV, a bit bigger, for a piece of the next one
+  /// to show at the screen's side.
   final Size tileSize;
 
   /// What the arrows scroll back to and forward to, in their tooltips.
@@ -48,6 +49,10 @@ class TileRow extends StatefulWidget {
   /// Tiles 16 from the edges (lined up with the title) and from one another, of which their room inside is part.
   static const _edge = 16 - tilePadding;
   static const _gap = 16 - 2 * tilePadding;
+
+  /// On a TV, how much of a tile shows past the whole ones, cut off at the screen's side: that the row goes on, which a
+  /// computer's arrows say, and a TV has none.
+  static const _peek = 0.4;
 
   @override
   State<TileRow> createState() => _TileRowState();
@@ -95,45 +100,67 @@ class _TileRowState extends State<TileRow> {
     };
     final television = MediaQuery.navigationModeOf(context) == NavigationMode.directional;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Out of the room at the screen's side, where the system has the app keep out of it (on a TV, its edges): the
-        // tiles run on to the side as they scroll, the last stopping out of it.
-        Padding(
-          padding: EdgeInsets.fromLTRB(16, 12, 12 + MediaQuery.paddingOf(context).right, 4),
-          child: SizedBox(
-            height: 48, // the same with the arrows or without them
-            child: Row(
-              children: [
-                Expanded(
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextLink(
-                      widget.title,
-                      tooltip: strings.showAll,
-                      onTap: widget.onShowAll,
-                      style: text.titleLarge,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final size = _tileSize(constraints.maxWidth, television: television);
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Out of the room at the screen's side, where the system has the app keep out of it (on a TV, its edges):
+            // the tiles run on to the side as they scroll, the last stopping out of it.
+            Padding(
+              padding: EdgeInsets.fromLTRB(16, 12, 12 + MediaQuery.paddingOf(context).right, 4),
+              child: SizedBox(
+                height: 48, // the same with the arrows or without them
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextLink(
+                          widget.title,
+                          tooltip: strings.showAll,
+                          onTap: widget.onShowAll,
+                          style: text.titleLarge,
+                        ),
+                      ),
                     ),
-                  ),
+                    if (!touch && !television) _arrows(),
+                  ],
                 ),
-                if (!touch && !television) _arrows(),
-              ],
+              ),
             ),
-          ),
-        ),
-        if (tiles == null)
-          widget.instead
-        else
-          SizedBox(height: widget.tileSize.height + 2 * _grownRoom(television), child: _strip(tiles, television)),
-      ],
+            if (tiles == null)
+              widget.instead
+            else
+              SizedBox(height: size.height + 2 * _grownRoom(size, television), child: _strip(tiles, size, television)),
+          ],
+        );
+      },
     );
   }
 
+  /// How big each tile is in a row [width] wide: on a TV, a bit bigger than [TileRow.tileSize], as much as shows
+  /// [TileRow._peek] of a tile at the screen's side, rather than the tiles that happen to fit, whole, with nothing to
+  /// say that more follow.
+  Size _tileSize(double width, {required bool television}) {
+    final size = widget.tileSize;
+
+    if (!television) {
+      return size;
+    }
+
+    final room = width - TileRow._edge + TileRow._gap;
+    final whole = max(1, (room / (size.width + TileRow._gap) - TileRow._peek).floor());
+
+    return size * ((room / (whole + TileRow._peek) - TileRow._gap) / size.width);
+  }
+
   /// Back and forward, each while there are tiles that way; none when they all fit, nor on a touch screen, where a
-  /// finger drags the row, nor on a TV, whose remote, going along the tiles, would never reach them, the tile cut off at
-  /// the screen's side saying there are more. Out of the focus's way: the keyboard goes along the tiles themselves.
-  /// Close together, as the top bar's: smaller buttons than the rest.
+  /// finger drags the row, nor on a TV, whose remote, going along the tiles, would never reach them, the tile cut off
+  /// at the screen's side saying there are more ([TileRow._peek]). Out of the focus's way: the keyboard goes along the
+  /// tiles themselves. Close together, as the top bar's: smaller buttons than the rest.
   Widget _arrows() => ListenableBuilder(
     listenable: Listenable.merge([_scroll, _metrics]),
     builder: (context, _) {
@@ -177,10 +204,10 @@ class _TileRowState extends State<TileRow> {
 
   /// The room above and below the tiles, on a TV, for one to grow with the focus ([FocusRing.grows]) without its ring
   /// cut off by the row's edges.
-  double _grownRoom(bool television) =>
-      television ? (widget.tileSize.height * (FocusRing.grownScale - 1) / 2).ceilToDouble() : 0;
+  double _grownRoom(Size size, bool television) =>
+      television ? (size.height * (FocusRing.grownScale - 1) / 2).ceilToDouble() : 0;
 
-  Widget _strip(List<Widget> tiles, bool television) => NotificationListener<ScrollMetricsNotification>(
+  Widget _strip(List<Widget> tiles, Size size, bool television) => NotificationListener<ScrollMetricsNotification>(
     onNotification: (notification) {
       _metrics.value = notification.metrics;
 
@@ -196,13 +223,13 @@ class _TileRowState extends State<TileRow> {
         scrollDirection: Axis.horizontal,
         padding: EdgeInsets.fromLTRB(
           TileRow._edge,
-          _grownRoom(television),
+          _grownRoom(size, television),
           TileRow._edge + MediaQuery.paddingOf(context).right,
-          _grownRoom(television),
+          _grownRoom(size, television),
         ),
         itemCount: tiles.length,
         separatorBuilder: (_, _) => const SizedBox(width: TileRow._gap),
-        itemBuilder: (context, i) => SizedBox(width: widget.tileSize.width, child: tiles[i]),
+        itemBuilder: (context, i) => SizedBox(width: size.width, child: tiles[i]),
       ),
     ),
   );

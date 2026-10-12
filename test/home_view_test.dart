@@ -21,6 +21,7 @@ import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
 import 'package:segue/theme_choice.dart';
 import 'package:segue/ui/album/album_page.dart';
+import 'package:segue/ui/album/album_row.dart';
 import 'package:segue/ui/album/albums_view.dart';
 import 'package:segue/ui/artist/artists_view.dart';
 import 'package:segue/ui/genre/genres_view.dart';
@@ -1222,6 +1223,25 @@ void main() {
     expect(find.byTooltip('Próximos'), findsNothing);
     expect(find.byTooltip('Anteriores'), findsNothing);
     await tester.pumpWidget(const SizedBox());
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
+  testWidgets('on a TV, a row\'s tiles grow to show a piece of the next one at the screen\'s side, whatever its width, '
+      'rather than fit whole with nothing to say that more follow', (tester) async {
+    for (final width in [960.0, 1000.0, 1280.0]) {
+      await pumpHome(tester, Size(width, 540), mostPlayed: [for (var i = 0; i < 20; i++) 'Most $i'], television: true);
+      final strip = find.ancestor(of: find.text('Most 0'), matching: find.byType(Scrollable)).first;
+      final side = tester.getRect(strip).right;
+      final tiles = [
+        for (final tile in tester.widgetList(find.descendant(of: strip, matching: find.byType(AlbumTile))))
+          tester.getRect(find.byWidget(tile)),
+      ].where((tile) => tile.left < side).toList();
+
+      expect(side, width, reason: 'the row goes on to the screen\'s side');
+      expect(tiles.first.width, greaterThanOrEqualTo(AlbumRow.tileSize.width), reason: 'bigger, never smaller');
+      expect(tiles.last.right, greaterThan(side), reason: 'cut off at $width');
+      expect((side - tiles.last.left) / tiles.last.width, moreOrLessEquals(0.4, epsilon: 0.01), reason: '$width');
+      await tester.pumpWidget(const SizedBox());
+    }
   }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   testWidgets('a row\'s title opens the albums tab, in the row\'s order', (tester) async {

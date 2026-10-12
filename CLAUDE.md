@@ -402,7 +402,8 @@ Running two app instances on one machine as different devices:
   the left's padding taken out of it (the rail's), so that a row of tiles runs on to the side as it scrolls, as Google
   TV's do: `TileRow` keeps its title and its last tile out of the right's padding, and the full-screen
   player keeps out of it all. A row has no arrows there, which the remote, going along its tiles, wouldn't reach,
-  nor the top bar its back and forward ones. `FocusRing` must keep the same widget tree with or without focus,
+  nor the top bar its back and forward ones: its tiles grow, rather, as much as shows 40% of one at the screen's side
+  (`TileRow._peek`), whatever its width, so that the row says it goes on. `FocusRing` must keep the same widget tree with or without focus,
   since rebuilding the child would drop its focus as soon as it arrived. On a TV
   (`lib/television.dart`, asking `MainActivity.kt`), focus highlights are always on: Flutter starts
   Android in touch mode and ignores key events from virtual keyboards, which is what
