@@ -645,28 +645,32 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             underTopBar: true,
             child: Scaffold(
               appBar: AppBar(
-                // The app's icon, over the side rail, which opens the home, and the arrows beside it.
-                leading: ListenableBuilder(
-                  listenable: _history,
-                  builder: (context, _) => Row(
-                    children: [
-                      SizedBox.square(dimension: kToolbarHeight, child: logo),
-                      IconButton(
-                        tooltip: strings.back,
-                        style: arrows,
-                        icon: const ThemedIcon(HugeIcons.strokeRoundedArrowLeft02),
-                        onPressed: _history.canGoBack ? _history.back : null,
+                // The app's icon, over the side rail, which opens the home, and the arrows beside it. A TV has none: its
+                // remote's back closes the page on top, and the arrows would only be two more stops for the focus on the
+                // way to the icon, with a forward no TV app has.
+                leading: television
+                    ? logo
+                    : ListenableBuilder(
+                        listenable: _history,
+                        builder: (context, _) => Row(
+                          children: [
+                            SizedBox.square(dimension: kToolbarHeight, child: logo),
+                            IconButton(
+                              tooltip: strings.back,
+                              style: arrows,
+                              icon: const ThemedIcon(HugeIcons.strokeRoundedArrowLeft02),
+                              onPressed: _history.canGoBack ? _history.back : null,
+                            ),
+                            IconButton(
+                              tooltip: strings.forward,
+                              style: arrows,
+                              icon: const ThemedIcon(HugeIcons.strokeRoundedArrowRight02),
+                              onPressed: _history.canGoForward ? _history.forward : null,
+                            ),
+                          ],
+                        ),
                       ),
-                      IconButton(
-                        tooltip: strings.forward,
-                        style: arrows,
-                        icon: const ThemedIcon(HugeIcons.strokeRoundedArrowRight02),
-                        onPressed: _history.canGoForward ? _history.forward : null,
-                      ),
-                    ],
-                  ),
-                ),
-                leadingWidth: kToolbarHeight + 2 * arrow,
+                leadingWidth: television ? kToolbarHeight : kToolbarHeight + 2 * arrow,
                 // The search bar is the title, which the app bar centers on the window, moving it aside where the
                 // middle has no room for it.
                 title: searchBar,

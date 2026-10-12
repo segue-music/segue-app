@@ -1209,15 +1209,18 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   }, variant: TargetPlatformVariant.mobile());
 
-  testWidgets('on a TV, which has no touch screen, a row has its arrows', (tester) async {
+  testWidgets('on a TV, a row has no arrows, which the remote wouldn\'t reach: it goes along the tiles', (
+    tester,
+  ) async {
     await pumpHome(
       tester,
       const Size(960, 540),
       mostPlayed: [for (var i = 0; i < 20; i++) 'Most $i'],
       television: true,
     );
-    expect(find.byTooltip('Próximos'), findsOneWidget);
-    expect(find.byTooltip('Anteriores'), findsOneWidget);
+    expect(find.text('Most 0'), findsOneWidget);
+    expect(find.byTooltip('Próximos'), findsNothing);
+    expect(find.byTooltip('Anteriores'), findsNothing);
     await tester.pumpWidget(const SizedBox());
   }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
@@ -1320,9 +1323,7 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('on a TV, right goes along a row, scrolling it, and down goes to the next row, past its arrows', (
-    tester,
-  ) async {
+  testWidgets('on a TV, right goes along a row, scrolling it, and down goes to the next row', (tester) async {
     await pumpHome(
       tester,
       const Size(960, 540),

@@ -43,9 +43,7 @@ void main() {
   });
 
   testWidgets('on a TV, everything keeps out of the room at the screen\'s edges, the bars\' backgrounds going on to '
-      'them, and the rows of tiles running on to the side as they scroll, their arrows and their last tile in', (
-    tester,
-  ) async {
+      'them, and the rows of tiles running on to the side as they scroll, their last tile in', (tester) async {
     await pumpTvHome(tester);
     const screen = Rect.fromLTRB(12, 6, 960 - 12, 540 - 6);
 
@@ -64,8 +62,6 @@ void main() {
     }
 
     final row = find.byType(TileRow).first;
-    final arrows = find.descendant(of: row, matching: find.byType(IconButton));
-    expect(tester.getRect(arrows.last).right, lessThanOrEqualTo(960 - 12));
     final strip = find.descendant(of: row, matching: find.byType(Scrollable));
     final scroll = tester.state<ScrollableState>(strip).position;
     scroll.jumpTo(scroll.maxScrollExtent);

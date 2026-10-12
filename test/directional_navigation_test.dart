@@ -395,7 +395,9 @@ void main() {
     await press(tester, LogicalKeyboardKey.arrowLeft);
     expect(inSearch(), isTrue);
     await press(tester, LogicalKeyboardKey.arrowLeft);
-    expect(focusedTip(), 'Avançar', reason: 'on a TV, a button that can\'t be pressed still takes the focus');
+    expect(focusedTip(), 'Início', reason: 'the app\'s icon: a TV has no arrows beside it, its remote going back');
+    expect(find.byTooltip('Voltar'), findsNothing);
+    expect(find.byTooltip('Avançar'), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
 }

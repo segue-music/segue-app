@@ -218,7 +218,8 @@ Running two app instances on one machine as different devices:
   `ThemedIcon`, `describeError`, ...): a piece only one subject uses stays in its folder.
 - On a wide screen, `HomePage` keeps its bars (the top one, the side rail, the player's) and opens
   pages between them, in a nested navigator, the page area (`lib/ui/app/page_area.dart`), whose
-  `PageHistory` the top bar's arrows and the keyboard's left and right go back and forward through.
+  `PageHistory` the top bar's arrows and the keyboard's left and right go back and forward through. A TV has no
+  arrows there: its remote's back closes the page on top (`NavigatorPopHandler`).
   From outside it (the player bar), pages open with `PageArea.navigatorOf(context)`, not
   `Navigator.of`; the full-screen cover and the sheets open in the app's navigator, over the window.
   A navigator's pages keep the arrows in them, so the page area's lets them on from a page's edges
@@ -399,8 +400,9 @@ Running two app instances on one machine as different devices:
   the system's padding, which the bars keep out of by themselves, and the home's rail by its `SafeArea`, their
   backgrounds going on to the edges. The page area goes on to the right edge,
   the left's padding taken out of it (the rail's), so that a row of tiles runs on to the side as it scrolls, as Google
-  TV's do: `TileRow` keeps its title, its arrows and its last tile out of the right's padding, and the full-screen
-  player keeps out of it all. `FocusRing` must keep the same widget tree with or without focus,
+  TV's do: `TileRow` keeps its title and its last tile out of the right's padding, and the full-screen
+  player keeps out of it all. A row has no arrows there, which the remote, going along its tiles, wouldn't reach,
+  nor the top bar its back and forward ones. `FocusRing` must keep the same widget tree with or without focus,
   since rebuilding the child would drop its focus as soon as it arrived. On a TV
   (`lib/television.dart`, asking `MainActivity.kt`), focus highlights are always on: Flutter starts
   Android in touch mode and ignores key events from virtual keyboards, which is what
