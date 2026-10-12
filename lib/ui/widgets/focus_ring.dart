@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'directional_navigation.dart';
+
 /// A ring around [child] while something in it has the focus, when the keyboard or a remote drives
 /// the app (not a touch or a mouse). For tiles whose image would hide the theme's focus tint, which
 /// is painted under it. On a TV, a card ([grows]) grows a little with it too, as Google TV's do, for the focus to
@@ -47,7 +49,7 @@ class _FocusRingState extends State<FocusRing> {
   /// sideways: a row of cards keeps the one with the focus in its first one's place (`TileRow`), and a grid doesn't
   /// scroll that way.
   void _showGrown() {
-    if (!widget.grows || MediaQuery.maybeNavigationModeOf(context) != NavigationMode.directional) {
+    if (!widget.grows || !DirectionalNavigation.of(context)) {
       return;
     }
 
@@ -73,7 +75,7 @@ class _FocusRingState extends State<FocusRing> {
   @override
   Widget build(BuildContext context) {
     final shown = _focused && FocusManager.instance.highlightMode == FocusHighlightMode.traditional;
-    final grown = shown && widget.grows && MediaQuery.maybeNavigationModeOf(context) == NavigationMode.directional;
+    final grown = shown && widget.grows && DirectionalNavigation.of(context);
 
     return Focus(
       canRequestFocus: false,

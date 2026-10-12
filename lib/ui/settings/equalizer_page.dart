@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import '../../equalizer_choice.dart';
 import '../../l10n/app_localizations.dart';
 import '../app/page_area.dart';
+import '../widgets/directional_navigation.dart';
 
 /// The equalizer of this device's player: on or off, and its curve, one of those made for a kind of music, as chips,
 /// or the user's own, by moving the bands, side by side under them, each a slider up and down. Moving one makes the
@@ -142,8 +143,7 @@ class _EqualizerBandState extends State<EqualizerBand> {
   }
 
   /// Whether up and down move it, rather than the focus: always, but on a TV until the center button takes it.
-  bool get _keysMove =>
-      widget.onChanged != null && (_taken || MediaQuery.navigationModeOf(context) != NavigationMode.directional);
+  bool get _keysMove => widget.onChanged != null && (_taken || !DirectionalNavigation.of(context));
 
   void _move(int gain) {
     final clamped = gain.clamp(-maxBandGain, maxBandGain);
@@ -182,7 +182,7 @@ class _EqualizerBandState extends State<EqualizerBand> {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final enabled = widget.onChanged != null;
-    final television = MediaQuery.navigationModeOf(context) == NavigationMode.directional;
+    final television = DirectionalNavigation.of(context);
     final gain = widget.gain;
     final frequency = widget.frequency;
     final label = theme.textTheme.labelSmall?.copyWith(

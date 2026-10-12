@@ -11,6 +11,7 @@ import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/app/shortcuts.dart';
+import 'package:segue/ui/widgets/directional_navigation.dart';
 
 import 'fakes.dart';
 

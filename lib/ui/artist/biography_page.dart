@@ -5,6 +5,7 @@ import '../../l10n/app_localizations.dart';
 import '../../pictures/fanart_tv.dart';
 import '../../releases/musicbrainz.dart';
 import '../../server/models.dart';
+import '../widgets/directional_navigation.dart';
 import '../widgets/text_link.dart';
 import '../widgets/themed_icon.dart';
 import 'maps.dart';
@@ -154,7 +155,7 @@ class BiographyPage extends StatelessWidget {
   /// [place], where the artist comes from, as a link to it on a map ([showOnMap]); plain text on a TV.
   Widget _place(BuildContext context, String place) {
     final theme = Theme.of(context);
-    final television = MediaQuery.navigationModeOf(context) == NavigationMode.directional;
+    final television = DirectionalNavigation.of(context);
 
     return TextLink(
       place,

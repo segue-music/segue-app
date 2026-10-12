@@ -5,6 +5,7 @@ import '../../l10n/app_localizations.dart';
 import '../../segue/protocol.dart';
 import '../../services.dart';
 
+import '../widgets/directional_navigation.dart';
 import '../widgets/equalizer.dart';
 import '../widgets/errors.dart';
 import '../widgets/themed_icon.dart';
@@ -85,7 +86,7 @@ class _DevicesSheet extends StatelessWidget {
   /// is (600 across or more, as Material counts, a tablet); or else a computer. Of the other devices the protocol
   /// says nothing of the kind, so they are all speakers.
   static HugeIconData _thisDeviceIcon(BuildContext context) {
-    if (MediaQuery.navigationModeOf(context) == NavigationMode.directional) {
+    if (DirectionalNavigation.of(context)) {
       return HugeIcons.strokeRoundedTv01;
     }
 

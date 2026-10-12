@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../services.dart';
 import '../player/player_controls.dart';
+import '../widgets/directional_navigation.dart';
 import 'page_area.dart';
 
 /// Keyboard shortcuts for playback, on every page: space plays or pauses what the now-playing bar
@@ -102,7 +103,7 @@ class TextFieldArrowShortcuts extends StatelessWidget {
         TraversalDirection.down,
         ignoreTextFields: false,
       ),
-      if (MediaQuery.maybeNavigationModeOf(context) == NavigationMode.directional) ...const {
+      if (DirectionalNavigation.of(context)) ...const {
         SingleActivator(LogicalKeyboardKey.arrowLeft): DirectionalFocusIntent(
           TraversalDirection.left,
           ignoreTextFields: false,
@@ -195,9 +196,7 @@ class _BackAction extends Action<_BackIntent> {
   /// instead, and a sheet, a menu or a dialog has none: Esc goes on to close them, as ever.
   ModalRoute<Object?>? _page(_BackIntent intent) {
     final focused = FocusManager.instance.primaryFocus?.context;
-    if (focused == null ||
-        _inTextField(focused) ||
-        (!intent.onTelevision && MediaQuery.maybeNavigationModeOf(focused) == NavigationMode.directional)) {
+    if (focused == null || _inTextField(focused) || (!intent.onTelevision && DirectionalNavigation.of(focused))) {
       return null;
     }
 
@@ -259,9 +258,7 @@ class _HistoryAction extends Action<_HistoryIntent> {
   bool isEnabled(_HistoryIntent intent) {
     final focused = FocusManager.instance.primaryFocus?.context;
 
-    if (focused == null ||
-        _inTextField(focused) ||
-        (!intent.onTelevision && MediaQuery.maybeNavigationModeOf(focused) == NavigationMode.directional)) {
+    if (focused == null || _inTextField(focused) || (!intent.onTelevision && DirectionalNavigation.of(focused))) {
       return false;
     }
 
@@ -314,22 +311,4 @@ class _UnfocusAction extends Action<_UnfocusIntent> {
 
     return null;
   }
-}
-
-/// On a TV, Flutter's directional navigation: the D-pad moves the focus, and a slider only takes
-/// left and right, so that up and down go on to the controls above or below it, instead of moving
-/// the song back and forth.
-class DirectionalNavigation extends StatelessWidget {
-  const DirectionalNavigation({required this.enabled, required this.child, super.key});
-
-  final bool enabled;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => enabled
-      ? MediaQuery(
-          data: MediaQuery.of(context).copyWith(navigationMode: NavigationMode.directional),
-          child: child,
-        )
-      : child;
 }

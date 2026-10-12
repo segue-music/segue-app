@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'shortcuts.dart';
+import '../widgets/directional_navigation.dart';
 
 /// On a TV, the app as it's read and driven from across the room: by the remote ([DirectionalNavigation]), its text a
 /// bit bigger than the system's, and away from the screen's edges, which some TVs cut off (overscan). The edges' room

@@ -14,13 +14,13 @@ import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/app/home_page.dart';
-import 'package:segue/ui/app/shortcuts.dart';
 import 'package:segue/ui/player/now_playing_bar.dart';
 import 'package:segue/ui/player/player_page.dart';
 import 'package:segue/ui/playlist/playlist_menu.dart';
 import 'package:segue/ui/playlist/playlist_page.dart';
 import 'package:segue/ui/playlist/playlists_view.dart';
 import 'package:segue/ui/widgets/cover.dart';
+import 'package:segue/ui/widgets/directional_navigation.dart';
 import 'package:segue/ui/widgets/themed_icon.dart';
 
 import 'fakes.dart';

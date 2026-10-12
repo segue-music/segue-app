@@ -392,7 +392,11 @@ Running two app instances on one machine as different devices:
   `noDuplicates`, which would take the new one, read while the one before is sent, for one seen). The widget
   tests reach the TV's server with a real `HttpClient` (`HttpOverrides`, the binding's answering 400) and pump while
   they wait, its handler running in the test's clock.
-- Android TV: the remote drives the app through focus. `segueTheme` (`lib/ui/app/theme.dart`) gives
+- Android TV: the remote drives the app through focus. That it does is Flutter's navigation mode, directional
+  (`DirectionalNavigation`, `lib/ui/widgets/directional_navigation.dart`, which `TelevisionScreen` turns on), which
+  the pages ask with `DirectionalNavigation.of`, not the platform. A widget laid out otherwise for the remote throughout
+  is two, sharing the rest (`TileRow`: `_PointerTileRow`, `_TelevisionTileRow`), rather than one asking it at every
+  turn. `segueTheme` (`lib/ui/app/theme.dart`) gives
   focused buttons a ring and everything else a strong tint, and `FocusRing` draws a ring on tiles
   whose image hides the tint, and grows a card (`grows`: an album's, an artist's, a mix's) by 6% there, a row of
   them (`TileRow`) having the room above and below for it, and the page scrolling as far as shows it grown, ring and
@@ -408,14 +412,14 @@ Running two app instances on one machine as different devices:
   TV's do: `TileRow` keeps its title and its last tile out of the right's padding, and the full-screen
   player keeps out of it all. A row has no arrows there, which the remote, going along its tiles, wouldn't reach,
   nor the top bar its back and forward ones: its tiles grow, rather, as much as shows 40% of one at the screen's side
-  (`TileRow._peek`), whatever its width, so that the row says it goes on, their pictures growing and their lines
+  (`_TelevisionTileRow._peek`), whatever its width, so that the row says it goes on, their pictures growing and their lines
   staying as they are (a row's tiles, as the album grid's, are as tall as their cover and lines,
   `AlbumRow.tileSize`). The card with the focus stays in the first one's place, the row moving under it
   (`_keepAtStart`), as Google TV's do, so that the cards after it and that piece stay in view; `FocusRing` then
-  only shows it grown above and below. There the row starts 8 further in, its title too (`TileRow._grownSide`), for
+  only shows it grown above and below. There the row starts 8 further in, its title too (`_TelevisionTileRow._grownSide`), for
   that card to grow into with its ring clear of the rail. `FocusRing` must keep the same widget tree with or without focus, since rebuilding the child
   would drop its focus as soon as it arrived. On a TV
-  (`lib/television.dart`, asking `MainActivity.kt`), focus highlights are always on: Flutter starts
+  (`adaptToTelevision`, `lib/device.dart`, asking `MainActivity.kt`), focus highlights are always on: Flutter starts
   Android in touch mode and ignores key events from virtual keyboards, which is what
   `adb shell input keyevent` sends. `TextFieldArrowShortcuts` lets up and down leave text fields
   (on a TV, left and right too). A text field opens the keyboard as the focus comes to it, and on a
@@ -429,10 +433,11 @@ Running two app instances on one machine as different devices:
   player opened again on a song without them knows at once (`hasLyrics`). A TV's remote seldom has a menu key, so a song's or a
   playlist's menu also opens with the center button held (`MenuShortcuts`, `lib/ui/widgets/menu_shortcuts.dart`):
   there a press of it plays the song (opens the playlist) as it is let go, not as it goes down. A TV has no drag, so
-  the queue's and a playlist's songs move by the remote (`MovableSong`, `lib/ui/song/movable_song.dart`, from the song's menu):
-  there their lists are plain `SliverList`s that find each line by its key (`findChildIndexCallback`),
-  as `SliverReorderableList` keys each line by its index too, and makes it anew as it moves, dropping
-  the focus; and a playlist loaded again keeps its entries (`_entriesOf`), for the same reason.
+  the queue's and a playlist's songs move by the remote (`MovableSongs`, `lib/ui/song/movable_song.dart`, the list
+  that drags them elsewhere; each a `MovableSong`, from the song's menu): there the list is a plain `SliverList` that
+  finds each line by its key (`findChildIndexCallback`), as `SliverReorderableList` keys each line by its index too,
+  and makes it anew as it moves, dropping the focus; and a playlist loaded again keeps its entries (`_entriesOf`),
+  for the same reason.
 - `MainActivity` extends audio_service's `AudioServiceActivity`, so the screen and the plugin share
   one Flutter engine. With a plain `FlutterActivity`, audio_service started an engine of its own,
   and with it a second, hidden copy of the app that connected to the hub as the same device. It

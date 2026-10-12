@@ -19,6 +19,7 @@ import 'package:segue/ui/app/shortcuts.dart';
 import 'package:segue/ui/app/television_screen.dart';
 import 'package:segue/ui/home/home_view.dart';
 import 'package:segue/ui/player/now_playing_bar.dart';
+import 'package:segue/ui/widgets/directional_navigation.dart';
 
 import 'fakes.dart';
 

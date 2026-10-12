@@ -8,6 +8,7 @@ import '../../l10n/app_localizations.dart';
 import '../../pairing/pairing.dart';
 import '../../services.dart';
 import '../../session.dart';
+import '../widgets/directional_navigation.dart';
 import '../widgets/spinner.dart';
 
 /// Signs a TV in with this device's sign-in: the camera reads the QR code the TV's sign-in shows ([PairingInvite]),
@@ -20,7 +21,7 @@ class SignInTvPage extends StatefulWidget {
   /// TV, which signs in that way itself.
   static bool available(BuildContext context) =>
       (defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS) &&
-      MediaQuery.navigationModeOf(context) != NavigationMode.directional;
+      !DirectionalNavigation.of(context);
 
   @override
   State<SignInTvPage> createState() => _SignInTvPageState();

@@ -4,6 +4,7 @@ import 'package:hugeicons/hugeicons.dart';
 import '../../l10n/app_localizations.dart';
 import '../../server/models.dart';
 import '../../services.dart';
+import '../widgets/directional_navigation.dart';
 import '../widgets/errors.dart';
 import '../widgets/spinner.dart';
 import '../widgets/themed_icon.dart';
@@ -70,7 +71,7 @@ class _AlbumPlayButtonState extends State<AlbumPlayButton> {
       TargetPlatform.linux || TargetPlatform.macOS || TargetPlatform.windows => false,
     };
     // A TV, or a phone: a touch screen less than 600 across, as Material counts (the devices sheet's too).
-    final television = MediaQuery.navigationModeOf(context) == NavigationMode.directional;
+    final television = DirectionalNavigation.of(context);
     final phone = touch && MediaQuery.sizeOf(context).shortestSide < 600;
 
     if (television || phone) {

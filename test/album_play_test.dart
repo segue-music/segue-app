@@ -13,8 +13,8 @@ import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/album/albums_view.dart';
 import 'package:segue/ui/app/home_page.dart';
-import 'package:segue/ui/app/shortcuts.dart';
 import 'package:segue/ui/widgets/cover.dart';
+import 'package:segue/ui/widgets/directional_navigation.dart';
 import 'package:segue/ui/widgets/themed_icon.dart';
 
 import 'fakes.dart';

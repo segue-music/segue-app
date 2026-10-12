@@ -12,6 +12,7 @@ import '../../server/server.dart';
 import '../../server/sign_in.dart';
 import '../../session.dart';
 import '../settings/language_button.dart';
+import '../widgets/directional_navigation.dart';
 import '../widgets/spinner.dart';
 
 /// Server, user and password: the media server's own account, nothing else to create. Whether the
@@ -60,7 +61,7 @@ class _LoginPageState extends State<LoginPage> {
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    if (!_pairingStarted && MediaQuery.maybeNavigationModeOf(context) == NavigationMode.directional) {
+    if (!_pairingStarted && DirectionalNavigation.of(context)) {
       _pairingStarted = true;
       unawaited(_startPairing());
     }
