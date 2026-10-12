@@ -54,13 +54,14 @@ void main() {
     _write('macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_$size.png', art.shape(size, 824 / 1024));
   }
 
-  // Windows: the rounded square with the rest transparent, as on Linux, at the sizes Windows picks from for the
-  // taskbar, the title bar and Explorer, at 100 to 200 % scaling. Each one is a PNG inside the .ico, which Windows
-  // reads since Vista.
+  // Windows: the rounded square from edge to edge, at the sizes Windows picks from for the taskbar, the title bar and
+  // Explorer, at 100 to 200 % scaling. Not with Linux's margin: Windows's icons fill their square, and the square's dark
+  // inside disappears on a dark taskbar, so with the margin only a ring of 17 pixels of 24 showed there. Each one is a
+  // PNG inside the .ico, which Windows reads since Vista.
   final windowsSizes = [16, 20, 24, 32, 40, 48, 64, 256];
   _writeBytes(
     'windows/runner/resources/app_icon.ico',
-    IcoEncoder().encodeImages([for (final size in windowsSizes) art.shape(size, 0.84)]),
+    IcoEncoder().encodeImages([for (final size in windowsSizes) art.shape(size, 1)]),
   );
 
   // In the app's top bar: the rounded square from edge to edge, 32 logical pixels, at each density Flutter picks an
