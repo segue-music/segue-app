@@ -60,6 +60,13 @@ With Flutter installed locally, the same commands work as `flutter ...` (`flutte
 The container keeps its own `.dart_tool` (in `~/.cache/segue-flutter/dart_tool`), whose paths are
 the container's, so it doesn't break the analyzer of an editor that uses the local Flutter.
 
+The Windows build has no image: it takes Flutter installed on Windows, with Visual Studio's C++ desktop workload and
+Developer Mode on (the plugins are symlinks), then `flutter run -d windows`, `keys.json` by hand
+(`--dart-define-from-file=keys.json`). There, in debug only, the app may crash as it starts (0xC0000005, after
+"media_kit: NativeReferenceHolder: Located"): media_kit keeps a file in the temporary folder for each process id and
+never deletes it, and Windows gives an id again, whose file then points at another process's memory. Deleting
+`%TEMP%\com.alexmercerind.media_kit.NativeReferenceHolder.*` clears it.
+
 The keys of the services the app asks (fanart.tv's, `FANART_TV_KEY`) aren't in git: `tool/flutter.sh`
 gives `run` and `build` the `keys.json` at the top of this folder (`--dart-define-from-file`), which
 git ignores, and Codemagic its environment variables' group `keys`. A build without them runs without

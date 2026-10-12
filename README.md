@@ -15,8 +15,8 @@ Segue's protocol and its hub, which runs next to the media server, are in
 
 **Status: not released.** The Android APK is signed with a debug key and in no store, the Linux build is only a
 tarball, and the iOS one reaches only TestFlight's internal group. The Android build has been tried on a tablet and on
-an Android TV, and the iOS build on an iPhone, with CarPlay's Now Playing screen. Windows and macOS have no package
-yet.
+an Android TV, the iOS build on an iPhone, with CarPlay's Now Playing screen, and the Windows build on Windows 11, run
+from Flutter. Windows and macOS have no package yet.
 
 ## Features
 
@@ -331,6 +331,16 @@ sudo dnf install clang cmake make ninja-build pkgconf-pkg-config gtk3-devel xz-d
   libstdc++-devel mpv-libs-devel libsecret-devel jsoncpp-devel
 flutter pub get
 flutter run -d linux
+```
+
+On Windows, which has no Docker image for it, this is the only way: Flutter 3.47
+([instructions](https://docs.flutter.dev/get-started/install/windows)), Visual Studio with its "Desktop development
+with C++" workload (`flutter doctor` says whether it finds it), and Developer Mode on (Settings > System > For
+developers), since the plugins are symlinks. The build fetches libmpv by itself. Then:
+
+```powershell
+flutter pub get
+flutter run -d windows
 ```
 
 ### Tests
