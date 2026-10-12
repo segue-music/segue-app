@@ -76,6 +76,10 @@ from Flutter. Windows and macOS have no package yet.
 - **Player**: a bar that stays from page to page, and a full-screen player that the song in the bar opens. Seek,
   shuffle, repeat (the queue, or the track). On a phone, a swipe on the cover goes to the next or the previous song,
   and a drag down closes the player.
+- **Volume**, on a computer, at the end of the bar: a button that mutes and gives the volume back, over which an
+  upright slider opens as the pointer comes to it (or the keyboard's focus, whose up and down arrows move it). The
+  mouse's wheel moves it over either. It is the volume of whichever device the app controls; this device's own the next
+  launch keeps. A phone's and a TV's own buttons set the system's volume.
 - **Lyrics**, beside the cover in the full-screen player (under it on a phone), and full screen: the server's
   (OpenSubsonic's songLyrics, as Navidrome's from the tags or a `.lrc`; Jellyfin's), or else LRCLIB's (lrclib.net).
   Synced ones mark the line that plays, and a line tapped goes there. Full screen, on a phone or a tablet, they keep

@@ -26,6 +26,8 @@ class NowPlaying {
     this.canRepeat = false,
     this.canShuffle = false,
     this.canJump = false,
+    this.volume = 100,
+    this.canSetVolume = false,
   });
 
   /// Its id in the app's API (the hub gives the app other devices' songs in it), or null when the
@@ -56,6 +58,12 @@ class NowPlaying {
   final bool canRepeat;
   final bool canShuffle;
   final bool canJump;
+
+  /// The volume of the device it plays on, from 0 to 100: all of it, where another device hasn't said.
+  final int volume;
+
+  /// Whether that device takes [ConnectController.setVolume] and [ConnectController.unmute].
+  final bool canSetVolume;
 
   /// It as a song of the library, for what takes one (a playlist to add it to, its menu); null where [songId] is.
   Song? get song => switch (songId) {
@@ -102,6 +110,9 @@ class ConnectController extends ChangeNotifier {
   String? _playing;
   static const _here = ''; // the hub never gives a device an empty id
   bool _restored = false;
+
+  /// The volume each device had as it went to none (null: this one), which [unmute] gives back.
+  final _unmuted = <String?, int>{};
 
   /// Until when the last playback plays as it comes back here, rather than paused: a play pressed as the app opened,
   /// before it had any music to play (a headphone's button that woke it up, on Android). Brought back on another
@@ -150,6 +161,8 @@ class ConnectController extends ChangeNotifier {
         canRepeat: true,
         canShuffle: true,
         canJump: true,
+        volume: player.volume,
+        canSetVolume: true,
       );
     }
 
@@ -171,6 +184,8 @@ class ConnectController extends ChangeNotifier {
       canRepeat: device.info.capabilities.contains(CommandAction.setRepeat),
       canShuffle: device.info.capabilities.contains(CommandAction.setShuffle),
       canJump: device.info.capabilities.contains(CommandAction.jump),
+      volume: state?.volume ?? 100,
+      canSetVolume: device.info.capabilities.contains(CommandAction.setVolume),
     );
   }
 
@@ -278,6 +293,22 @@ class ConnectController extends ChangeNotifier {
   Future<Result> setRepeat(Repeat mode) => _run(Command.setRepeat(mode), () => player.setRepeat(mode));
 
   Future<Result> setShuffle(bool on) => _run(Command.setShuffle(on), () => player.setShuffle(on));
+
+  /// Sets the volume of the device the app controls, from 0 to 100. Going to none, it keeps for [unmute] the one it had,
+  /// or [from], where it went down on its way (a slider dragged here, the music following it).
+  Future<Result> setVolume(int volume, {int? from}) {
+    final before = from ?? nowPlaying?.volume;
+
+    if (volume == 0 && before != null && before > 0) {
+      _unmuted[_active] = before;
+    }
+
+    return _run(Command.setVolume(volume), () => player.setVolume(volume));
+  }
+
+  /// Gives the device the app controls the volume it had before it went to none ([setVolume]), or all of it, where the
+  /// app didn't see it go.
+  Future<Result> unmute() => setVolume(_unmuted.remove(_active) ?? 100);
 
   /// Makes [deviceId] (null: this device) the one the app controls, moving the music there if the
   /// current one has any.

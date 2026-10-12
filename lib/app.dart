@@ -25,6 +25,7 @@ import 'ui/app/theme_fade.dart';
 import 'ui/app/title_bar.dart';
 import 'ui/player/failed_song_message.dart';
 import 'ui/widgets/spinner.dart';
+import 'volume_choice.dart';
 
 class SegueApp extends StatefulWidget {
   const SegueApp({
@@ -37,6 +38,7 @@ class SegueApp extends StatefulWidget {
     this.equalizerChoice,
     this.autoplayChoice,
     this.crossfadeChoice,
+    this.volumeChoice,
     this.mediaControls,
     this.interruptions,
     this.television = false,
@@ -72,6 +74,9 @@ class SegueApp extends StatefulWidget {
 
   /// How long the player crossfades the songs for; with none, it never does, and the settings show no way to pick it.
   final CrossfadeChoice? crossfadeChoice;
+
+  /// This device's volume, as the user last set it, which the player starts at; with none, all of it.
+  final VolumeChoice? volumeChoice;
 
   /// The system's media controls, where the platform has them.
   final MediaControls? mediaControls;
@@ -145,6 +150,7 @@ class _SegueAppState extends State<SegueApp> {
         equalizer: _equalizerChoice,
         autoplay: widget.autoplayChoice,
         crossfade: widget.crossfadeChoice,
+        volume: widget.volumeChoice,
       );
 
       if (!mounted) {

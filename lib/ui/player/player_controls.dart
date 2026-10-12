@@ -76,6 +76,13 @@ class _NowPlayingBuilderState extends State<NowPlayingBuilder> {
   }
 }
 
+/// The look of the player's sliders, the song's and the volume's: a thin track, and a small thumb.
+SliderThemeData thinSliderTheme(BuildContext context) => SliderTheme.of(context).copyWith(
+  trackHeight: 3,
+  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+  overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+);
+
 /// Where the song is and how long it lasts, on a slider that jumps to where it is tapped, or to
 /// where a drag lets go.
 class SeekSlider extends StatefulWidget {
@@ -129,11 +136,7 @@ class _SeekSliderState extends State<SeekSlider> {
     final position = _held ?? now.position;
     final length = now.duration?.inMilliseconds ?? 0;
     final slider = SliderTheme(
-      data: SliderTheme.of(context).copyWith(
-        trackHeight: 3,
-        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-        overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
-      ),
+      data: thinSliderTheme(context),
       child: Slider(
         // In the bar, no taller than the times beside it, which keeps the bar low; under the full-screen player's song,
         // with room to take it.

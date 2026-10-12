@@ -33,8 +33,8 @@ class SleepTimer extends ChangeNotifier {
   // The minutes left that the listeners were last told of.
   int? _minutesTold;
 
-  // As the music fades out: the volume it had before, which it gets back, and the one the fade last set. A volume the
-  // user picks meanwhile stays, and the music fades no more ([_faded]).
+  // As the music fades out: the volume it had before, which it gets back, and the one the fade last set, which the next
+  // launches don't keep. A volume the user picks meanwhile stays, and the music fades no more ([_faded]).
   int? _volumeBefore;
   int? _volumeSet;
   bool _faded = false;
@@ -120,7 +120,7 @@ class SleepTimer extends ChangeNotifier {
 
     if (volume != _volumeSet) {
       _volumeSet = volume;
-      unawaited(_player.setVolume(volume));
+      unawaited(_player.setVolume(volume, keep: false));
     }
   }
 

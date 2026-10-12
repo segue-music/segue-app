@@ -19,6 +19,7 @@ import 'player_controls.dart';
 import 'player_page.dart';
 import 'queue_page.dart';
 import 'sleep_timer_button.dart';
+import 'volume_control.dart';
 
 export 'player_controls.dart' show formatDuration;
 
@@ -27,8 +28,8 @@ export 'player_controls.dart' show formatDuration;
 ///
 /// On a wide screen it goes in three parts, as most players on a computer have them: the song; in the middle, the
 /// playback's buttons (play, filled, in theirs), between the heart and the lyrics, over the slider; and at the end, a
-/// playlist to add the song to, the queue, the sleep timer and the devices. On a phone, the slider is over the song
-/// and its few buttons, the rest in the full-screen player.
+/// playlist to add the song to, the queue, the sleep timer, the devices and, on a computer, the volume. On a phone, the
+/// slider is over the song and its few buttons, the rest in the full-screen player.
 ///
 /// Each page has one, but for the pages of a [PageArea], under which the home's stays.
 class NowPlayingBar extends StatelessWidget {
@@ -186,6 +187,8 @@ class NowPlayingBar extends StatelessWidget {
                         // The timer pauses this device's player: none while another device plays.
                         if (now.device == null) const SleepTimerButton(),
                         devices,
+                        // The volume of the device it plays on, as most players on a computer have it.
+                        if (VolumeControl.shown) VolumeControl(now),
                       ],
                     ),
                   ),

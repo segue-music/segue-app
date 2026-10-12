@@ -9,6 +9,7 @@ import '../segue/client.dart';
 import '../segue/protocol.dart';
 import '../server/models.dart';
 import '../server/server.dart';
+import '../volume_choice.dart';
 import 'crossfade_engine.dart';
 import 'engine.dart';
 
@@ -20,7 +21,7 @@ class PlayerController extends ChangeNotifier {
   /// loudness [replayGain]'s way, the one that plays too as it changes; with none, not at all. Plays them through
   /// [equalizer], as it changes too; with none, as they are. Goes on after the queue's last song with songs like it
   /// while [autoplay] is on, and takes those that haven't played out of the queue as it goes off; with none, the music
-  /// stops there.
+  /// stops there. Starts at the volume [volume] kept, and keeps there the one set ([setVolume]); with none, at all of it.
   PlayerController(
     AudioEngine engine,
     this._api, {
@@ -30,11 +31,16 @@ class PlayerController extends ChangeNotifier {
     this._autoplay,
     this._crossfade,
     this._crossfadeEngine,
+    this._volume,
   }) : _gapless = engine,
        _engine = engine {
     // Crossfading from the start: the queue, still empty, has nothing to take along.
     if (_crossfading) {
       _engine = _crossfadeEngine!();
+    }
+
+    if (_volume != null) {
+      unawaited(_engine.setVolume(_volume.value));
     }
 
     _follow(_engine);
@@ -59,6 +65,7 @@ class PlayerController extends ChangeNotifier {
   final ValueListenable<bool>? _autoplay;
   final ValueListenable<Duration>? _crossfade;
   final AudioEngine Function()? _crossfadeEngine;
+  final VolumeChoice? _volume;
   late StreamSubscription<void> _subscription;
   late StreamSubscription<void> _endedSubscription;
   final _songEnded = StreamController<void>.broadcast();
@@ -450,7 +457,16 @@ class PlayerController extends ChangeNotifier {
     _changed(); // a seek doesn't show in the engine's changes
   }
 
-  Future<void> setVolume(int volume) => _engine.setVolume(volume.clamp(0, 100));
+  /// Plays at [volume], from 0 to 100, from the next launch on too, unless not to [keep] it: a fade's, on its way.
+  Future<void> setVolume(int volume, {bool keep = true}) async {
+    final clamped = volume.clamp(0, 100);
+
+    if (keep) {
+      unawaited(_volume?.pick(clamped));
+    }
+
+    await _engine.setVolume(clamped);
+  }
 
   Future<void> setRepeat(Repeat mode) async {
     await _engine.setRepeat(mode);

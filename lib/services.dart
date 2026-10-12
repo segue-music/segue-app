@@ -35,6 +35,7 @@ import 'server/reachability.dart';
 import 'server/server.dart';
 import 'server/sign_in.dart';
 import 'session.dart';
+import 'volume_choice.dart';
 
 /// Everything a signed-in session runs on.
 class Services {
@@ -59,9 +60,10 @@ class Services {
   /// Starts a session: the API, with what the user downloaded, this device's player, which streams in the quality picked
   /// ([quality]; the original, with none), levels the songs' loudness the way picked ([replayGain]; not at all, with
   /// none), plays them through the equalizer as set ([equalizer]; as they are, with none), goes on after the queue's
-  /// last song while [autoplay] is on (never, with none) and crossfades them for as long as [crossfade] says (never, with
-  /// none), and, if a hub is found, the connection to it. With the media server out of reach, the hub is the one last
-  /// found next to it, which the connection reaches once it can.
+  /// last song while [autoplay] is on (never, with none), crossfades them for as long as [crossfade] says (never, with
+  /// none) and plays at the volume [volume] keeps (all of it, with none), and, if a hub is found, the connection to it.
+  /// With the media server out of reach, the hub is the one last found next to it, which the connection reaches once it
+  /// can.
   static Future<Services> start(
     Session session, {
     AudioEngine? engine,
@@ -71,6 +73,7 @@ class Services {
     ValueListenable<DownloadSettings>? downloadSettings,
     AutoplayChoice? autoplay,
     CrossfadeChoice? crossfade,
+    VolumeChoice? volume,
   }) async {
     final server = openServer(
       session.server,
@@ -117,6 +120,7 @@ class Services {
       autoplay: autoplay,
       crossfade: crossfade,
       crossfadeEngine: crossfade == null ? null : () => CrossfadeEngine(() => crossfade.value),
+      volume: volume,
     );
     final hubUrl = foundHub ?? (reachable ? null : await _rememberedHub(session.server));
 

@@ -5,6 +5,9 @@ import 'package:segue/player/sleep_timer.dart';
 import 'package:segue/segue/protocol.dart';
 import 'package:segue/server/models.dart';
 import 'package:segue/subsonic/api.dart';
+import 'package:segue/volume_choice.dart';
+import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 import 'fakes.dart';
 
@@ -13,11 +16,12 @@ const songs = [
   Song(id: 's2', title: 'Sweet Emotion', duration: Duration(minutes: 5)),
 ];
 
-/// This device's player, on [engine], playing [songs] from the first, and its sleep timer.
-(PlayerController, SleepTimer) playing(FakeEngine engine) {
+/// This device's player, on [engine], playing [songs] from the first, at the volume [volume] keeps, and its sleep timer.
+(PlayerController, SleepTimer) playing(FakeEngine engine, {VolumeChoice? volume}) {
   final player = PlayerController(
     engine,
     SubsonicApi(Uri.parse('https://music.test'), const SubsonicCredentials(username: 'a', token: 't', salt: 's')),
+    volume: volume,
   );
   player.playQueue(songs);
 
@@ -25,6 +29,8 @@ const songs = [
 }
 
 void main() {
+  setUpAll(() => SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty());
+
   test('after a while the music pauses, having faded out over the last 30 seconds, and plays as loud as before', () {
     fakeAsync((async) {
       final (player, timer) = playing(FakeEngine());
@@ -79,6 +85,20 @@ void main() {
       expect(player.volume, 70);
     });
   });
+
+  test(
+    'the next launch doesn\'t keep the fade\'s volumes: closed as the music fades, the app opens as loud as before',
+    () {
+      fakeAsync((async) {
+        final volume = VolumeChoice(80);
+        final (player, timer) = playing(FakeEngine(), volume: volume);
+        timer.start(const Duration(minutes: 1));
+        async.elapse(const Duration(seconds: 45));
+        expect(player.volume, lessThan(80));
+        expect(volume.value, 80);
+      });
+    },
+  );
 
   test('turned off as the music fades, it plays on as loud as before', () {
     fakeAsync((async) {

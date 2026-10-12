@@ -763,6 +763,27 @@
       }
     }
   },
+  "volume": "Volume",
+  "@volume": {
+    "description": "The slider of the volume of the device the app controls, in the player bar on a computer, for a screen reader."
+  },
+  "volumeLevel": "{volume}%",
+  "@volumeLevel": {
+    "description": "How loud the volume slider is, from 0 to 100, for a screen reader.",
+    "placeholders": {
+      "volume": {
+        "type": "int"
+      }
+    }
+  },
+  "mute": "Silenciar",
+  "@mute": {
+    "description": "The tooltip of the speaker button beside the volume slider, while there is sound."
+  },
+  "unmute": "Ativar o som",
+  "@unmute": {
+    "description": "The tooltip of the speaker button beside the volume slider, while it is muted: it gives the volume back."
+  },
   "maximizeLyrics": "Maximizar a letra",
   "@maximizeLyrics": {
     "description": "The tooltip of the button at the lyrics' corner, under the full-screen player, which opens them full screen."

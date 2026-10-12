@@ -16,6 +16,7 @@ import 'download_choice.dart';
 import 'quality_choice.dart';
 import 'replay_gain_choice.dart';
 import 'theme_choice.dart';
+import 'volume_choice.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,6 +36,7 @@ Future<void> main() async {
       equalizerChoice: await EqualizerChoice.load(),
       autoplayChoice: await AutoplayChoice.load(),
       crossfadeChoice: await CrossfadeChoice.load(),
+      volumeChoice: await VolumeChoice.load(),
       mediaControls: controls,
       interruptions: interruptions,
       television: television,
