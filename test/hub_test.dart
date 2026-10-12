@@ -19,6 +19,8 @@ import 'package:segue/server/models.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
+import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 import 'fakes.dart';
 
@@ -602,5 +604,40 @@ void main() {
     // What the tv reports reaches the laptop in Subsonic ids.
     await until(() => laptop.connect.queue.tracks.length == 2, 'the tv\'s queue on the laptop');
     expect(laptop.connect.queue.tracks.map((track) => track.id), songs.map((song) => song.id));
+  });
+
+  test('a hub not found as the app opens, the media server answering (the network blinking), is the one found next to '
+      'it before, which the app connects to', () async {
+    SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
+    // A media server that answers its ping, with no hub found next to it this time.
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    addTearDown(server.close);
+    server.listen((request) {
+      if (request.uri.path.endsWith('/ping.view')) {
+        request.response.headers.contentType = ContentType.json;
+        request.response.write('{"subsonic-response": {"status": "ok", "version": "1.16.1"}}');
+      } else {
+        request.response.statusCode = HttpStatus.notFound;
+      }
+
+      request.response.close();
+    });
+    final url = Uri.parse('http://127.0.0.1:${server.port}/');
+    await Session.rememberFoundHub(url, hubUrl);
+
+    final user = newUser();
+    final laptop = await App(user, 'laptop').start();
+    final tv = await Services.start(
+      Session(
+        server: url,
+        credentials: SubsonicCredentials(username: user, token: '-', salt: '-'),
+        deviceId: 'tv',
+        deviceName: 'tv',
+      ),
+      engine: FakeEngine(),
+    );
+    addTearDown(tv.dispose);
+    expect(tv.reachability?.value, isTrue, reason: 'the server in reach');
+    await until(() => laptop.connect.devices.any((d) => d.id == 'tv'), 'the tv');
   });
 }

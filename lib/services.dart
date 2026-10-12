@@ -62,8 +62,8 @@ class Services {
   /// none), plays them through the equalizer as set ([equalizer]; as they are, with none), goes on after the queue's
   /// last song while [autoplay] is on (never, with none), crossfades them for as long as [crossfade] says (never, with
   /// none) and plays at the volume [volume] keeps (all of it, with none), and, if a hub is found, the connection to it.
-  /// With the media server out of reach, the hub is the one last found next to it, which the connection reaches once it
-  /// can.
+  /// Where none is found, the media server out of reach or the network blinking as the app opens, the hub is the one last
+  /// found next to it, which the connection reaches once it can.
   static Future<Services> start(
     Session session, {
     AudioEngine? engine,
@@ -83,7 +83,7 @@ class Services {
     );
     final reachability = Reachability(server.ping);
     // At once, rather than one after the other: out of reach, each waits for nothing to answer.
-    final (reachable, foundHub) = await (reachability.check(), discoverHub(session.server, hub: session.hub)).wait;
+    final (_, foundHub) = await (reachability.check(), discoverHub(session.server, hub: session.hub)).wait;
     final mobileData = await MobileData.watch();
     final lrclib = Lrclib();
     final fanartTv = fanartTvKey.isEmpty ? null : FanartTv(apiKey: fanartTvKey);
@@ -122,7 +122,9 @@ class Services {
       crossfadeEngine: crossfade == null ? null : () => CrossfadeEngine(() => crossfade.value),
       volume: volume,
     );
-    final hubUrl = foundHub ?? (reachable ? null : await _rememberedHub(session.server));
+    // Not found, the hub last found there, also with the server in reach: a request that failed as the app opened (the
+    // network blinking, a VPN coming up) left the app without one until it was opened again.
+    final hubUrl = foundHub ?? await _rememberedHub(session.server);
 
     if (foundHub != null) {
       await _rememberHub(session.server, foundHub);

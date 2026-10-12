@@ -105,8 +105,8 @@ class Session {
     }
   }
 
-  /// The hub last found next to [server] (its WebSocket's address), for when the server can't be reached to find it
-  /// again; null where none was.
+  /// The hub last found next to [server] (its WebSocket's address), for when it can't be found again as the app opens
+  /// (the server out of reach, the network blinking); null where none was.
   static Future<Uri?> foundHub(Uri server) async {
     final hub = await _prefs.getString('foundHub');
 

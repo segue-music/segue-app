@@ -267,8 +267,9 @@ Running two app instances on one machine as different devices:
   reach: `Services.start` pings it (`MediaServer.ping`) as it discovers the hub, both waiting a few seconds at most,
   since a request to a server out of reach can wait for minutes, and a request that fails for the network
   (`isNetworkFailure`) sets it out of reach, from when it pings every 30 s. `HomePage` builds its sections anew as it
-  changes. Out of reach as the app opens, the hub is the one last found next to the server (`Session.foundHub`), which
-  `SegueClient` reaches once it can. Tests leave `Services.downloads` null, and `Services.start` too where it can't
+  changes. Where discovery finds none as the app opens (the server out of reach, or the network blinking with the
+  server in reach), the hub is the one last found next to the server (`Session.foundHub`), which `SegueClient` reaches
+  once it can. Tests leave `Services.downloads` null, and `Services.start` too where it can't
   have a folder.
 - `PlaylistEditor` (`lib/server/playlist_editor.dart`, `Services.playlistEditor`) makes the changes to the user's
   playlists (create, rename, delete, add, remove, move), one after another in the order they come, since removing and
