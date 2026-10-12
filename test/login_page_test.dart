@@ -81,7 +81,8 @@ void main() {
     final code = tester.getRect(find.byType(QrImageView));
     expect(code.right, lessThan(tester.getRect(find.widgetWithText(TextFormField, 'Servidor')).left), reason: 'before');
     final invite = tester.widget<PhoneSignIn>(find.byType(PhoneSignIn)).invite;
-    expect(PairingInvite.parse('$invite')?.address, invite.address, reason: 'what the code says');
+    expect(invite.name, 'laptop');
+    expect(find.text('laptop · 127.0.0.1'), findsOneWidget, reason: 'which the phone shows before signing it in');
 
     const credentials = SubsonicCredentials(username: 'alice', token: 't0k3n', salt: 's4lt');
     final phone = Session(

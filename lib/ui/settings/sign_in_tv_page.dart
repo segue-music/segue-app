@@ -7,6 +7,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../l10n/app_localizations.dart';
 import '../../pairing/pairing.dart';
 import '../../services.dart';
+import '../../session.dart';
 import '../widgets/spinner.dart';
 
 /// Signs a TV in with this device's sign-in: the camera reads the QR code the TV's sign-in shows ([PairingInvite]),
@@ -26,11 +27,16 @@ class SignInTvPage extends StatefulWidget {
 }
 
 class _SignInTvPageState extends State<SignInTvPage> {
-  final _camera = MobileScannerController(detectionSpeed: DetectionSpeed.noDuplicates, formats: [BarcodeFormat.qrCode]);
+  final _camera = MobileScannerController(formats: [BarcodeFormat.qrCode]);
 
   /// A code read, being asked about or sent: the others wait.
   bool _taking = false;
   bool _sending = false;
+
+  /// The codes asked about, by their ids, each once: the camera goes on reading the one before the user. A TV shows
+  /// another after each sign-in, which comes while this one is sent, and the camera's own check (`noDuplicates`) would
+  /// then take it for one read, and never give it again.
+  final _asked = <String>{};
 
   @override
   void dispose() {
@@ -41,7 +47,7 @@ class _SignInTvPageState extends State<SignInTvPage> {
   Future<void> _read(BarcodeCapture capture) async {
     final invite = capture.barcodes.map((code) => PairingInvite.parse(code.rawValue ?? '')).nonNulls.firstOrNull;
 
-    if (invite == null || _taking) {
+    if (invite == null || _taking || !_asked.add(invite.id)) {
       return;
     }
 
@@ -51,17 +57,7 @@ class _SignInTvPageState extends State<SignInTvPage> {
     final strings = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(strings.signInTvConfirm),
-        content: Text(strings.signInTvConfirmDetail(session.credentials.username, session.server.host)),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(strings.cancel)),
-          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: Text(strings.signIn)),
-        ],
-      ),
-    );
+    final confirmed = await showDialog<bool>(context: context, builder: (context) => ConfirmSignInTv(invite, session));
 
     if (confirmed != true || !mounted) {
       _taking = false;
@@ -124,6 +120,31 @@ class _SignInTvPageState extends State<SignInTvPage> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Asks, once a TV's code is read, before sending it this [session]'s sign-in: which TV, by its name and its address on
+/// the network, which its sign-in shows under the code, as whom and on which server. True, signing it in.
+class ConfirmSignInTv extends StatelessWidget {
+  const ConfirmSignInTv(this.invite, this.session, {super.key});
+
+  final PairingInvite invite;
+  final Session session;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = AppLocalizations.of(context);
+
+    return AlertDialog(
+      title: Text(strings.signInTvConfirm),
+      content: Text(
+        strings.signInTvConfirmDetail(invite.name, invite.host, session.credentials.username, session.server.host),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(strings.cancel)),
+        FilledButton(onPressed: () => Navigator.of(context).pop(true), child: Text(strings.signIn)),
+      ],
     );
   }
 }

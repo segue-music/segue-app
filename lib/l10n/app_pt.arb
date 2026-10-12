@@ -884,6 +884,18 @@
   "@signInWithPhoneDetail": {
     "description": "On a TV's sign-in, under the QR code: what to do on the phone. Settings and Sign in on a TV are the settings' title and item (settings, signInTv)."
   },
+  "pairingDevice": "{device} · {address}",
+  "@pairingDevice": {
+    "description": "On a TV's sign-in, under the QR code: the TV's name and its address on the network, which the phone shows before signing it in (signInTvConfirmDetail), to check it is this TV.",
+    "placeholders": {
+      "device": {
+        "type": "String"
+      },
+      "address": {
+        "type": "String"
+      }
+    }
+  },
   "signingInWithPhone": "Entrando com o login do celular…",
   "@signingInWithPhone": {
     "description": "On a TV's sign-in, under the QR code, as the phone's sign-in has come and the TV signs in with it."
@@ -904,10 +916,16 @@
   "@signInTvConfirm": {
     "description": "The title of the dialog that asks, once the TV's QR code is read, before sending it this sign-in."
   },
-  "signInTvConfirmDetail": "A TV vai entrar como {user} em {server}.",
+  "signInTvConfirmDetail": "{device} ({address}) vai entrar como {user} em {server}.",
   "@signInTvConfirmDetail": {
-    "description": "In the dialog that asks before signing the TV in: with which user, on which server (its host).",
+    "description": "In the dialog that asks before signing the TV in: which TV (its name, and its address on the network, which the TV shows under its QR code, pairingDevice), with which user, on which server (its host).",
     "placeholders": {
+      "device": {
+        "type": "String"
+      },
+      "address": {
+        "type": "String"
+      },
       "user": {
         "type": "String"
       },

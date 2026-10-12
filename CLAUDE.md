@@ -374,13 +374,20 @@ Running two app instances on one machine as different devices:
   saved before Jellyfin, so Subsonic). The password itself is never stored.
 - Pairing (`lib/pairing/pairing.dart`): a TV signs in from a phone signed in, the remote typing nothing. The TV's
   `LoginPage` (in directional mode) starts a `PairingServer`, an HTTP server on a port of its own, and shows its
-  `PairingInvite` as a QR code (qr_flutter): the TV's address on the local network, a random id (the path it takes
-  the sign-in at) and a random key. The phone's `SignInTvPage` (settings, Android and iOS, mobile_scanner) reads it
-  and, once the user confirms, `offerSignIn` posts a `PairingOffer` sealed with that key (AES-GCM, cryptography, the
-  id as associated data): the server, the hub, and on Subsonic the credentials. The TV (`takeOffer`) pings the server
+  `PairingInvite` as a QR code (qr_flutter): the TV's address on the local network, its name, a random id (the path
+  it takes the sign-in at) and a random key. The phone's `SignInTvPage` (settings, Android and iOS, mobile_scanner)
+  reads it and, once the user confirms (`ConfirmSignInTv`, which names the TV and its address, both under the TV's
+  code too), `offerSignIn` posts a `PairingOffer` sealed with that key (AES-GCM, cryptography, the id and the way it
+  goes as associated data): the server, the hub, and on Subsonic the credentials. The TV (`takeOffer`) pings the server
   with them and saves the session, or on Jellyfin starts a Quick Connect (`JellyfinApi.initiateQuickConnect`), answers
   its code, which the phone authorizes, and polls until it can sign in with a token of its own. The hub has no part in
-  it: the TV knows neither the server nor the hub before. The answers aren't sealed: they carry no secret. The widget
+  it: the TV knows neither the server nor the hub before. Against a code made to look like a TV's, the phone takes
+  only one whose address is a private IPv4 one (`PairingInvite.isLocal`), so that none has the sign-in go to the
+  internet, and the TV shows one only on such a network; against someone on the network answering in the TV's place
+  (their own Quick Connect code, for the phone to authorize), the answers are sealed with the key too; against a
+  code seen on a photo of the screen, a code is good for one sign-in, whatever comes of it, the TV showing another
+  (`PairingServer.invite`), so the phone asks about each code once (`_asked`, rather than the camera's own
+  `noDuplicates`, which would take the new one, read while the one before is sent, for one seen). The widget
   tests reach the TV's server with a real `HttpClient` (`HttpOverrides`, the binding's answering 400) and pump while
   they wait, its handler running in the test's clock.
 - Android TV: the remote drives the app through focus. `segueTheme` (`lib/ui/app/theme.dart`) gives

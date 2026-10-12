@@ -67,7 +67,11 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _startPairing() async {
-    final pairing = await PairingServer.start(_takeOffer, address: widget.pairingAddress);
+    final pairing = await PairingServer.start(
+      _takeOffer,
+      name: await Session.thisDeviceName(),
+      address: widget.pairingAddress,
+    );
 
     if (!mounted) {
       await pairing?.close();
@@ -262,7 +266,15 @@ class _LoginPageState extends State<LoginPage> {
               children: [
                 Expanded(
                   child: Center(
-                    child: PhoneSignIn(pairing.invite, signingIn: _signingInWithPhone, error: _phoneError),
+                    // As the form does, it scrolls where its words, in a language or a size, need more room.
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(24),
+                      child: ValueListenableBuilder(
+                        valueListenable: pairing.invite,
+                        builder: (context, invite, _) =>
+                            PhoneSignIn(invite, signingIn: _signingInWithPhone, error: _phoneError),
+                      ),
+                    ),
                   ),
                 ),
                 Expanded(child: form),
@@ -298,8 +310,9 @@ class _LoginPageState extends State<LoginPage> {
   }
 }
 
-/// On a TV's sign-in, the QR code that a phone signed in reads to sign the TV in ([invite]), and what to do with it; as
-/// the phone's sign-in comes, that the TV is signing in with it, or why it couldn't.
+/// On a TV's sign-in, the QR code that a phone signed in reads to sign the TV in ([invite]), with the TV's name and
+/// address, which the phone shows before signing it in, and what to do with it; as the phone's sign-in comes, that the
+/// TV is signing in with it, or why it couldn't.
 class PhoneSignIn extends StatelessWidget {
   const PhoneSignIn(this.invite, {required this.signingIn, required this.error, super.key});
 
@@ -331,6 +344,12 @@ class PhoneSignIn extends StatelessWidget {
               backgroundColor: Colors.white,
               semanticsLabel: strings.signInWithPhone,
             ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            strings.pairingDevice(invite.name, invite.host),
+            style: text.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
           if (signingIn)
