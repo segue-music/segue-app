@@ -3,11 +3,13 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:segue/connect/connect.dart';
 import 'package:segue/l10n/app_localizations.dart';
 import 'package:segue/mixes.dart';
+import 'package:segue/pictures/fanart_tv.dart';
 import 'package:segue/player/player.dart';
 import 'package:segue/server/models.dart';
 import 'package:segue/services.dart';
@@ -18,6 +20,7 @@ import 'package:segue/ui/home/mix_row.dart';
 import 'package:segue/ui/widgets/cover.dart';
 
 import 'fakes.dart';
+import 'themed_icons.dart';
 
 const credentials = SubsonicCredentials(username: 'a', token: 't', salt: 's');
 
@@ -52,15 +55,17 @@ Map<String, Object?> song(String id, String album, String artist) => {
 /// A library whose most played albums (with [played]) are, the most first, one of rock of the 1970s, one of hard rock
 /// of the 1980s, one of jazz of the 1950s and one of pop of the 1970s; and whose genres, with [genres], are rock, blues,
 /// jazz, of a number of albums the server doesn't say, and spoken word, of none. Its songs at random, with [songs], are
-/// six of five albums as a mix's first songs, and three, one of them among those, as its songs; their artists have
-/// pictures, with [pictures]. [asked] gets the queries of the songs asked for at random.
+/// six of five albums as a mix's first songs, and three, one of them among those, as its songs; the artists whose ids
+/// are [pictured] have pictures, all of them by default, and each its MusicBrainz id, mb- and its own. [asked] gets the
+/// queries of the songs asked for at random, and [askedArtists] the ids of the artists asked for.
 http.Response server(
   http.Request request, {
   List<Map<String, String>>? asked,
+  List<String>? askedArtists,
   bool played = true,
   bool genres = true,
   bool songs = true,
-  bool pictures = true,
+  Set<String>? pictured,
 }) {
   final path = request.url.path;
   final query = request.url.queryParameters;
@@ -105,11 +110,13 @@ http.Response server(
 
   if (path.endsWith('getArtist.view')) {
     final id = query['id']!;
+    askedArtists?.add(id);
     return subsonic({
       'artist': {
         'id': id,
         'name': artistIds.entries.firstWhere((entry) => entry.value == id).key,
-        if (pictures) 'coverArt': 'ar-$id',
+        'musicBrainzId': 'mb-$id',
+        if (pictured?.contains(id) ?? true) 'coverArt': 'ar-$id',
       },
     });
   }
@@ -141,16 +148,47 @@ http.Response server(
 
 SubsonicApi api({
   List<Map<String, String>>? asked,
+  List<String>? askedArtists,
   bool played = true,
   bool genres = true,
   bool songs = true,
-  bool pictures = true,
+  Set<String>? pictured,
 }) => SubsonicApi(
   Uri.parse('https://music.test'),
   credentials,
   client: MockClient(
-    (request) async => server(request, asked: asked, played: played, genres: genres, songs: songs, pictures: pictures),
+    (request) async => server(
+      request,
+      asked: asked,
+      askedArtists: askedArtists,
+      played: played,
+      genres: genres,
+      songs: songs,
+      pictured: pictured,
+    ),
   ),
+);
+
+/// fanart.tv, with a picture of the artists whose ids are [pictured], by their MusicBrainz id; [asked] gets the ids.
+FanartTv fanartTv(Set<String> pictured, {List<String>? asked}) => FanartTv(
+  apiKey: 'key',
+  client: MockClient((request) async {
+    final id = request.url.pathSegments.last.replaceFirst('mb-', '');
+    asked?.add(id);
+
+    if (!pictured.contains(id)) {
+      return http.Response('', 404);
+    }
+
+    return http.Response(
+      jsonEncode({
+        'artistthumb': [
+          {'url': 'https://fanart.test/$id.jpg', 'likes': '3'},
+        ],
+      }),
+      200,
+    );
+  }),
 );
 
 /// What [mixes] are of: a genre by its name, a decade by its first year.
@@ -162,16 +200,16 @@ List<Object> about(List<Mix> mixes) => [
     },
 ];
 
-/// The home, over the library [server] has, with [played], [genres], [songs] and [pictures]. Returns its player.
+/// The home, over the library [server] has, with [played], [genres], [songs] and [pictured]. Returns its player.
 Future<PlayerController> pumpHome(
   WidgetTester tester, {
   List<Map<String, String>>? asked,
   bool played = true,
   bool genres = true,
   bool songs = true,
-  bool pictures = true,
+  Set<String>? pictured,
 }) async {
-  final server = api(asked: asked, played: played, genres: genres, songs: songs, pictures: pictures);
+  final server = api(asked: asked, played: played, genres: genres, songs: songs, pictured: pictured);
   final player = PlayerController(FakeEngine(), server);
   final services = Services(
     Session(server: Uri.parse('https://music.test'), credentials: credentials, deviceId: 'me', deviceName: 'me'),
@@ -304,19 +342,49 @@ void main() {
   });
 
   test(
-    'a mix\'s first artist is the first song\'s, as the server has them, asked for once; none without songs',
+    'a mix\'s picture is its first song\'s artist\'s, as the server has it, asked for once; none without songs',
     () async {
       final mixes = SuggestedMixes(api());
       final rock = genre(await mixes.mixes, 'Rock');
-      final artist = await mixes.firstArtist(rock);
-      expect(artist?.name, 'Aerosmith');
-      expect(artist?.coverArt, 'ar-r1');
-      expect(identical(await mixes.firstArtist(rock), artist), isTrue);
+      final found = await mixes.picture(rock);
+      expect(found?.artist.name, 'Aerosmith');
+      expect(found?.artist.coverArt, 'ar-r1');
+      expect(identical(await mixes.picture(rock), found), isTrue);
 
       final empty = SuggestedMixes(api(songs: false));
-      expect(await empty.firstArtist((await empty.mixes).first), isNull);
+      expect(await empty.picture((await empty.mixes).first), isNull);
     },
   );
+
+  test('where an artist has no picture, the next one\'s, in the order their songs play, each asked for once: the '
+      'server\'s, or else fanart.tv\'s', () async {
+    final askedArtists = <String>[];
+    final askedFanart = <String>[];
+    final mixes = SuggestedMixes(
+      api(askedArtists: askedArtists, pictured: {'r3'}),
+      fanartTv: fanartTv({'r4'}, asked: askedFanart),
+    );
+    var found = await mixes.picture(genre(await mixes.mixes, 'Rock'));
+    expect(found?.artist.name, 'Boston');
+    expect(found?.picture, isNull, reason: 'the server\'s');
+    expect(askedArtists, ['r1', 'r2', 'r3'], reason: 'Aerosmith once, for its three songs');
+    expect(askedFanart, ['r1', 'r2']);
+
+    final fromFanart = SuggestedMixes(api(pictured: {}), fanartTv: fanartTv({'r2', 'r4'}));
+    found = await fromFanart.picture(genre(await fromFanart.mixes, 'Rock'));
+    expect(found?.artist.name, 'Cheap Trick');
+    expect(found?.picture, Uri.parse('https://fanart.test/r2.jpg'));
+  });
+
+  test('where none of a mix\'s artists has a picture, none', () async {
+    final askedArtists = <String>[];
+    final mixes = SuggestedMixes(
+      api(askedArtists: askedArtists, pictured: {}),
+      fanartTv: fanartTv({}),
+    );
+    expect(await mixes.picture(genre(await mixes.mixes, 'Rock')), isNull);
+    expect(askedArtists, ['r1', 'r2', 'r3', 'r4'], reason: 'every one');
+  });
 
   test('a decade is called as it\'s usually said', () {
     final portuguese = lookupAppLocalizations(const Locale('pt'));
@@ -352,10 +420,24 @@ void main() {
     expect(tester.getRect(artists).top, greaterThan(over.bottom));
   });
 
-  testWidgets('a mix whose first artist has no picture shows the first song\'s cover', (tester) async {
-    await pumpHome(tester, pictures: false);
+  testWidgets('a mix whose first artist has no picture shows the next one\'s', (tester) async {
+    await pumpHome(tester, pictured: {'r2'});
     final picture = find.descendant(of: mixTile('Rock'), matching: find.byType(Cover));
-    expect(tester.widget<Cover>(picture).id, 'al-a1');
+    expect(tester.widget<Cover>(picture).id, 'ar-r2', reason: 'Cheap Trick\'s');
+  });
+
+  testWidgets('a mix none of whose artists has a picture shows its own: its kind\'s icon, on the theme\'s colors', (
+    tester,
+  ) async {
+    await pumpHome(tester, pictured: {});
+    expect(find.descendant(of: mixTile('Rock'), matching: find.byType(Cover)), findsNothing);
+    final icon = find.descendant(of: mixTile('Rock'), matching: themedIcon(HugeIcons.strokeRoundedTag01));
+    expect(icon, findsOneWidget);
+    final tile = tester.getRect(find.descendant(of: mixTile('Rock'), matching: find.byType(ClipRRect)).first);
+    expect(tester.getSize(icon).width, greaterThan(tile.width / 4), reason: 'big');
+    final colors = Theme.of(tester.element(icon)).colorScheme;
+    final art = tester.widget<DecoratedBox>(find.ancestor(of: icon, matching: find.byType(DecoratedBox)).first);
+    expect((art.decoration as BoxDecoration).gradient?.colors, [colors.primaryContainer, colors.tertiaryContainer]);
   });
 
   testWidgets('a mix plays as it\'s picked: its first songs, which its tile shows, then the rest, each once', (

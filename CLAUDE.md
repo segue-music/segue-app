@@ -282,9 +282,10 @@ Running two app instances on one machine as different devices:
   (`MixRow`, `lib/ui/home/mix_row.dart`, above the albums' rows): two genres, then a decade, and so on, 6 of the 12 genres
   the user plays most (before anything has played, of those with the most albums) and 3 of the 6 decades
   (`MediaServer.mostPlayedDecades`), picked at random each time the home loads, the higher one ranks the likelier
-  (`_pickedByRank`; the tests give it a seeded `Random`); each with its first songs and their first artist, asked for
-  once, as its tile shows, which
-  shows that artist's picture and plays those songs first (`playMix`). On Subsonic the genres and decades played most
+  (`_pickedByRank`; the tests give it a seeded `Random`); each with its first songs, asked for once, as its tile
+  shows, which plays them first (`playMix`) and shows the picture of the first of their artists who has one, the
+  server's or else fanart.tv's (`SuggestedMixes.picture`: each artist asked for as the one before has none), or, where
+  none has one, the mix's own (`_MixArt`: its kind's icon on the theme's containers' colors). On Subsonic the genres and decades played most
   share one request for the 500 most played albums, and on Jellyfin one for the most played songs, while it's under
   way. A genre's page has a button that plays its mix (`MixButton`). The mix goes to the hub as any queue does: the
   protocol knows nothing of it.

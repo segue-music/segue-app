@@ -53,7 +53,7 @@ class _HomeViewState extends State<HomeView> {
     // Out of reach, the server's albums are the downloaded ones, the latest downloaded first.
     final rows = _offline ? const [AlbumOrder.latest] : _rows;
     _albums = {for (final order in rows) order: services.api.albums(order: order, size: AlbumRow.maxAlbums)};
-    _mixes = _offline ? null : SuggestedMixes(services.api);
+    _mixes = _offline ? null : SuggestedMixes(services.api, fanartTv: services.fanartTv);
     _loaded = true;
   }
 

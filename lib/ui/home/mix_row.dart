@@ -67,15 +67,15 @@ class MixRow extends StatelessWidget {
   );
 }
 
-/// A mix, as a streaming service shows one: the picture of the artist of its first song, which it plays first, with
-/// its name over it, and under it the artists of its first songs. It plays the mix as it's picked, a spinner in its play
-/// icon's place until the songs have come.
+/// A mix, as a streaming service shows one: the picture of one of the artists of its first songs, which it plays first,
+/// with its name over it, and under it those artists. It plays the mix as it's picked, a spinner in its play icon's
+/// place until the songs have come.
 class _MixTile extends StatefulWidget {
   const _MixTile(this.mix, {required this.mixes});
 
   final Mix mix;
 
-  /// The mixes it is one of, which have its first songs and their first artist.
+  /// The mixes it is one of, which have its first songs and the picture of one of their artists.
   final SuggestedMixes mixes;
 
   @override
@@ -133,7 +133,7 @@ class _MixTileState extends State<_MixTile> {
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
-                          _picture(songs),
+                          _picture(),
                           // A shade at the bottom, for the name over any picture.
                           const DecoratedBox(
                             decoration: BoxDecoration(
@@ -177,29 +177,21 @@ class _MixTileState extends State<_MixTile> {
     );
   }
 
-  /// The picture of the artist of the first of [songs], or, where the server and fanart.tv have none, the cover of the
-  /// song; a placeholder while the artist comes, and without songs.
-  Widget _picture(List<Song> songs) {
-    final placeholder = switch (widget.mix) {
-      GenreMix() => HugeIcons.strokeRoundedTag01,
-      DecadeMix() => HugeIcons.strokeRoundedCalendar03,
-    };
-    final cover = songs.firstOrNull?.coverArt;
-
-    return FutureBuilder(
-      future: widget.mixes.firstArtist(widget.mix),
-      builder: (context, snapshot) => switch (snapshot) {
-        AsyncSnapshot(connectionState: ConnectionState.waiting) => Cover(null, icon: placeholder),
-        AsyncSnapshot(data: final artist?) => FanartPicture(
-          artist,
-          builder: (context, picture) => artist.coverArt == null && picture == null
-              ? Cover(cover, icon: placeholder)
-              : Cover(artist.coverArt, url: picture, icon: HugeIcons.strokeRoundedUser),
-        ),
-        _ => Cover(cover, icon: placeholder),
-      },
-    );
-  }
+  /// The picture of the first of its first songs' artists who has one ([SuggestedMixes.picture]), over the mix's own
+  /// ([_MixArt]), which shows while they are looked through, and stays where none has one.
+  Widget _picture() => Stack(
+    fit: StackFit.expand,
+    children: [
+      _MixArt(widget.mix),
+      FutureBuilder(
+        future: widget.mixes.picture(widget.mix),
+        builder: (context, snapshot) => switch (snapshot.data) {
+          (:final artist, :final picture) => Cover(artist.coverArt, url: picture, icon: HugeIcons.strokeRoundedUser),
+          null => const SizedBox.shrink(),
+        },
+      ),
+    ],
+  );
 
   /// The artists of [songs], each once, in the order they play: the first few, and that there are more.
   static String _artists(AppLocalizations strings, List<Song> songs) {
@@ -210,6 +202,41 @@ class _MixTileState extends State<_MixTile> {
     final named = artists.take(_artistsNamed).join(', ');
 
     return artists.length > _artistsNamed ? strings.mixArtists(named) : named;
+  }
+}
+
+/// A mix's own picture, where none of its artists has one: its kind's icon, big, on a gradient of the theme's colors, the
+/// mixes of genres from its first container's color to its third's, and those of decades the other way. Containers',
+/// under which the play badge, in the first color itself, stands out.
+class _MixArt extends StatelessWidget {
+  const _MixArt(this.mix);
+
+  final Mix mix;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final (icon, gradient) = switch (mix) {
+      GenreMix() => (HugeIcons.strokeRoundedTag01, [colors.primaryContainer, colors.tertiaryContainer]),
+      DecadeMix() => (HugeIcons.strokeRoundedCalendar03, [colors.tertiaryContainer, colors.primaryContainer]),
+    };
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: gradient),
+      ),
+      // Over the middle, clear of the name at the bottom.
+      child: LayoutBuilder(
+        builder: (context, constraints) => Align(
+          alignment: const Alignment(0, -0.3),
+          child: ThemedIcon(
+            icon,
+            size: constraints.maxWidth * 0.36,
+            color: colors.onPrimaryContainer.withValues(alpha: 0.5),
+          ),
+        ),
+      ),
+    );
   }
 }
 

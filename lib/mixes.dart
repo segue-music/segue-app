@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'l10n/app_localizations.dart';
+import 'pictures/fanart_tv.dart';
 import 'server/models.dart';
 import 'server/server.dart';
 
@@ -54,14 +55,22 @@ class DecadeMix extends Mix {
       server.randomSongs(size: size, years: (from: decade, to: decade + 9));
 }
 
-/// The mixes the home suggests, and the first songs of each, which its tile shows and it plays first, and the artist of
-/// the first, whose picture it shows: asked for once, as the tile first shows, and the same until the home loads again.
+/// An artist whose picture a mix's tile shows: the media server's ([Artist.coverArt]), or else fanart.tv's ([picture]).
+typedef MixPicture = ({Artist artist, Uri? picture});
+
+/// The mixes the home suggests, and the first songs of each, which its tile shows and it plays first, and the first of
+/// their artists with a picture, which it shows: asked for once, as the tile first shows, and the same until the home
+/// loads again.
 class SuggestedMixes {
   // Its failure is the row's, which takes it up as it's built: not one of the zone's, should the home load again, as
   // pulled down, before the row is built anew.
-  SuggestedMixes(this._server, {Random? random}) : mixes = _suggested(_server, random ?? Random())..ignore();
+  SuggestedMixes(this._server, {Random? random, this._fanartTv})
+    : mixes = _suggested(_server, random ?? Random())..ignore();
 
   final MediaServer _server;
+
+  /// Where an artist's picture comes from where the server has none; with none, the server's alone.
+  final FanartTv? _fanartTv;
 
   /// Of the genres the user plays most, two, then of a decade they play most, and so on; before anything has played,
   /// of the genres with the most albums alone. Picked at random among more of them, one after another, each the likelier
@@ -70,7 +79,7 @@ class SuggestedMixes {
   final Future<List<Mix>> mixes;
 
   final _firstSongs = <Mix, Future<List<Song>>>{};
-  final _firstArtists = <Mix, Future<Artist?>>{};
+  final _pictures = <Mix, Future<MixPicture?>>{};
 
   /// How many songs of a mix its tile has: enough to name a few artists, and that there are more.
   static const firstSize = 12;
@@ -86,17 +95,40 @@ class SuggestedMixes {
   /// The first songs of [mix], one of [mixes].
   Future<List<Song>> firstSongs(Mix mix) => _firstSongs[mix] ??= mix.songs(_server, size: firstSize);
 
-  /// The artist of the first song of [mix], as the server has them, with their picture; null where it has no songs, the
-  /// song has no artist's id, or the server can't say.
-  Future<Artist?> firstArtist(Mix mix) => _firstArtists[mix] ??= _askFirstArtist(mix);
+  /// The first artist of [mix]'s first songs, in the order they play, who has a picture, the server's or else
+  /// fanart.tv's: one after another, each asked for as the one before has none. Null where none has one (nor their ids,
+  /// nor the server, can say).
+  Future<MixPicture?> picture(Mix mix) => _pictures[mix] ??= _findPicture(mix);
 
-  Future<Artist?> _askFirstArtist(Mix mix) async {
+  Future<MixPicture?> _findPicture(Mix mix) async {
+    final List<Song> songs;
+
     try {
-      final id = (await firstSongs(mix)).firstOrNull?.artistId;
-      return id == null ? null : (await _server.artist(id)).$1;
+      songs = await firstSongs(mix);
     } on Object {
       return null;
     }
+
+    for (final id in {for (final song in songs) ?song.artistId}) {
+      final Artist artist;
+
+      try {
+        (artist, _) = await _server.artist(id);
+      } on Object {
+        continue; // one the server can't say, as the next may be
+      }
+
+      if (artist.coverArt != null) {
+        return (artist: artist, picture: null);
+      }
+
+      // None for one fanart.tv fails at: the next.
+      if ((await _fanartTv?.artistPictures(artist))?.firstOrNull case final picture?) {
+        return (artist: artist, picture: picture);
+      }
+    }
+
+    return null;
   }
 
   static Future<List<Mix>> _suggested(MediaServer server, Random random) async {
