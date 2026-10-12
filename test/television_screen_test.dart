@@ -12,7 +12,7 @@ import 'mixes_test.dart' show mixTile, pumpHome;
 
 void main() {
   testWidgets('on a TV, the text is a seventh bigger than the system\'s, the remote drives the app, and the screen\'s '
-      'edges have Android TV\'s room, as the system\'s padding; elsewhere, all as the system has it', (tester) async {
+      'edges have their room, as the system\'s padding; elsewhere, all as the system has it', (tester) async {
     late MediaQueryData media;
 
     Future<void> pump({required bool television}) => tester.pumpWidget(
@@ -33,7 +33,7 @@ void main() {
     await pump(television: true);
     expect(media.textScaler.scale(10), moreOrLessEquals(10 * 1.1 * 1.15));
     expect(media.navigationMode, NavigationMode.directional);
-    expect(media.padding, const EdgeInsets.symmetric(horizontal: 48, vertical: 27));
+    expect(media.padding, const EdgeInsets.symmetric(horizontal: 12, vertical: 6));
     expect(media.viewPadding, media.padding);
 
     await pump(television: false);
@@ -47,7 +47,7 @@ void main() {
     tester,
   ) async {
     await pumpTvHome(tester);
-    const screen = Rect.fromLTRB(48, 27, 960 - 48, 540 - 27);
+    const screen = Rect.fromLTRB(12, 6, 960 - 12, 540 - 6);
 
     for (final tooltip in ['Início', 'Álbuns', 'Artistas', 'Configurações', 'Aparelhos', 'Tocar']) {
       final rect = tester.getRect(find.byTooltip(tooltip).first);
@@ -59,18 +59,18 @@ void main() {
       find.descendant(of: find.byType(HomeView), matching: find.byType(Scrollable)),
     )) {
       final rect = tester.getRect(find.byWidget(scrollable));
-      expect(rect.left, greaterThanOrEqualTo(48), reason: '$rect');
+      expect(rect.left, greaterThanOrEqualTo(12), reason: '$rect');
       expect(rect.right, 960, reason: '$rect');
     }
 
     final row = find.byType(TileRow).first;
     final arrows = find.descendant(of: row, matching: find.byType(IconButton));
-    expect(tester.getRect(arrows.last).right, lessThanOrEqualTo(960 - 48));
+    expect(tester.getRect(arrows.last).right, lessThanOrEqualTo(960 - 12));
     final strip = find.descendant(of: row, matching: find.byType(Scrollable));
     final scroll = tester.state<ScrollableState>(strip).position;
     scroll.jumpTo(scroll.maxScrollExtent);
     await tester.pumpAndSettle();
-    expect(tester.getRect(find.text('Album 29').first).right, lessThanOrEqualTo(960 - 48), reason: 'the last tile');
+    expect(tester.getRect(find.text('Album 29').first).right, lessThanOrEqualTo(960 - 12), reason: 'the last tile');
 
     final bar = tester.getRect(find.byType(NowPlayingBar));
     expect((bar.left, bar.right, bar.bottom), (0, 960, 540), reason: 'to the edges');
