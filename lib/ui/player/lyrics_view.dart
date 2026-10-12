@@ -13,8 +13,102 @@ import '../widgets/spinner.dart';
 import '../widgets/themed_icon.dart';
 import 'player_controls.dart';
 
+/// The lyrics of [now]'s song: the media server's, or, where it has none, or fails, LRCLIB's, with a blank line for an
+/// intro (a part with no singing). A failure shows only if neither has them: the server's, or else LRCLIB's
+/// ([_LrclibFailed]). Asked for once for each of the last few songs, whoever asks (the lyrics, and on a TV the player,
+/// to know whether to show them), and again after a failure.
+Future<Lyrics?> lyricsOf(BuildContext context, NowPlaying now) {
+  final services = ServicesScope.of(context);
+  final found = _found[services.api] ??= {};
+  final song = lyricsSongOf(now);
+  // The latest last, as the oldest go first.
+  final known = found.remove(song) ?? _Found(_find(services, now).then(_withIntro));
+  found[song] = known;
+
+  if (found.length > _songsRemembered) {
+    found.remove(found.keys.first);
+  }
+
+  unawaited(
+    known.lyrics.then(
+      (lyrics) => known.any = lyrics != null,
+      onError: (Object _) {
+        if (identical(found[song], known)) {
+          found.remove(song);
+        }
+      },
+    ),
+  );
+
+  return known.lyrics;
+}
+
+/// Whether [now]'s song has lyrics, where [lyricsOf] has found out; null where it hasn't yet, or failed.
+bool? hasLyrics(BuildContext context, NowPlaying now) => _found[ServicesScope.of(context).api]?[lyricsSongOf(now)]?.any;
+
+/// What [lyricsOf] has found, by song, for each media server: tests' servers each their own.
+final _found = Expando<Map<Object, _Found>>();
+
+/// For how many songs [lyricsOf] keeps what it found.
+const _songsRemembered = 10;
+
+/// A song as [lyricsOf] knows it, and remembers its lyrics by: by its id, and by its title, artist and album, as LRCLIB
+/// knows it (also with no id, from a hub that couldn't translate it).
+Object lyricsSongOf(NowPlaying now) => (now.songId, now.title, now.artist, now.album);
+
+/// What [lyricsOf] found for a song, and, once it knows, whether there are any.
+class _Found {
+  _Found(this.lyrics);
+
+  final Future<Lyrics?> lyrics;
+  bool? any;
+}
+
+Future<Lyrics?> _find(Services services, NowPlaying now) async {
+  final (songId, title, artist) = (now.songId, now.title, now.artist);
+  (Object, StackTrace)? failure;
+  Lyrics? lyrics;
+
+  try {
+    lyrics = songId == null ? null : await services.api.lyrics(songId);
+  } on Object catch (error, stack) {
+    failure = (error, stack);
+  }
+
+  final lrclib = services.lrclib;
+
+  if (lyrics == null && lrclib != null && title != null && artist != null) {
+    try {
+      lyrics = await lrclib.find(title: title, artist: artist, album: now.album, duration: now.duration);
+    } on Object catch (_, stack) {
+      failure ??= (const _LrclibFailed(), stack);
+    }
+  }
+
+  if ((lyrics, failure) case (null, (final error, final stack)?)) {
+    Error.throwWithStackTrace(error, stack);
+  }
+
+  return lyrics;
+}
+
+/// From how late a first line leaves an intro to show, as a part with no singing.
+const _introFrom = Duration(seconds: 2);
+
+/// [lyrics], with a blank line for their intro when they are synced and their first line comes late enough.
+Lyrics? _withIntro(Lyrics? lyrics) {
+  final first = lyrics?.lines.firstOrNull?.start;
+
+  if (lyrics == null || !lyrics.synced || first == null || first < _introFrom) {
+    return lyrics;
+  }
+
+  return Lyrics([const LyricLine('', start: Duration.zero), ...lyrics.lines], provider: lyrics.provider);
+}
+
 /// The lyrics of what plays, wherever it plays. Synced ones mark the line that plays and keep it in view,
-/// and a line tapped goes there (unless a tap does something else, [onTap]); others show as they are.
+/// and a line tapped goes there (unless a tap does something else, [onTap]); others show as they are. On a TV, as
+/// karaoke ([karaoke]).
 class LyricsView extends StatefulWidget {
   const LyricsView(this.now, {this.onTap, super.key});
 
@@ -30,13 +124,20 @@ class LyricsView extends StatefulWidget {
   /// What a part with no singing shows, in synced lyrics: a blank line, or an intro.
   static const instrumentalIcon = HugeIcons.strokeRoundedMusicNote03;
 
+  /// Whether they show as karaoke, sung along to from across the room: on a TV. There the line that plays is bigger
+  /// than the rest, growing as it comes, and in the middle; the lines to come are fainter, and those gone by fainter
+  /// still. The full-screen player opens with them, and gives them more of the screen.
+  static bool karaoke(BuildContext context) => MediaQuery.maybeNavigationModeOf(context) == NavigationMode.directional;
+
+  /// How long the line that plays, as karaoke, takes to grow, and the one before to shrink.
+  static const _grow = Duration(milliseconds: 300);
+
   @override
   State<LyricsView> createState() => _LyricsViewState();
 }
 
 class _LyricsViewState extends State<LyricsView> {
-  /// The song whose lyrics [_lyrics] brings: by its id, and by its title, artist and album, as LRCLIB
-  /// knows it (also with no id, from a hub that couldn't translate it).
+  /// The song whose lyrics [_lyrics] brings ([lyricsSongOf]).
   Object? _song;
   Future<Lyrics?>? _lyrics;
 
@@ -72,7 +173,7 @@ class _LyricsViewState extends State<LyricsView> {
   /// this device's API has none to ask for.
   void _fetch() {
     final now = widget.now;
-    final song = (now.songId, now.title, now.artist, now.album);
+    final song = lyricsSongOf(now);
 
     if (_lyrics != null && song == _song) {
       return;
@@ -80,53 +181,7 @@ class _LyricsViewState extends State<LyricsView> {
 
     _song = song;
     _shown = null;
-    _lyrics = _find(now).then(_withIntro);
-  }
-
-  /// The song's lyrics from the media server; when it has none, or fails, from LRCLIB. A failure shows only
-  /// if neither has them: the server's, or else LRCLIB's ([_LrclibFailed]).
-  Future<Lyrics?> _find(NowPlaying now) async {
-    final services = ServicesScope.of(context);
-    final (songId, title, artist) = (now.songId, now.title, now.artist);
-    (Object, StackTrace)? failure;
-    Lyrics? lyrics;
-
-    try {
-      lyrics = songId == null ? null : await services.api.lyrics(songId);
-    } on Object catch (error, stack) {
-      failure = (error, stack);
-    }
-
-    final lrclib = services.lrclib;
-
-    if (lyrics == null && lrclib != null && title != null && artist != null) {
-      try {
-        lyrics = await lrclib.find(title: title, artist: artist, album: now.album, duration: now.duration);
-      } on Object catch (_, stack) {
-        failure ??= (const _LrclibFailed(), stack);
-      }
-    }
-
-    if ((lyrics, failure) case (null, (final error, final stack)?)) {
-      Error.throwWithStackTrace(error, stack);
-    }
-
-    return lyrics;
-  }
-
-  /// From how late a first line leaves an intro to show, as a part with no singing.
-  static const _introFrom = Duration(seconds: 2);
-
-  /// [lyrics], with a blank line for their intro when they are synced and their first line comes late
-  /// enough.
-  static Lyrics? _withIntro(Lyrics? lyrics) {
-    final first = lyrics?.lines.firstOrNull?.start;
-
-    if (lyrics == null || !lyrics.synced || first == null || first < _introFrom) {
-      return lyrics;
-    }
-
-    return Lyrics([const LyricLine('', start: Duration.zero), ...lyrics.lines], provider: lyrics.provider);
+    _lyrics = lyricsOf(context, now);
   }
 
   /// The line that plays at [position]: the last to have started; none before the first.
@@ -144,30 +199,48 @@ class _LyricsViewState extends State<LyricsView> {
     return playing;
   }
 
-  /// Scrolls the lyrics, and only them, to have line [i] a third of the way down.
+  /// Scrolls the lyrics, and only them, to have line [i] a third of the way down; as karaoke, in the middle.
   Future<void> _reveal(int i, {required bool animate}) async {
-    final line = _keys[i].currentContext?.findRenderObject();
+    final karaoke = LyricsView.karaoke(context);
+    final offset = _offsetToReveal(i, karaoke: karaoke);
 
-    if (line == null || !_scroll.hasClients) {
+    if (offset == null) {
       return;
     }
-
-    final position = _scroll.position;
-    final offset = RenderAbstractViewport.of(line)
-        .getOffsetToReveal(line, 0.35)
-        .offset
-        .clamp(position.minScrollExtent, position.maxScrollExtent);
 
     _following = true;
 
     if (animate) {
       // Until it ends, or the user takes over.
-      await _scroll.animateTo(offset, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+      await _scroll.animateTo(offset, duration: LyricsView._grow, curve: Curves.easeOut);
+
+      // As karaoke, the line grows as it comes and the one before shrinks, which moves it on the way: the rest of it.
+      if (_offsetToReveal(i, karaoke: karaoke) case final settled?
+          when karaoke && (settled - _scroll.offset).abs() > 1) {
+        await _scroll.animateTo(settled, duration: const Duration(milliseconds: 150), curve: Curves.easeOut);
+      }
     } else {
       _scroll.jumpTo(offset);
     }
 
     _following = false;
+  }
+
+  /// Where the lyrics scroll to for line [i] to be a third of the way down, or as [karaoke], in the middle; null before
+  /// they are laid out.
+  double? _offsetToReveal(int i, {required bool karaoke}) {
+    final line = _keys[i].currentContext?.findRenderObject();
+
+    if (line == null || !_scroll.hasClients || !mounted) {
+      return null;
+    }
+
+    final position = _scroll.position;
+
+    return RenderAbstractViewport.of(line)
+        .getOffsetToReveal(line, karaoke ? 0.5 : 0.35)
+        .offset
+        .clamp(position.minScrollExtent, position.maxScrollExtent);
   }
 
   @override
@@ -221,7 +294,12 @@ class _LyricsViewState extends State<LyricsView> {
       WidgetsBinding.instance.addPostFrameCallback((_) => unawaited(_reveal(playing, animate: animate)));
     }
 
-    // Big, and a bit smaller in a phone's width, where they would break into too many lines.
+    // Big, and a bit smaller in a phone's width, where they would break into too many lines. As karaoke, the line that
+    // plays bigger still, and the others a bit smaller, for it to stand out.
+    if (LyricsView.karaoke(context)) {
+      return _lineList(lyrics, playing, style: text.headlineSmall, playingStyle: text.displaySmall);
+    }
+
     return LayoutBuilder(
       builder: (context, box) =>
           _lineList(lyrics, playing, style: box.maxWidth >= _bigFrom ? text.headlineMedium : text.headlineSmall),
@@ -231,10 +309,21 @@ class _LyricsViewState extends State<LyricsView> {
   /// From how wide the lyrics take their biggest size.
   static const _bigFrom = 480.0;
 
-  Widget _lineList(Lyrics lyrics, int? playing, {required TextStyle? style}) {
+  /// The lines in [style], the one that plays ([playing]) bold, in [playingStyle] where it has one of its own.
+  Widget _lineList(Lyrics lyrics, int? playing, {required TextStyle? style, TextStyle? playingStyle}) {
     final ink = Theme.of(context).colorScheme.onSurface;
-    // Faded, but for the line that plays; whole when none does, as in lyrics that aren't synced.
-    final faded = lyrics.synced ? ink.withValues(alpha: 0.4) : ink;
+    final karaoke = LyricsView.karaoke(context);
+    // Faded, but for the line that plays; whole when none does, as in lyrics that aren't synced. As karaoke, those to
+    // come less than those gone by.
+    final faded = lyrics.synced ? ink.withValues(alpha: karaoke ? 0.5 : 0.4) : ink;
+    final gone = lyrics.synced && karaoke ? ink.withValues(alpha: 0.25) : faded;
+    final current = (playingStyle ?? style)?.copyWith(fontWeight: FontWeight.bold, color: ink);
+
+    TextStyle? styleOf(int i) => switch (playing) {
+      final playing? when i == playing => current,
+      final playing? when i < playing => style?.copyWith(color: gone),
+      _ => style?.copyWith(color: faded),
+    };
 
     // Out of the focus's way: for the remote, the player's controls are what matters.
     return ExcludeFocus(
@@ -284,16 +373,19 @@ class _LyricsViewState extends State<LyricsView> {
                         child: lyrics.synced && line.text.trim().isEmpty
                             ? ThemedIcon(
                                 LyricsView.instrumentalIcon,
-                                size: style?.fontSize,
-                                color: i == playing ? ink : faded,
+                                size: styleOf(i)?.fontSize,
+                                color: styleOf(i)?.color,
                               )
-                            : Text(
-                                line.text,
-                                textAlign: TextAlign.center,
-                                style: i == playing
-                                    ? style?.copyWith(fontWeight: FontWeight.bold, color: ink)
-                                    : style?.copyWith(color: faded),
-                              ),
+                            // As karaoke, growing as it comes to play, and shrinking as it goes.
+                            : karaoke
+                            ? TweenAnimationBuilder(
+                                tween: TextStyleTween(end: styleOf(i)),
+                                duration: LyricsView._grow,
+                                curve: Curves.easeOut,
+                                builder: (context, style, _) =>
+                                    Text(line.text, textAlign: TextAlign.center, style: style),
+                              )
+                            : Text(line.text, textAlign: TextAlign.center, style: styleOf(i)),
                       ),
                     ),
                   if (lyrics.provider case final provider?)

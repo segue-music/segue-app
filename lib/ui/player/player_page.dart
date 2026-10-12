@@ -6,6 +6,7 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:flutter/services.dart';
 
 import '../../connect/connect.dart';
+import '../../device.dart';
 import '../../l10n/app_localizations.dart';
 import '../../segue/protocol.dart';
 import '../../server/models.dart';
@@ -37,10 +38,12 @@ class PlayerPage extends StatefulWidget {
   /// How long the lyrics take to come in, beside the player or under it, and to go.
   static const lyricsTransition = Duration(milliseconds: 350);
 
-  /// Slides it up over the current page, with the lyrics if [lyrics]: on a wide screen, in the page area; on a phone,
+  /// Slides it up over the current page, with the lyrics if [lyrics]; by default, on a TV, where they are sung along to
+  /// from across the room ([LyricsView.karaoke]), and elsewhere without. On a wide screen, in the page area; on a phone,
   /// over everything, the page area's bars too.
-  static Future<void> open(BuildContext context, {bool lyrics = false}) =>
-      PageArea.playerNavigatorOf(context).push(PlayerRoute(lyrics: lyrics, area: PageArea.maybeOf(context)));
+  static Future<void> open(BuildContext context, {bool? lyrics}) =>
+      PageArea.playerNavigatorOf(context)
+          .push(PlayerRoute(lyrics: lyrics ?? LyricsView.karaoke(context), area: PageArea.maybeOf(context)));
 
   @override
   State<PlayerPage> createState() => _PlayerPageState();
@@ -55,21 +58,74 @@ class _PlayerPageState extends State<PlayerPage> with SingleTickerProviderStateM
     value: widget._lyrics.value ? 1 : 0,
   );
 
+  /// On a TV, whether the song that plays has lyrics ([hasLyrics]): without, the player shows the cover alone, the
+  /// lyrics still on, for the next song that has some. As the song changes, as it was until its lyrics are found.
+  bool _hasLyrics = true;
+
+  /// The song [_hasLyrics] is about, or is being found out about ([lyricsSongOf]).
+  Object? _askedFor;
+
   @override
   void initState() {
     super.initState();
-    widget._lyrics.addListener(_follow);
+    widget._lyrics.addListener(_turned);
   }
 
   @override
   void dispose() {
-    widget._lyrics.removeListener(_follow);
+    widget._lyrics.removeListener(_turned);
     _shown.dispose();
     super.dispose();
   }
 
-  /// Brings the lyrics in, or takes them out, as they are turned on or off.
-  void _follow() => _shown.animateTo(widget._lyrics.value ? 1 : 0, curve: Curves.easeInOutCubic);
+  /// Whether the lyrics show: turned on, and on a TV, the song has some.
+  bool get _showsLyrics => widget._lyrics.value && (_hasLyrics || !LyricsView.karaoke(context));
+
+  /// Brings the lyrics in, or takes them out, as they are turned on or off, or on a TV, the song has some or none.
+  void _follow() => _shown.animateTo(_showsLyrics ? 1 : 0, curve: Curves.easeInOutCubic);
+
+  /// The lyrics were turned on or off. Turned on for a song without any, on a TV, they don't show, and a message says
+  /// why.
+  void _turned() {
+    _follow();
+
+    if (widget._lyrics.value && !_showsLyrics) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context).noLyrics)));
+    }
+  }
+
+  /// On a TV, finds out whether [now]'s song has lyrics, as it is another: at once, as the player opens, where
+  /// [lyricsOf] knows already (a song the player opened on before), or else as they come. Failing to find them, it has
+  /// none: from across the room, the cover is of more use than why.
+  void _askForLyrics(NowPlaying? now) {
+    if (now == null || !LyricsView.karaoke(context)) {
+      return;
+    }
+
+    final song = lyricsSongOf(now);
+    final first = _askedFor == null;
+
+    if (song == _askedFor) {
+      return;
+    }
+
+    _askedFor = song;
+
+    // Not animated as the player opens: built for the first time, the lyrics have yet to show.
+    if (first && hasLyrics(context, now) == false) {
+      _hasLyrics = false;
+      _shown.value = _showsLyrics ? 1 : 0;
+    }
+
+    unawaited(
+      lyricsOf(context, now).then((lyrics) => lyrics != null, onError: (Object _) => false).then((has) {
+        if (mounted && _askedFor == song && has != _hasLyrics) {
+          _hasLyrics = has;
+          _follow();
+        }
+      }),
+    );
+  }
 
   /// Starts a drag of the lyrics, on a page [height] pixels tall, if one moves them: [down], where they show under the
   /// player, it takes them out; up, where they are hidden, it brings them in, and where they show, it opens them full
@@ -101,6 +157,7 @@ class _PlayerPageState extends State<PlayerPage> with SingleTickerProviderStateM
             listenable: widget._lyrics,
             builder: (context, _) => NowPlayingBuilder(
               builder: (context, _, now) {
+                _askForLyrics(now);
                 final lyrics = widget._lyrics.value;
                 final colors = Theme.of(context).colorScheme;
                 final device = now?.device;
@@ -775,6 +832,10 @@ class _Player extends StatelessWidget {
   /// From how wide the lyrics go beside the player rather than under it.
   static const _lyricsBesideFrom = 720.0;
 
+  /// How much of the screen the lyrics take beside the player: half, or on a TV, where they are bigger
+  /// ([LyricsView.karaoke]), three fifths.
+  static double _lyricsShare(BuildContext context) => LyricsView.karaoke(context) ? 3 / 5 : 1 / 2;
+
   /// How big the cover gets, at most: as big as the image asked of the server.
   static const _maxCover = 800.0;
 
@@ -790,8 +851,9 @@ class _Player extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final muted = colors.onSurfaceVariant;
     final beside = box.maxWidth >= _lyricsBesideFrom;
-    // Beside the player, the lyrics take half the screen, the player the rest, which shrinks as they come in.
-    final room = beside ? box.maxWidth * (1 - shown / 2) : box.maxWidth;
+    // Beside the player, the lyrics take their share of the screen, the player the rest, which shrinks as they come in.
+    final share = _lyricsShare(context);
+    final room = beside ? box.maxWidth * (1 - shown * share) : box.maxWidth;
     // The cover as big as it fits, leaving room for the rest under it: the song, and the controls where they show.
     // Under the player, the lyrics take that room from the cover as they come in: in the end, it keeps two fifths.
     final width = room - 48;
@@ -900,9 +962,9 @@ class _Player extends StatelessWidget {
       );
     }
 
-    // In the end, half the screen each: the player in the middle of its half, the lyrics all of theirs. On the
-    // way, they slide in from the right as the player makes room for them, laid out as they end up, rather than
-    // narrower, which would wrap their lines anew at every step.
+    // In the end, the player in the middle of its part of the screen, the lyrics all of theirs. On the way, they slide in
+    // from the right as the player makes room for them, laid out as they end up, rather than narrower, which would wrap
+    // their lines anew at every step. On a TV the screen stays on while they show, as they are read, not touched.
     return Row(
       children: [
         SizedBox(
@@ -919,9 +981,12 @@ class _Player extends StatelessWidget {
             child: ClipRect(
               child: OverflowBox(
                 alignment: AlignmentDirectional.centerStart,
-                minWidth: box.maxWidth / 2,
-                maxWidth: box.maxWidth / 2,
-                child: Opacity(opacity: shown, child: LyricsView(now)),
+                minWidth: box.maxWidth * share,
+                maxWidth: box.maxWidth * share,
+                child: Opacity(
+                  opacity: shown,
+                  child: LyricsView.karaoke(context) ? KeepScreenOn(child: LyricsView(now)) : LyricsView(now),
+                ),
               ),
             ),
           ),

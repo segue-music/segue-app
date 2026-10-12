@@ -23,6 +23,7 @@ import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/album/album_page.dart';
 import 'package:segue/ui/album/albums_view.dart';
 import 'package:segue/ui/app/home_page.dart';
+import 'package:segue/ui/app/shortcuts.dart';
 import 'package:segue/ui/artist/artist_page.dart';
 import 'package:segue/ui/player/lyrics_page.dart';
 import 'package:segue/ui/player/lyrics_view.dart';
@@ -153,7 +154,8 @@ const sweetEmotion = Song(
 /// The player bar, under the navigator as in the app, on a screen of [size] (a phone's by default),
 /// playing [song] here, Sweet Emotion by default: under an empty page, or with [inHome], the home's.
 /// [client] adds a hub, and the bar then shows what it says; [server] answers for the media server,
-/// which by default knows nothing. With [sleepTimer], the session has one.
+/// which by default knows nothing. With [sleepTimer], the session has one; with [television], the remote drives it, as
+/// on a TV.
 Future<PlayerController> pumpBar(
   WidgetTester tester, {
   SegueClient? client,
@@ -163,6 +165,7 @@ Future<PlayerController> pumpBar(
   bool inHome = false,
   Song song = sweetEmotion,
   bool sleepTimer = false,
+  bool television = false,
 }) async {
   final api = SubsonicApi(
     Uri.parse('https://music.test'),
@@ -193,7 +196,10 @@ Future<PlayerController> pumpBar(
     MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: const [Locale('pt')],
-      builder: (context, child) => ServicesScope(services: services, child: child!),
+      builder: (context, child) => ServicesScope(
+        services: services,
+        child: DirectionalNavigation(enabled: television, child: child!),
+      ),
       home: inHome
           ? HomePage(onSignOut: () {})
           : const Scaffold(body: SizedBox.expand(), bottomNavigationBar: NowPlayingBar()),
@@ -225,6 +231,20 @@ http.Response Function(http.Request request) withLyrics(List<(int?, String)> lin
     },
   });
 };
+
+/// A media server whose lyrics are [verse] for the song whose id is [id], and none for the others; [asked] gets the ids
+/// of the songs whose lyrics are asked for.
+http.Response Function(http.Request request) withLyricsFor(String id, {List<String>? asked}) => (request) {
+  final song = request.url.queryParameters['id'];
+
+  if (request.url.path.endsWith('getLyricsBySongId.view')) {
+    asked?.add(song!);
+  }
+
+  return withLyrics(song == id ? verse : const [])(request);
+};
+
+const dreamOn = Song(id: 's2', title: 'Dream On', artist: 'Aerosmith', duration: Duration(seconds: 268));
 
 const verse = [
   (0, 'You talk about things'),
@@ -726,6 +746,146 @@ void main() {
     expect(page, findsNothing);
     expect(find.byType(PlayerPage), findsOneWidget);
     expect(onPage(find.byType(LyricsView)), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a TV, the full-screen player opens with the lyrics beside it, three fifths of the screen, and the '
+      'screen stays on while they show', (tester) async {
+    const channel = MethodChannel('segue/device');
+    final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    final keptOn = <Object?>[];
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      if (call.method == 'keepScreenOn') {
+        keptOn.add(call.arguments);
+      }
+
+      return null;
+    });
+    addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+    // A TV's screen, as Android gives it to the app: 1920 × 1080 pixels, two to each of its own.
+    await pumpBar(tester, server: withLyrics(verse), size: const Size(960, 540), television: true);
+    await openPlayer(tester);
+    final lyrics = tester.getRect(onPage(find.byType(LyricsView)));
+    expect((lyrics.left, lyrics.right), (384, 960));
+    expect(tester.getCenter(playerCover).dx, 192, reason: 'in the middle of the rest');
+    expect(keptOn, [true]);
+
+    await tester.tap(onPage(find.byTooltip('Esconder a letra')));
+    await tester.pumpAndSettle();
+    expect(onPage(find.byType(LyricsView)), findsNothing);
+    expect(keptOn, [true, false]);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets(
+    'on a TV, the lyrics are karaoke: the line that plays bigger than the rest, growing as it comes; those to '
+    'come faint, and those gone by fainter',
+    (tester) async {
+      final player = await pumpBar(tester, server: withLyrics(verse), size: const Size(960, 540), television: true);
+      await player.seek(const Duration(seconds: 6));
+      await openPlayer(tester);
+      final (playing, display) = lyricsSize(tester, 'That nobody cares', (text) => text.displaySmall);
+      expect(playing, display);
+      expect(marked(tester, 'That nobody cares'), isTrue);
+      expect(opacity(tester, 'That nobody cares'), 1);
+      final (other, headline) = lyricsSize(tester, 'That nobody wears', (text) => text.headlineSmall);
+      expect(other, headline);
+      expect(opacity(tester, 'That nobody wears'), closeTo(0.5, 0.01), reason: 'to come');
+      expect(opacity(tester, 'You talk about things'), closeTo(0.25, 0.01), reason: 'gone by');
+
+      await player.seek(const Duration(seconds: 11));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(
+        lyricsSize(tester, 'You\'re wearing out things', (text) => text.displaySmall).$1,
+        inExclusiveRange(other!, display!),
+      );
+      expect(lyricsSize(tester, 'That nobody cares', (text) => text.displaySmall).$1, inExclusiveRange(other, display));
+      await tester.pumpAndSettle();
+      expect(lyricsSize(tester, 'You\'re wearing out things', (text) => text.displaySmall).$1, display);
+      expect(lyricsSize(tester, 'That nobody cares', (text) => text.displaySmall).$1, other);
+      expect(opacity(tester, 'That nobody cares'), closeTo(0.25, 0.01));
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets('on a TV, the line that plays stays in the middle of the lyrics, while there is more to scroll', (
+    tester,
+  ) async {
+    final player = await pumpBar(
+      tester,
+      server: withLyrics([for (var i = 0; i < 60; i++) (i * 4, 'Line $i')]),
+      size: const Size(960, 540),
+      television: true,
+    );
+    await openPlayer(tester);
+    final lyrics = tester.getRect(onPage(find.byType(LyricsView)));
+
+    for (final second in [120, 124, 160]) {
+      await player.seek(Duration(seconds: second));
+      await tester.pumpAndSettle();
+      final line = tester.getRect(onPage(find.text('Line ${second ~/ 4}')));
+      expect(line.center.dy, moreOrLessEquals(lyrics.center.dy, epsilon: 2), reason: 'Line ${second ~/ 4}');
+    }
+
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a TV, a song without lyrics shows the cover alone, the lyrics still on, back with a song that has '
+      'some', (tester) async {
+    final player = await pumpBar(tester, server: withLyricsFor('s2'), size: const Size(960, 540), television: true);
+    await player.playQueue([sweetEmotion, dreamOn], play: false);
+    await openPlayer(tester);
+    expect(onPage(find.byType(LyricsView)), findsNothing);
+    expect(tester.getCenter(playerCover).dx, 480, reason: 'in the middle of the screen, alone');
+    expect(find.byTooltip('Esconder a letra'), findsOneWidget, reason: 'still on');
+
+    await player.next();
+    await tester.pumpAndSettle();
+    expect(tester.getRect(onPage(find.byType(LyricsView))).left, 384);
+    expect(onPage(find.text('That nobody cares')), findsOneWidget);
+
+    await player.previous();
+    await player.previous();
+    await tester.pumpAndSettle();
+    expect(player.index, 0);
+    expect(onPage(find.byType(LyricsView)), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a TV, the lyrics turned on for a song without any say so, and the cover stays alone', (tester) async {
+    await pumpBar(tester, server: withLyricsFor('s2'), size: const Size(960, 540), television: true);
+    await openPlayer(tester);
+    await tester.tap(find.byTooltip('Esconder a letra'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Mostrar a letra'));
+    await tester.pumpAndSettle();
+    expect(find.text('Esta música não tem letra.'), findsOneWidget);
+    expect(onPage(find.byType(LyricsView)), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a TV, the player opened again on a song without lyrics shows the cover alone at once; a song\'s '
+      'lyrics are asked for once', (tester) async {
+    final asked = <String>[];
+    await pumpBar(
+      tester,
+      server: withLyricsFor('s2', asked: asked),
+      size: const Size(960, 540),
+      television: true,
+    );
+    await openPlayer(tester);
+    await tester.tap(onPage(find.byTooltip('Fechar')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.descendant(of: find.byTooltip('Abrir o player'), matching: find.byType(Cover)));
+    // The page's first frame is offstage, for the bar's hero to measure it; the next is the first that shows.
+    await tester.pump();
+    await tester.pump();
+    expect(onPage(find.byType(LyricsView)), findsNothing);
+    await tester.pumpAndSettle();
+    expect(onPage(find.byType(LyricsView)), findsNothing);
+    expect(asked, ['s1']);
     await tester.pumpWidget(const SizedBox());
   });
 

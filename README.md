@@ -83,7 +83,9 @@ from Flutter. Windows and macOS have no package yet.
 - **Lyrics**, beside the cover in the full-screen player (under it on a phone), and full screen: the server's
   (OpenSubsonic's songLyrics, as Navidrome's from the tags or a `.lrc`; Jellyfin's), or else LRCLIB's (lrclib.net).
   Synced ones mark the line that plays, and a line tapped goes there. Full screen, on a phone or a tablet, they keep
-  the screen on.
+  the screen on. On a TV the full-screen player opens with them, as karaoke: in three fifths of the screen, the line
+  that plays bigger, growing as it comes, in the middle, those to come faint and those gone by fainter, the screen on
+  while they show. A song without lyrics shows the cover alone there, and they come back with one that has some.
 - **Queue** of whichever device the app controls: a tap plays a track there, a drag moves it, and its menu takes it
   out (but the current one). Shuffled, a move changes the play order alone. A change the device refuses goes back,
   and a message says why.

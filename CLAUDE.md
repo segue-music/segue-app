@@ -381,7 +381,13 @@ Running two app instances on one machine as different devices:
   `adb shell input keyevent` sends. `TextFieldArrowShortcuts` lets up and down leave text fields
   (on a TV, left and right too). A text field opens the keyboard as the focus comes to it, and on a
   TV the keyboard covers half the screen and takes the D-pad, so there the home's search bar stays
-  read-only until the center button (its `onTap`) opens it. A TV's remote seldom has a menu key, so a song's or a
+  read-only until the center button (its `onTap`) opens it. On a TV the lyrics are karaoke (`LyricsView.karaoke`, by
+  the navigation mode): the full-screen player opens with them, in three fifths of the screen, keeping the screen on,
+  and the line that plays is bigger, in the middle (its style animated, `TweenAnimationBuilder`, on the `Text` itself,
+  and the scroll set right once the lines have grown and shrunk). A song without lyrics shows the cover alone, the
+  lyrics still on for the next: the player asks `lyricsOf` (`lib/ui/player/lyrics_view.dart`), which `LyricsView` asks
+  too, and which remembers the last few songs' lyrics for each media server, so that they are asked for once, and a
+  player opened again on a song without them knows at once (`hasLyrics`). A TV's remote seldom has a menu key, so a song's or a
   playlist's menu also opens with the center button held (`MenuShortcuts`, `lib/ui/widgets/menu_shortcuts.dart`):
   there a press of it plays the song (opens the playlist) as it is let go, not as it goes down. A TV has no drag, so
   the queue's and a playlist's songs move by the remote (`MovableSong`, `lib/ui/song/movable_song.dart`, from the song's menu):
