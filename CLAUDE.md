@@ -51,7 +51,7 @@ it to TestFlight. It starts from Codemagic's page or with a tag: `git tag ios-<n
 ios-<n>`. Nothing iOS-specific can run here: `Info.plist` and the Xcode project are only checked by
 that build.
 
-The builds (iOS, Android, Linux's package) number themselves with `tool/build-number.sh`: the commit
+The builds (iOS, Android, Linux's and Windows's packages) number themselves with `tool/build-number.sh`: the commit
 count, plus the commits the segue repository had without the app when it moved out, so that build
 numbers keep rising for TestFlight and Android. The settings show it beside the version
 (`package_info_plus`); `flutter run` doesn't take one, so there it is pubspec's, 1.
@@ -62,7 +62,9 @@ the container's, so it doesn't break the analyzer of an editor that uses the loc
 
 The Windows build has no image: it takes Flutter installed on Windows, with Visual Studio's C++ desktop workload and
 Developer Mode on (the plugins are symlinks), then `flutter run -d windows`, `keys.json` by hand
-(`--dart-define-from-file=keys.json`). There, in debug only, the app may crash as it starts (0xC0000005, after
+(`--dart-define-from-file=keys.json`). `tool\package-windows.ps1` (PowerShell) builds the release, with `keys.json`,
+and packs it as `build\segue-windows-x64.zip`, Visual C++'s runtime beside the app, so that it runs on a Windows
+without Visual C++'s redistributable. There, in debug only, the app may crash as it starts (0xC0000005, after
 "media_kit: NativeReferenceHolder: Located"): media_kit keeps a file in the temporary folder for each process id and
 never deletes it, and Windows gives an id again, whose file then points at another process's memory. Deleting
 `%TEMP%\com.alexmercerind.media_kit.NativeReferenceHolder.*` clears it.

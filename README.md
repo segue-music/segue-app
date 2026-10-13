@@ -13,10 +13,10 @@ Segue's protocol and its hub, which runs next to the media server, are in
 > **Vibe-coded.** The app was written by Claude (through Claude Code), with a person deciding what
 > to build and trying it on real devices. Every commit says so.
 
-**Status: not released.** The Android APK is signed with a debug key and in no store, the Linux build is only a
-tarball, and the iOS one reaches only TestFlight's internal group. The Android build has been tried on a tablet and on
-an Android TV, the iOS build on an iPhone, with CarPlay's Now Playing screen, and the Windows build on Windows 11, run
-from Flutter. Windows and macOS have no package yet.
+**Status: not released.** The Android APK is signed with a debug key and in no store, the Linux and Windows builds are
+only a tarball and a zip, and the iOS one reaches only TestFlight's internal group. The Android build has been tried on
+a tablet and on an Android TV, the iOS build on an iPhone, with CarPlay's Now Playing screen, and the Windows build on
+Windows 11. macOS has no package yet.
 
 ## Features
 
@@ -218,6 +218,13 @@ segue/segue
 `~/.local/share/applications/io.github.mateusguilherme.segue.desktop`, pointing at the folder (run it again after
 moving the folder). On Wayland the window takes its icon from that file, so without it the window has a generic one.
 
+## Running on Windows
+
+`tool\package-windows.ps1`, in PowerShell, builds the Windows version (see "Flutter installed") and packs it as
+`build\segue-windows-x64.zip`. The computer that runs it needs only 64-bit Windows 10 or 11: the zip carries Visual
+C++'s runtime beside the app. Unzip it anywhere and open `segue\segue.exe`. The app isn't signed, so Windows may stop
+it the first time when the zip came from the internet: "More info", then "Run anyway".
+
 ## Running on Android and Android TV
 
 `tool/package-android.sh` builds `build/segue-android.apk` (see "Development"): one APK for every processor, signed
@@ -355,6 +362,7 @@ developers), since the plugins are symlinks. The build fetches libmpv by itself.
 ```powershell
 flutter pub get
 flutter run -d windows
+tool\package-windows.ps1
 ```
 
 ### Tests
@@ -383,9 +391,9 @@ shows an artist's biography with the media server's picture alone, and a person 
 }
 ```
 
-With Flutter installed, the same file goes in by hand: `flutter run -d linux --dart-define-from-file=keys.json`.
-Codemagic takes the key from its environment variables ("Running on iOS"). A key comes from fanart.tv's page for one
-(fanart.tv/get-an-api-key), as a project's.
+With Flutter installed, the same file goes in by hand (`flutter run -d linux --dart-define-from-file=keys.json`),
+except in `tool\package-windows.ps1`, which gives it to the build itself. Codemagic takes the key from its environment
+variables ("Running on iOS"). A key comes from fanart.tv's page for one (fanart.tv/get-an-api-key), as a project's.
 
 ### Trying Connect
 
