@@ -375,7 +375,9 @@ class _LyricsViewState extends State<LyricsView> {
   /// From how wide the lyrics take their biggest size.
   static const _bigFrom = 480.0;
 
-  /// The room at the sides of the lyrics, under the scrollbar, and of each line, within its ink.
+  /// The room at the sides of the lyrics, under the scrollbar, and of each line, within its ink. As karaoke, none: the
+  /// remote neither scrolls them nor presses a line, and their sides line up with what is around them (on a TV, the
+  /// full-screen player's controls).
   static const _side = 12.0;
   static const _lineSide = 8.0;
 
@@ -459,7 +461,7 @@ class _LyricsViewState extends State<LyricsView> {
               builder: (context, box) => SingleChildScrollView(
                 controller: _scroll,
                 // Room under the fades, for the first and the last lines to show whole.
-                padding: const EdgeInsets.symmetric(horizontal: _side, vertical: LyricsView.edgeFade),
+                padding: EdgeInsets.symmetric(horizontal: karaoke ? 0 : _side, vertical: LyricsView.edgeFade),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -477,7 +479,7 @@ class _LyricsViewState extends State<LyricsView> {
                           _ => null,
                         },
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: _lineSide, vertical: 6),
+                          padding: EdgeInsets.symmetric(horizontal: karaoke ? 0 : _lineSide, vertical: 6),
                           // A blank line of synced lyrics is a part with no singing; of others, a gap between
                           // verses.
                           child: lyrics.synced && line.text.trim().isEmpty
@@ -493,9 +495,7 @@ class _LyricsViewState extends State<LyricsView> {
                                   duration: LyricsView._grow,
                                   curve: Curves.easeOut,
                                   builder: (context, style, _) => Text(
-                                    current == null
-                                        ? line.text
-                                        : _brokenAsPlaying(line.text, current, box.maxWidth - 2 * (_side + _lineSide)),
+                                    current == null ? line.text : _brokenAsPlaying(line.text, current, box.maxWidth),
                                     textAlign: TextAlign.center,
                                     style: style,
                                   ),

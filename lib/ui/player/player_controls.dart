@@ -86,12 +86,16 @@ SliderThemeData thinSliderTheme(BuildContext context) => SliderTheme.of(context)
 /// Where the song is and how long it lasts, on a slider that jumps to where it is tapped, or to
 /// where a drag lets go.
 class SeekSlider extends StatefulWidget {
-  const SeekSlider(this.now, {this.timesBelow = false, super.key});
+  const SeekSlider(this.now, {this.timesBelow = false, this.timesAtEnds = false, super.key});
 
   final NowPlaying now;
 
   /// The times under the slider, at its ends (the full-screen player), rather than at its sides.
   final bool timesBelow;
+
+  /// Beside the slider, the times at the ends of its row, where what is around lines up with them (a TV's full-screen
+  /// player), rather than against the slider.
+  final bool timesAtEnds;
 
   @override
   State<SeekSlider> createState() => _SeekSliderState();
@@ -170,10 +174,19 @@ class _SeekSliderState extends State<SeekSlider> {
       children: [
         SizedBox(
           width: 40,
-          child: Align(alignment: Alignment.centerRight, child: elapsed),
+          child: Align(
+            alignment: widget.timesAtEnds ? AlignmentDirectional.centerStart : AlignmentDirectional.centerEnd,
+            child: elapsed,
+          ),
         ),
         Expanded(child: slider),
-        SizedBox(width: 40, child: total),
+        SizedBox(
+          width: 40,
+          child: Align(
+            alignment: widget.timesAtEnds ? AlignmentDirectional.centerEnd : AlignmentDirectional.centerStart,
+            child: total,
+          ),
+        ),
       ],
     );
   }

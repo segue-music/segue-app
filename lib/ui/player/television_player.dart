@@ -30,11 +30,15 @@ class TelevisionControls extends StatefulWidget {
   /// Whether the full-screen player shows the lyrics, which a button turns on and off.
   final ValueNotifier<bool> lyrics;
 
-  /// What plays: the cover, the song, its lyrics.
+  /// What plays: the cover, the song, its lyrics. As far from the screen's sides as the controls, whose ends it lines
+  /// up with: the slider's times, where it plays.
   final Widget child;
 
   /// How long the controls stay with no key pressed.
   static const idle = Duration(seconds: 5);
+
+  /// The room at the sides, of [child] and of the controls alike.
+  static const side = 16.0;
 
   @override
   State<TelevisionControls> createState() => _TelevisionControlsState();
@@ -246,14 +250,19 @@ class _TelevisionControlsState extends State<TelevisionControls> {
       onKeyEvent: _key,
       child: Column(
         children: [
-          Expanded(child: widget.child),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: TelevisionControls.side),
+              child: widget.child,
+            ),
+          ),
           // Hidden, out of the focus's way, the slider too: the arrows only bring them back.
           ExcludeFocus(
             excluding: !_shown,
             child: FocusTraversalGroup(
               policy: BarTraversalPolicy.bottom,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: TelevisionControls.side),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -270,7 +279,7 @@ class _TelevisionControlsState extends State<TelevisionControls> {
                         ),
                       ],
                     ),
-                    SeekSlider(now),
+                    SeekSlider(now, timesAtEnds: true),
                   ],
                 ),
               ),

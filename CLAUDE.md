@@ -434,8 +434,10 @@ Running two app instances on one machine as different devices:
   (`TelevisionControls`) showing as it opens and as the arrows
   or OK are pressed, which then only bring them back, play taking the focus, and going after 5 s with no key, but
   while a menu or a sheet opened from them shows; the slider stays, and where it plays, when another device does, beside
-  them. The remote's back hides them first, and only then closes the player. The screen stays on while it plays. On a TV
-  the lyrics are karaoke (`LyricsView.karaoke`, by
+  them. What plays lines up with them, as far from the screen's sides (`TelevisionControls.side`): with the lyrics, the
+  cover at the start, as the time played (`SeekSlider.timesAtEnds`), and the lyrics, with no room of their own at their
+  sides, ending where the song's length does. The remote's back hides them first, and only then closes the player. The
+  screen stays on while it plays. On a TV the lyrics are karaoke (`LyricsView.karaoke`, by
   the navigation mode): the full-screen player opens with them, in three fifths of the screen, keeping the screen on,
   and the line that plays is bigger, in the middle (its style animated, `TweenAnimationBuilder`, on the `Text` itself,
   and the scroll going, along with it, straight to where the line ends up once grown and the one before shrunk:

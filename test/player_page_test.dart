@@ -30,6 +30,7 @@ import 'package:segue/ui/player/lyrics_view.dart';
 import 'package:segue/ui/player/now_playing_bar.dart';
 import 'package:segue/ui/player/player_page.dart';
 import 'package:segue/ui/player/queue_page.dart';
+import 'package:segue/ui/player/television_player.dart';
 import 'package:segue/ui/widgets/cover.dart';
 import 'package:segue/ui/widgets/themed_icon.dart';
 
@@ -764,8 +765,8 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('on a TV, the full-screen player opens with the lyrics beside it, three fifths of the screen, and the '
-      'screen stays on while they show', (tester) async {
+  testWidgets('on a TV, the full-screen player opens with the lyrics beside it, three fifths of the room the controls '
+      'leave at the sides, the cover at its start, and the screen stays on while they show', (tester) async {
     const channel = MethodChannel('segue/device');
     final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
     final keptOn = <Object?>[];
@@ -780,17 +781,13 @@ void main() {
     // A TV's screen, as Android gives it to the app: 1920 × 1080 pixels, two to each of its own.
     await pumpBar(tester, server: withLyrics(verse), size: const Size(960, 540), television: true);
     await openPlayer(tester);
-    // Of the screen but the room at its sides.
-    const side = TelevisionScreen.margins;
-    final width = 960 - 2 * side.left;
+    // Of the screen but the room at its sides, and the controls'.
+    final side = TelevisionScreen.margins.left + TelevisionControls.side;
+    final width = 960 - 2 * side;
     final lyrics = tester.getRect(onPage(find.byType(LyricsView)));
-    expect(lyrics.left, moreOrLessEquals(side.left + width * 2 / 5));
-    expect(lyrics.right, 960 - side.right);
-    expect(
-      tester.getCenter(playerCover).dx,
-      moreOrLessEquals(side.left + width / 5),
-      reason: 'in the middle of the rest',
-    );
+    expect(lyrics.left, moreOrLessEquals(side + width * 2 / 5));
+    expect(lyrics.right, 960 - side);
+    expect(tester.getRect(playerCover).left, side, reason: 'at the start of the rest');
     expect(keptOn, [true]);
 
     await tester.tap(onPage(find.byTooltip('Esconder a letra')));
@@ -961,7 +958,7 @@ void main() {
 
     await player.next();
     await tester.pumpAndSettle();
-    final side = TelevisionScreen.margins.left;
+    final side = TelevisionScreen.margins.left + TelevisionControls.side;
     expect(tester.getRect(onPage(find.byType(LyricsView))).left, moreOrLessEquals(side + (960 - 2 * side) * 2 / 5));
     expect(onPage(lyric('That nobody cares')), findsOneWidget);
 

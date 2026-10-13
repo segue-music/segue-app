@@ -3,10 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:segue/segue/protocol.dart';
 import 'package:segue/ui/player/player_page.dart';
+import 'package:segue/ui/player/lyrics_view.dart';
+import 'package:segue/ui/player/player_controls.dart';
 import 'package:segue/ui/player/television_player.dart';
 
 import 'directional_navigation_test.dart' show focusedTip, press, pressUntil, pumpFullHdHome;
-import 'player_page_test.dart' show openPlayer, playerCover, pumpBar, tvPlaying;
+import 'player_page_test.dart' show onPage, openPlayer, playerCover, pumpBar, tvPlaying, verse, withLyrics;
 
 /// The full-screen player on a TV, from the side rail.
 Future<void> openTvPlayer(WidgetTester tester) async {
@@ -147,6 +149,27 @@ void main() {
       findsNothing,
       reason: 'not fading',
     );
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a TV, what plays lines up with the controls under it: the cover and where it plays start where the '
+      'time played does, and the lyrics end where the song\'s length does', (tester) async {
+    await pumpBar(
+      tester,
+      server: withLyrics(verse),
+      size: const Size(960, 540),
+      television: true,
+      client: tvPlaying(const QueueItem(id: 's1', title: 'Dream On', artist: 'Aerosmith', durationMs: 240000)),
+    );
+    await openPlayer(tester);
+    final times = find.descendant(of: find.byType(SeekSlider), matching: find.byType(Text));
+    final played = tester.getRect(times.first);
+    final length = tester.getRect(times.last);
+    final playingOn = find.ancestor(of: find.text('Tocando em Sala de estar'), matching: find.byType(DecoratedBox));
+
+    expect(tester.getRect(playerCover).left, played.left);
+    expect(tester.getRect(playingOn.first).left, played.left);
+    expect(tester.getRect(onPage(find.byType(LyricsView))).right, length.right);
     await tester.pumpWidget(const SizedBox());
   });
 }

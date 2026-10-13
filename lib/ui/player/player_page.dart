@@ -923,9 +923,10 @@ class _Player extends StatelessWidget {
       replace: true,
     );
     final songId = now.songId;
-    // As wide as the cover alone: the rest keeps its width as the lyrics make the cover smaller.
+    // As wide as the cover alone: the rest keeps its width as the lyrics make the cover smaller. On a TV, never wider,
+    // for the cover's sides to be the player's, which line up with the controls.
     final player = SizedBox(
-      width: max(alone, 280),
+      width: karaoke ? alone : max(alone, 280),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -1022,9 +1023,14 @@ class _Player extends StatelessWidget {
       children: [
         SizedBox(
           width: room,
-          child: Center(
+          // On a TV, at the start of its part, lined up with the controls under it, with no room of its own at its
+          // sides: alone, in the middle of the screen, and going to the start as the lyrics come in.
+          child: Align(
+            alignment: karaoke
+                ? AlignmentDirectional.lerp(AlignmentDirectional.center, AlignmentDirectional.centerStart, shown)!
+                : AlignmentDirectional.center,
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              padding: EdgeInsets.symmetric(horizontal: karaoke ? 0 : 24, vertical: 8),
               child: player,
             ),
           ),
