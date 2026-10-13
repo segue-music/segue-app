@@ -162,33 +162,30 @@ class _PlayerPageState extends State<PlayerPage> with SingleTickerProviderStateM
           lyrics: _dragLyrics,
           builder: (context, scroll) => ListenableBuilder(
             listenable: widget._lyrics,
-            builder: (context, _) => NowPlayingBuilder(
+            builder: (context, _) => PlayingPageBuilder(
               builder: (context, _, now) {
                 _askForLyrics(now);
                 final lyrics = widget._lyrics.value;
                 final colors = Theme.of(context).colorScheme;
-                final device = now?.device;
+                final device = now.device;
                 final strings = AppLocalizations.of(context);
 
                 if (DirectionalNavigation.of(context)) {
                   return Scaffold(
-                    body: switch (now) {
-                      null => Center(child: Text(strings.nothingPlaying)),
-                      final now => Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          SafeArea(
-                            child: TelevisionControls(
-                              now,
-                              lyrics: widget._lyrics,
-                              child: _Player(now, lyrics: _shown, controls: false, scroll: scroll),
-                            ),
+                    body: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        SafeArea(
+                          child: TelevisionControls(
+                            now,
+                            lyrics: widget._lyrics,
+                            child: _Player(now, lyrics: _shown, controls: false, scroll: scroll),
                           ),
-                          // While the music plays, it is watched, not touched: the screen stays on.
-                          if (now.playing) const KeepScreenOn(child: SizedBox.shrink()),
-                        ],
-                      ),
-                    },
+                        ),
+                        // While the music plays, it is watched, not touched: the screen stays on.
+                        if (now.playing) const KeepScreenOn(child: SizedBox.shrink()),
+                      ],
+                    ),
                   );
                 }
 
@@ -206,11 +203,11 @@ class _PlayerPageState extends State<PlayerPage> with SingleTickerProviderStateM
                     // On a wide screen, where it plays, when that's another device. On a phone, the song's album:
                     // there the devices button at the bottom, tinted, says where it plays.
                     title: switch (now) {
-                      final now? when wide && device != null => Text(
+                      _ when wide && device != null => Text(
                         now.playing ? strings.playingOn(device) : strings.pausedOn(device),
                         style: Theme.of(context).textTheme.titleSmall,
                       ),
-                      final now? when !wide && now.album != null => SongLink.album(
+                      _ when !wide && now.album != null => SongLink.album(
                         now,
                         style: Theme.of(context).textTheme.titleSmall,
                         textAlign: TextAlign.center,
@@ -227,13 +224,11 @@ class _PlayerPageState extends State<PlayerPage> with SingleTickerProviderStateM
                   ),
                   // Out of the room at the screen's side, where the system has the app keep out of it (on a TV, its
                   // edges), as the lyrics' lines would otherwise go on into it.
-                  body: now == null
-                      ? Center(child: Text(strings.nothingPlaying))
-                      : SafeArea(
-                          top: false,
-                          bottom: false,
-                          child: _Player(now, lyrics: _shown, controls: !wide, scroll: scroll),
-                        ),
+                  body: SafeArea(
+                    top: false,
+                    bottom: false,
+                    child: _Player(now, lyrics: _shown, controls: !wide, scroll: scroll),
+                  ),
                   bottomNavigationBar: wide
                       ? NowPlayingBar(lyrics: widget._lyrics)
                       : SafeArea(

@@ -158,7 +158,8 @@ knows nothing of them, and another device plays as it has them.
 - The hub is found next to the server, or typed at sign-in, under "Avançado". The device picker lists the user's
   other devices that are online, with what they play, and picking one makes the app control it.
 - Picking this device again moves the music here, at the same point, in the same modes. If the device it controls
-  closes, its music stays here, paused.
+  closes, its music stays here, paused. If its queue ends there, the player goes, and the app controls this device
+  again, until another queue plays there.
 - When another device starts playing, music left paused here goes, so that no device is listed paused with music that
   now plays elsewhere. An app opened when nothing plays anywhere picks up where the music was.
 

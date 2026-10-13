@@ -1436,6 +1436,95 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('as nothing plays any more, the full-screen player closes, rather than say so: after a moment, with the '
+      'song meanwhile', (tester) async {
+    final player = await pumpBar(tester);
+    await openPlayer(tester);
+    await player.stop();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.text('Nada tocando'), findsNothing);
+    expect(onPage(find.text('Sweet Emotion')), findsOneWidget);
+
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
+    expect(find.byType(PlayerPage), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('the full-screen player stays where something plays again within a moment, as the music moves from this '
+      'device to another, which stops it first', (tester) async {
+    final player = await pumpBar(tester);
+    await openPlayer(tester);
+    await player.stop();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await player.playQueue([dreamOn], play: false);
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pumpAndSettle();
+    expect(onPage(find.text('Dream On')), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('as nothing plays any more, the lyrics full screen close too, with the player under them', (
+    tester,
+  ) async {
+    final player = await pumpBar(tester, server: withLyrics(verse));
+    await openLyricsPage(tester);
+    await player.stop();
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pumpAndSettle();
+    expect(find.byType(LyricsPage), findsNothing);
+    expect(find.byType(PlayerPage), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('as another device the app controls has nothing to play any more, the full-screen player closes', (
+    tester,
+  ) async {
+    final client = tvPlaying(const QueueItem(id: 's1', title: 'Dream On', artist: 'Aerosmith', album: 'Aerosmith'));
+    await pumpBar(tester, client: client);
+    await openPlayer(tester);
+    client.devices['tv']!.state = StampedState(
+      status: PlaybackStatus.stopped,
+      positionMs: 0,
+      at: DateTime.now().millisecondsSinceEpoch,
+      queue: const [],
+    );
+    // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
+    client.notifyListeners();
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pumpAndSettle();
+    expect(find.byType(PlayerPage), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('as the queue ends on another device the app controls, the bar goes, rather than say nothing plays', (
+    tester,
+  ) async {
+    const song = QueueItem(id: 's1', title: 'Dream On', artist: 'Aerosmith', album: 'Aerosmith');
+    final client = tvPlaying(song);
+    await pumpBar(tester, client: client);
+    expect(find.text('Dream On'), findsOneWidget);
+
+    client.devices['tv']!.state = StampedState(
+      status: PlaybackStatus.stopped,
+      positionMs: 0,
+      at: DateTime.now().millisecondsSinceEpoch,
+      queue: const [song],
+      index: 1,
+    );
+    // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
+    client.notifyListeners();
+    await tester.pump();
+    expect(find.text('Nada tocando'), findsNothing);
+    expect(find.byTooltip('Abrir o player'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('a swipe on the cover to the left goes to the next song, and to the right to the previous one, wherever '
       'the song is; a short one, back to its place', (tester) async {
     final player = await pumpBar(tester);

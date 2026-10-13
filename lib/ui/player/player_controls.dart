@@ -76,6 +76,70 @@ class _NowPlayingBuilderState extends State<NowPlayingBuilder> {
   }
 }
 
+/// A [NowPlayingBuilder] for a page that shows what plays, full screen (the player, its lyrics), which closes as nothing
+/// plays, rather than stay open saying so. It waits a moment first, building meanwhile with what played last: as the
+/// music moves from this device to another, this one stops before the app goes on to the other.
+class PlayingPageBuilder extends StatefulWidget {
+  const PlayingPageBuilder({required this.builder, super.key});
+
+  final Widget Function(BuildContext context, ConnectController connect, NowPlaying now) builder;
+
+  @override
+  State<PlayingPageBuilder> createState() => _PlayingPageBuilderState();
+}
+
+class _PlayingPageBuilderState extends State<PlayingPageBuilder> {
+  /// How long nothing plays before the page closes.
+  static const _nothingFor = Duration(seconds: 1);
+
+  /// What played last, which it builds with while nothing plays; null, nothing has since it opened.
+  NowPlaying? _last;
+
+  /// Closes the page, nothing playing; null, something plays.
+  Timer? _closing;
+
+  @override
+  void dispose() {
+    _closing?.cancel();
+    super.dispose();
+  }
+
+  /// Takes the page's route away: popped, on top, or else from under what was opened over it.
+  void _close() {
+    final route = ModalRoute.of(context);
+    final navigator = route?.navigator;
+
+    if (route == null || navigator == null || !route.isActive) {
+      return;
+    }
+
+    if (route.isCurrent) {
+      navigator.pop();
+    } else {
+      navigator.removeRoute(route);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => NowPlayingBuilder(
+    builder: (context, connect, now) {
+      if (now != null) {
+        _closing?.cancel();
+        _closing = null;
+        _last = now;
+      } else {
+        _closing ??= Timer(_nothingFor, _close);
+      }
+
+      // Opened with nothing playing, nothing, for the moment until it closes.
+      return switch (_last) {
+        final last? => widget.builder(context, connect, last),
+        null => const Scaffold(),
+      };
+    },
+  );
+}
+
 /// The look of the player's sliders, the song's and the volume's: a thin track, and a small thumb.
 SliderThemeData thinSliderTheme(BuildContext context) => SliderTheme.of(context).copyWith(
   trackHeight: 3,

@@ -568,6 +568,26 @@ void main() {
     expect(phone.player.queue, isEmpty);
   });
 
+  test(
+    'as the queue ends on the device the app controls, the app controls this one again, where a play goes',
+    () async {
+      final user = newUser();
+      final laptop = await App(user, 'laptop').start();
+      final phone = await App(user, 'phone').start();
+      await until(() => phone.client.devices.containsKey('laptop'), 'the laptop');
+      await phone.connect.switchTo('laptop');
+      expect((await phone.connect.playSongs(songs, 0)).ok, isTrue);
+      await until(() => phone.connect.nowPlaying?.title == 'Dream On', 'the laptop\'s song on the phone');
+
+      await laptop.player.stop();
+      await until(() => phone.connect.activeId == null, 'the phone controlling itself');
+      expect(phone.connect.nowPlaying, isNull);
+      expect((await phone.connect.playSongs(songs, 0)).ok, isTrue);
+      expect(phone.player.current?.title, 'Dream On');
+      expect(laptop.player.queue, isEmpty);
+    },
+  );
+
   test('a closed app leaves the list of devices to play on', () async {
     final user = newUser();
     final laptop = await App(user, 'laptop').start();

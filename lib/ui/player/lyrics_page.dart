@@ -30,7 +30,7 @@ class LyricsPage extends StatelessWidget {
         bindings: {const SingleActivator(LogicalKeyboardKey.escape): close},
         child: Focus(
           autofocus: true,
-          child: NowPlayingBuilder(
+          child: PlayingPageBuilder(
             builder: (context, _, now) {
               final text = Theme.of(context).textTheme;
               final muted = Theme.of(context).colorScheme.onSurfaceVariant;
@@ -47,23 +47,21 @@ class LyricsPage extends StatelessWidget {
                     onPressed: onHide,
                   ),
                   centerTitle: true,
-                  title: now == null
-                      ? null
-                      : Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              now.title ?? '',
-                              style: text.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            Text(
-                              now.artist ?? '',
-                              style: text.bodySmall?.copyWith(color: muted),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
+                  title: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        now.title ?? '',
+                        style: text.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        now.artist ?? '',
+                        style: text.bodySmall?.copyWith(color: muted),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
                   // Where the button that opened it was, at the lyrics' corner.
                   actions: [
                     IconButton(
@@ -73,10 +71,8 @@ class LyricsPage extends StatelessWidget {
                     ),
                   ],
                 ),
-                body: now == null
-                    ? Center(child: Text(strings.nothingPlaying))
-                    : Padding(padding: const EdgeInsets.symmetric(horizontal: 24), child: LyricsView(now)),
-                bottomNavigationBar: now == null || wide
+                body: Padding(padding: const EdgeInsets.symmetric(horizontal: 24), child: LyricsView(now)),
+                bottomNavigationBar: wide
                     ? null
                     : SafeArea(
                         top: false,

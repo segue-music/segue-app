@@ -115,6 +115,9 @@ class ConnectController extends ChangeNotifier {
   /// change means a device started playing, and the app follows it.
   String? _playing;
   static const _here = ''; // the hub never gives a device an empty id
+
+  /// The other device the app controlled at the last update, where it had a song then; null, none.
+  String? _activeWithSong;
   bool _restored = false;
 
   /// The volume each device had as it went to none (null: this one), which [unmute] gives back.
@@ -142,6 +145,7 @@ class ConnectController extends ChangeNotifier {
     return list;
   }
 
+  /// What plays on the device the app controls, or is paused there; null where it has no song, this one or another.
   NowPlaying? get nowPlaying {
     final device = activeDevice;
 
@@ -175,22 +179,27 @@ class ConnectController extends ChangeNotifier {
     final state = device.state;
     final item = state?.current;
 
+    // Nothing there, its queue ended or gone, as nothing here: the player's bar goes, rather than say so.
+    if (state == null || item == null) {
+      return null;
+    }
+
     return NowPlaying(
-      songId: item?.id,
-      title: item?.title,
-      artist: item?.artist,
-      album: item?.album,
-      coverArt: item?.id,
-      playing: state?.status == PlaybackStatus.playing,
+      songId: item.id,
+      title: item.title,
+      artist: item.artist,
+      album: item.album,
+      coverArt: item.id,
+      playing: state.status == PlaybackStatus.playing,
       position: Duration(milliseconds: client!.positionMs(device.id) ?? 0),
-      duration: item?.durationMs == null ? null : Duration(milliseconds: item!.durationMs!),
+      duration: item.durationMs == null ? null : Duration(milliseconds: item.durationMs!),
       device: device.info.name,
-      repeat: state?.repeat ?? Repeat.off,
-      shuffle: state?.shuffle ?? false,
+      repeat: state.repeat ?? Repeat.off,
+      shuffle: state.shuffle ?? false,
       canRepeat: device.info.capabilities.contains(CommandAction.setRepeat),
       canShuffle: device.info.capabilities.contains(CommandAction.setShuffle),
       canJump: device.info.capabilities.contains(CommandAction.jump),
-      volume: state?.volume ?? 100,
+      volume: state.volume ?? 100,
       canSetVolume: device.info.capabilities.contains(CommandAction.setVolume),
     );
   }
@@ -437,6 +446,16 @@ class ConnectController extends ChangeNotifier {
       }
     }
 
+    // The device the app controlled has no song any more, its queue ended or gone: the app controls this one again,
+    // where a play now goes, rather than to music that is over, and follows that device again as it plays another
+    // queue. Only after a song there, as one the music moves to has none until it says so.
+    final withSong = activeDevice?.state?.current != null;
+
+    if (_active != null && _active == _activeWithSong && !withSong) {
+      _active = null;
+    }
+
+    _activeWithSong = withSong ? _active : null;
     notifyListeners();
 
     // Last, since stopping the player comes back here.

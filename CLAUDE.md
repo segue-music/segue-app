@@ -230,7 +230,11 @@ Running two app instances on one machine as different devices:
 - `ConnectController` (`lib/connect/`) follows the Connect model: the app controls one device at a
   time (`activeId`, null meaning this device). UI actions go through it (`playSongs`, `toggle`,
   `seek`, ...): it either runs them on the local player or sends them as hub commands. The UI should
-  call `connect`, not `player`, for playback. It also follows whichever device starts playing, and
+  call `connect`, not `player`, for playback. `nowPlaying` is null where the device it controls has no song, this one
+  or another (its queue ended): the player bar goes, and the full-screen player and its lyrics close
+  (`PlayingPageBuilder`, a moment after, showing the song meanwhile, as this device stops before the app goes on to the
+  device the music moves to). Another device that had a song and has none any more gives the control back to this one,
+  until it plays another queue. It also follows whichever device starts playing, and
   restores the last playback on first connect, paused, or playing for a play pressed before it came back
   (`playRestoredBy`: `MediaControls` holds a headphone's play that opened the app on Android). It links the player and the hub:
   `player.onReport → client.sendState` and `client.onCommand → player.obey`.
