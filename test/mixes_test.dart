@@ -192,10 +192,11 @@ FanartTv fanartTv(Set<String> pictured, {List<String>? asked}) => FanartTv(
   }),
 );
 
-/// What [mixes] are of: a genre by its name, a decade by its first year.
+/// What [mixes] are of: the library, a genre by its name, a decade by its first year.
 List<Object> about(List<Mix> mixes) => [
   for (final mix in mixes)
     switch (mix) {
+      LibraryMix() => 'library',
       GenreMix(:final genre) => genre.name,
       DecadeMix(:final decade) => decade,
     },
@@ -390,6 +391,13 @@ void main() {
     );
     expect(await mixes.picture(genre(await mixes.mixes, 'Rock')), isNull);
     expect(askedArtists, ['r1', 'r2', 'r3', 'r4'], reason: 'every one');
+  });
+
+  test('the library\'s mix is songs of the whole library at random, of no genre nor decade', () async {
+    final asked = <Map<String, String>>[];
+    expect([for (final song in await const LibraryMix().songs(api(asked: asked))) song.id], ['s5', 's7', 's8']);
+    expect(asked.single, containsPair('size', '100'));
+    expect(asked.single.keys, isNot(anyOf(contains('genre'), contains('fromYear'), contains('toYear'))));
   });
 
   test('a decade is called as it\'s usually said', () {

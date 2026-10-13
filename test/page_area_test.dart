@@ -149,21 +149,20 @@ void main() {
     },
   );
 
-  testWidgets('on a phone, the app\'s icon lines up with the home\'s rows, their titles and their covers', (
-    tester,
-  ) async {
-    await pumpHome(tester, const Size(360, 800));
-    final logo = tester.getRect(find.descendant(of: find.byType(AppBar), matching: find.byType(Image)));
-    expect(logo.left, 16);
-    expect(tester.getRect(find.text('Adicionados recentemente')).left, logo.left);
-    expect(tester.getRect(find.byType(Cover).first).left, logo.left);
-    expect(
-      tester.getRect(find.descendant(of: find.byType(AppBar), matching: find.text('Segue Music'))).left,
-      72,
-      reason: 'the app\'s name where a page\'s title is, after its back arrow',
-    );
-    await tester.pumpWidget(const SizedBox());
-  });
+  testWidgets(
+    'on a phone, the home\'s top bar has its chips, rather than the app\'s icon and name, the first one lined '
+    'up with its rows, their titles and their covers',
+    (tester) async {
+      await pumpHome(tester, const Size(360, 800));
+      final bar = find.byType(AppBar);
+      expect(find.descendant(of: bar, matching: find.byType(Image)), findsNothing);
+      final chip = tester.getRect(find.descendant(of: bar, matching: find.byType(ActionChip)).first);
+      expect(chip.left, 16);
+      expect(tester.getRect(find.text('Adicionados recentemente')).left, chip.left);
+      expect(tester.getRect(find.byType(Cover).first).left, chip.left);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
 
   testWidgets('a page stays open as the window is widened or narrowed: the same page area, by its navigator', (
     tester,

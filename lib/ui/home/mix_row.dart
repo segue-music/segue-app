@@ -221,6 +221,7 @@ class _MixArt extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final (icon, gradient) = switch (mix) {
+      LibraryMix() => (HugeIcons.strokeRoundedShuffle, [colors.secondaryContainer, colors.primaryContainer]),
       GenreMix() => (HugeIcons.strokeRoundedTag01, [colors.primaryContainer, colors.tertiaryContainer]),
       DecadeMix() => (HugeIcons.strokeRoundedCalendar03, [colors.tertiaryContainer, colors.primaryContainer]),
     };

@@ -1035,9 +1035,13 @@
   "@home": {
     "description": "The first section, of rows of albums."
   },
-  "appName": "Segue Music",
-  "@appName": {
-    "description": "The app's name, the same in every language: on a phone, in the home's top bar, beside its icon."
+  "favoriteSongsChip": "Favoritas",
+  "@favoriteSongsChip": {
+    "description": "On a phone, the chip in the home's top bar that opens the user's favorite songs: short, beside one more."
+  },
+  "shuffleLibrary": "Aleatório",
+  "@shuffleLibrary": {
+    "description": "On a phone, the chip in the home's top bar that plays songs of the whole library at random, a different few each time: short, beside one more."
   },
   "genres": "Gêneros",
   "@genres": {

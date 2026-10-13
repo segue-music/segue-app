@@ -79,10 +79,11 @@ SubsonicApi library({List<String> albums = const ['Toys in the Attic'], List<Str
 const toys = Album(id: 'a1', name: 'Toys in the Attic', artist: 'Aerosmith', year: 1975);
 const pump = Album(id: 'a2', name: 'Pump', artist: 'Aerosmith', year: 1989);
 
-/// What [mixes] are of: a genre by its name, a decade by its first year.
+/// What [mixes] are of: the library, a genre by its name, a decade by its first year.
 List<Object> about(List<Mix> mixes) => [
   for (final mix in mixes)
     switch (mix) {
+      LibraryMix() => 'library',
       GenreMix(:final genre) => genre.name,
       DecadeMix(:final decade) => decade,
     },

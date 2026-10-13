@@ -265,7 +265,11 @@ Running two app instances on one machine as different devices:
   queue open in the app's navigator there, over everything (`PageArea.playerNavigatorOf`); the
   player takes the area along (`PlayerRoute.area`), so its links close it and open their page in
   the area. A page in the area has no player bar of its own (`PageArea.holds`): even an empty one
-  would take away the room the home's bars leave at the bottom (`extendBody`, `MediaQuery`).
+  would take away the room the home's bars leave at the bottom (`extendBody`, `MediaQuery`). Each section's top bar
+  has what there is to use there, rather than a name: the search its bar, the library its tabs, and the home, rather
+  than the app's icon and name, which only said again what the bar at the bottom says, two chips (`HomeChips`,
+  `lib/ui/home/home_chips.dart`), one that plays the whole library at random (`LibraryMix`) and one that opens the
+  favorite songs.
 - `MediaServer` (`lib/server/server.dart`) is what pages, the player and the media controls ask of
   the media server, in either API: `SubsonicApi` (`lib/subsonic/`) or `JellyfinApi`
   (`lib/jellyfin/`). The user types only the address: `signIn` (`lib/server/sign_in.dart`) asks it
@@ -311,10 +315,10 @@ Running two app instances on one machine as different devices:
   song, so `moveInPlaylist` sends the playlist's songs back in their new order (`createPlaylist` with its id), in a
   form's body where the server has OpenSubsonic's formPost; Jellyfin removes and moves by the entry's id
   (`PlaylistItemId`, from `Playlists/{id}/Items`), so the API asks for the entries first.
-- Mixes (`lib/mixes.dart`): a `Mix` is songs of the library at random (`MediaServer.randomSongs`: Subsonic's
-  getRandomSongs, Jellyfin's `Items` sorted `Random`, out of reach the downloaded albums'), of a genre (`GenreMix`) or
-  a decade (`DecadeMix`), 100 of them, after which autoplay goes on from the last. `SuggestedMixes` are the home's
-  (`MixRow`, `lib/ui/home/mix_row.dart`, above the albums' rows): two genres, then a decade, and so on, 6 of the 12 genres
+- Mixes (`lib/mixes.dart`): a `Mix` is songs at random (`MediaServer.randomSongs`: Subsonic's getRandomSongs,
+  Jellyfin's `Items` sorted `Random`, out of reach the downloaded albums') of the whole library (`LibraryMix`, the
+  phone's home's "Aleatório", never suggested), of a genre (`GenreMix`) or a decade (`DecadeMix`), 100 of them,
+  after which autoplay goes on from the last. `SuggestedMixes` are the home's (`MixRow`, `lib/ui/home/mix_row.dart`, above the albums' rows): two genres, then a decade, and so on, 6 of the 12 genres
   the user plays most (before anything has played, of those with the most albums) and 3 of the 6 decades
   (`MediaServer.mostPlayedDecades`), picked at random each time the home loads, the higher one ranks the likelier
   (`_pickedByRank`; the tests give it a seeded `Random`); each with its first songs, asked for once, as its tile

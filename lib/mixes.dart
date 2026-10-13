@@ -7,8 +7,8 @@ import 'pictures/fanart_tv.dart';
 import 'server/models.dart';
 import 'server/server.dart';
 
-/// A mix: songs of the library at random ([MediaServer.randomSongs]), of a genre or of a decade, a different few each
-/// time.
+/// A mix: songs at random ([MediaServer.randomSongs]) of the whole library, of a genre or of a decade, a different few
+/// each time.
 sealed class Mix {
   const Mix();
 
@@ -32,9 +32,18 @@ sealed class Mix {
 
 /// What [mix] is called: its genre's name, or its decade's ("Anos 80").
 String mixName(AppLocalizations strings, Mix mix) => switch (mix) {
+  LibraryMix() => strings.shuffleLibrary,
   GenreMix(:final genre) => genre.name,
   DecadeMix(:final decade) => strings.decade('$decade'),
 };
+
+/// The whole library's: what the phone's home plays shuffled, from its top bar. Never one of the [SuggestedMixes].
+class LibraryMix extends Mix {
+  const LibraryMix();
+
+  @override
+  Future<List<Song>> songs(MediaServer server, {int size = Mix.size}) => server.randomSongs(size: size);
+}
 
 class GenreMix extends Mix {
   const GenreMix(this.genre);

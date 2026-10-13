@@ -26,6 +26,7 @@ import 'package:segue/ui/album/albums_view.dart';
 import 'package:segue/ui/artist/artists_view.dart';
 import 'package:segue/ui/genre/genres_view.dart';
 import 'package:segue/ui/app/home_page.dart';
+import 'package:segue/ui/home/home_chips.dart';
 import 'package:segue/ui/home/home_view.dart';
 import 'package:segue/ui/playlist/playlists_view.dart';
 import 'package:segue/ui/settings/settings_page.dart';
@@ -493,7 +494,7 @@ void main() {
       await tester.tap(find.byType(BackButton));
       await tester.pumpAndSettle();
       expect(find.byType(SettingsPage), findsNothing);
-      expect(title('Segue Music'), findsOneWidget);
+      expect(find.byType(HomeChips), findsOneWidget, reason: 'the home again');
 
       await openSettings(tester);
       await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Biblioteca')));
@@ -947,20 +948,20 @@ void main() {
     });
   }
 
-  testWidgets('on a phone, the app\'s icon is in the top left corner too, on the home, and the bar at the bottom keeps '
-      'the home', (tester) async {
+  testWidgets('on a phone, the home\'s top bar has its chips, and no name; the bar at the bottom keeps the home', (
+    tester,
+  ) async {
     await pumpHome(tester, const Size(360, 640));
-    final logo = find.descendant(of: find.byType(AppBar), matching: find.byTooltip('Início'));
+    final chips = find.descendant(of: find.byType(AppBar), matching: find.byType(HomeChips));
     final bar = find.byType(NavigationBar);
-    expect(tester.getRect(logo).left, lessThan(16));
+    expect(chips, findsOneWidget);
+    expect(title('Início'), findsNothing);
     expect(find.descendant(of: bar, matching: find.text('Início')), findsOneWidget);
 
-    expect(title('Segue Music'), findsOneWidget);
-
-    // Elsewhere, what there is to use there takes its place, and the bar's home opens the home.
+    // Elsewhere, what there is to use there takes their place, and the bar's home opens the home.
     await tester.tap(find.descendant(of: bar, matching: find.text('Biblioteca')));
     await tester.pumpAndSettle();
-    expect(logo, findsNothing);
+    expect(chips, findsNothing);
     expect(title('Biblioteca'), findsNothing);
     expect(find.descendant(of: find.byType(AppBar), matching: find.byType(TabBar)), findsOneWidget);
     expect(
@@ -971,8 +972,7 @@ void main() {
 
     await tester.tap(find.descendant(of: bar, matching: find.text('Início')));
     await tester.pumpAndSettle();
-    expect(title('Segue Music'), findsOneWidget);
-    expect(tester.getRect(logo).left, lessThan(16));
+    expect(chips, findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 

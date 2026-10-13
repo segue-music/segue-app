@@ -42,7 +42,8 @@ screen, and the Windows build on Windows 11. macOS has no package yet.
 - **Home**, where the app opens: a row of mixes, then rows of the latest released albums, the most played and the
   latest added. A row's title opens the albums tab in that order. Dragging the home down from its top loads it again.
   As the app opens, the home shows at once what it showed the time before, covers too, kept on the device, while it
-  loads again; its mixes are those picked the time before.
+  loads again; its mixes are those picked the time before. On a phone, its top bar has two chips: "Aleatório", which
+  plays the whole library at random, and "Favoritas", which opens the favorite songs.
 - **Mixes**: 100 songs of the library at random, of a genre ("Rock") or of a decade ("Anos 70"), from the genres and
   decades the user plays most (before anything has played, the genres with the most albums). They are picked again
   each time the home loads, the more played the likelier. A mix plays the first songs its tile shows, and autoplay

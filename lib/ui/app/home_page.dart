@@ -18,10 +18,12 @@ import '../../services.dart';
 import '../album/albums_view.dart';
 import '../artist/artists_view.dart';
 import '../genre/genres_view.dart';
+import '../home/home_chips.dart';
 import '../home/home_view.dart';
 import '../player/now_playing_bar.dart';
 import 'page_area.dart';
 import '../player/player_page.dart';
+import '../playlist/favorite_songs_page.dart';
 import '../playlist/playlists_view.dart';
 import '../home/search_results.dart';
 import '../settings/settings_page.dart';
@@ -266,6 +268,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     _select(_Section.albums);
   }
 
+  /// The user's favorite songs, in the page area: what the phone's home's chip opens, as the playlists' list does.
+  void _openFavoriteSongs() {
+    _pages.currentState?.push(MaterialPageRoute<void>(builder: (_) => const FavoriteSongsPage()));
+  }
+
   void _typed(String text) {
     _typing?.cancel();
     _typing = Timer(HomePage.searchTypingPause, () => _searchFor(text));
@@ -468,7 +475,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     );
 
     // On a phone the bars at the bottom stay, the player's and the destinations', and pages open over the rest, in the
-    // page area, each with its own top bar and back arrow, over the section, which has the app's name in its top bar,
+    // page area, each with its own top bar and back arrow, over the section, which has the home's chips in its top bar,
     // the search bar, or the library's tabs, and which a swipe changes for the next. The full-screen player and the
     // queue cover everything.
     if (narrow) {
@@ -486,23 +493,19 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             extendBody: true,
             body: pageArea(
               Scaffold(
-                // On the home, the app's icon and its name; in the search and the library, what there is to use
-                // there, in their place: the bar at the bottom says where it is, and opens the home.
+                // In each section, what there is to use there, rather than its name, or the app's: the bar at the
+                // bottom says where it is.
                 appBar: AppBar(
-                  // The app's icon, 16 from the edge, lined up with what the home shows under it: in the middle of a
-                  // slot 64 wide, rather than Material's 56, which would leave it at 12.
-                  leading: destination == _Destination.home ? logo : null,
-                  leadingWidth: 64,
                   titleSpacing: switch (destination) {
-                    // The app's name where a page's title is, after its back arrow: 72 from the edge.
-                    _Destination.home => 8,
+                    // The chips from the edge, which they scroll to, the first one 16 from it.
+                    _Destination.home => 0,
                     // The search bar 16 from the edge, lined up with what the search shows under it.
                     _Destination.search => 16,
                     // The first tab's name 16 from the edge, past the room around it.
                     _Destination.library => 16 - _libraryTabPadding,
                   },
                   title: switch (destination) {
-                    _Destination.home => Text(strings.appName),
+                    _Destination.home => HomeChips(onFavorites: _openFavoriteSongs),
                     _Destination.search => searchBar,
                     // As wide as their names, from the left, scrolling sideways where they don't fit; with no line under
                     // them across the bar, which has none.

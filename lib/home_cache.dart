@@ -172,6 +172,7 @@ class HomeCache {
 
 Map<String, Object?> _keptMixJson(KeptMix kept) => {
   ...switch (kept.mix) {
+    LibraryMix() => {'library': true},
     GenreMix(:final genre) => {'genre': genre.toJson()},
     DecadeMix(:final decade) => {'decade': decade},
   },
@@ -182,9 +183,10 @@ Map<String, Object?> _keptMixJson(KeptMix kept) => {
 
 KeptMix _keptMix(Map<String, dynamic> json) => (
   mix: switch (json) {
+    {'library': true} => const LibraryMix(),
     {'genre': final Map<String, dynamic> genre} => GenreMix(Genre.fromJson(genre)),
     {'decade': final num decade} => DecadeMix(decade.toInt()),
-    _ => throw const FormatException('neither a genre nor a decade'),
+    _ => throw const FormatException('neither the library, a genre nor a decade'),
   },
   firstSongs: [for (final song in json['firstSongs'] as List) Song.fromJson(song as Map<String, dynamic>)],
   picture: switch (json['picture']) {
