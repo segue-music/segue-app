@@ -17,6 +17,7 @@ import 'package:segue/ui/album/albums_view.dart';
 import 'package:segue/ui/app/home_page.dart';
 import 'package:segue/ui/app/shortcuts.dart';
 import 'package:segue/ui/app/television_screen.dart';
+import 'package:segue/ui/home/home_chips.dart';
 import 'package:segue/ui/home/home_view.dart';
 import 'package:segue/ui/player/now_playing_bar.dart';
 import 'package:segue/ui/player/player_page.dart';
@@ -418,8 +419,11 @@ void main() {
     await pumpFullHdHome(tester);
     await shiftTabTo(tester, inSearch);
     await press(tester, LogicalKeyboardKey.arrowRight);
-    expect(focusedTip(), 'Configurações', reason: 'past the hub\'s status, which only tells');
+    expect(focusedIn<ShuffleLibraryChip>(), isTrue, reason: 'the library at random');
     expect(inTopBar(), isTrue);
+    await press(tester, LogicalKeyboardKey.arrowRight);
+    expect(focusedTip(), 'Configurações', reason: 'past the hub\'s status, which only tells');
+    await press(tester, LogicalKeyboardKey.arrowLeft);
     await press(tester, LogicalKeyboardKey.arrowLeft);
     expect(inSearch(), isTrue);
     await press(tester, LogicalKeyboardKey.arrowLeft);
@@ -464,7 +468,7 @@ bool inSearch() => focusedIn<TextField>() && inTopBar();
 bool focusedIn<T extends Widget>() =>
     FocusManager.instance.primaryFocus?.context?.findAncestorWidgetOfExactType<T>() != null;
 
-bool inRail() => ['Tocando agora', 'Álbuns', 'Artistas', 'Gêneros', 'Playlists'].contains(focusedTip());
+bool inRail() => ['Tocando agora', 'Álbuns', 'Artistas', 'Gêneros', 'Playlists', 'Favoritos'].contains(focusedTip());
 
 /// In the home's top bar: the app's icon, the arrows, the search, the buttons at its end.
 bool inTopBar() => focusedIn<AppBar>() && focusedIn<HomePage>();

@@ -268,8 +268,10 @@ Running two app instances on one machine as different devices:
   would take away the room the home's bars leave at the bottom (`extendBody`, `MediaQuery`). Each section's top bar
   has what there is to use there, rather than a name: the search its bar, the library its tabs, and the home, rather
   than the app's icon and name, which only said again what the bar at the bottom says, two chips (`HomeChips`,
-  `lib/ui/home/home_chips.dart`), one that plays the whole library at random (`LibraryMix`) and one that opens the
-  favorites (`FavoritesPage`).
+  `lib/ui/home/home_chips.dart`), one that plays the whole library at random (`ShuffleLibraryChip`, `LibraryMix`) and
+  one that opens the favorites (`FavoritesPage`). A wide screen has them too: the first in its top bar, before the
+  hub's status, over every page; the favorites in the side rail, after the sections, a page it marks as one while it
+  is on top (`_favoritesShown`, by its `RouteSettings`, as the settings' button does).
 - `MediaServer` (`lib/server/server.dart`) is what pages, the player and the media controls ask of
   the media server, in either API: `SubsonicApi` (`lib/subsonic/`) or `JellyfinApi`
   (`lib/jellyfin/`). The user types only the address: `signIn` (`lib/server/sign_in.dart`) asks it
@@ -344,7 +346,7 @@ Running two app instances on one machine as different devices:
   show at once and go to the server one after another (`setFavorite`: star and unstar; `UserFavoriteItems/{id}`), a
   refused one undone; once none is left, they load again. `Services.start` loads them, and again as the server comes
   back in reach; the pages that list them load them as they open: `FavoritesPage` (`lib/ui/playlist/favorites_page.dart`,
-  first among the playlists, and the phone's home's chip), their songs as a line that opens `FavoriteSongsPage`, as a
+  first among the playlists, the side rail's heart and the phone's home's chip), their songs as a line that opens `FavoriteSongsPage`, as a
   playlist, then a row of the albums and one of the artists, whose titles open the albums' and the artists' tabs with
   their "Favoritos" chips (the home's `_showFavoriteAlbums` and `_showFavoriteArtists`: the artists' order is the
   home's, `ArtistOrder`, as the albums' is), which list them too. `FavoriteButton` (`lib/ui/song/favorite_button.dart`) is the

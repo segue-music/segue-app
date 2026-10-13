@@ -428,6 +428,49 @@ void main() {
       expect(find.text('Artist ar1'), findsOneWidget);
     });
 
+    testWidgets(
+      'on a wide screen the side rail\'s heart, after the sections, opens the favorites, which it marks while '
+      'they are on top, rather than the section under them',
+      (tester) async {
+        await pump(tester, HomePage(onSignOut: () {}));
+        await openSection(tester, 'Playlists');
+        final heart = find.byTooltip('Favoritos');
+        expect(tester.getRect(heart).top, greaterThan(tester.getRect(find.byTooltip('Playlists')).top));
+        bool marked(Finder button) =>
+            tester.widget<IconButton>(find.descendant(of: button, matching: find.byType(IconButton))).isSelected!;
+
+        await tester.tap(heart);
+        await tester.pumpAndSettle();
+        expect(find.byType(FavoritesPage), findsOneWidget);
+        expect(marked(heart), isTrue);
+        expect(marked(find.byTooltip('Playlists')), isFalse);
+
+        // Pressed again, nothing: no second page over the first.
+        await tester.tap(heart);
+        await tester.pumpAndSettle();
+        expect(find.byType(FavoritesPage), findsOneWidget);
+        await tester.tap(find.byTooltip('Voltar'));
+        await tester.pumpAndSettle();
+        expect(find.byType(FavoritesPage), findsNothing);
+        expect(marked(heart), isFalse);
+        expect(marked(find.byTooltip('Playlists')), isTrue, reason: 'the section under them');
+
+        // Over a page, the pages closed first, as a section of the rail closes them.
+        await tester.tap(find.widgetWithText(ListTile, 'Favoritos'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('1 faixa'));
+        await tester.pumpAndSettle();
+        expect(find.byType(FavoriteSongsPage), findsOneWidget);
+        await tester.tap(heart);
+        await tester.pumpAndSettle();
+        expect(find.byType(FavoriteSongsPage), findsNothing);
+        expect(find.byType(FavoritesPage), findsOneWidget);
+        await tester.tap(find.byTooltip('Voltar'));
+        await tester.pumpAndSettle();
+        expect(find.byType(FavoritesPage), findsNothing, reason: 'over the section alone');
+      },
+    );
+
     testWidgets('with none, the favorite songs\' page says how to add one', (tester) async {
       server.songs.clear();
       await pump(tester, const FavoriteSongsPage());

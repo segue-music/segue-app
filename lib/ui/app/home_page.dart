@@ -175,6 +175,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   /// ([PageHistory] opens a page again with its settings).
   static const _settings = RouteSettings(name: 'settings');
 
+  /// The favorites' page, by which the side rail tells it on top, as the top bar's button does the settings.
+  static const _favorites = RouteSettings(name: 'favorites');
+
   /// A phone's screen, or a window as narrow: the sections in a bar at the bottom, and pages over all of it.
   bool get _narrow => MediaQuery.sizeOf(context).width < 600;
 
@@ -276,9 +279,29 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   void _openFavorites() {
     _pages.currentState?.push(
       MaterialPageRoute<void>(
+        settings: _favorites,
         builder: (_) => FavoritesPage(onShowAlbums: _showFavoriteAlbums, onShowArtists: _showFavoriteArtists),
       ),
     );
+  }
+
+  /// Whether the page on top is the favorites': the side rail marks them then, rather than the section under them.
+  bool get _favoritesShown => _history.current?.settings.name == _favorites.name;
+
+  /// The favorites from the side rail, as a section of it: over the section, the pages open closed and the search
+  /// cleared; on top already, nothing.
+  void _goToFavorites() {
+    if (_favoritesShown) {
+      return;
+    }
+
+    _history.closeAll();
+
+    if (_results != null) {
+      _clearSearch();
+    }
+
+    _openFavorites();
   }
 
   /// The albums tab, with the favorites alone.
@@ -668,7 +691,12 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     // middle has no room for it.
                     title: searchBar,
                     centerTitle: true,
-                    actions: actions,
+                    // The library at random, from any page, as the phone's home's top bar has it.
+                    actions: [
+                      const Center(child: ShuffleLibraryChip()),
+                      const SizedBox(width: 8),
+                      ...actions,
+                    ],
                   ),
                 ),
               ),
@@ -683,7 +711,16 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     top: false,
                     right: false,
                     bottom: false,
-                    child: _SideRail(selected: shown, onSelected: _select, opensPlayer: television),
+                    child: ListenableBuilder(
+                      listenable: _history,
+                      builder: (context, _) => _SideRail(
+                        selected: _favoritesShown ? null : shown,
+                        onSelected: _select,
+                        favorites: _favoritesShown,
+                        onFavorites: _goToFavorites,
+                        opensPlayer: television,
+                      ),
+                    ),
                   ),
                   const VerticalDivider(width: 1),
                   Expanded(
@@ -812,14 +849,26 @@ double _buttonSize(BuildContext context) =>
     Theme.of(context).materialTapTargetSize == MaterialTapTargetSize.padded ? kMinInteractiveDimension : 40.0;
 
 /// The side rail: the sections' icons, each named by its tooltip, but the home's, which the app's icon above it
-/// opens, and the search's, which is the top bar's. NavigationRail's highlight is 56 px wide, from one edge of so
+/// opens, and the search's, which is the top bar's; then the favorites', a page, which it marks as a section while it
+/// is on top. NavigationRail's highlight is 56 px wide, from one edge of so
 /// narrow a rail to the other; here it is the icon's button's. The tooltip shows to the right of its icon, level with
 /// it: below, where tooltips go, it would cover the icon under it.
 class _SideRail extends StatelessWidget {
-  const _SideRail({required this.selected, required this.onSelected, required this.opensPlayer});
+  const _SideRail({
+    required this.selected,
+    required this.onSelected,
+    required this.favorites,
+    required this.onFavorites,
+    required this.opensPlayer,
+  });
 
-  final _Section selected;
+  /// The section shown; none while the favorites are on top of it.
+  final _Section? selected;
   final ValueChanged<_Section> onSelected;
+
+  /// Whether the favorites' page is on top, which [onFavorites] opens.
+  final bool favorites;
+  final VoidCallback onFavorites;
 
   /// Whether its first button opens the full-screen player, while there is something to play: on a TV, which has no
   /// player bar. Its icon is what marks the song that plays, moving while it plays.
@@ -886,6 +935,19 @@ class _SideRail extends StatelessWidget {
                   ),
                 ),
               ),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Tooltip(
+              message: strings.favorites,
+              positionDelegate: _besideIcon,
+              child: IconButton(
+                isSelected: favorites,
+                icon: const ThemedIcon(HugeIcons.strokeRoundedFavourite),
+                style: style,
+                onPressed: onFavorites,
+              ),
+            ),
+          ),
         ],
       ),
     );

@@ -43,7 +43,8 @@ screen, and the Windows build on Windows 11. macOS has no package yet.
   latest added. A row's title opens the albums tab in that order. Dragging the home down from its top loads it again.
   As the app opens, the home shows at once what it showed the time before, covers too, kept on the device, while it
   loads again; its mixes are those picked the time before. On a phone, its top bar has two chips: "Aleatório", which
-  plays the whole library at random, and "Favoritos", which opens the favorites.
+  plays the whole library at random, and "Favoritos", which opens the favorites. On a computer, a tablet or a TV,
+  "Aleatório" is in the top bar, over every page, and the favorites in the side rail.
 - **Mixes**: 100 songs of the library at random, of a genre ("Rock") or of a decade ("Anos 70"), from the genres and
   decades the user plays most (before anything has played, the genres with the most albums). They are picked again
   each time the home loads, the more played the likelier. A mix plays the first songs its tile shows, and autoplay
@@ -139,10 +140,10 @@ knows nothing of them, and another device plays as it has them.
 - A song's menu is the button after its duration, the menu key or Shift+F10, a right click, or OK held on a TV's
   remote.
 - **Favorites**: a heart on a song, an album or an artist (Subsonic's star, Jellyfin's favorite). They have a page
-  of their own ("Favoritos", first among the playlists, and on a phone a chip on the home): the songs, a line that
-  plays them or opens them as a playlist, then a row of the albums and one of the artists. A row's title opens the
-  albums or artists tab with its "Favoritos" chip, which shows them alone. On a Subsonic server the latest come first;
-  on Jellyfin, which doesn't say when, by name.
+  of their own ("Favoritos", first among the playlists, in the side rail, and on a phone a chip on the home): the
+  songs, a line that plays them or opens them as a playlist, then a row of the albums and one of the artists. A row's
+  title opens the albums or artists tab with its "Favoritos" chip, which shows them alone. On a Subsonic server the
+  latest come first; on Jellyfin, which doesn't say when, by name.
 - Each change shows at once and goes to the server as it's made. One the server refuses goes back, and says so.
 
 ### Downloads and offline
@@ -170,9 +171,9 @@ knows nothing of them, and another device plays as it has them.
 
 ### Devices
 
-- **Computer and tablet**: the top bar, the side rail (albums, artists, genres, playlists) and the player bar stay,
-  and pages open between them. Arrows beside the app's icon, and the keyboard's left and right, go back and forward
-  through them, as a browser's do. `/` goes to the search bar, and Esc takes the focus off what has it. On a
+- **Computer and tablet**: the top bar, the side rail (albums, artists, genres, playlists, favorites) and the player
+  bar stay, and pages open between them. Arrows beside the app's icon, and the keyboard's left and right, go back and
+  forward through them, as a browser's do. `/` goes to the search bar, and Esc takes the focus off what has it. On a
   computer the window opens maximized and gets no narrower than 960.
 - **Phone**: the player bar and a bar with the home, the search and the library stay at the bottom, and a swipe goes
   from section to section. Pages open over the rest, and a swipe to the right from anywhere goes back.

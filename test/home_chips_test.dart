@@ -63,11 +63,20 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('on a wide screen, the home has no chips: its top bar has the search bar, the side rail the sections', (
-    tester,
-  ) async {
+  testWidgets('on a wide screen, the home has no chips of its own: the top bar has the library at random, before the '
+      'hub\'s status, from any page', (tester) async {
     await pumpHome(tester, const Size(1200, 700));
     expect(find.byType(HomeChips), findsNothing);
+    final chip = find.descendant(of: find.byType(AppBar), matching: find.byType(ShuffleLibraryChip));
+    expect(chip, findsOneWidget);
+    expect(
+      tester.getRect(chip).right,
+      lessThanOrEqualTo(tester.getRect(find.byTooltip('Sem hub: só toca neste aparelho')).left),
+    );
+
+    await tester.tap(find.byTooltip('Configurações'));
+    await tester.pumpAndSettle();
+    expect(chip, findsOneWidget, reason: 'over a page too');
     await tester.pumpWidget(const SizedBox());
   });
 }
