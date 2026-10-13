@@ -22,10 +22,10 @@ Segue's protocol and its hub, which runs next to the media server, are in
 > **Vibe-coded.** The app was written by Claude (through Claude Code), with a person deciding what
 > to build and trying it on real devices. Every commit says so.
 
-**Status: not released.** The Android APK is signed with a debug key and in no store, the Linux and Windows builds are
-only a tarball and a zip, and the iOS one reaches only TestFlight's internal group. The Android build has been tried on
-a tablet and on an Android TV, the iOS build on an iPhone, with CarPlay's Now Playing screen, and the Windows build on
-Windows 11. macOS has no package yet.
+**Status: not released.** The Android APK is in no store, the Linux and Windows builds are only a tarball and a zip, all
+three in this repository's releases ("Releases"), and the iOS one reaches only TestFlight's internal group. The
+Android build has been tried on a tablet and on an Android TV, the iOS build on an iPhone, with CarPlay's Now Playing
+screen, and the Windows build on Windows 11. macOS has no package yet.
 
 ## Features
 
@@ -239,9 +239,11 @@ it the first time when the zip came from the internet: "More info", then "Run an
 
 ## Running on Android and Android TV
 
-`tool/package-android.sh` builds `build/segue-android.apk` (see "Development"): one APK for every processor, signed
-with a debug key, to install by hand with adb (`android-tools` on Fedora). The device has to reach the media server
-(and the hub) at the address used to sign in.
+`tool/package-android.sh` builds `build/segue-android.apk` (see "Development"): one APK for every processor, to
+install by hand with adb (`android-tools` on Fedora), signed with the app's key where this folder has it ("Releases"),
+else with a debug key. An APK signed with another key than the installed app's doesn't install over it: the app has to
+be uninstalled first, its sign-in and downloads with it. The device has to reach the media server (and the hub) at the
+address used to sign in.
 
 On a phone or a tablet, turn on wireless debugging (Settings > About: press "Build number" seven times, then
 Developer options > Wireless debugging). Its main screen shows the address and port for `adb connect`; "Pair device
@@ -318,6 +320,48 @@ What iOS does differently:
 - Other devices see this one as "iPhone" (or "iPad"), not by its name in Settings (General > About > Name): since iOS
   16 an app reads that name only with an entitlement Apple grants on request
   (`com.apple.developer.device-information.user-assigned-device-name`), which the app doesn't have yet.
+
+## Releases
+
+`.github/workflows/release.yml` builds the Linux, Android and Windows packages on GitHub's machines, with the scripts
+above, and for a tag `v<version>` puts them in a release of this repository, with their SHA-256 (`SHA256SUMS`). The
+tag says pubspec.yaml's version, which the app shows in its settings: for a new one, change `version` there (the build
+number after the `+` is the commit count's, whatever it says), commit, and
+
+```sh
+git tag v0.2.0 && git push origin v0.2.0
+```
+
+Run from the Actions tab ("Release", "Run workflow"), it only builds the packages, kept a day as the run's artifacts.
+It takes the keys from the repository's secrets (Settings > Secrets and variables > Actions):
+
+- `FANART_TV_KEY`: the fanart.tv key (see "Keys").
+- `ANDROID_KEYSTORE`: the app's key, below, in base64 (`base64 -w0 android/release.jks`).
+- `ANDROID_KEYSTORE_PASSWORD`: its password.
+
+Android installs an update only when it is signed with the same key as the installed app, so the APKs handed out are
+signed with the app's own, `android/release.jks`, not with a debug key, which is one computer's.
+`android/key.properties` names it, and git ignores both:
+
+```properties
+storeFile=release.jks
+storePassword=...
+keyAlias=segue
+keyPassword=...
+```
+
+Where they are, every build is signed with it, the debug one too, so that `flutter run` installs over a released APK
+(with another key, it uninstalls the app first). Keep a copy of both away from this computer: with the key lost, no
+update installs over the app, and whoever has it has to uninstall it first. It was made once, with a JDK's keytool
+(the Android image has one), the password the same twice:
+
+```sh
+keytool -genkeypair -keystore android/release.jks -storetype PKCS12 -alias segue -keyalg RSA -keysize 4096 \
+  -validity 10000 -dname CN=Segue
+```
+
+An APK signed with it has this certificate's SHA-256 (`apksigner verify --print-certs`, in the Android SDK's
+build-tools): `b47c9a81410d037b1e3640579fad9acecc552f7d4d5bd7aab94fa1ebcaf8bb31`.
 
 ## Development
 
@@ -414,7 +458,7 @@ shows an artist's biography with the media server's picture alone, and a person 
 
 With Flutter installed, the same file goes in by hand (`flutter run -d linux --dart-define-from-file=keys.json`),
 except in `tool\package-windows.ps1`, which gives it to the build itself. Codemagic takes the key from its environment
-variables ("Running on iOS"). A key comes from fanart.tv's page for one (fanart.tv/get-an-api-key), as a project's.
+variables ("Running on iOS"), and the release workflow from the repository's secrets ("Releases"). A key comes from fanart.tv's page for one (fanart.tv/get-an-api-key), as a project's.
 
 ### Trying Connect
 

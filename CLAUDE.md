@@ -52,6 +52,13 @@ it to TestFlight. It starts from Codemagic's page or with a tag: `git tag ios-<n
 ios-<n>`. Nothing iOS-specific can run here: `Info.plist` and the Xcode project are only checked by
 that build.
 
+The Linux, Android and Windows packages are also built on GitHub's machines (`.github/workflows/release.yml`), and,
+for a tag `v<version>` (pubspec's version), put in a release: `git tag v<version> && git push origin v<version>`.
+There `tool/flutter.sh` runs the Flutter installed (`SEGUE_FLUTTER_IMAGE=none`), the images not fitting, and the keys
+come from the repository's secrets. The APK is signed with the app's key (`android/key.properties` naming
+`android/release.jks`, which git ignores; README.md, "Releases"), every build where it is, so that `flutter run`
+installs over a released APK instead of uninstalling it.
+
 The builds (iOS, Android, Linux's and Windows's packages) number themselves with `tool/build-number.sh`: the commit
 count, plus the commits the segue repository had without the app when it moved out, so that build
 numbers keep rising for TestFlight and Android. The settings show it beside the version
@@ -513,8 +520,8 @@ Running two app instances on one machine as different devices:
 - The Linux build renders with Skia, not Impeller (`linux/runner/my_application.cc`): Flutter
   3.47's Impeller, on OpenGL, clips without antialiasing, so the round edges of covers and artists'
   pictures came out jagged, and it left the icons' thin strokes jagged too. On each Flutter update
-  (`tool/dev.Dockerfile`, `codemagic.yaml`), check that Linux still has Skia, and try Impeller
-  again: without that line, look at a cover's edges and at the icons in a Linux desktop session.
+  (`tool/dev.Dockerfile`, `codemagic.yaml`, `.github/workflows/release.yml`), check that Linux still has Skia, and
+  try Impeller again: without that line, look at a cover's edges and at the icons in a Linux desktop session.
 - On a computer the pointer is a hand over what can be clicked, which Flutter leaves to the web: the
   theme (`segueTheme`) gives it to buttons, list tiles and menus' items, and an `InkWell`, which no
   theme reaches, takes `mouseCursor: WidgetStateMouseCursor.clickable`. `test/cursor_test.dart` goes

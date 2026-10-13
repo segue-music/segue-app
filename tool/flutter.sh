@@ -90,6 +90,13 @@ if [ "$tool" = flutter ] && { [ "$command" = run ] || [ "$command" = build ]; } 
   set -- "$@" --dart-define-from-file=keys.json
 fi
 
+# SEGUE_FLUTTER_IMAGE=none runs the Flutter installed here, with no container: the release workflow's
+# (.github/workflows/release.yml), on GitHub's machines, which have no room for the images.
+if [ "$image" = none ]; then
+  cd "$app"
+  exec "$tool" "$@"
+fi
+
 set -- "$image" "$tool" "$@"
 # The tests against the hub run its binary: SEGUE_HUB_BIN, or the one built in a clone of the segue
 # repository next to this one.

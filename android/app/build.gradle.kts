@@ -1,8 +1,17 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+// The app's own key (README.md, "Releases"), where android/key.properties, which git ignores, names it: Android refuses
+// an update signed with another key than the installed app's, and a debug key is only this computer's.
+val releaseKey =
+    rootProject.file("key.properties").takeIf { it.exists() }?.let { file ->
+        Properties().apply { file.inputStream().use { load(it) } }
+    }
 
 android {
     namespace = "io.github.mateusguilherme.segue"
@@ -29,12 +38,22 @@ android {
         versionName = flutter.versionName
     }
 
-    buildTypes {
-        release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+    if (releaseKey != null) {
+        signingConfigs {
+            create("release") {
+                storeFile = rootProject.file(releaseKey.getProperty("storeFile"))
+                storePassword = releaseKey.getProperty("storePassword")
+                keyAlias = releaseKey.getProperty("keyAlias")
+                keyPassword = releaseKey.getProperty("keyPassword")
+            }
         }
+    }
+
+    // Every build is signed with the app's key where there is one, the debug build too: flutter run then installs over
+    // a released APK, keeping what the app has, where with the debug key it would uninstall it first. Without it, the
+    // debug key signs them all, flutter run --release included.
+    buildTypes.configureEach {
+        signingConfig = signingConfigs.getByName(if (releaseKey != null) "release" else "debug")
     }
 }
 

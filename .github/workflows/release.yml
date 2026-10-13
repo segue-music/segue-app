@@ -1,0 +1,194 @@
+# Builds the Linux, Android and Windows packages on GitHub's machines, with tool/package-*.sh and
+# tool/package-windows.ps1, and, for a tag v<version>, puts them in a release (README.md, "Releases"). Run by hand
+# (Actions, "Run workflow"), it only builds them, as the run's artifacts. The iOS version is Codemagic's
+# (codemagic.yaml).
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # The Flutter of tool/dev.Dockerfile and codemagic.yaml.
+  FLUTTER_VERSION: 3.47.7
+  # tool/flutter.sh runs the Flutter installed on the machine: the images don't fit on it.
+  SEGUE_FLUTTER_IMAGE: none
+
+jobs:
+  version:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      # The tag says the version the app shows in its settings, pubspec.yaml's: checked before the builds, so that a
+      # wrong tag fails in seconds.
+      - if: github.ref_type == 'tag'
+        run: |
+          version=$(sed -n 's/^version: *\([^+]*\).*/\1/p' pubspec.yaml)
+
+          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::The tag is $GITHUB_REF_NAME, but pubspec.yaml's version is $version"
+            exit 1
+          fi
+
+  linux:
+    needs: version
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # tool/build-number.sh counts the commits.
+          fetch-depth: 0
+
+      # What tool/dev.Dockerfile installs for the build. media_kit builds mimalloc with plain Makefiles, which look for
+      # cc and c++.
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev \
+            libstdc++-14-dev libmpv-dev libsecret-1-dev libjsoncpp-dev
+          echo CC=clang >> "$GITHUB_ENV"
+          echo CXX=clang++ >> "$GITHUB_ENV"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Keys
+        env:
+          FANART_TV_KEY: ${{ secrets.FANART_TV_KEY }}
+        run: |
+          test -n "$FANART_TV_KEY" || { echo "::error::No FANART_TV_KEY secret"; exit 1; }
+          jq -n --arg key "$FANART_TV_KEY" '{FANART_TV_KEY: $key}' > keys.json
+
+      - run: tool/package-linux.sh
+
+      # Kept a day: the release takes them minutes later, and the artifacts of a private repository share 500 MB.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: linux
+          path: build/segue-linux-x64.tar.gz
+          if-no-files-found: error
+          retention-days: 1
+
+  android:
+    needs: version
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # tool/android.Dockerfile's JDK. The machine has the Android SDK, and Gradle installs what it lacks of it.
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      # The fanart.tv key, and the app's key, which signs the APK (README.md, "Releases").
+      - name: Keys
+        env:
+          FANART_TV_KEY: ${{ secrets.FANART_TV_KEY }}
+          ANDROID_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          test -n "$FANART_TV_KEY" || { echo "::error::No FANART_TV_KEY secret"; exit 1; }
+          test -n "$ANDROID_KEYSTORE" || { echo "::error::No ANDROID_KEYSTORE secret"; exit 1; }
+          jq -n --arg key "$FANART_TV_KEY" '{FANART_TV_KEY: $key}' > keys.json
+          echo "$ANDROID_KEYSTORE" | base64 -d > android/release.jks
+          printf 'storeFile=release.jks\nstorePassword=%s\nkeyAlias=segue\nkeyPassword=%s\n' \
+            "$ANDROID_KEYSTORE_PASSWORD" "$ANDROID_KEYSTORE_PASSWORD" > android/key.properties
+
+      - run: tool/package-android.sh
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: android
+          path: build/segue-android.apk
+          if-no-files-found: error
+          retention-days: 1
+
+  windows:
+    needs: version
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Keys
+        shell: pwsh
+        env:
+          FANART_TV_KEY: ${{ secrets.FANART_TV_KEY }}
+        run: |
+          if (-not $env:FANART_TV_KEY) {
+            throw 'No FANART_TV_KEY secret'
+          }
+
+          @{ FANART_TV_KEY = $env:FANART_TV_KEY } | ConvertTo-Json | Set-Content keys.json
+
+      - shell: pwsh
+        run: tool\package-windows.ps1
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: windows
+          path: build/segue-windows-x64.zip
+          if-no-files-found: error
+          retention-days: 1
+
+  release:
+    if: github.ref_type == 'tag'
+    needs: [linux, android, windows]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # The tag before this one, for the notes' link to the changes.
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v8
+        with:
+          path: packages
+          merge-multiple: true
+
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          (cd packages && sha256sum -- * > SHA256SUMS)
+          readme="https://github.com/$GITHUB_REPOSITORY/blob/$GITHUB_REF_NAME/README.md"
+
+          if previous=$(git describe --tags --abbrev=0 --match 'v*' "$GITHUB_REF_NAME^" 2> /dev/null); then
+            changes="[The changes since $previous](https://github.com/$GITHUB_REPOSITORY/compare/$previous...$GITHUB_REF_NAME)."
+          else
+            changes="The first release."
+          fi
+
+          cat > notes.md <<EOF
+          - \`segue-linux-x64.tar.gz\`: Linux, on x64 ([what it needs]($readme#running-on-linux)).
+          - \`segue-android.apk\`: Android phones, tablets and TVs ([how to install it]($readme#running-on-android-and-android-tv)).
+          - \`segue-windows-x64.zip\`: Windows 10 and 11, on x64 ([how to run it]($readme#running-on-windows)).
+          - \`SHA256SUMS\`: the files' SHA-256.
+
+          $changes
+          EOF
+
+          gh release create "$GITHUB_REF_NAME" packages/* --title "Segue ${GITHUB_REF_NAME#v}" --notes-file notes.md
