@@ -919,17 +919,35 @@ class _Player extends StatelessWidget {
   static const _maxCover = 800.0;
 
   @override
-  Widget build(BuildContext context) => AnimatedBuilder(
-    animation: lyrics,
-    builder: (context, _) => LayoutBuilder(builder: (context, box) => _layout(context, box, lyrics.value)),
-  );
+  Widget build(BuildContext context) {
+    // The lyrics, made once for all the steps of their coming and going, rather than at each: the same widgets, which
+    // Flutter then doesn't build again, their many lines; and on a layer of their own, which moving doesn't paint again.
+    final lyricsBeside = RepaintBoundary(child: LyricsView(now));
+    // A tap opens them full screen, as does the button at their corner.
+    final lyricsUnder = RepaintBoundary(child: LyricsView(now, onTap: () => _LyricsRoute.open(context)));
 
-  /// The player and, [shown] of the way in, its lyrics, in [box].
-  Widget _layout(BuildContext context, BoxConstraints box, double shown) {
+    return AnimatedBuilder(
+      animation: lyrics,
+      builder: (context, _) => LayoutBuilder(
+        builder: (context, box) =>
+            _layout(context, box, lyrics.value, lyricsBeside: lyricsBeside, lyricsUnder: lyricsUnder),
+      ),
+    );
+  }
+
+  /// The player and, [shown] of the way in, its lyrics, in [box]: [lyricsBeside] it, or [lyricsUnder] it.
+  Widget _layout(
+    BuildContext context,
+    BoxConstraints box,
+    double shown, {
+    required Widget lyricsBeside,
+    required Widget lyricsUnder,
+  }) {
     final text = Theme.of(context).textTheme;
     final colors = Theme.of(context).colorScheme;
     final muted = colors.onSurfaceVariant;
     final beside = box.maxWidth >= _lyricsBesideFrom;
+    final karaoke = LyricsView.karaoke(context);
     // Beside the player, the lyrics take their share of the screen, the player the rest, which shrinks as they come in.
     final share = _lyricsShare(context);
     final room = beside ? box.maxWidth * (1 - shown * share) : box.maxWidth;
@@ -1000,12 +1018,11 @@ class _Player extends StatelessWidget {
                   opacity: shown,
                   child: Padding(
                     padding: const EdgeInsets.only(top: 24),
-                    // A tap opens them full screen, as does the button at their corner.
                     child: SizedBox(
                       height: max(height - withLyrics - 24, 200),
                       child: Stack(
                         children: [
-                          LyricsView(now, onTap: () => _LyricsRoute.open(context)),
+                          lyricsUnder,
                           Positioned(
                             top: 0,
                             right: 0,
@@ -1043,7 +1060,7 @@ class _Player extends StatelessWidget {
 
     // In the end, the player in the middle of its part of the screen, the lyrics all of theirs. On the way, they slide in
     // from the right as the player makes room for them, laid out as they end up, rather than narrower, which would wrap
-    // their lines anew at every step. On a TV the screen stays on while they show, as they are read, not touched.
+    // their lines anew at every step.
     return Row(
       children: [
         SizedBox(
@@ -1055,20 +1072,26 @@ class _Player extends StatelessWidget {
             ),
           ),
         ),
-        if (shown > 0)
+        // On a TV, where the player asked for them as it opened, they stay, hidden, between showings: brought in, they
+        // only show, rather than building and laying out all their lines in the first step, which held it up.
+        if (shown > 0 || karaoke)
           Expanded(
             child: ClipRect(
               child: OverflowBox(
                 alignment: AlignmentDirectional.centerStart,
                 minWidth: box.maxWidth * share,
                 maxWidth: box.maxWidth * share,
-                child: Opacity(
-                  opacity: shown,
-                  child: LyricsView.karaoke(context) ? KeepScreenOn(child: LyricsView(now)) : LyricsView(now),
+                child: Visibility(
+                  visible: shown > 0,
+                  maintainState: true,
+                  maintainAnimation: true,
+                  child: Opacity(opacity: shown, child: lyricsBeside),
                 ),
               ),
             ),
           ),
+        // On a TV the screen stays on while they show, as they are read, not touched.
+        if (shown > 0 && karaoke) const KeepScreenOn(child: SizedBox.shrink()),
       ],
     );
   }

@@ -889,6 +889,25 @@ void main() {
     },
   );
 
+  testWidgets('on a TV, hidden, the lyrics stay, laid out, for them to show at once as they come back, their lines '
+      'there from the first step', (tester) async {
+    await pumpBar(tester, server: withLyrics(verse), size: const Size(960, 540), television: true);
+    await openPlayer(tester);
+    final shown = tester.state(onPage(find.byType(LyricsView)));
+
+    await tester.tap(onPage(find.byTooltip('Esconder a letra')));
+    await tester.pumpAndSettle();
+    expect(onPage(find.byType(LyricsView)), findsNothing);
+    expect(find.byType(LyricsView, skipOffstage: false), findsOneWidget, reason: 'hidden, there still');
+
+    await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 20));
+    expect(tester.state(onPage(find.byType(LyricsView))), same(shown));
+    expect(onPage(find.text('That nobody cares')), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('on a TV, a song without lyrics shows the cover alone, the lyrics still on, back with a song that has '
       'some', (tester) async {
     final player = await pumpBar(tester, server: withLyricsFor('s2'), size: const Size(960, 540), television: true);

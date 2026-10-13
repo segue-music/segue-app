@@ -438,10 +438,12 @@ Running two app instances on one machine as different devices:
   navigation mode): the full-screen player opens with them, in three fifths of the screen, keeping the screen on,
   and the line that plays is bigger, in the middle (its style animated, `TweenAnimationBuilder`, on the `Text` itself,
   and the scroll going, along with it, straight to where the line ends up once grown and the one before shrunk:
-  `_growth` lays their text out in the style they go to). A song without lyrics shows the cover alone, the lyrics still
-  on for the next: the player asks `lyricsOf` (`lib/ui/player/lyrics_view.dart`), which `LyricsView` asks too, and which
-  remembers the last few songs' lyrics for each media server, so that they are asked for once, and a player opened again
-  on a song without them knows
+  `_growth` lays their text out in the style they go to). As they come and go, the player makes them once for all
+  the steps, which then neither build them nor, on a layer of their own (`RepaintBoundary`), paint them again; on a
+  TV they stay, hidden, between showings (`Visibility`, `maintainState`): built anew as they came, their lines held
+  up the first step. A song without lyrics shows the cover alone, the lyrics still on for the next: the player asks
+  `lyricsOf` (`lib/ui/player/lyrics_view.dart`), which `LyricsView` asks too, and which remembers the last few songs'
+  lyrics for each media server, so that they are asked for once, and a player opened again on a song without them knows
   at once (`hasLyrics`). A TV's remote seldom has a menu key, so a song's or a
   playlist's menu also opens with the center button held (`MenuShortcuts`, `lib/ui/widgets/menu_shortcuts.dart`):
   there a press of it plays the song (opens the playlist) as it is let go, not as it goes down. A TV has no drag, so
