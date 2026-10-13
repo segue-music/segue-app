@@ -297,8 +297,9 @@ class FakeEngine implements Deck {
 /// A Subsonic server whose songs are their ids' bytes, and whose covers are images of their ids, but for those in
 /// [failing], which it answers with an error, and those in [held], which it answers once their completer is; out of
 /// reach ([reachable] false), it answers nothing. Its artists are [artists], by their ids, as getArtist gives them; it
-/// counts plays (scrobble) and answers pings. Pictures from elsewhere (`fanart.test`) are images of their paths. It
-/// keeps what it is asked for: by endpoint and id ([requests]), and whole ([urls]).
+/// counts plays (scrobble) and answers pings, as a Navidrome of [version] where it has one. Pictures from elsewhere
+/// (`fanart.test`) are images of their paths. It keeps what it is asked for: by endpoint and id ([requests]), and
+/// whole ([urls]).
 class FileServer {
   final requests = <String>[];
   final urls = <Uri>[];
@@ -306,6 +307,7 @@ class FileServer {
   final held = <String, Completer<void>>{};
   final artists = <String, Map<String, Object?>>{};
   bool reachable = true;
+  String? version;
 
   late final client = MockClient((request) async {
     if (!reachable) {
@@ -330,7 +332,11 @@ class FileServer {
 
     http.Response subsonic(Map<String, Object?> body) => http.Response(
       jsonEncode({
-        'subsonic-response': {'status': 'ok', ...body},
+        'subsonic-response': {
+          'status': 'ok',
+          if (version case final version?) ...{'type': 'navidrome', 'serverVersion': version},
+          ...body,
+        },
       }),
       200,
     );

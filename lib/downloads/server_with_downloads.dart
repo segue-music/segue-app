@@ -93,6 +93,9 @@ class ServerWithDownloads implements MediaServer {
   Future<void> ping() => server.ping();
 
   @override
+  String currentId(String id, {bool cover = false}) => server.currentId(id, cover: cover);
+
+  @override
   Future<List<Album>> albums({required AlbumOrder order, int size = 100, int offset = 0}) => _either(
     () => server.albums(order: order, size: size, offset: offset),
     () => _page(_sorted(_albums, order), size: size, offset: offset),

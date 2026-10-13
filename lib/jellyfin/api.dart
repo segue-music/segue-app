@@ -628,6 +628,10 @@ class JellyfinApi implements MediaServer {
   @override
   Future<void> ping() => _get('System/Ping', const {});
 
+  /// [id] itself: Jellyfin's stay, and Navidrome's Jellyfin API came with its new ones.
+  @override
+  String currentId(String id, {bool cover = false}) => id;
+
   /// Ends this device's sign-in (Sessions/Logout), so that its token stops working.
   @override
   Future<void> signOut() async {

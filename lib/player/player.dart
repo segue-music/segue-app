@@ -519,7 +519,7 @@ class PlayerController extends ChangeNotifier {
         // As for setQueue, the items the hub couldn't express in this device's API are skipped.
         final playable = [
           for (final item in command.queue!)
-            if (item.id != null) Song.fromQueueItem(item),
+            if (item.id != null) _songOf(item),
         ];
 
         if (playable.isEmpty) {
@@ -533,6 +533,12 @@ class PlayerController extends ChangeNotifier {
         await removeFromQueue(command.index!);
     }
   }
+
+  /// The song of a queue [item] that came from elsewhere (another device, the last playback the hub kept), by the id
+  /// the media server has for it now ([MediaServer.currentId]): one from before the server gave its items new ones
+  /// then goes in the reports as the server and the other devices have it.
+  Song _songOf(QueueItem item) =>
+      Song.fromQueueItem(QueueItem.fromJson({...item.toJson(), 'id': _api.currentId(item.id!)}));
 
   /// Plays the queue of a setQueue, from its current item, in the modes it brings where it brings them (SPEC.md, section
   /// 5). Items the hub couldn't express in this device's API can't be played here: they are skipped, the same track
@@ -560,7 +566,7 @@ class PlayerController extends ChangeNotifier {
     for (final (place, item) in unshuffled.indexed) {
       if (item?.id != null) {
         kept[place] = songs.length;
-        songs.add(Song.fromQueueItem(item!));
+        songs.add(_songOf(item!));
       }
     }
 

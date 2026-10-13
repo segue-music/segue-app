@@ -289,6 +289,15 @@ Running two app instances on one machine as different devices:
   `PlayerController` reads as each song loads, the automatic one by `MobileData`, `lib/mobile_data.dart`, from
   connectivity_plus, and offered only on a device with mobile data, `hasMobileData`): Subsonic's `maxBitRate`, with
   `timeOffset` to start later where the server has OpenSubsonic's transcodeOffset, or Jellyfin's `universal`, as HLS.
+  Navidrome 0.64 gave its items new ids, each from its old one alone (`canonicalId`, `lib/subsonic/navidrome_ids.dart`,
+  as its migration did: 128 bits in 22 digits of base 62, from hex, a UUID, or the MD5 of an id too big). Once an
+  answer says the server is such a Navidrome (OpenSubsonic's `type` and `serverVersion`; one whose version isn't
+  numbers is taken for one from before, where a new id would find nothing), `SubsonicApi` sends every id in the new
+  form (`_url`), so that one the app kept from before (a play held, the home's, the last playback the hub kept) finds
+  its item, and `MediaServer.currentId` gives it for what the app matches with the server's itself: the downloads
+  rename theirs, in the index and the files' names (`_renameIds`, the index first, with the files to rename in it,
+  `renames`, which they finish as they open again, rather than delete them as no download's), and the player the
+  queue items that come from elsewhere (`_songOf`), so that its reports have the new ones.
 - `Downloads` (`lib/downloads/downloads.dart`, `Services.downloads`) keeps the albums and playlists the user
   downloads, in a folder of the app's for each user on each server (`Services.downloadsDirectory`): the songs as their
   files are, or in the quality picked (`DownloadChoice`, `lib/download_choice.dart`, through `MediaServer.downloadUrl`,

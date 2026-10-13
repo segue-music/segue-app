@@ -160,6 +160,9 @@ knows nothing of them, and another device plays as it has them.
 - With the server out of reach, the top bar says so and the app shows what was downloaded: the home, the library,
   search and their pages, which play from the files. The plays made meanwhile count as the server is back, at the
   time they were made.
+- Navidrome 0.64 gave its songs, albums and playlists new ids: the downloads made before take them as the server
+  answers, their files kept rather than downloaded again, and what the app kept from before (the plays made out of
+  reach, the home's last albums and mixes, the last playback the hub kept) finds its songs all the same.
 
 ### Connect
 

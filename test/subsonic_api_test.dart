@@ -39,6 +39,46 @@ void main() {
     expect(asked.queryParameters.containsKey('p'), isFalse);
   });
 
+  test('a Navidrome from 0.64 is asked for an item by the id it has now, given the one it had before; one from before '
+      '0.64 by the id as it is', () async {
+    var version = '0.63.2 (1a2b3c4)';
+    final asked = <Uri>[];
+    final api = SubsonicApi(
+      Uri.parse('https://music.test'),
+      credentials,
+      client: MockClient((request) async {
+        asked.add(request.url);
+
+        return subsonic({'status': 'ok', 'type': 'navidrome', 'serverVersion': version, 'openSubsonic': true});
+      }),
+    );
+    // A song's and an album's id in a library older than Navidrome 0.55, and a playlist's UUID.
+    const song = '000000000000000000000000000000ff', album = 'e3b7fc2ae9447bbec37a13bf916e3cf6';
+    const playlist = 'f47ac10b-58cc-4372-a567-0e02b2c3d479';
+    await api.ping();
+    await api.setFavorite(FavoriteKind.album, album, favorite: true);
+    expect(asked.last.queryParameters, containsPair('albumId', album));
+    expect(api.streamUrl(song).queryParameters, containsPair('id', song));
+    expect(api.currentId(song), song);
+
+    version = '0.64.2 (1a2b3c4)';
+    await api.ping();
+    expect(api.currentId(song), '0000000000000000000047');
+    expect(api.currentId('al-${album}_0', cover: true), 'al-6VHl3uR4kss6sUPKA8Cwnk_0');
+    await api.setFavorite(FavoriteKind.album, album, favorite: true);
+    expect(asked.last.queryParameters, containsPair('albumId', '6VHl3uR4kss6sUPKA8Cwnk'));
+    expect(api.streamUrl(song).queryParameters, containsPair('id', '0000000000000000000047'));
+    expect(api.coverArtUrl('al-${album}_0').queryParameters, containsPair('id', 'al-6VHl3uR4kss6sUPKA8Cwnk_0'));
+    await api.scrobbleMissed(song, time: DateTime(2026, 9));
+    expect(asked.last.queryParameters, containsPair('id', '0000000000000000000047'), reason: 'a play held from before');
+    await api.addToPlaylist(playlist, [song, '0000000000000000000048']);
+    expect(asked.last.queryParameters, containsPair('playlistId', '7rke2SAWaicSeSYzkhww6R'));
+    expect(asked.last.queryParametersAll['songIdToAdd'], [
+      '0000000000000000000047',
+      '0000000000000000000048',
+    ], reason: 'one it has now, as it is');
+  });
+
   test('a server under a path keeps it', () {
     final api = SubsonicApi(Uri.parse('https://example.test/music'), credentials);
     expect(api.streamUrl('s1').path, '/music/rest/stream.view');

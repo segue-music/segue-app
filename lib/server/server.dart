@@ -62,6 +62,12 @@ abstract interface class MediaServer {
   /// Asks the server for as little as it answers: whether it is there. Throws where it can't be reached, or refuses.
   Future<void> ping();
 
+  /// The id the server has now for the item it gave [id] (a song's, an album's, an artist's or a playlist's; with
+  /// [cover], a cover's): [id] itself, but on a server that has since given its items new ids, as Navidrome 0.64 did,
+  /// once it has answered. For the ids the app keeps, from before, and matches with the server's: the downloads', the
+  /// queue's.
+  String currentId(String id, {bool cover = false});
+
   /// Albums, in [order].
   Future<List<Album>> albums({required AlbumOrder order, int size = 100, int offset = 0});
 

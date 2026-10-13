@@ -63,6 +63,7 @@ class Downloads extends ChangeNotifier {
     this._downloads,
     this._artists,
     this._files,
+    this._renames,
     this._maxBitRate,
     this._hold,
     this._lyricsOf,
@@ -90,6 +91,7 @@ class Downloads extends ChangeNotifier {
     final index = File('${directory.path}/$_indexFile');
     final downloads = <String, Download>{};
     final artists = <String, Artist>{};
+    final renames = <String, String>{};
     var readable = true;
 
     if (await index.exists()) {
@@ -104,6 +106,10 @@ class Downloads extends ChangeNotifier {
         for (final item in json['artists'] as List? ?? const []) {
           final artist = Artist.fromJson(item as Map<String, dynamic>);
           artists[artist.id] = artist;
+        }
+
+        for (final MapEntry(key: from, value: to) in (json['renames'] as Map<String, dynamic>? ?? const {}).entries) {
+          renames[from] = to as String;
         }
       } on Object catch (e) {
         // Its files stay, rather than go as no download's.
@@ -133,6 +139,7 @@ class Downloads extends ChangeNotifier {
       downloads,
       artists,
       files,
+      renames,
       maxBitRate,
       hold,
       lyricsOf,
@@ -142,6 +149,7 @@ class Downloads extends ChangeNotifier {
     hold?.addListener(opened._resume);
 
     if (readable) {
+      await opened._finishRenames();
       await opened._forget();
     }
 
@@ -170,6 +178,10 @@ class Downloads extends ChangeNotifier {
 
   /// The files there, by their path under [directory] (`songs/<key>`, `covers/<key>`, `lyrics/<key>`).
   final Set<String> _files;
+
+  /// The files that take new names, as the ids they are named by changed ([_renameIds]), from the one they have to
+  /// the one they take, until they have: in the index too, for the downloads to go on with them as they open again.
+  final Map<String, String> _renames;
 
   /// What failed to come since the server was last out of reach, by its key: a file's path, or an artist's
   /// (`artists/<key>`).
@@ -299,7 +311,11 @@ class Downloads extends ChangeNotifier {
     _fetching = true;
 
     try {
-      // As the app opens, once the server is known to be in reach.
+      // As the app opens, once the server is known to be in reach: it has then answered, saying which ids it gives.
+      if (await (_reachability?.settled ?? Future.value(true)) && !_disposed) {
+        await _renameIds();
+      }
+
       while (await (_reachability?.settled ?? Future.value(true)) && !_disposed && !held) {
         final missing = _missingSong() ?? _missingCover() ?? _missingLyrics() ?? _missingArtist();
 
@@ -463,6 +479,102 @@ class Downloads extends ChangeNotifier {
     await _save();
   }
 
+  /// Gives what the downloads keep the ids the server has for it now ([MediaServer.currentId]), where it has given its
+  /// items new ones since they came, as Navidrome 0.64 did: the index's, so that they match the server's again, and the
+  /// files' names. The index goes first, with the files to rename in it ([_renames]), then the files: closed meanwhile,
+  /// the downloads go on with them as they open again, rather than take them for files no download wants.
+  Future<void> _renameIds() async {
+    var changed = false;
+
+    String current(String id, {bool cover = false}) {
+      final current = _server.currentId(id, cover: cover);
+      changed |= current != id;
+
+      return current;
+    }
+
+    final downloads = [for (final download in _downloads.values) _renamed(download, current)];
+    final artists = [for (final artist in _artists.values) _renamedArtist(artist, current)];
+
+    if (!changed) {
+      return;
+    }
+
+    void rename(String from, String to) {
+      if (from != to && _files.contains(from)) {
+        _renames[from] = to;
+      }
+    }
+
+    for (final download in _downloads.values) {
+      for (final song in download.songs) {
+        rename(_songFile(song.id), _songFile(current(song.id)));
+        rename(_lyricsFile(song.id), _lyricsFile(current(song.id)));
+      }
+
+      for (final cover in download.covers) {
+        rename(_coverFile(cover), _coverFile(current(cover, cover: true)));
+      }
+    }
+
+    for (final artist in _artists.values) {
+      if (artist.coverArt case final picture?) {
+        rename(_coverFile(picture), _coverFile(current(picture, cover: true)));
+      }
+    }
+
+    _downloads.clear();
+
+    // Two that are now one (downloaded again meanwhile, by its new id) are the one asked for later.
+    for (final download in downloads) {
+      _downloads
+        ..remove(download._key)
+        ..[download._key] = download;
+    }
+
+    _artists
+      ..clear()
+      ..addEntries([for (final artist in artists) MapEntry(artist.id, artist)]);
+    await _save();
+    await _finishRenames();
+
+    if (!_disposed) {
+      notifyListeners();
+    }
+  }
+
+  /// Gives the files [_renames] holds their new names, and forgets them once they have them. One downloaded again
+  /// meanwhile, under its new name, stays rather than the one from before.
+  Future<void> _finishRenames() async {
+    if (_renames.isEmpty) {
+      return;
+    }
+
+    for (final MapEntry(key: from, value: to) in _renames.entries.toList()) {
+      _renames.remove(from);
+
+      if (!_files.remove(from)) {
+        continue; // renamed before the downloads closed
+      }
+
+      try {
+        final file = File('${directory.path}/$from');
+
+        if (_files.contains(to)) {
+          await file.delete();
+        } else {
+          await file.rename('${directory.path}/$to');
+          _files.add(to);
+        }
+      } on FileSystemException catch (e) {
+        // To come again, if it is gone.
+        debugPrint('download not renamed: $e');
+      }
+    }
+
+    await _save();
+  }
+
   /// Writes what [bytes] gives as [file], beside where it goes, and moves it there.
   Future<void> _write(String file, Future<List<int>> Function() bytes) async {
     final content = await bytes().timeout(_wait);
@@ -483,8 +595,9 @@ class Downloads extends ChangeNotifier {
     ],
   };
 
-  /// Every file the downloads want.
+  /// Every file the downloads want, those still to take their new names too.
   Set<String> _wanted() => {
+    ..._renames.keys,
     for (final download in _downloads.values) ...[
       for (final song in download.songs) ...[_songFile(song.id), _lyricsFile(song.id)],
       for (final cover in download.covers) _coverFile(cover),
@@ -529,6 +642,7 @@ class Downloads extends ChangeNotifier {
       jsonEncode({
         'downloads': [for (final download in _downloads.values) _downloadJson(download)],
         'artists': [for (final artist in _artists.values) artist.toJson()],
+        if (_renames.isNotEmpty) 'renames': _renames,
       }),
       flush: true,
     );
@@ -592,6 +706,57 @@ Download _download(Map<String, dynamic> json) {
     _ => throw const FormatException('neither an album nor a playlist'),
   };
 }
+
+/// The id the server has now for one it gave, as [MediaServer.currentId] says.
+typedef _CurrentId = String Function(String id, {bool cover});
+
+// What a download keeps, with the ids [_CurrentId] gives for the ones it holds: anything else as the index keeps it.
+// A genre's id is its name, on Subsonic, and stays.
+
+Download _renamed(Download download, _CurrentId current) {
+  final songs = List<Song>.unmodifiable([for (final song in download.songs) _renamedSong(song, current)]);
+
+  return switch ((download.album, download.playlist)) {
+    (final album?, _) => Download.album(
+      Album.fromJson({
+        ...album.toJson(),
+        'id': current(album.id),
+        'artistId': _currentOrNull(album.artistId, current),
+        'coverArt': _currentOrNull(album.coverArt, current, cover: true),
+      }),
+      songs,
+      added: download.added,
+    ),
+    (_, final playlist?) => Download.playlist(
+      Playlist.fromJson({
+        ...playlist.toJson(),
+        'id': current(playlist.id),
+        'coverArt': _currentOrNull(playlist.coverArt, current, cover: true),
+      }),
+      songs,
+      added: download.added,
+    ),
+    _ => download,
+  };
+}
+
+Song _renamedSong(Song song, _CurrentId current) => Song.fromJson({
+  ...song.toJson(),
+  'id': current(song.id),
+  'albumId': _currentOrNull(song.albumId, current),
+  'coverArt': _currentOrNull(song.coverArt, current, cover: true),
+  'artists': [for (final artist in song.artists) _renamedArtist(artist, current).toJson()],
+});
+
+/// Its picture's id too, the server's cover, which a picture from elsewhere (`fanart:`) isn't.
+Artist _renamedArtist(Artist artist, _CurrentId current) => Artist.fromJson({
+  ...artist.toJson(),
+  'id': current(artist.id),
+  'coverArt': _currentOrNull(artist.coverArt, current, cover: true),
+});
+
+String? _currentOrNull(String? id, _CurrentId current, {bool cover = false}) =>
+    id == null ? null : current(id, cover: cover);
 
 /// Lyrics as JSON, each line with when it starts, where they're synced; none, as no lines.
 Map<String, Object?> _lyricsJson(Lyrics? lyrics) => {

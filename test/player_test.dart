@@ -337,6 +337,42 @@ void main() {
     expect(player.playing, isFalse);
   });
 
+  test('a queue from elsewhere with ids from before the server gave its items new ones (Navidrome 0.64), as the last '
+      'playback the hub kept, plays and is told by the ones it has now', () async {
+    final navidrome = SubsonicApi(
+      Uri.parse('https://music.test'),
+      const SubsonicCredentials(username: 'a', token: 't', salt: 's'),
+      client: MockClient(
+        (request) async => http.Response(
+          jsonEncode({
+            'subsonic-response': {'status': 'ok', 'type': 'navidrome', 'serverVersion': '0.64.2 (1a2b3c4)'},
+          }),
+          200,
+        ),
+      ),
+    );
+    await navidrome.ping();
+    player = PlayerController(engine, navidrome)..onReport = reports.add;
+    // Hex, as in a library older than Navidrome 0.55.
+    await player.obey(
+      const Command.setQueue(
+        queue: [QueueItem(id: '000000000000000000000000000000ff', title: 'One')],
+        index: 0,
+        positionMs: 0,
+        play: false,
+      ),
+    );
+    await player.obey(
+      const Command.addToQueue(
+        queue: [QueueItem(id: '00000000000000000000000000000100', title: 'Two')],
+        next: false,
+      ),
+    );
+    expect(player.queue.map((song) => song.id), ['0000000000000000000047', '0000000000000000000048']);
+    expect(engine.tracks.first.queryParameters, containsPair('id', '0000000000000000000047'));
+    expect(reports.last.queue?.map((item) => item.id), ['0000000000000000000047', '0000000000000000000048']);
+  });
+
   test('setQueue plays in the modes it brings: shuffled, in the order it came, which shuffle going off takes back to '
       'the one unshuffled, the items it skips left out; and repeating', () async {
     await player.obey(

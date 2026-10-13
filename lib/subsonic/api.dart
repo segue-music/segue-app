@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import '../segue/protocol.dart';
 import '../server/models.dart';
 import '../server/server.dart';
+import 'navidrome_ids.dart';
 
 /// Subsonic token authentication: the password never leaves the device, only md5(password + salt).
 class SubsonicCredentials implements Credentials {
@@ -50,8 +51,20 @@ class SubsonicApi implements MediaServer {
   // The request under way for the 500 most played albums ([_mostPlayedAlbumItems]).
   Future<List<Map<String, dynamic>>>? _mostPlayedRequest;
 
+  // Whether the server gives its items the ids Navidrome 0.64 gave them ([hasCanonicalIds]), as its last answer said.
+  bool _canonicalIds = false;
+
   @override
   Api get api => Api.subsonic;
+
+  /// The canonical id ([canonicalId], [canonicalCoverId]) once an answer has said the server is a Navidrome from 0.64;
+  /// until then, and on another server, [id] itself: on a Navidrome from before 0.64, a canonical id finds nothing.
+  @override
+  String currentId(String id, {bool cover = false}) => switch ((_canonicalIds, cover)) {
+    (false, _) => id,
+    (true, false) => canonicalId(id),
+    (true, true) => canonicalCoverId(id),
+  };
 
   @override
   Auth get auth => Auth.subsonic(username: credentials.username, token: credentials.token, salt: credentials.salt);
@@ -528,7 +541,9 @@ class SubsonicApi implements MediaServer {
   Future<void> signOut() async {}
 
   /// The URL of [endpoint], with [params]: each a string, or a list of them for a parameter given once for each (a
-  /// playlist's songs).
+  /// playlist's songs). The ids in them go as the server has them now ([currentId]): one the app kept from before its
+  /// server gave its items new ones (the downloads', a play held, the home's, the last playback the hub kept) finds its
+  /// item all the same.
   Uri _url(String endpoint, [Map<String, Object> params = const {}]) => server
       .resolve('rest/$endpoint.view')
       .replace(
@@ -539,9 +554,21 @@ class SubsonicApi implements MediaServer {
           'v': '1.16.1',
           'c': clientName,
           'f': 'json',
-          ...params,
+          for (final MapEntry(key: name, value: value) in params.entries)
+            name: _idParameters.contains(name) ? _currentIds(value, cover: endpoint == 'getCoverArt') : value,
         },
       );
+
+  /// The parameters that name items by their ids: a song's, an album's, an artist's or a playlist's, and getCoverArt's
+  /// `id` a cover's.
+  static const _idParameters = {'id', 'albumId', 'artistId', 'playlistId', 'songId', 'songIdToAdd'};
+
+  /// [ids], an id or a list of them, as the server has them now.
+  Object _currentIds(Object ids, {required bool cover}) => switch (ids) {
+    final String id => currentId(id, cover: cover),
+    final List<String> list => [for (final id in list) currentId(id, cover: cover)],
+    _ => ids,
+  };
 
   Future<Map<String, dynamic>> _get(String endpoint, [Map<String, Object> params = const {}]) async =>
       _decode(await _http.get(_url(endpoint, params)));
@@ -570,6 +597,8 @@ class SubsonicApi implements MediaServer {
     final body =
         (jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>)['subsonic-response']
             as Map<String, dynamic>;
+    // Every answer says it, a refusal's too.
+    _canonicalIds = hasCanonicalIds(type: body['type'] as String?, version: body['serverVersion'] as String?);
 
     if (body['status'] != 'ok') {
       final error = body['error'] as Map<String, dynamic>?;

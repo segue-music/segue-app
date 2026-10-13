@@ -152,6 +152,105 @@ void main() {
     expect(again.songFile('s2'), isNotNull);
   });
 
+  group('the server\'s ids from before Navidrome 0.64', () {
+    // A library older than Navidrome 0.55, whose ids were hex, as 0.64 writes them in base 62; a playlist's was a UUID.
+    const oldAlbum = 'e3b7fc2ae9447bbec37a13bf916e3cf6', newAlbum = '6VHl3uR4kss6sUPKA8Cwnk';
+    const oldSong = '000000000000000000000000000000ff', newSong = '0000000000000000000047';
+    const oldPlaylist = 'f47ac10b-58cc-4372-a567-0e02b2c3d479', newPlaylist = '7rke2SAWaicSeSYzkhww6R';
+    const song = Song(
+      id: oldSong,
+      title: 'Walk This Way',
+      albumId: oldAlbum,
+      coverArt: 'mf-${oldSong}_0',
+      artists: [Artist(id: 'ar1', name: 'Aerosmith')],
+    );
+
+    /// A file's path under the downloads' folder, as they name it after an id.
+    String file(String folder, String id) => '$folder/${base64Url.encode(utf8.encode(id)).replaceAll('=', '')}';
+
+    test(
+      'downloads take the ids the server has now, as it answers, their files renamed rather than downloaded again',
+      () async {
+        server.version = '0.63.2 (1a2b3c4)';
+        final lyrics = Lyrics([LyricLine('Backstroke lover')]);
+        final first = await open(lyricsOf: (song) async => lyrics);
+        await first.addAlbum(
+          const Album(
+            id: oldAlbum,
+            name: 'Toys in the Attic',
+            artistId: 'ar1',
+            coverArt: 'al-${oldAlbum}_0',
+            genres: [Genre(id: 'Rock', name: 'Rock')],
+          ),
+          [song],
+        );
+        await first.addPlaylist(const Playlist(id: oldPlaylist, name: 'Road trip', coverArt: 'pl-${oldPlaylist}_0'), [
+          song,
+        ]);
+        await settled(first);
+        close(first);
+        server.requests.clear();
+
+        server.version = '0.64.2 (1a2b3c4)';
+        final reachability = Reachability(server.api.ping, retry: const Duration(hours: 1));
+        addTearDown(reachability.dispose);
+        unawaited(reachability.check());
+        final again = await open(reachability: reachability, lyricsOf: (song) async => fail('lyrics asked again'));
+        await settled(again);
+        expect(server.requests, ['ping.view '], reason: 'nothing downloaded again');
+        expect(again.ofAlbum(oldAlbum), isNull);
+        final album = again.ofAlbum(newAlbum)!;
+        expect(album.album!.coverArt, 'al-${newAlbum}_0');
+        expect(album.album!.genres.single.id, 'Rock', reason: 'a genre is named by its name');
+        expect(album.songs.single.id, newSong);
+        expect(album.songs.single.albumId, newAlbum);
+        expect(album.songs.single.coverArt, 'mf-${newSong}_0');
+        expect(album.songs.single.artistId, 'ar1', reason: 'an artist\'s id was a hash already');
+        final playlist = again.ofPlaylist(newPlaylist)!;
+        expect(playlist.playlist!.coverArt, 'pl-${newPlaylist}_0');
+        expect(again.progressOf(playlist), (done: 1, failed: 0, total: 1));
+        expect(again.songFile(newSong)!.readAsStringSync(), 'audio of $oldSong');
+        expect(again.coverFile('al-${newAlbum}_0')!.readAsStringSync(), 'image of al-${oldAlbum}_0');
+        expect(again.coverFile('mf-${newSong}_0')!.readAsStringSync(), 'image of mf-${oldSong}_0');
+        expect((await again.lyrics(newSong))?.lines.single.text, 'Backstroke lover');
+        expect(again.artist('ar1')?.coverArt, 'ar-ar1');
+        expect(Directory('${directory.path}/songs').listSync(), hasLength(1));
+        close(again);
+
+        final third = await open();
+        await settled(third);
+        expect(third.ofAlbum(newAlbum), isNotNull, reason: 'the index keeps them');
+        expect(third.songFile(newSong), isNotNull);
+        expect(jsonDecode(File('${directory.path}/index.json').readAsStringSync()), isNot(contains('renames')));
+      },
+    );
+
+    test('a renaming cut short goes on as the downloads open again, rather than lose the files', () async {
+      // As it was left: the index with the new ids, and the files to rename in it, still under the old ones.
+      Directory('${directory.path}/songs').createSync();
+      File('${directory.path}/${file('songs', oldSong)}').writeAsStringSync('audio of $oldSong');
+      File('${directory.path}/index.json').writeAsStringSync(
+        jsonEncode({
+          'downloads': [
+            {
+              'album': const Album(id: newAlbum, name: 'Toys in the Attic').toJson(),
+              'songs': [const Song(id: newSong, title: 'Walk This Way').toJson()],
+              'added': 0,
+            },
+          ],
+          'renames': {file('songs', oldSong): file('songs', newSong)},
+        }),
+      );
+
+      final downloads = await open();
+      await settled(downloads);
+      expect(downloads.songFile(newSong)!.readAsStringSync(), 'audio of $oldSong');
+      expect(server.requests, isNot(contains('stream.view $newSong')));
+      expect(Directory('${directory.path}/songs').listSync(), hasLength(1));
+      expect(jsonDecode(File('${directory.path}/index.json').readAsStringSync()), isNot(contains('renames')));
+    });
+  });
+
   test('a song in two downloads is on the device once, until both go', () async {
     final downloads = await open();
     await downloads.addAlbum(album, songs);
