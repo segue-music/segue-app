@@ -33,6 +33,7 @@ import '../settings/settings_page.dart';
 import 'shortcuts.dart';
 import '../widgets/bar_traversal.dart';
 import '../widgets/directional_navigation.dart';
+import '../widgets/equalizer.dart';
 import '../widgets/themed_icon.dart';
 
 class HomePage extends StatefulWidget {
@@ -520,6 +521,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           navigator: _pages,
           history: _history,
           underTopBar: false,
+          holdsPlayer: false,
           child: Scaffold(
             // The pages go on behind the bars, showing through the gap between them; their lists end clear of them, by
             // the room MediaQuery says they take.
@@ -605,10 +607,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       );
     }
 
-    // On a wide screen the bars stay, the top one, the side rail and the player's, and pages open between them, in the
-    // page area. The arrows beside the app's icon go back and forward through them, as do the keyboard's. They sit
-    // close together, as a browser's: smaller buttons than the rest, without the room Material leaves around them on a
-    // touch screen.
+    // On a wide screen the bars stay, the top one, the side rail and the player's (but on a TV, whose rail opens the
+    // full-screen player instead), and pages open between them, in the page area. The arrows beside the app's icon go
+    // back and forward through them, as do the keyboard's. They sit close together, as a browser's: smaller buttons than
+    // the rest, without the room Material leaves around them on a touch screen.
     const arrow = 32.0;
     final arrows = IconButton.styleFrom(
       padding: const EdgeInsets.all(4),
@@ -645,6 +647,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             navigator: _pages,
             history: _history,
             underTopBar: true,
+            // On a TV, which has no player bar under its pages, the full-screen player covers everything, with the bar
+            // under it, the rail opening it.
+            holdsPlayer: !television,
             child: Scaffold(
               // Left and right along its buttons, rather than to a card scrolled under it.
               appBar: PreferredSize(
@@ -697,7 +702,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     top: false,
                     right: false,
                     bottom: false,
-                    child: _SideRail(selected: shown, onSelected: _select),
+                    child: _SideRail(selected: shown, onSelected: _select, opensPlayer: television),
                   ),
                   const VerticalDivider(width: 1),
                   Expanded(
@@ -830,10 +835,14 @@ double _buttonSize(BuildContext context) =>
 /// narrow a rail to the other; here it is the icon's button's. The tooltip shows to the right of its icon, level with
 /// it: below, where tooltips go, it would cover the icon under it.
 class _SideRail extends StatelessWidget {
-  const _SideRail({required this.selected, required this.onSelected});
+  const _SideRail({required this.selected, required this.onSelected, required this.opensPlayer});
 
   final _Section selected;
   final ValueChanged<_Section> onSelected;
+
+  /// Whether its first button opens the full-screen player, while there is something to play: on a TV, which has no
+  /// player bar under its pages. Its icon is what marks the song that plays, moving while it plays.
+  final bool opensPlayer;
 
   /// Where a tooltip's top left corner goes: to the right of its icon, level with it, as far from its center as a
   /// tooltip below would be.
@@ -844,6 +853,7 @@ class _SideRail extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final strings = AppLocalizations.of(context);
+    final connect = ServicesScope.of(context).connect;
     // NavigationRail's colors: the selected section on a tint.
     final style = ButtonStyle(
       backgroundColor: WidgetStateProperty.resolveWith(
@@ -859,6 +869,27 @@ class _SideRail extends StatelessWidget {
       child: Column(
         children: [
           const SizedBox(height: 8),
+          if (opensPlayer)
+            ListenableBuilder(
+              listenable: connect,
+              builder: (context, _) => switch (connect.nowPlaying) {
+                null => const SizedBox.shrink(),
+                final now => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Tooltip(
+                    message: strings.nowPlaying,
+                    positionDelegate: _besideIcon,
+                    child: IconButton(
+                      icon: now.playing
+                          ? Equalizer(color: colors.primary)
+                          : ThemedIcon(HugeIcons.strokeRoundedAudioWave01, color: colors.primary),
+                      style: style,
+                      onPressed: () => PlayerPage.open(context),
+                    ),
+                  ),
+                ),
+              },
+            ),
           for (final section in _Section.values)
             if (section != _Section.home && section != _Section.search)
               Padding(

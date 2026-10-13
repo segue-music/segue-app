@@ -16,6 +16,7 @@ import '../playlist/playlist_dialogs.dart';
 import '../song/favorite_button.dart';
 import '../song/song_link.dart';
 import '../widgets/cover.dart';
+import '../widgets/directional_navigation.dart';
 import '../widgets/themed_icon.dart';
 import 'devices_sheet.dart';
 import 'lyrics_page.dart';
@@ -27,7 +28,8 @@ import 'sleep_timer_button.dart';
 
 /// The full-screen player: what plays, wherever it plays, big, and its lyrics beside it (on a phone, under it). On a
 /// wide screen the player bar stays under it, with the controls; on a phone, where there is none, it has every control
-/// itself, and a drag down closes it, or takes its lyrics out, which a drag up brings in, and then full screen.
+/// itself, and a drag down closes it, or takes its lyrics out, which a drag up brings in, and then full screen. A TV has
+/// no player bar on its pages, but under this one, over everything, the remote starting on play.
 class PlayerPage extends StatefulWidget {
   const PlayerPage(this._lyrics, {super.key});
 
@@ -39,8 +41,8 @@ class PlayerPage extends StatefulWidget {
   static const lyricsTransition = Duration(milliseconds: 350);
 
   /// Slides it up over the current page, with the lyrics if [lyrics]; by default, on a TV, where they are sung along to
-  /// from across the room ([LyricsView.karaoke]), and elsewhere without. On a wide screen, in the page area; on a phone,
-  /// over everything, the page area's bars too.
+  /// from across the room ([LyricsView.karaoke]), and elsewhere without. On a wide screen, in the page area; on a phone
+  /// and a TV, over everything, the page area's bars too.
   static Future<void> open(BuildContext context, {bool? lyrics}) =>
       PageArea.playerNavigatorOf(context)
           .push(PlayerRoute(lyrics: lyrics ?? LyricsView.karaoke(context), area: PageArea.maybeOf(context)));
@@ -148,8 +150,11 @@ class _PlayerPageState extends State<PlayerPage> with SingleTickerProviderStateM
 
     return CallbackShortcuts(
       bindings: {const SingleActivator(LogicalKeyboardKey.escape): close},
+      // On a TV, play, in the bar under it, takes the focus instead, the remote starting from it. Out of the arrows' and
+      // Tab's way: as wide as the page, it would be where the remote went up from the bar, with nothing to show it.
       child: Focus(
-        autofocus: true,
+        autofocus: !DirectionalNavigation.of(context),
+        skipTraversal: true,
         child: _DragToClose(
           enabled: !wide,
           lyrics: _dragLyrics,
@@ -261,6 +266,7 @@ class PlayerRoute extends PageRouteBuilder<void> {
                 navigator: area.navigator,
                 history: area.history,
                 underTopBar: area.underTopBar,
+                holdsPlayer: area.holdsPlayer,
                 child: PlayerPage(lyrics),
               ),
       );

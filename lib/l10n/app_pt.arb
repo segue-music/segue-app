@@ -729,6 +729,10 @@
   "@closePlayer": {
     "description": "The tooltip of the player bar's song under the full-screen player, which closes it."
   },
+  "nowPlaying": "Tocando agora",
+  "@nowPlaying": {
+    "description": "On a TV, which has no player bar under its pages, the side rail's first button, which opens the full-screen player on what plays."
+  },
   "showLyrics": "Mostrar a letra",
   "@showLyrics": {
     "description": "The tooltip of the button that shows the lyrics."

@@ -3,11 +3,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:segue/ui/app/television_screen.dart';
 import 'package:segue/ui/home/home_view.dart';
 import 'package:segue/ui/home/mix_row.dart';
-import 'package:segue/ui/player/now_playing_bar.dart';
 import 'package:segue/ui/widgets/focus_ring.dart';
 import 'package:segue/ui/widgets/tile_row.dart';
 
-import 'directional_navigation_test.dart' show pumpTvHome;
+import 'directional_navigation_test.dart' show pumpFullHdHome;
 import 'mixes_test.dart' show mixTile, pumpHome;
 
 void main() {
@@ -42,12 +41,13 @@ void main() {
     expect(media.padding, EdgeInsets.zero);
   });
 
-  testWidgets('on a TV, everything keeps out of the room at the screen\'s edges, the bars\' backgrounds going on to '
-      'them, and the rows of tiles running on to the side as they scroll, their last tile in', (tester) async {
-    await pumpTvHome(tester);
+  testWidgets('on a TV, everything keeps out of the room at the screen\'s edges, the full-screen player too, the top '
+      'bar\'s background going on to them, and the rows of tiles running on to the side as they scroll, their last '
+      'tile in', (tester) async {
+    await pumpFullHdHome(tester);
     const screen = Rect.fromLTRB(12, 6, 960 - 12, 540 - 6);
 
-    for (final tooltip in ['Início', 'Álbuns', 'Artistas', 'Configurações', 'Aparelhos', 'Tocar']) {
+    for (final tooltip in ['Início', 'Tocando agora', 'Álbuns', 'Artistas', 'Configurações']) {
       final rect = tester.getRect(find.byTooltip(tooltip).first);
       expect(screen.contains(rect.topLeft) && screen.contains(rect.bottomRight), isTrue, reason: '$tooltip: $rect');
     }
@@ -68,8 +68,18 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.getRect(find.text('Album 29').first).right, lessThanOrEqualTo(960 - 12), reason: 'the last tile');
 
-    final bar = tester.getRect(find.byType(NowPlayingBar));
-    expect((bar.left, bar.right, bar.bottom), (0, 960, 540), reason: 'to the edges');
+    final bar = tester.getRect(find.byType(AppBar));
+    expect((bar.left, bar.right, bar.top), (0, 960, 0), reason: 'to the edges');
+
+    // The full-screen player, which has the controls, a TV having no player bar.
+    await tester.tap(find.byTooltip('Tocando agora'));
+    await tester.pumpAndSettle();
+
+    for (final tooltip in ['Fechar', 'Tocar', 'Próxima', 'Repetir a lista', 'Fila', 'Aparelhos']) {
+      final rect = tester.getRect(find.byTooltip(tooltip).first);
+      expect(screen.contains(rect.topLeft) && screen.contains(rect.bottomRight), isTrue, reason: '$tooltip: $rect');
+    }
+
     await tester.pumpWidget(const SizedBox());
   });
 

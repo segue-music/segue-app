@@ -155,7 +155,7 @@ const sweetEmotion = Song(
 /// playing [song] here, Sweet Emotion by default: under an empty page, or with [inHome], the home's.
 /// [client] adds a hub, and the bar then shows what it says; [server] answers for the media server,
 /// which by default knows nothing. With [sleepTimer], the session has one; with [television], the remote drives it, as
-/// on a TV.
+/// on a TV, which has no bar, but the home, whose side rail opens the player.
 Future<PlayerController> pumpBar(
   WidgetTester tester, {
   SegueClient? client,
@@ -200,7 +200,7 @@ Future<PlayerController> pumpBar(
         services: services,
         child: TelevisionScreen(enabled: television, child: child!),
       ),
-      home: inHome
+      home: inHome || television
           ? HomePage(onSignOut: () {})
           : const Scaffold(body: SizedBox.expand(), bottomNavigationBar: NowPlayingBar()),
     ),
@@ -265,9 +265,18 @@ double? opacity(WidgetTester tester, String line) => tester.widget<Text>(onPage(
 bool marked(WidgetTester tester, String line) =>
     tester.widget<Text>(onPage(find.text(line))).style?.fontWeight == FontWeight.bold;
 
+/// Opens the full-screen player: from the bar's song, or on a TV, which has no bar, from the side rail.
 Future<void> openPlayer(WidgetTester tester) async {
-  await tester.tap(find.descendant(of: find.byTooltip('Abrir o player'), matching: find.byType(Cover)));
+  await tester.tap(openerOfPlayer());
   await tester.pumpAndSettle();
+}
+
+Finder openerOfPlayer() {
+  final rail = find.byTooltip('Tocando agora');
+
+  return rail.evaluate().isNotEmpty
+      ? rail
+      : find.descendant(of: find.byTooltip('Abrir o player'), matching: find.byType(Cover));
 }
 
 Finder onPage(Finder finder) => find.descendant(of: find.byType(PlayerPage), matching: finder);
@@ -887,8 +896,8 @@ void main() {
     await tester.tap(onPage(find.byTooltip('Fechar')));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.descendant(of: find.byTooltip('Abrir o player'), matching: find.byType(Cover)));
-    // The page's first frame is offstage, for the bar's hero to measure it; the next is the first that shows.
+    await tester.tap(openerOfPlayer());
+    // The page's first frame is offstage, for the heroes to measure it; the next is the first that shows.
     await tester.pump();
     await tester.pump();
     expect(onPage(find.byType(LyricsView)), findsNothing);

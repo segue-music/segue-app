@@ -118,6 +118,7 @@
   "couldNotListSongs": "Couldn't load the songs: {error}",
   "openPlayer": "Open player",
   "closePlayer": "Close player",
+  "nowPlaying": "Now playing",
   "showLyrics": "Show lyrics",
   "hideLyrics": "Hide lyrics",
   "lyrics": "Lyrics",

@@ -118,6 +118,7 @@
   "couldNotListSongs": "No pude cargar las canciones: {error}",
   "openPlayer": "Abrir reproductor",
   "closePlayer": "Cerrar reproductor",
+  "nowPlaying": "Reproduciendo ahora",
   "showLyrics": "Mostrar letra",
   "hideLyrics": "Ocultar letra",
   "lyrics": "Letra",

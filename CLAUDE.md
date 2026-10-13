@@ -221,7 +221,11 @@ Running two app instances on one machine as different devices:
 - On a wide screen, `HomePage` keeps its bars (the top one, the side rail, the player's) and opens
   pages between them, in a nested navigator, the page area (`lib/ui/app/page_area.dart`), whose
   `PageHistory` the top bar's arrows and the keyboard's left and right go back and forward through. A TV has no
-  arrows there: its remote's back closes the page on top (`NavigatorPopHandler`).
+  arrows there: its remote's back closes the page on top (`NavigatorPopHandler`). Nor has a TV the player bar under
+  its pages (`NowPlayingBar` is empty there, but under the full-screen player): a strip of small buttons the remote
+  went through at the bottom of every page. There the side rail's first button, while something plays ("Tocando
+  agora", its icon the `Equalizer`), opens the full-screen player over everything, as on a phone
+  (`PageArea.holdsPlayer`), with the bar under it, the remote on play.
   From outside it (the player bar), pages open with `PageArea.navigatorOf(context)`, not
   `Navigator.of`; the full-screen cover and the sheets open in the app's navigator, over the window.
   A navigator's pages keep the arrows in them, so the page area's lets them on from a page's edges
@@ -404,8 +408,8 @@ Running two app instances on one machine as different devices:
   them (`TileRow`) having the room above and below for it, and the page scrolling as far as shows it grown, ring and
   all (`_showGrown`), past where the focus scrolls the card itself. The top bar and the player's keep the arrows in
   them (`BarTraversalPolicy`, `lib/ui/widgets/bar_traversal.dart`), leaving only on the page's side: Flutter's
-  directional search looks at the whole screen, where cards scrolled under the top bar, or built under the player's,
-  lie level with their buttons. `TelevisionScreen` (`lib/ui/app/television_screen.dart`,
+  directional search looks at the whole screen, where cards scrolled under the top bar, or, on a computer, built
+  under the player's, lie level with their buttons. `TelevisionScreen` (`lib/ui/app/television_screen.dart`,
   around the app on a TV) has the text 15% bigger than the system's and gives the screen's edges room (12 by 6,
   about a quarter of Android TV's 48 by 27, for TVs that cut them off, since the bars keep their own inside it) as
   the system's padding, which the bars keep out of by themselves, and the home's rail by its `SafeArea`, their

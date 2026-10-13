@@ -4,9 +4,11 @@ import '../player/player_page.dart';
 
 /// The middle of the home, where pages open (an album, an artist, a genre), between bars that stay as they come and go.
 /// On a wide screen the bars are the top one, the side rail and the player's, and the full-screen player and the queue
-/// open in it too; the top bar's arrows go back and forward, so the pages have no back arrow of their own
-/// ([underTopBar]). On a phone the bars are the player's and the sections', at the bottom; the pages keep their own top
-/// bar, with the back arrow, and the full-screen player and the queue cover everything, the bars too.
+/// open in it too ([holdsPlayer]); the top bar's arrows go back and forward, so the pages have no back arrow of their
+/// own ([underTopBar]). A TV has no player bar under its pages: there the full-screen player, with the bar under it,
+/// and the queue cover everything, as on a phone. On a phone the bars are the player's and the sections', at the bottom; the pages
+/// keep their own top bar, with the back arrow, and the full-screen player and the queue cover everything, the bars
+/// too.
 ///
 /// Pages opened from in it find its navigator as [Navigator.of] does; [PageArea.navigatorOf] finds it from outside it
 /// too, as from the player bar. Pages that cover the whole window (the cover) and sheets open in the app's.
@@ -15,6 +17,7 @@ class PageArea extends InheritedWidget {
     required this.navigator,
     required this.history,
     required this.underTopBar,
+    required this.holdsPlayer,
     required super.child,
     super.key,
   });
@@ -26,6 +29,10 @@ class PageArea extends InheritedWidget {
   /// screen's.
   final bool underTopBar;
 
+  /// Whether the full-screen player and the queue open in it, the player bar staying under them: a wide screen's, but
+  /// a TV's.
+  final bool holdsPlayer;
+
   /// The page area around [context], if any.
   static PageArea? maybeOf(BuildContext context) => context.getInheritedWidgetOfExactType<PageArea>();
 
@@ -33,12 +40,12 @@ class PageArea extends InheritedWidget {
   static NavigatorState navigatorOf(BuildContext context) =>
       maybeOf(context)?.navigator.currentState ?? Navigator.of(context);
 
-  /// The navigator that the full-screen player and the queue open in: the page area's under a top bar (a wide
-  /// screen's); elsewhere, the app's, over everything.
+  /// The navigator that the full-screen player and the queue open in: the page area's where it holds them
+  /// ([holdsPlayer]); elsewhere, the app's, over everything.
   static NavigatorState playerNavigatorOf(BuildContext context) {
     final area = maybeOf(context);
 
-    return area != null && area.underTopBar ? area.navigator.currentState! : Navigator.of(context);
+    return area != null && area.holdsPlayer ? area.navigator.currentState! : Navigator.of(context);
   }
 
   /// Whether [context] is in a page of the page area, rather than around it.
@@ -54,7 +61,10 @@ class PageArea extends InheritedWidget {
 
   @override
   bool updateShouldNotify(PageArea oldWidget) =>
-      navigator != oldWidget.navigator || history != oldWidget.history || underTopBar != oldWidget.underTopBar;
+      navigator != oldWidget.navigator ||
+      history != oldWidget.history ||
+      underTopBar != oldWidget.underTopBar ||
+      holdsPlayer != oldWidget.holdsPlayer;
 }
 
 /// Keeps the arrows (a TV remote's) and Tab on the page on top of the page area, and on the bars around it: the pages

@@ -16,6 +16,7 @@ import 'package:segue/server/models.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
+import 'package:segue/ui/app/home_page.dart';
 import 'package:segue/ui/player/now_playing_bar.dart';
 import 'package:segue/ui/player/player_page.dart';
 import 'package:segue/ui/player/queue_page.dart';
@@ -38,7 +39,8 @@ const songs = [
 ];
 
 /// The player bar, under the navigator as in the app, with [songs] playing from the second one, or,
-/// with [client], what its devices play. [television] as on a TV. With [autoplay], the pages show its switch.
+/// with [client], what its devices play. [television] as on a TV, which has no bar, but the home, whose side rail opens
+/// the player. With [autoplay], the pages show its switch.
 Future<PlayerController> pumpBar(
   WidgetTester tester, {
   SegueClient? client,
@@ -78,16 +80,23 @@ Future<PlayerController> pumpBar(
         services: services,
         child: DirectionalNavigation(enabled: television, child: child!),
       ),
-      home: const Scaffold(body: SizedBox.expand(), bottomNavigationBar: NowPlayingBar()),
+      home: television
+          ? HomePage(onSignOut: () {})
+          : const Scaffold(body: SizedBox.expand(), bottomNavigationBar: NowPlayingBar()),
     ),
   );
 
   return player;
 }
 
-/// Opens the full-screen player, and the queue from it.
+/// Opens the full-screen player, from the bar's song or, on a TV, the side rail, and the queue from it.
 Future<void> openQueue(WidgetTester tester) async {
-  await tester.tap(find.descendant(of: find.byTooltip('Abrir o player'), matching: find.byType(Cover)));
+  final rail = find.byTooltip('Tocando agora');
+  await tester.tap(
+    rail.evaluate().isNotEmpty
+        ? rail
+        : find.descendant(of: find.byTooltip('Abrir o player'), matching: find.byType(Cover)),
+  );
   await tester.pumpAndSettle();
   await tester.tap(find.descendant(of: find.byType(PlayerPage), matching: find.byTooltip('Fila')));
   await tester.pumpAndSettle();

@@ -19,16 +19,12 @@ import 'package:segue/ui/app/shortcuts.dart';
 import 'package:segue/ui/app/television_screen.dart';
 import 'package:segue/ui/home/home_view.dart';
 import 'package:segue/ui/player/now_playing_bar.dart';
-import 'package:segue/ui/widgets/directional_navigation.dart';
+import 'package:segue/ui/player/player_page.dart';
 
 import 'fakes.dart';
 
-/// The player bar, with a song at 1:00, and the focus on its slider. [television] as on a TV.
-Future<PlayerController> pumpBarOnSlider(
-  WidgetTester tester, {
-  required bool television,
-  Widget body = const SizedBox.expand(),
-}) async {
+/// The player bar, with a song at 1:00, and the focus on its slider. A TV has none.
+Future<PlayerController> pumpBarOnSlider(WidgetTester tester, {Widget body = const SizedBox.expand()}) async {
   const credentials = SubsonicCredentials(username: 'a', token: 't', salt: 's');
   final api = SubsonicApi(
     Uri.parse('https://music.test'),
@@ -54,10 +50,7 @@ Future<PlayerController> pumpBarOnSlider(
     MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: const [Locale('pt')],
-      builder: (context, child) => ServicesScope(
-        services: services,
-        child: DirectionalNavigation(enabled: television, child: child!),
-      ),
+      builder: (context, child) => ServicesScope(services: services, child: child!),
       home: Scaffold(body: body, bottomNavigationBar: const NowPlayingBar()),
     ),
   );
@@ -72,9 +65,15 @@ Future<PlayerController> pumpBarOnSlider(
 
 bool sliderFocused() => FocusManager.instance.primaryFocus?.context?.findAncestorWidgetOfExactType<Slider>() != null;
 
-/// The home page on a TV, its screen as Android gives it (1920 × 1080 pixels, two to each of its own), with more albums
-/// than fit, and a song in the bar: the grid builds the next row past the bottom of the screen, under the bar.
-Future<void> pumpTvHome(WidgetTester tester, {bool followingAnotherDevice = false}) async {
+/// The home page on a Full HD screen (1920 × 1080 pixels, two to each of its own), with more albums than fit, and a
+/// song to play: a TV's, as Android gives it, or, with [television] false, a computer's, whose keyboard's arrows go
+/// where the remote's would, and whose bar has the song, the grid building the next row past the bottom of the screen,
+/// under it.
+Future<PlayerController> pumpFullHdHome(
+  WidgetTester tester, {
+  bool television = true,
+  bool followingAnotherDevice = false,
+}) async {
   const credentials = SubsonicCredentials(username: 'a', token: 't', salt: 's');
   final api = SubsonicApi(
     Uri.parse('https://music.test'),
@@ -124,12 +123,17 @@ Future<void> pumpTvHome(WidgetTester tester, {bool followingAnotherDevice = fals
       supportedLocales: const [Locale('pt')],
       builder: (context, child) => ServicesScope(
         services: services,
-        child: TelevisionScreen(enabled: true, child: TextFieldArrowShortcuts(child: child!)),
+        child: TelevisionScreen(
+          enabled: television,
+          child: TextFieldArrowShortcuts(child: child!),
+        ),
       ),
       home: HomePage(onSignOut: () {}),
     ),
   );
   await tester.pumpAndSettle();
+
+  return player;
 }
 
 /// A hub client that sees another device play: the app follows it, and the bar gets the "Tocando
@@ -173,7 +177,8 @@ String? focusedTip() {
       context?.findAncestorWidgetOfExactType<Tooltip>()?.message;
 }
 
-/// Tabs until [there]: from the top of the screen, through the home's rows of 30 albums, before the bar.
+/// Tabs until [there]: from the top of the screen, through the home's rows of 30 albums, before the bar, where there is
+/// one.
 Future<void> tabTo(WidgetTester tester, bool Function() there) async {
   for (var i = 0; i < 200 && !there(); i++) {
     await tester.sendKeyEvent(LogicalKeyboardKey.tab);
@@ -202,45 +207,74 @@ Future<void> press(WidgetTester tester, LogicalKeyboardKey key) async {
 }
 
 void main() {
-  testWidgets('on a TV, up from the slider goes to the buttons over it, without moving the song', (tester) async {
-    final player = await pumpBarOnSlider(tester, television: true);
+  testWidgets('on a TV, the home has no player bar: the rail\'s first button opens the full-screen player, over '
+      'everything, the remote on play, and back closes it, the focus back on the button', (tester) async {
+    await pumpFullHdHome(tester);
+    expect(find.byTooltip('Abrir o player'), findsNothing);
+    expect(find.byTooltip('Aparelhos'), findsNothing);
+
+    await shiftTabTo(tester, () => focusedTip() == 'Tocando agora');
+    await press(tester, LogicalKeyboardKey.select);
+    expect(tester.getRect(find.byType(PlayerPage)), const Rect.fromLTWH(0, 0, 960, 540));
+    expect(focusedTip(), 'Tocar');
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.byType(PlayerPage), findsNothing);
+    expect(focusedTip(), 'Tocando agora');
+    await tester.pumpWidget(const SizedBox()); // stops the player's timers
+  });
+
+  testWidgets('on a TV, in the bar under the full-screen player, down from play goes to the slider, which left and '
+      'right move, down from it stays there, and up goes back to the buttons, without moving the song', (tester) async {
+    final player = await pumpFullHdHome(tester);
+    await tester.tap(find.byTooltip('Tocando agora'));
+    await tester.pumpAndSettle();
+    expect(focusedTip(), 'Tocar');
+    await press(tester, LogicalKeyboardKey.arrowDown);
     expect(sliderFocused(), isTrue);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
-    await tester.pump();
-    expect(player.position, const Duration(minutes: 1));
-    expect(sliderFocused(), isFalse);
-    // Left and right still move it.
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.pump();
-    expect(sliderFocused(), isTrue);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
-    await tester.pump();
-    expect(player.position, greaterThan(const Duration(minutes: 1)));
-    await tester.pumpWidget(const SizedBox()); // stops the bar's timers
+    await press(tester, LogicalKeyboardKey.arrowRight);
+    final moved = player.position;
+    expect(moved, greaterThan(Duration.zero));
+
+    await press(tester, LogicalKeyboardKey.arrowDown);
+    expect(sliderFocused(), isTrue, reason: 'the bar is the floor');
+    await press(tester, LogicalKeyboardKey.arrowUp);
+    expect(inBar() && !sliderFocused(), isTrue);
+    await press(tester, LogicalKeyboardKey.arrowUp);
+    expect(inBar(), isFalse, reason: 'up out of the bar, to the player');
+    expect(player.position, moved);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a TV, up from the end of the bar under the full-screen player goes through what can be pressed, not '
+      'to the page as a whole, which shows nothing for it, up to the close button', (tester) async {
+    await pumpFullHdHome(tester);
+    await tester.tap(find.byTooltip('Tocando agora'));
+    await tester.pumpAndSettle();
+    await pressUntil(tester, LogicalKeyboardKey.arrowRight, () => focusedTip() == 'Aparelhos');
+
+    for (var i = 0; i < 5 && focusedTip() != 'Fechar'; i++) {
+      await press(tester, LogicalKeyboardKey.arrowUp);
+      expect(FocusManager.instance.primaryFocus!.rect.size, isNot(const Size(960, 540)));
+    }
+
+    expect(focusedTip(), 'Fechar');
+    await tester.pumpWidget(const SizedBox());
   });
 
   testWidgets('elsewhere, the arrows keep moving a focused slider, as they do on a computer', (tester) async {
-    final player = await pumpBarOnSlider(tester, television: false);
+    final player = await pumpBarOnSlider(tester);
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
     await tester.pump();
     expect(player.position, lessThan(const Duration(minutes: 1)));
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('the bar is the floor: down from its last row, the slider, stays there, not in the albums under it', (
+  testWidgets('on a computer, in the bar, the arrow right goes along the buttons to the last one, and stops there', (
     tester,
   ) async {
-    await pumpTvHome(tester);
-    await tabTo(tester, () => focusedTip() == 'Próxima');
-    await press(tester, LogicalKeyboardKey.arrowDown); // to the bar's last row
-    expect(sliderFocused(), isTrue);
-    await press(tester, LogicalKeyboardKey.arrowDown);
-    expect(sliderFocused(), isTrue, reason: 'still in the bar');
-    await tester.pumpWidget(const SizedBox());
-  });
-
-  testWidgets('in the bar, right goes along the buttons to the last one, and stops there', (tester) async {
-    await pumpTvHome(tester);
+    await pumpFullHdHome(tester, television: false);
     await tabTo(tester, () => focusedTip() == 'Próxima');
     await press(tester, LogicalKeyboardKey.arrowRight);
     expect(focusedTip(), 'Repetir a lista');
@@ -257,9 +291,11 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('right from "Próxima" stays in the bar with an album row cut by it, as the grid scrolls', (tester) async {
+  testWidgets('on a computer, right from "Próxima" stays in the bar with an album row cut by it, as the grid scrolls', (
+    tester,
+  ) async {
     // As the grid first shows: its second row goes on under the bar, level with the buttons.
-    await pumpTvHome(tester, followingAnotherDevice: true);
+    await pumpFullHdHome(tester, television: false, followingAnotherDevice: true);
     await shiftTabTo(tester, () => focusedTip() == 'Próxima');
     await press(tester, LogicalKeyboardKey.arrowRight);
     expect(focusedTip(), 'Repetir a faixa', reason: 'not the album under the bar');
@@ -282,29 +318,16 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('left from the song stays in the bar', (tester) async {
-    await pumpTvHome(tester);
+  testWidgets('on a computer, left from the bar\'s song stays in the bar', (tester) async {
+    await pumpFullHdHome(tester, television: false);
     await tabTo(tester, () => focusedTip() == 'Abrir o player');
     await press(tester, LogicalKeyboardKey.arrowLeft);
     expect(focusedTip(), 'Abrir o player');
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('down from the buttons goes to the slider under them, up from it back to them, and up from them out of '
-      'the bar', (tester) async {
-    await pumpTvHome(tester);
-    await tabTo(tester, () => focusedTip() == 'Próxima');
-    await press(tester, LogicalKeyboardKey.arrowDown);
-    expect(sliderFocused(), isTrue);
-    await press(tester, LogicalKeyboardKey.arrowUp);
-    expect(inBar() && !sliderFocused(), isTrue);
-    await press(tester, LogicalKeyboardKey.arrowUp);
-    expect(inBar(), isFalse);
-    await tester.pumpWidget(const SizedBox());
-  });
-
   testWidgets('left from the first album goes to the side rail, and right comes back to the albums', (tester) async {
-    await pumpTvHome(tester);
+    await pumpFullHdHome(tester);
     await tabTo(tester, () => focusedIn<AlbumTile>());
     await press(tester, LogicalKeyboardKey.arrowLeft);
     expect(inRail(), isTrue, reason: 'out of the page');
@@ -313,22 +336,27 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('up from the top of the page goes to the top bar, and down from its bottom to the player bar', (
+  testWidgets('up from the top of the page goes to the top bar, and down stays in the page to its bottom', (
     tester,
   ) async {
-    await pumpTvHome(tester);
+    await pumpFullHdHome(tester);
     await tabTo(tester, () => focusedIn<AlbumTile>());
     await pressUntil(tester, LogicalKeyboardKey.arrowUp, inTopBar);
     await press(tester, LogicalKeyboardKey.arrowDown);
     expect(focusedIn<HomeView>(), isTrue, reason: 'back in the page');
-    await pressUntil(tester, LogicalKeyboardKey.arrowDown, inBar);
+
+    for (var i = 0; i < 10; i++) {
+      await press(tester, LogicalKeyboardKey.arrowDown);
+      expect(focusedIn<HomeView>(), isTrue);
+    }
+
     await tester.pumpWidget(const SizedBox());
   });
 
   testWidgets('on an album over the home, the arrows go to the bars and back to the album, not the home under it', (
     tester,
   ) async {
-    await pumpTvHome(tester);
+    await pumpFullHdHome(tester);
     await tabTo(tester, () => focusedIn<AlbumTile>());
     await press(tester, LogicalKeyboardKey.enter);
     expect(find.byType(AlbumPage), findsOneWidget);
@@ -343,10 +371,10 @@ void main() {
     await press(tester, LogicalKeyboardKey.arrowDown);
     expect(focusedIn<AlbumPage>(), isTrue);
 
-    await pressUntil(tester, LogicalKeyboardKey.arrowDown, inBar);
-    await press(tester, LogicalKeyboardKey.arrowUp);
-    await press(tester, LogicalKeyboardKey.arrowUp);
-    expect(focusedIn<AlbumPage>(), isTrue, reason: 'up from the slider, the album\'s last track');
+    for (var i = 0; i < 25; i++) {
+      await press(tester, LogicalKeyboardKey.arrowDown);
+      expect(focusedIn<AlbumPage>(), isTrue, reason: 'to its last track, under which the TV has no bar');
+    }
 
     // The remote's back: the album closes, and the focus is back on it, in the home.
     await tester.binding.handlePopRoute();
@@ -357,7 +385,7 @@ void main() {
   });
 
   testWidgets('a section the rail opened, then left, takes no focus under the one shown', (tester) async {
-    await pumpTvHome(tester);
+    await pumpFullHdHome(tester);
     await shiftTabTo(tester, () => focusedTip() == 'Álbuns');
     await press(tester, LogicalKeyboardKey.enter);
     await press(tester, LogicalKeyboardKey.arrowRight);
@@ -378,7 +406,7 @@ void main() {
   });
 
   testWidgets('the search bar opens the keyboard on the center button, not as the focus comes to it', (tester) async {
-    await pumpTvHome(tester);
+    await pumpFullHdHome(tester);
     await shiftTabTo(tester, inSearch);
     expect(tester.testTextInput.isVisible, isFalse, reason: 'the focus only passing by');
     await press(tester, LogicalKeyboardKey.select);
@@ -388,7 +416,7 @@ void main() {
   });
 
   testWidgets('left and right go on from the search bar to the buttons beside it', (tester) async {
-    await pumpTvHome(tester);
+    await pumpFullHdHome(tester);
     await shiftTabTo(tester, inSearch);
     await press(tester, LogicalKeyboardKey.arrowRight);
     expect(focusedTip(), 'Configurações', reason: 'past the hub\'s status, which only tells');
@@ -405,7 +433,7 @@ void main() {
   testWidgets('left and right stay in the top bar, rather than go to a card scrolled under it, level with the search', (
     tester,
   ) async {
-    await pumpTvHome(tester);
+    await pumpFullHdHome(tester);
     final search = tester.widget<TextField>(find.descendant(of: find.byType(AppBar), matching: find.byType(TextField)));
     search.focusNode!.requestFocus();
     await tester.pumpAndSettle();
@@ -437,7 +465,7 @@ bool inSearch() => focusedIn<TextField>() && inTopBar();
 bool focusedIn<T extends Widget>() =>
     FocusManager.instance.primaryFocus?.context?.findAncestorWidgetOfExactType<T>() != null;
 
-bool inRail() => ['Álbuns', 'Artistas', 'Gêneros', 'Playlists'].contains(focusedTip());
+bool inRail() => ['Tocando agora', 'Álbuns', 'Artistas', 'Gêneros', 'Playlists'].contains(focusedTip());
 
 /// In the home's top bar: the app's icon, the arrows, the search, the buttons at its end.
 bool inTopBar() => focusedIn<AppBar>() && focusedIn<HomePage>();
