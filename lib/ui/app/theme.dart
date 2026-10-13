@@ -51,7 +51,7 @@ ThemeData segueTheme(Brightness brightness, {Palette palette = Palette.segue, bo
     colorScheme: colors,
     focusColor: colors.primary.withValues(alpha: 0.35),
     // The top bar in the background's color, always: Material's tints it as a page scrolls under it.
-    appBarTheme: AppBarTheme(
+    appBarTheme: AppBarThemeData(
       backgroundColor: colors.surface,
       scrolledUnderElevation: 0,
       surfaceTintColor: Colors.transparent,
