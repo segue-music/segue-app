@@ -206,6 +206,41 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets(
+    'on a TV, a title too long for the cover\'s width goes on two lines, which the cover gives its room to: the '
+    'album still shows whole, above the slider',
+    (tester) async {
+      await pumpBar(
+        tester,
+        size: const Size(960, 540),
+        television: true,
+        client: tvPlaying(
+          const QueueItem(
+            id: 's1',
+            title: 'We R All Gonna Die (Live at the Arena, Remastered)',
+            artist: "Mother's Cake",
+            album: 'We R All Gonna Die',
+            durationMs: 128000,
+          ),
+        ),
+      );
+      await openPlayer(tester);
+      final title = tester.getRect(onPage(find.text('We R All Gonna Die (Live at the Arena, Remastered)')));
+      final albumText = onPage(find.text('We R All Gonna Die'));
+      final album = tester.getRect(albumText);
+      // The room the player has, above the slider, which cuts off what goes past it.
+      final room = tester.getRect(find.ancestor(of: albumText, matching: find.byType(Scrollable)).first);
+      expect(
+        title.height,
+        greaterThan(tester.getRect(onPage(find.text("Mother's Cake"))).height * 1.5),
+        reason: 'two lines',
+      );
+      expect(album.bottom, lessThanOrEqualTo(room.bottom), reason: 'whole');
+      expect(tester.getRect(playerCover).top, greaterThanOrEqualTo(room.top));
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
   testWidgets('on a TV, what plays lines up with the controls under it: the cover and where it plays start where the '
       'time played does, and the lyrics end where the song\'s length does', (tester) async {
     await pumpBar(

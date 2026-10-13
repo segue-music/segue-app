@@ -915,6 +915,25 @@ class _Player extends StatelessWidget {
     );
   }
 
+  /// How much taller [title] lays out in [style] at [width], on two lines at most, than on one: a long title's second
+  /// line; none for one that fits on one.
+  static double _secondLine(BuildContext context, String title, TextStyle? style, double width) {
+    TextPainter laidOut(double width) => TextPainter(
+      text: TextSpan(text: title, style: DefaultTextStyle.of(context).style.merge(style)),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      textAlign: TextAlign.center,
+      maxLines: 2,
+    )..layout(maxWidth: width);
+
+    final (two, one) = (laidOut(width), laidOut(double.infinity));
+    final extra = two.height - one.height;
+    two.dispose();
+    one.dispose();
+
+    return max(0, extra);
+  }
+
   /// The player and, [shown] of the way in, its lyrics, in [box]: [lyricsBeside] it, or [lyricsUnder] it.
   Widget _layout(
     BuildContext context,
@@ -934,22 +953,30 @@ class _Player extends StatelessWidget {
     // The cover as big as it fits, leaving room for the rest under it: the song, and the controls where they show.
     // Under the player, the lyrics take that room from the cover as they come in: in the end, it keeps two fifths.
     final width = room - 48;
-    final height = box.maxHeight - (controls ? 280 : 160);
-    final alone = min(width, height).clamp(96.0, PlayerPage.coverSize);
+    final songId = now.songId;
+    final titleStyle = text.headlineMedium?.copyWith(fontWeight: FontWeight.bold);
+    // How wide the player is with the cover [side] big, and its title in it, beside the heart on a phone.
+    double playerWidth(double side) => karaoke ? side : max(side, 280);
+    double titleWidth(double side) =>
+        playerWidth(side) - (controls && songId != null ? 2 * kMinInteractiveDimension : 0);
+    var height = box.maxHeight - (controls ? 280 : 160);
+    var alone = min(width, height).clamp(96.0, PlayerPage.coverSize);
+    // A title that takes a second line at the player's width (a long one, the more so in a TV's bigger text) takes its
+    // room from the cover, rather than push what is under it out of the screen. Narrower then, it still takes two.
+    final secondLine = _secondLine(context, now.title ?? '', titleStyle, titleWidth(alone));
+
+    if (secondLine > 0) {
+      height -= secondLine;
+      alone = min(width, height).clamp(96.0, PlayerPage.coverSize);
+    }
+
     final withLyrics = min(width, height * 2 / 5).clamp(96.0, PlayerPage.coverSize);
     final side = beside ? alone : alone + (withLyrics - alone) * shown;
-    final title = SongLink.title(
-      now,
-      style: text.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
-      maxLines: 2,
-      textAlign: TextAlign.center,
-      replace: true,
-    );
-    final songId = now.songId;
+    final title = SongLink.title(now, style: titleStyle, maxLines: 2, textAlign: TextAlign.center, replace: true);
     // As wide as the cover alone: the rest keeps its width as the lyrics make the cover smaller. On a TV, never wider,
     // for the cover's sides to be the player's, which line up with the controls.
     final player = SizedBox(
-      width: karaoke ? alone : max(alone, 280),
+      width: playerWidth(alone),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
