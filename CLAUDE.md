@@ -42,6 +42,7 @@ docker build -t segue-flutter-android -f tool/android.Dockerfile tool
 tool/package-android.sh                       # → build/segue-android.apk (debug-signed, every ABI)
 tool/flutter.sh run -d android                # the first device of the host's adb server (phone, TV, emulator),
                                               # or the SDK's emulator, which it starts (SEGUE_AVD, or the first AVD)
+tool/flutter.sh run -d emulator-5554          # that emulator, which it starts on that port where adb doesn't list it
 ```
 
 Once this image is built, `tool/flutter.sh run` takes it, to reach the host's Android devices as well

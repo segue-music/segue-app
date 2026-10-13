@@ -27,11 +27,20 @@ android_device() {
   adb devices | awk 'NR > 1 && $2 == "device" { print $1; exit }'
 }
 
+# Whether the device [serial], or else the first of this machine's adb server, has booted: adb lists
+# an emulator before Android has booted, which flutter run can't install on yet.
+booted() {
+  serial=${1:-$(android_device)}
+  [ -n "$serial" ] && [ "$(adb -s "$serial" shell getprop sys.boot_completed 2> /dev/null | tr -d '\r')" = 1 ]
+}
+
 # Starts an emulator, the Android SDK's (ANDROID_HOME, or where Android Studio puts it) on SEGUE_AVD
-# or the first of its virtual devices, and waits until it has booted. It is left running out of
-# this terminal's reach (setsid), so that q or Ctrl+C in flutter run doesn't close it and the next
-# run finds it.
+# or the first of its virtual devices, and waits until it has booted: on the console port [port],
+# where one is given, which names it in adb (emulator-<port>), or else the first one free. It is
+# left running out of this terminal's reach (setsid), so that q or Ctrl+C in flutter run doesn't
+# close it and the next run finds it.
 start_emulator() {
+  port=$1
   emulator=${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Android/Sdk}}/emulator/emulator
 
   if [ ! -x "$emulator" ] && ! emulator=$(command -v emulator); then
@@ -48,13 +57,10 @@ start_emulator() {
 
   echo "tool/flutter.sh: starting the emulator ($avd)" >&2
   log=$cache/emulator.log
-  setsid "$emulator" -avd "$avd" > "$log" 2>&1 < /dev/null &
+  setsid "$emulator" -avd "$avd" ${port:+-port "$port"} > "$log" 2>&1 < /dev/null &
   emulator_process=$!
 
-  # adb lists the emulator as a device before Android has booted, which flutter run can't install
-  # on yet.
-  until [ -n "$(android_device)" ] \
-    && [ "$(adb -s "$(android_device)" shell getprop sys.boot_completed 2> /dev/null | tr -d '\r')" = 1 ]; do
+  until booted "${port:+emulator-$port}"; do
     if ! kill -0 "$emulator_process" 2> /dev/null; then
       echo "tool/flutter.sh: the emulator stopped (its output is in $log)" >&2
       exit 1
@@ -65,7 +71,8 @@ start_emulator() {
 }
 
 # flutter run -d android runs on the first device of this machine's adb server, starting an
-# emulator when there is none.
+# emulator when there is none; -d emulator-<port> on that emulator, starting it on that port where
+# adb doesn't list it, and waiting for it where it is still booting.
 if [ "$tool $command" = "flutter run" ]; then
   for arg do
     shift
@@ -77,6 +84,14 @@ if [ "$tool $command" = "flutter run" ]; then
         start_emulator
         arg=$(android_device)
       fi
+    elif [ "$previous" = -d ] && [ "${arg#emulator-}" != "$arg" ]; then
+      if ! adb devices | awk -v serial="$arg" 'NR > 1 && $1 == serial { found = 1 } END { exit !found }'; then
+        start_emulator "${arg#emulator-}"
+      fi
+
+      until booted "$arg"; do
+        sleep 1
+      done
     fi
 
     set -- "$@" "$arg"

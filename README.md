@@ -408,7 +408,8 @@ Once this image is built, `tool/flutter.sh run` takes it, and reaches the Androi
 server (`adb devices`) as well as your desktop: a phone on USB, an emulator, or a TV after `adb connect`. `-d android`
 stands for the first of them; with several, `-d` takes the one `adb devices` names. With none, `-d android` starts an
 emulator: the Android SDK's (`ANDROID_HOME`, or `~/Android/Sdk`, where Android Studio puts it) on the first of its
-virtual devices, or the one `SEGUE_AVD` names. It stays open after `flutter run` ends, for the next one.
+virtual devices, or the one `SEGUE_AVD` names. `-d emulator-5554` starts it too where it isn't open, on that port, which
+names it in `adb devices`. It stays open after `flutter run` ends, for the next one.
 
 ### Flutter installed
 
