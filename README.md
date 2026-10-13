@@ -187,9 +187,10 @@ knows nothing of them, and another device plays as it has them.
 - **Sign-in on a TV with a phone**: the TV's sign-in shows a QR code, which the app on a phone signed in reads
   (Settings, "Entrar numa TV"), signing the TV in with no typing on the remote. Over the local network, sealed with
   a key the code carries (AES-GCM): on Subsonic the phone's credentials; on Jellyfin the TV signs in by Quick Connect,
-  which the phone authorizes, and gets a sign-in of its own (not on Navidrome's Jellyfin API, which has none). The
-  phone sends it only to an address on the local network, after naming the TV and its address, which the TV shows
-  under the code; the TV's answer is sealed too, and a code is good for one sign-in, the TV showing another after.
+  which the phone authorizes, and gets a sign-in of its own (Navidrome's Jellyfin API has Quick Connect too, since
+  0.64.1, but it hasn't been tried there). The phone sends it only to an address on the local network, after naming
+  the TV and its address, which the TV shows under the code; the TV's answer is sealed too, and a code is good for one
+  sign-in, the TV showing another after.
 - **TV**: the remote drives the app, a white ring showing where it is, and an album, an artist or a mix it is on a
   little bigger. The text is a bit bigger than on a phone, and everything keeps out of the screen's edges, which some
   TVs cut off, but for the rows of albums, which run on to the side as they scroll, as Google TV's do. No player bar
