@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
+
 import 'l10n/app_localizations.dart';
 import 'pictures/fanart_tv.dart';
 import 'server/models.dart';
@@ -65,7 +67,13 @@ class SuggestedMixes {
   // Its failure is the row's, which takes it up as it's built: not one of the zone's, should the home load again, as
   // pulled down, before the row is built anew.
   SuggestedMixes(this._server, {Random? random, this._fanartTv})
-    : mixes = _suggested(_server, random ?? Random())..ignore();
+    : mixes = _suggested(_server, random ?? Random(seed))..ignore();
+
+  /// The seed of the [Random] that picks the mixes, where none is given (the home's): with none, other mixes each
+  /// time. The README's pictures (tool/screenshots.dart) give one, so that the computer's home shows the same mixes each
+  /// time they are made, rather than make a picture anew.
+  @visibleForTesting
+  static int? seed;
 
   final MediaServer _server;
 

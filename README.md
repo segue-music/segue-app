@@ -396,8 +396,8 @@ The pictures above (`docs/screenshots/`) are of the app on a made-up library, it
 test tool/screenshots.dart` makes them again, rendering the app as the widget tests do, with Roboto from Flutter's own
 copy, in each device's frame, drawn there too (Android's status and gesture bars on the phone and the tablet). Each is a
 PNG, whole, which the page links to, and a WebP at half its width, which the page shows, a tenth as heavy and as sharp
-as the page needs on a screen of 2 pixels per point (cwebp, in the dev image). The mixes on the computer's home are
-picked at random, as in the app, so each run may show others.
+as the page needs on a screen of 2 pixels per point (cwebp, in the dev image). The mixes on the computer's home, which
+the app picks at random, are picked there with a seed, so that each run makes the same pictures.
 
 ### Keys
 

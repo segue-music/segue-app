@@ -18,6 +18,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:segue/connect/connect.dart';
 import 'package:segue/l10n/app_localizations.dart';
+import 'package:segue/mixes.dart';
 import 'package:segue/player/player.dart';
 import 'package:segue/segue/client.dart';
 import 'package:segue/segue/protocol.dart';
@@ -46,6 +47,10 @@ void main() {
   // (test/flutter_test_config.dart), which this is, out of test/.
   // ignore: invalid_use_of_visible_for_testing_member
   Equalizer.moves = false;
+  // The same mixes each time, rather than a picture of the computer's home anew: with this seed, those of the picture
+  // first made (Indie, Electronic, the 1980s, ...).
+  // ignore: invalid_use_of_visible_for_testing_member
+  SuggestedMixes.seed = 50307;
 
   setUpAll(() async {
     await _loadFonts();
