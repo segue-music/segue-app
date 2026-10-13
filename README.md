@@ -9,6 +9,15 @@ Portuguese, English and Spanish.
 Segue's protocol and its hub, which runs next to the media server, are in
 [segue-music/segue](https://github.com/segue-music/segue). Without a hub, the app plays on the device it runs on.
 
+<p align="center">
+  <img src="docs/screenshots/desktop.png" width="51%" alt="The home on a computer: mixes by genre and decade, new releases and the most played albums, with the player bar at the bottom">
+  <img src="docs/screenshots/tv.png" width="47%" alt="The full-screen player on a TV, the lyrics as karaoke beside the cover and the controls under them">
+</p>
+<p align="center">
+  <img src="docs/screenshots/phone.png" width="26.4%" alt="The full-screen player on a phone: the cover, the song, the time played and the controls">
+  <img src="docs/screenshots/tablet.png" width="71.6%" alt="The full-screen player on a tablet, in the light theme, with the synced lyrics beside the cover">
+</p>
+
 > [!NOTE]
 > **Vibe-coded.** The app was written by Claude (through Claude Code), with a person deciding what
 > to build and trying it on real devices. Every commit says so.
@@ -381,6 +390,13 @@ Android's (adaptive, the TV banner, the notification's), Linux's, iOS's, macOS's
 positions of the rounded square and of the ring in the artwork are measured at the top of `tool/icons.dart`, so a new
 artwork needs them measured again.
 
+### Screenshots
+
+The pictures above (`docs/screenshots/`) are of the app on a made-up library, its covers drawn in code: `tool/flutter.sh
+test tool/screenshots.dart` makes them again, rendering the app as the widget tests do, with Roboto from Flutter's own
+copy, in each device's frame, drawn there too (Android's status and gesture bars on the phone and the tablet). The mixes
+on the computer's home are picked at random, as in the app, so each run may show others.
+
 ### Keys
 
 The app asks fanart.tv with a key of its own, which isn't in git: a build gets it as it's made, and one without it
@@ -436,7 +452,8 @@ env SEGUE_DEVICE_ID=second SEGUE_DEVICE_NAME="Second copy" segue/segue
 | `lib/ui/` | The pages and their pieces, by subject (`app/`, `home/`, `album/`, `artist/`, `genre/`, `playlist/`, `song/`, `player/`, `settings/`), and `widgets/`, what several of them use |
 | `lib/l10n/` | The app's words in each language, as ARB files |
 | `test/` | Unit and widget tests, and tests against the real Go hub (`hub_test.dart`) |
-| `tool/` | The Docker images and scripts to build and test without installing Flutter; `icons.dart`, every icon from `icon.png` |
+| `tool/` | The Docker images and scripts to build and test without installing Flutter; `icons.dart`, every icon from `icon.png`; `screenshots.dart`, the README's pictures |
+| `docs/screenshots/` | The README's pictures, which `tool/screenshots.dart` makes |
 
 `CLAUDE.md` goes into how these fit together.
 
