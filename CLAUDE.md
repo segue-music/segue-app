@@ -75,6 +75,15 @@ gives `run` and `build` the `keys.json` at the top of this folder (`--dart-defin
 git ignores, and Codemagic its environment variables' group `keys`. A build without them runs without
 those services (README.md, "Keys").
 
+The tests are two suites, run apart: the code's, `tool/flutter.sh test` (everything in `test/`), and the README's
+pictures', `tool/flutter.sh test tool/screenshots.dart`, which makes them again in `docs/screenshots/` (`git status
+docs/` then says whether they changed). Each change runs what it needs, the whole suite being slow: while it is made,
+only the test files of what it touches, and before a push the suite of what the commits touch, the code's for the app's
+code, its tests, its platforms' code or its dependencies, the pictures' for their generator, the pictures themselves or
+the UI they show (`lib/ui/`, the theme, the app's words), both for both, and neither for the README's text, the
+Dockerfiles or other docs alone. A change of the UI that changes the pictures has them looked at, that they show it as
+they should, and they go with it.
+
 Test prerequisites:
 - `test/hub_test.dart` runs the app's client and `ConnectController` against the real Go hub
   binary: `SEGUE_HUB_BIN`, or `../segue/hub/segue-hub` (a clone of segue next to this one). Build
