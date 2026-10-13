@@ -8,11 +8,11 @@ import 'package:http/testing.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:segue/connect/connect.dart';
 import 'package:segue/l10n/app_localizations.dart';
-import 'package:segue/language_choice.dart';
 import 'package:segue/player/player.dart';
 import 'package:segue/server/models.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
+import 'package:segue/settings.dart';
 import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/app/home_page.dart';
 import 'package:segue/ui/app/theme.dart';
@@ -90,8 +90,8 @@ Future<void> pumpApp(WidgetTester tester, Size size) async {
     player,
     ConnectController(player: player),
   );
-  final languageChoice = LanguageChoice();
-  addTearDown(languageChoice.dispose);
+  final settings = Settings();
+  addTearDown(settings.dispose);
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -100,8 +100,11 @@ Future<void> pumpApp(WidgetTester tester, Size size) async {
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: const [Locale('pt')],
       theme: segueTheme(Brightness.light),
-      builder: (context, child) => ServicesScope(services: services, child: child!),
-      home: HomePage(onSignOut: () {}, languageChoice: languageChoice),
+      builder: (context, child) => SettingsScope(
+        settings: settings,
+        child: ServicesScope(services: services, child: child!),
+      ),
+      home: HomePage(onSignOut: () {}),
     ),
   );
   await tester.pumpAndSettle();

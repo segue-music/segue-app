@@ -6,11 +6,11 @@ import 'package:http/http.dart' as http;
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../l10n/app_localizations.dart';
-import '../../language_choice.dart';
 import '../../pairing/pairing.dart';
 import '../../server/server.dart';
 import '../../server/sign_in.dart';
 import '../../session.dart';
+import '../../settings.dart';
 import '../settings/language_button.dart';
 import '../widgets/directional_navigation.dart';
 import '../widgets/spinner.dart';
@@ -21,16 +21,12 @@ import '../widgets/spinner.dart';
 class LoginPage extends StatefulWidget {
   const LoginPage({
     required this.onSignedIn,
-    this.languageChoice,
     @visibleForTesting this.client,
     @visibleForTesting this.pairingAddress,
     super.key,
   });
 
   final void Function(Session session) onSignedIn;
-
-  /// The language picked, which a menu in the top right corner picks; none, no menu.
-  final LanguageChoice? languageChoice;
 
   /// What talks to the media server, for tests.
   final http.Client? client;
@@ -189,7 +185,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context);
-    final languageChoice = widget.languageChoice;
+    final language = SettingsScope.maybeOf(context)?.language;
     final form = Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -283,7 +279,8 @@ class _LoginPageState extends State<LoginPage> {
             ),
           );
 
-    if (languageChoice == null) {
+    // With no settings (SettingsScope), no language to pick.
+    if (language == null) {
       return Scaffold(body: body);
     }
 
@@ -300,7 +297,7 @@ class _LoginPageState extends State<LoginPage> {
                 alignment: Alignment.topRight,
                 child: Padding(
                   padding: const EdgeInsets.all(8),
-                  child: FocusTraversalOrder(order: const NumericFocusOrder(1), child: LanguageButton(languageChoice)),
+                  child: FocusTraversalOrder(order: const NumericFocusOrder(1), child: LanguageButton(language)),
                 ),
               ),
             ),

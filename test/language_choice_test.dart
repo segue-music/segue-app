@@ -11,6 +11,7 @@ import 'package:segue/language_choice.dart';
 import 'package:segue/player/player.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
+import 'package:segue/settings.dart';
 import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/app/home_page.dart';
 import 'package:segue/ui/app/login_page.dart';
@@ -21,9 +22,9 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 
 import 'fakes.dart';
 
-/// The home page, over a server with nothing in it, in the language [choice] picks or else the system's, as in the
+/// The home page, over a server with nothing in it, in the language [settings] pick or else the system's, as in the
 /// app.
-Future<void> pumpHome(WidgetTester tester, LanguageChoice choice) async {
+Future<void> pumpHome(WidgetTester tester, Settings settings) async {
   const credentials = SubsonicCredentials(username: 'a', token: 't', salt: 's');
   final api = SubsonicApi(
     Uri.parse('https://music.test'),
@@ -39,14 +40,17 @@ Future<void> pumpHome(WidgetTester tester, LanguageChoice choice) async {
   );
   await tester.pumpWidget(
     ListenableBuilder(
-      listenable: choice,
+      listenable: settings.language,
       builder: (context, _) => MaterialApp(
-        locale: choice.value,
+        locale: settings.language.value,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         localeListResolutionCallback: LanguageChoice.resolve,
-        builder: (context, child) => ServicesScope(services: services, child: child!),
-        home: HomePage(onSignOut: () {}, languageChoice: choice),
+        builder: (context, child) => SettingsScope(
+          settings: settings,
+          child: ServicesScope(services: services, child: child!),
+        ),
+        home: HomePage(onSignOut: () {}),
       ),
     ),
   );
@@ -121,11 +125,12 @@ void main() {
     (tester) async {
       tester.platformDispatcher.localesTestValue = const [Locale('es', 'ES')];
       addTearDown(tester.platformDispatcher.clearLocalesTestValue);
-      final choice = LanguageChoice();
-      addTearDown(choice.dispose);
+      final settings = Settings();
+      addTearDown(settings.dispose);
+      final choice = settings.language;
       String materialBack() => MaterialLocalizations.of(tester.element(find.byType(LoginPage))).backButtonTooltip;
 
-      await tester.pumpWidget(SegueApp(session: null, languageChoice: choice));
+      await tester.pumpWidget(SegueApp(session: null, settings: settings));
       expect(find.text('Iniciar sesión'), findsOneWidget);
       expect(materialBack(), 'Atrás');
 
@@ -151,9 +156,10 @@ void main() {
   ) async {
     tester.platformDispatcher.localesTestValue = const [Locale('pt', 'BR')];
     addTearDown(tester.platformDispatcher.clearLocalesTestValue);
-    final choice = LanguageChoice();
-    addTearDown(choice.dispose);
-    await tester.pumpWidget(SegueApp(session: null, languageChoice: choice));
+    final settings = Settings();
+    addTearDown(settings.dispose);
+    final choice = settings.language;
+    await tester.pumpWidget(SegueApp(session: null, settings: settings));
     expect(find.text('Entrar'), findsOneWidget, reason: 'the system\'s');
 
     await tester.tap(find.byTooltip('Idioma'));
@@ -189,9 +195,10 @@ void main() {
     tester.view.physicalSize = const Size(360, 640);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
-    final choice = LanguageChoice();
-    addTearDown(choice.dispose);
-    await pumpHome(tester, choice);
+    final settings = Settings();
+    addTearDown(settings.dispose);
+    final choice = settings.language;
+    await pumpHome(tester, settings);
     expect(find.byTooltip('Idioma'), findsNothing, reason: 'no menu of its own in the top bar');
     // In the sheet of the languages, which the settings' choice of them opens.
     Finder option(String name) =>
@@ -233,9 +240,10 @@ void main() {
   ) async {
     tester.platformDispatcher.localesTestValue = const [Locale('pt', 'BR')];
     addTearDown(tester.platformDispatcher.clearLocalesTestValue);
-    final choice = LanguageChoice();
-    addTearDown(choice.dispose);
-    await tester.pumpWidget(SegueApp(session: null, languageChoice: choice));
+    final settings = Settings();
+    addTearDown(settings.dispose);
+    final choice = settings.language;
+    await tester.pumpWidget(SegueApp(session: null, settings: settings));
     final corner = tester.getRect(find.byTooltip('Idioma'));
     expect(corner.right, greaterThan(tester.view.physicalSize.width / tester.view.devicePixelRatio - 64));
     expect(corner.top, lessThan(64));
@@ -254,9 +262,9 @@ void main() {
   ) async {
     tester.platformDispatcher.localesTestValue = const [Locale('pt', 'BR')];
     addTearDown(tester.platformDispatcher.clearLocalesTestValue);
-    final choice = LanguageChoice();
-    addTearDown(choice.dispose);
-    await tester.pumpWidget(SegueApp(session: null, languageChoice: choice));
+    final settings = Settings();
+    addTearDown(settings.dispose);
+    await tester.pumpWidget(SegueApp(session: null, settings: settings));
     final order = <String?>[];
 
     for (var i = 0; i < 6; i++) {

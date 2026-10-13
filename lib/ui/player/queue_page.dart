@@ -7,6 +7,7 @@ import '../../l10n/app_localizations.dart';
 import '../../segue/protocol.dart';
 import '../../server/models.dart';
 import '../../services.dart';
+import '../../settings.dart';
 import '../app/page_area.dart';
 import '../song/movable_song.dart';
 import '../song/song_list_header.dart';
@@ -69,7 +70,8 @@ class _QueuePageState extends State<QueuePage> {
   @override
   Widget build(BuildContext context) {
     final services = ServicesScope.of(context);
-    final (connect, autoplay) = (services.connect, services.autoplay);
+    final connect = services.connect;
+    final autoplay = SettingsScope.maybeOf(context)?.autoplay;
     final strings = AppLocalizations.of(context);
     // On a TV the remote starts on the current track. Elsewhere the page itself takes the focus, so
     // that Esc closes it, and no track looks focused.

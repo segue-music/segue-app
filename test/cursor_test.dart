@@ -10,11 +10,11 @@ import 'package:http/testing.dart';
 import 'package:segue/connect/connect.dart';
 import 'package:segue/equalizer_choice.dart';
 import 'package:segue/l10n/app_localizations.dart';
-import 'package:segue/language_choice.dart';
 import 'package:segue/player/player.dart';
 import 'package:segue/server/models.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
+import 'package:segue/settings.dart';
 import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/settings/equalizer_page.dart';
 import 'package:segue/ui/app/home_page.dart';
@@ -116,10 +116,8 @@ Future<TestGesture> pumpApp(WidgetTester tester) async {
     player,
     ConnectController(player: player),
   );
-  final languageChoice = LanguageChoice();
-  addTearDown(languageChoice.dispose);
-  final equalizerChoice = EqualizerChoice(const EqualizerSettings(on: true));
-  addTearDown(equalizerChoice.dispose);
+  final settings = Settings(equalizer: EqualizerChoice(const EqualizerSettings(on: true)));
+  addTearDown(settings.dispose);
   tester.view.physicalSize = const Size(1000, 700);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -128,8 +126,11 @@ Future<TestGesture> pumpApp(WidgetTester tester) async {
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: const [Locale('pt')],
       theme: segueTheme(Brightness.light),
-      builder: (context, child) => ServicesScope(services: services, child: child!),
-      home: HomePage(onSignOut: () {}, languageChoice: languageChoice, equalizerChoice: equalizerChoice),
+      builder: (context, child) => SettingsScope(
+        settings: settings,
+        child: ServicesScope(services: services, child: child!),
+      ),
+      home: HomePage(onSignOut: () {}),
     ),
   );
   await tester.pumpAndSettle();
@@ -247,8 +248,8 @@ void main() {
   }, variant: TargetPlatformVariant.only(TargetPlatform.linux));
 
   testWidgets('on the sign-in, the language menu, and the languages in it', (tester) async {
-    final languageChoice = LanguageChoice();
-    addTearDown(languageChoice.dispose);
+    final settings = Settings();
+    addTearDown(settings.dispose);
     tester.view.physicalSize = const Size(1000, 700);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -257,7 +258,8 @@ void main() {
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: const [Locale('pt')],
         theme: segueTheme(Brightness.light),
-        home: LoginPage(onSignedIn: (_) {}, languageChoice: languageChoice),
+        builder: (context, child) => SettingsScope(settings: settings, child: child!),
+        home: LoginPage(onSignedIn: (_) {}),
       ),
     );
     final gesture = await addMouse(tester);

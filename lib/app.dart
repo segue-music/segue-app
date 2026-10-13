@@ -4,18 +4,13 @@ import 'dart:ui' show AppExitResponse;
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
-import 'autoplay_choice.dart';
-import 'crossfade_choice.dart';
 import 'l10n/app_localizations.dart';
-import 'equalizer_choice.dart';
 import 'language_choice.dart';
 import 'player/audio_interruptions.dart';
 import 'player/media_controls.dart';
-import 'download_choice.dart';
-import 'quality_choice.dart';
-import 'replay_gain_choice.dart';
 import 'services.dart';
 import 'session.dart';
+import 'settings.dart';
 import 'theme_choice.dart';
 import 'ui/app/home_page.dart';
 import 'ui/app/login_page.dart';
@@ -26,20 +21,11 @@ import 'ui/app/theme_fade.dart';
 import 'ui/app/title_bar.dart';
 import 'ui/player/failed_song_message.dart';
 import 'ui/widgets/spinner.dart';
-import 'volume_choice.dart';
 
 class SegueApp extends StatefulWidget {
   const SegueApp({
     required this.session,
-    this.themeChoice,
-    this.languageChoice,
-    this.qualityChoice,
-    this.downloadChoice,
-    this.replayGainChoice,
-    this.equalizerChoice,
-    this.autoplayChoice,
-    this.crossfadeChoice,
-    this.volumeChoice,
+    this.settings,
     this.mediaControls,
     this.interruptions,
     this.television = false,
@@ -50,34 +36,8 @@ class SegueApp extends StatefulWidget {
   /// The saved session, if any: then the app opens straight on the library.
   final Session? session;
 
-  /// The theme picked, light or dark, its colors and its contrast; with none, the app follows the system's, in the
-  /// icon's pink on its black.
-  final ThemeChoice? themeChoice;
-
-  /// The language picked; with none, the app follows the system's.
-  final LanguageChoice? languageChoice;
-
-  /// The quality the player streams in; with none, the original, until a pick.
-  final QualityChoice? qualityChoice;
-
-  /// How the app downloads; with none, the files as they are, over Wi-Fi or a cable alone, until a pick.
-  final DownloadChoice? downloadChoice;
-
-  /// How the player levels the songs' loudness; with none, not at all, until a pick.
-  final ReplayGainChoice? replayGainChoice;
-
-  /// The equalizer the player plays through; with none, off, until it is turned on.
-  final EqualizerChoice? equalizerChoice;
-
-  /// Whether the player goes on after the queue's last song with songs like it; with none, it never does, and the
-  /// settings show no way to turn it on.
-  final AutoplayChoice? autoplayChoice;
-
-  /// How long the player crossfades the songs for; with none, it never does, and the settings show no way to pick it.
-  final CrossfadeChoice? crossfadeChoice;
-
-  /// This device's volume, as the user last set it, which the player starts at; with none, all of it.
-  final VolumeChoice? volumeChoice;
+  /// What the user picked for the app, as the last launch left it; with none, each choice's default until a pick.
+  final Settings? settings;
 
   /// The system's media controls, where the platform has them.
   final MediaControls? mediaControls;
@@ -104,23 +64,8 @@ class _SegueAppState extends State<SegueApp> {
   Session? _closed;
   late final AppLifecycleListener _lifecycle;
 
-  /// [SegueApp.themeChoice], or one of its own, which follows the system's until a pick.
-  late final _themeChoice = widget.themeChoice ?? ThemeChoice();
-
-  /// [SegueApp.languageChoice], or one of its own, which follows the system's until a pick.
-  late final _languageChoice = widget.languageChoice ?? LanguageChoice();
-
-  /// [SegueApp.qualityChoice], or one of its own, the original until a pick.
-  late final _qualityChoice = widget.qualityChoice ?? QualityChoice();
-
-  /// [SegueApp.downloadChoice], or one of its own, the files as they are, over Wi-Fi or a cable, until a pick.
-  late final _downloadChoice = widget.downloadChoice ?? DownloadChoice();
-
-  /// [SegueApp.replayGainChoice], or one of its own, off until a pick.
-  late final _replayGainChoice = widget.replayGainChoice ?? ReplayGainChoice();
-
-  /// [SegueApp.equalizerChoice], or one of its own, off until it is turned on.
-  late final _equalizerChoice = widget.equalizerChoice ?? EqualizerChoice();
+  /// [SegueApp.settings], or the app's own, each choice its default until a pick.
+  late final _settings = widget.settings ?? Settings();
 
   @override
   void initState() {
@@ -143,16 +88,7 @@ class _SegueAppState extends State<SegueApp> {
     });
 
     try {
-      final services = await Services.start(
-        session,
-        quality: _qualityChoice,
-        downloadSettings: _downloadChoice,
-        replayGain: _replayGainChoice,
-        equalizer: _equalizerChoice,
-        autoplay: widget.autoplayChoice,
-        crossfade: widget.crossfadeChoice,
-        volume: widget.volumeChoice,
-      );
+      final services = await Services.start(session, settings: _settings);
 
       if (!mounted) {
         await services.dispose();
@@ -240,28 +176,8 @@ class _SegueAppState extends State<SegueApp> {
 
   @override
   void dispose() {
-    if (widget.themeChoice == null) {
-      _themeChoice.dispose();
-    }
-
-    if (widget.languageChoice == null) {
-      _languageChoice.dispose();
-    }
-
-    if (widget.qualityChoice == null) {
-      _qualityChoice.dispose();
-    }
-
-    if (widget.downloadChoice == null) {
-      _downloadChoice.dispose();
-    }
-
-    if (widget.replayGainChoice == null) {
-      _replayGainChoice.dispose();
-    }
-
-    if (widget.equalizerChoice == null) {
-      _equalizerChoice.dispose();
+    if (widget.settings == null) {
+      _settings.dispose();
     }
 
     _lifecycle.dispose();
@@ -270,19 +186,19 @@ class _SegueAppState extends State<SegueApp> {
 
   @override
   Widget build(BuildContext context) =>
-      ListenableBuilder(listenable: Listenable.merge([_themeChoice, _languageChoice]), builder: _app);
+      ListenableBuilder(listenable: Listenable.merge([_settings.theme, _settings.language]), builder: _app);
 
   /// The app, in the theme and the language picked.
   Widget _app(BuildContext context, Widget? _) {
     final services = _services;
-    final ThemeSettings(:mode, :palette, :highContrast) = _themeChoice.value;
+    final ThemeSettings(:mode, :palette, :highContrast) = _settings.theme.value;
     final mediaControls = widget.mediaControls;
 
     return MaterialApp(
       title: 'Segue',
       debugShowCheckedModeBanner: false,
       // The app's words, and Material's own, in the language picked, or the system's.
-      locale: _languageChoice.value,
+      locale: _settings.language.value,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       localeListResolutionCallback: LanguageChoice.resolve,
@@ -292,7 +208,7 @@ class _SegueAppState extends State<SegueApp> {
       // At once, under the app in the old theme fading away (ThemeFade), rather than each color going to the new one's on
       // its own, which would build the app again on every frame.
       themeAnimationDuration: Duration.zero,
-      // Above the navigator, so that every page and sheet sees the services and the shortcuts.
+      // Above the navigator, so that every page and sheet sees the settings, the services and the shortcuts.
       builder: (context, child) {
         final page = TelevisionScreen(
           enabled: widget.television,
@@ -302,34 +218,28 @@ class _SegueAppState extends State<SegueApp> {
           ),
         );
 
-        final app = ThemeFade(
-          child: ThemedTitleBar(
-            child: services == null
-                ? page
-                : ServicesScope(
-                    services: services,
-                    // The media keys, too, where no system media session takes them.
-                    child: PlaybackShortcuts(
-                      mediaKeys: widget.mediaControls == null,
-                      child: FailedSongMessage(child: page),
+        final app = SettingsScope(
+          settings: _settings,
+          child: ThemeFade(
+            child: ThemedTitleBar(
+              child: services == null
+                  ? page
+                  : ServicesScope(
+                      services: services,
+                      // The media keys, too, where no system media session takes them.
+                      child: PlaybackShortcuts(
+                        mediaKeys: widget.mediaControls == null,
+                        child: FailedSongMessage(child: page),
+                      ),
                     ),
-                  ),
+            ),
           ),
         );
 
         return mediaControls == null ? app : _MediaControlsStrings(controls: mediaControls, child: app);
       },
       home: services != null
-          ? HomePage(
-              onSignOut: _signOut,
-              themeChoice: _themeChoice,
-              languageChoice: _languageChoice,
-              qualityChoice: _qualityChoice,
-              downloadChoice: _downloadChoice,
-              replayGainChoice: _replayGainChoice,
-              equalizerChoice: _equalizerChoice,
-              packageInfo: widget.packageInfo,
-            )
+          ? HomePage(onSignOut: _signOut, packageInfo: widget.packageInfo)
           : _starting || _closed != null
           ? const Scaffold(body: Center(child: Spinner()))
           : _error != null
@@ -350,7 +260,7 @@ class _SegueAppState extends State<SegueApp> {
                 );
               },
             )
-          : LoginPage(onSignedIn: _start, languageChoice: _languageChoice),
+          : LoginPage(onSignedIn: _start),
     );
   }
 }

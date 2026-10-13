@@ -6,7 +6,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:segue/autoplay_choice.dart';
 import 'package:segue/connect/connect.dart';
 import 'package:segue/l10n/app_localizations.dart';
 import 'package:segue/player/player.dart';
@@ -15,6 +14,7 @@ import 'package:segue/segue/protocol.dart';
 import 'package:segue/server/models.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
+import 'package:segue/settings.dart';
 import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/app/home_page.dart';
 import 'package:segue/ui/player/now_playing_bar.dart';
@@ -40,13 +40,13 @@ const songs = [
 
 /// The player bar, under the navigator as in the app, with [songs] playing from the second one, or,
 /// with [client], what its devices play. [television] as on a TV, which has no bar, but the home, whose side rail opens
-/// the player. With [autoplay], the pages show its switch.
+/// the player. With [settings], the pages show autoplay's switch.
 Future<PlayerController> pumpBar(
   WidgetTester tester, {
   SegueClient? client,
   Size size = const Size(360, 640),
   bool television = false,
-  AutoplayChoice? autoplay,
+  Settings? settings,
 }) async {
   final api = SubsonicApi(
     Uri.parse('https://music.test'),
@@ -67,7 +67,6 @@ Future<PlayerController> pumpBar(
     api,
     player,
     connect,
-    autoplay: autoplay,
   );
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -76,10 +75,14 @@ Future<PlayerController> pumpBar(
     MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: const [Locale('pt')],
-      builder: (context, child) => ServicesScope(
-        services: services,
-        child: DirectionalNavigation(enabled: television, child: child!),
-      ),
+      builder: (context, child) {
+        final page = ServicesScope(
+          services: services,
+          child: DirectionalNavigation(enabled: television, child: child!),
+        );
+
+        return settings == null ? page : SettingsScope(settings: settings, child: page);
+      },
       home: television
           ? HomePage(onSignOut: () {})
           : const Scaffold(body: SizedBox.expand(), bottomNavigationBar: NowPlayingBar()),
@@ -306,9 +309,10 @@ void main() {
   testWidgets('after the last track, this device\'s queue has the switch of autoplay, which turns it off and on; '
       'another device\'s, which goes on or not as that device has it, has none', (tester) async {
     SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
-    final autoplay = AutoplayChoice();
-    addTearDown(autoplay.dispose);
-    await pumpBar(tester, autoplay: autoplay);
+    final settings = Settings();
+    addTearDown(settings.dispose);
+    final autoplay = settings.autoplay;
+    await pumpBar(tester, settings: settings);
     await openQueue(tester);
     final toggle = find.widgetWithText(SwitchListTile, 'Reprodução automática');
     await tester.scrollUntilVisible(
@@ -331,7 +335,7 @@ void main() {
     await pumpBar(
       tester,
       client: clientWithTv(capabilities: CommandAction.values),
-      autoplay: autoplay,
+      settings: settings,
     );
     await openQueue(tester);
     expect(inQueue(find.text('Walk This Way')), findsOneWidget);

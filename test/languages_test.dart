@@ -6,9 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:segue/autoplay_choice.dart';
 import 'package:segue/connect/connect.dart';
-import 'package:segue/crossfade_choice.dart';
 import 'package:segue/equalizer_choice.dart';
 import 'package:segue/l10n/app_localizations.dart';
 import 'package:segue/language_choice.dart';
@@ -18,6 +16,7 @@ import 'package:segue/replay_gain_choice.dart';
 import 'package:segue/server/models.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
+import 'package:segue/settings.dart';
 import 'package:segue/subsonic/api.dart';
 import 'package:segue/theme_choice.dart';
 import 'package:segue/ui/album/credits_page.dart';
@@ -202,36 +201,26 @@ Future<void> pumpHome(WidgetTester tester, Locale language, Size size) async {
         duration: Duration(seconds: song['duration']! as int),
       ),
   ], play: false);
-  final autoplay = AutoplayChoice();
-  addTearDown(autoplay.dispose);
-  final crossfade = CrossfadeChoice();
-  addTearDown(crossfade.dispose);
   final services = Services(
     Session(server: Uri.parse('https://music.test'), credentials: credentials, deviceId: 'me', deviceName: 'laptop'),
     api,
     player,
     ConnectController(player: player),
-    autoplay: autoplay,
-    crossfade: crossfade,
   );
-  final themeChoice = ThemeChoice();
-  addTearDown(themeChoice.dispose);
-  final languageChoice = LanguageChoice(language);
-  addTearDown(languageChoice.dispose);
-  // As on a phone, with the automatic quality, and what it does under it.
-  final qualityChoice = QualityChoice(mobileData: true);
-  addTearDown(qualityChoice.dispose);
-  final replayGainChoice = ReplayGainChoice();
-  addTearDown(replayGainChoice.dispose);
-  // Its bands as far as they go, with the widest numbers.
-  final equalizerChoice = EqualizerChoice(
-    const EqualizerSettings(
-      on: true,
-      preset: EqualizerPreset.custom,
-      custom: [-12, 12, -12, 12, -12, 12, -12, 12, -12, 12],
+  final settings = Settings(
+    language: LanguageChoice(language),
+    // As on a phone, with the automatic quality, and what it does under it.
+    quality: QualityChoice(mobileData: true),
+    // Its bands as far as they go, with the widest numbers.
+    equalizer: EqualizerChoice(
+      const EqualizerSettings(
+        on: true,
+        preset: EqualizerPreset.custom,
+        custom: [-12, 12, -12, 12, -12, 12, -12, 12, -12, 12],
+      ),
     ),
   );
-  addTearDown(equalizerChoice.dispose);
+  addTearDown(settings.dispose);
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -241,14 +230,12 @@ Future<void> pumpHome(WidgetTester tester, Locale language, Size size) async {
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       theme: segueTheme(Brightness.light),
-      builder: (context, child) => ServicesScope(services: services, child: child!),
+      builder: (context, child) => SettingsScope(
+        settings: settings,
+        child: ServicesScope(services: services, child: child!),
+      ),
       home: HomePage(
         onSignOut: () {},
-        themeChoice: themeChoice,
-        languageChoice: languageChoice,
-        qualityChoice: qualityChoice,
-        replayGainChoice: replayGainChoice,
-        equalizerChoice: equalizerChoice,
         packageInfo: PackageInfo(appName: 'Segue', packageName: 'segue', version: '0.1.0', buildNumber: '214'),
       ),
     ),
@@ -423,8 +410,8 @@ void main() {
     }
 
     testWidgets('in ${strings.languageName}, the sign-in has room for its words, its errors too', (tester) async {
-      final languageChoice = LanguageChoice(language);
-      addTearDown(languageChoice.dispose);
+      final settings = Settings(language: LanguageChoice(language));
+      addTearDown(settings.dispose);
       tester.view.physicalSize = const Size(360, 640);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
@@ -433,7 +420,8 @@ void main() {
           locale: language,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: LoginPage(onSignedIn: (_) {}, languageChoice: languageChoice),
+          builder: (context, child) => SettingsScope(settings: settings, child: child!),
+          home: LoginPage(onSignedIn: (_) {}),
         ),
       );
       await tap(tester, find.text(strings.advanced));

@@ -12,6 +12,7 @@ import 'package:segue/quality_choice.dart';
 import 'package:segue/server/models.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
+import 'package:segue/settings.dart';
 import 'package:segue/subsonic/api.dart';
 import 'package:segue/server/server.dart';
 import 'package:segue/ui/album/albums_view.dart';
@@ -32,8 +33,14 @@ const songs = [
   Song(id: 's2', title: 'Sweet Emotion', coverArt: 'al1', duration: Duration(minutes: 4)),
 ];
 
-/// [child] with the services of a session on [server], with [downloads], in Portuguese.
-Future<void> pumpWith(WidgetTester tester, FileServer server, Downloads? downloads, Widget child) async {
+/// [child] with the services of a session on [server], with [downloads], and [settings] where given, in Portuguese.
+Future<void> pumpWith(
+  WidgetTester tester,
+  FileServer server,
+  Downloads? downloads,
+  Widget child, {
+  Settings? settings,
+}) async {
   final player = PlayerController(FakeEngine(), server.api);
   final services = Services(
     Session(
@@ -51,7 +58,11 @@ Future<void> pumpWith(WidgetTester tester, FileServer server, Downloads? downloa
     MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: const [Locale('pt')],
-      builder: (context, page) => ServicesScope(services: services, child: page!),
+      builder: (context, page) {
+        final scoped = ServicesScope(services: services, child: page!);
+
+        return settings == null ? scoped : SettingsScope(settings: settings, child: scoped);
+      },
       home: Scaffold(body: child),
     ),
   );
@@ -264,12 +275,13 @@ void main() {
     'the settings pick the downloads\' quality and whether they go over mobile data, over the list of them',
     (tester) async {
       await open(tester);
-      final choice = DownloadChoice(mobileData: true);
-      addTearDown(choice.dispose);
+      final settings = Settings(download: DownloadChoice(mobileData: true));
+      addTearDown(settings.dispose);
+      final choice = settings.download;
       tester.view.physicalSize = const Size(400, 1600);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
-      await pumpWith(tester, server, downloads, SettingsPage(onSignOut: () {}, downloadChoice: choice));
+      await pumpWith(tester, server, downloads, SettingsPage(onSignOut: () {}), settings: settings);
       expect(find.text('Qualidade dos downloads'), findsOneWidget);
       expect(find.text('Baixados'), findsOneWidget);
       expect(
@@ -283,7 +295,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(choice.value.quality, StreamQuality.low);
 
-      expect(tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value, isFalse);
+      expect(
+        tester.widget<SwitchListTile>(find.widgetWithText(SwitchListTile, 'Baixar com dados móveis')).value,
+        isFalse,
+      );
       await tester.tap(find.text('Baixar com dados móveis'));
       await tester.pump();
       expect(choice.value.onMobileData, isTrue);
@@ -292,10 +307,12 @@ void main() {
 
   testDownloads('without mobile data, downloading over it is no choice', (tester) async {
     await open(tester);
-    final choice = DownloadChoice();
-    addTearDown(choice.dispose);
-    await pumpWith(tester, server, downloads, SettingsPage(onSignOut: () {}, downloadChoice: choice));
-    expect(find.text('Qualidade dos downloads'), findsOneWidget);
-    expect(find.byType(SwitchListTile), findsNothing);
+    final settings = Settings();
+    addTearDown(settings.dispose);
+    await pumpWith(tester, server, downloads, SettingsPage(onSignOut: () {}), settings: settings);
+    // After the appearance and the playback, under the window's bottom.
+    await tester.scrollUntilVisible(find.text('Qualidade dos downloads'), 100);
+    await tester.pumpAndSettle();
+    expect(find.text('Baixar com dados móveis'), findsNothing);
   });
 }

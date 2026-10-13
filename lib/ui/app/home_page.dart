@@ -8,18 +8,12 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../l10n/app_localizations.dart';
-import '../../equalizer_choice.dart';
-import '../../language_choice.dart';
-import '../../download_choice.dart';
-import '../../quality_choice.dart';
-import '../../replay_gain_choice.dart';
 import '../../segue/client.dart';
 import '../../segue/protocol.dart';
 import '../../server/models.dart';
 import '../../server/reachability.dart';
 import '../../server/server.dart';
 import '../../services.dart';
-import '../../theme_choice.dart';
 import '../album/albums_view.dart';
 import '../artist/artists_view.dart';
 import '../genre/genres_view.dart';
@@ -37,37 +31,9 @@ import '../widgets/equalizer.dart';
 import '../widgets/themed_icon.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({
-    required this.onSignOut,
-    this.themeChoice,
-    this.languageChoice,
-    this.qualityChoice,
-    this.downloadChoice,
-    this.replayGainChoice,
-    this.equalizerChoice,
-    this.packageInfo,
-    super.key,
-  });
+  const HomePage({required this.onSignOut, this.packageInfo, super.key});
 
   final VoidCallback onSignOut;
-
-  /// The theme picked, in the settings: light, dark or the system's, its colors and its contrast; none, no choice of it.
-  final ThemeChoice? themeChoice;
-
-  /// The language picked, in the settings; none, no choice of it.
-  final LanguageChoice? languageChoice;
-
-  /// The quality the player streams in, picked in the settings; none, no choice of it.
-  final QualityChoice? qualityChoice;
-
-  /// How the app downloads, picked in the settings; none, no choice of it.
-  final DownloadChoice? downloadChoice;
-
-  /// How the player levels the songs' loudness, picked in the settings; none, no choice of it.
-  final ReplayGainChoice? replayGainChoice;
-
-  /// The equalizer the player plays through, set in the settings; none, no equalizer there.
-  final EqualizerChoice? equalizerChoice;
 
   /// The app's version and build number, in the settings; none, no line of them.
   final PackageInfo? packageInfo;
@@ -218,16 +184,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     _pages.currentState?.push(
       MaterialPageRoute<void>(
         settings: _settings,
-        builder: (_) => SettingsPage(
-          themeChoice: widget.themeChoice,
-          languageChoice: widget.languageChoice,
-          qualityChoice: widget.qualityChoice,
-          downloadChoice: widget.downloadChoice,
-          replayGainChoice: widget.replayGainChoice,
-          equalizerChoice: widget.equalizerChoice,
-          packageInfo: widget.packageInfo,
-          onSignOut: widget.onSignOut,
-        ),
+        builder: (_) => SettingsPage(packageInfo: widget.packageInfo, onSignOut: widget.onSignOut),
       ),
     );
   }

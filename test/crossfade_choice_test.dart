@@ -10,6 +10,7 @@ import 'package:segue/l10n/app_localizations.dart';
 import 'package:segue/player/player.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
+import 'package:segue/settings.dart';
 import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/settings/settings_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -42,8 +43,8 @@ void main() {
     expect((await CrossfadeChoice.load()).value, Duration.zero);
   });
 
-  /// The settings, whose services have [crossfade].
-  Future<void> pumpSettings(WidgetTester tester, CrossfadeChoice? crossfade) async {
+  /// The settings' page, with [settings] to pick, or none.
+  Future<void> pumpSettings(WidgetTester tester, Settings? settings) async {
     const credentials = SubsonicCredentials(username: 'a', token: 't', salt: 's');
     final api = SubsonicApi(
       Uri.parse('https://music.test'),
@@ -56,13 +57,20 @@ void main() {
       api,
       player,
       ConnectController(player: player),
-      crossfade: crossfade,
     );
+    // A window tall enough for every line of the settings.
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
     await tester.pumpWidget(
       MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: const [Locale('pt')],
-        builder: (context, child) => ServicesScope(services: services, child: child!),
+        builder: (context, child) {
+          final page = ServicesScope(services: services, child: child!);
+
+          return settings == null ? page : SettingsScope(settings: settings, child: page);
+        },
         home: SettingsPage(onSignOut: () {}),
       ),
     );
@@ -71,9 +79,10 @@ void main() {
   testWidgets('the settings pick how long the songs crossfade for, under the playback, none with what it does', (
     tester,
   ) async {
-    final crossfade = CrossfadeChoice();
-    addTearDown(crossfade.dispose);
-    await pumpSettings(tester, crossfade);
+    final settings = Settings();
+    addTearDown(settings.dispose);
+    final crossfade = settings.crossfade;
+    await pumpSettings(tester, settings);
     final line = find.widgetWithText(ListTile, 'Crossfade');
     expect(tester.getRect(line).top, greaterThan(tester.getRect(find.text('Reprodução')).bottom));
     expect(find.descendant(of: line, matching: find.text('Desligado')), findsOneWidget);

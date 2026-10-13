@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:segue/app.dart';
 import 'package:segue/session.dart';
+import 'package:segue/settings.dart';
 import 'package:segue/theme_choice.dart';
 import 'package:segue/ui/app/login_page.dart';
 import 'package:segue/ui/app/theme.dart';
@@ -61,11 +62,12 @@ void main() {
   testWidgets('the app shows the theme picked, whatever the system\'s, as soon as it is picked', (tester) async {
     tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
     addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
-    final choice = ThemeChoice(const ThemeSettings(mode: ThemeMode.dark));
-    addTearDown(choice.dispose);
+    final settings = Settings(theme: ThemeChoice(const ThemeSettings(mode: ThemeMode.dark)));
+    addTearDown(settings.dispose);
+    final choice = settings.theme;
     ThemeData shown() => Theme.of(tester.element(find.byType(LoginPage)));
 
-    await tester.pumpWidget(SegueApp(session: null, themeChoice: choice));
+    await tester.pumpWidget(SegueApp(session: null, settings: settings));
     expect(shown().brightness, Brightness.dark);
     expect(shown().colorScheme.surface, iconBlack);
 

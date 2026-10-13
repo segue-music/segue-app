@@ -121,6 +121,11 @@ Running two app instances on one machine as different devices:
   `AppLifecycleListener.onExitRequested`), the player before the hub's connection, whose close can wait on the network:
   ended with mpv still playing, the process aborted, often, mpv calling media_kit's wakeup callback after the Dart that
   it called had gone ("Callback invoked after it has been deleted").
+- `Settings` (`lib/settings.dart`) holds what the user picks, each choice (`ThemeChoice`, `QualityChoice`, ...) kept in
+  the preferences: this device's, across sign-outs. `main` loads them all at once; `Services.start` gives the player and
+  the downloads theirs, and `SettingsScope`, beside `ServicesScope` but there before a sign-in too, hands them to the
+  pages that pick them (the settings, the queue's autoplay switch, the sign-in's language menu). Where a test gives
+  none, those pages show no way to pick them, and `Services.start` plays as with nothing picked, autoplay off.
 - `PlayerController` (`lib/player/`) is this device's player over an `AudioEngine` interface.
   `MediaKitEngine` (libmpv) is the real engine; `test/fakes.dart` has `FakeEngine` for tests.
   `MediaKitEngine` works around media_kit in a few places, each pinned by
@@ -177,7 +182,7 @@ Running two app instances on one machine as different devices:
   frequency: of a Q so small (0.0001) that its band takes in every frequency, it is a gain. One graph, since on
   Android (mpv 0.35, FFmpeg 6.0) a second lavfi filter after mpv's resampler fails every frame. Turning it on or
   off restarts the audio output, a moment of silence; moving a band makes the graph anew, but not the output.
-  Autoplay (`AutoplayChoice`, `lib/autoplay_choice.dart`, on until turned off, `Services.autoplay`): as the queue's
+  Autoplay (`AutoplayChoice`, `lib/autoplay_choice.dart`, on until turned off, `Settings.autoplay`): as the queue's
   last song starts playing, repeat off, `PlayerController` asks the media server for songs like it
   (`MediaServer.similarSongs`: Subsonic's getSimilarSongs2 by the song's id, which Navidrome takes, else by its
   artist's; Jellyfin's `Items/{id}/InstantMix`), once for that song in that queue, and adds at the end up to
@@ -186,7 +191,7 @@ Running two app instances on one machine as different devices:
   the songs themselves, not their ids: the same song added otherwise stays), with one report, and turned on again on
   the same song asks again. It is each device's own setting, not the protocol's: the hub sees a longer queue, or a
   shorter one.
-  The crossfade (`CrossfadeChoice`, `lib/crossfade_choice.dart`, off until a length is picked, `Services.crossfade`),
+  The crossfade (`CrossfadeChoice`, `lib/crossfade_choice.dart`, off until a length is picked, `Settings.crossfade`),
   each device's own too: while it is on, `PlayerController` plays on a `CrossfadeEngine`
   (`lib/player/crossfade_engine.dart`) rather than on the engine it was given, and as it goes on or off it opens the
   queue on the other engine where it was, in the same play order (`open`'s `order`), the one before stopped (or, the

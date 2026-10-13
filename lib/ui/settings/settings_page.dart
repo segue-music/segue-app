@@ -3,13 +3,12 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../crossfade_choice.dart';
-import '../../equalizer_choice.dart';
-import '../../l10n/app_localizations.dart';
-import '../../language_choice.dart';
 import '../../download_choice.dart';
+import '../../l10n/app_localizations.dart';
 import '../../quality_choice.dart';
 import '../../replay_gain_choice.dart';
 import '../../services.dart';
+import '../../settings.dart';
 import '../../theme_choice.dart';
 import '../player/autoplay_switch.dart';
 import 'downloads_page.dart';
@@ -26,28 +25,12 @@ import 'sign_in_tv_page.dart';
 /// and its contrast, the language), the playback (the quality, the volume's normalization, the equalizer's page, the crossfade, autoplay) and
 /// the app itself (its version, the licenses' page); a line between the groups, and after the last, signing out, under
 /// the account it signs out of. Each choice is a line that says the option picked, which opens a sheet of them all ([_Choice]), or, on
-/// or off, a switch. In the page area, from the top bar's button; a choice missing (none given), its line too, a group
-/// left with none too, and the version with none.
+/// or off, a switch. In the page area, from the top bar's button; with no settings (SettingsScope), no choice's line,
+/// nor a group left with none, and with no version, no line of it.
 class SettingsPage extends StatelessWidget {
-  const SettingsPage({
-    required this.onSignOut,
-    this.themeChoice,
-    this.languageChoice,
-    this.qualityChoice,
-    this.downloadChoice,
-    this.replayGainChoice,
-    this.equalizerChoice,
-    this.packageInfo,
-    super.key,
-  });
+  const SettingsPage({required this.onSignOut, this.packageInfo, super.key});
 
   final VoidCallback onSignOut;
-  final ThemeChoice? themeChoice;
-  final LanguageChoice? languageChoice;
-  final QualityChoice? qualityChoice;
-  final DownloadChoice? downloadChoice;
-  final ReplayGainChoice? replayGainChoice;
-  final EqualizerChoice? equalizerChoice;
 
   /// The app's version and build number, as the build stamped them.
   final PackageInfo? packageInfo;
@@ -57,17 +40,8 @@ class SettingsPage extends StatelessWidget {
     final strings = AppLocalizations.of(context);
     final session = ServicesScope.of(context).session;
     final downloads = ServicesScope.of(context).downloads;
-    final autoplay = ServicesScope.of(context).autoplay;
-    final crossfade = ServicesScope.of(context).crossfade;
-    final (themeChoice, languageChoice, qualityChoice, replayGainChoice, equalizerChoice) = (
-      this.themeChoice,
-      this.languageChoice,
-      this.qualityChoice,
-      this.replayGainChoice,
-      this.equalizerChoice,
-    );
+    final settings = SettingsScope.maybeOf(context);
     final packageInfo = this.packageInfo;
-    final downloadChoice = this.downloadChoice;
 
     return Scaffold(
       appBar: AppBar(
@@ -81,21 +55,21 @@ class SettingsPage extends StatelessWidget {
       body: ListenableBuilder(
         // A line says the option picked last.
         listenable: Listenable.merge([
-          themeChoice,
-          languageChoice,
-          qualityChoice,
-          replayGainChoice,
-          equalizerChoice,
-          crossfade,
-          downloadChoice,
+          settings?.theme,
+          settings?.language,
+          settings?.quality,
+          settings?.replayGain,
+          settings?.equalizer,
+          settings?.crossfade,
+          settings?.download,
         ]),
         builder: (context, _) {
           final groups = [
             (
               strings.appearance,
               [
-                // The old theme fades into the new one, whatever changes it.
-                if (themeChoice != null) ...[
+                if (settings != null) ...[
+                  // The old theme fades into the new one, whatever changes it.
                   _Choice(
                     icon: HugeIcons.strokeRoundedContrast,
                     title: strings.theme,
@@ -109,10 +83,10 @@ class SettingsPage extends StatelessWidget {
                           name: name,
                           detail: null,
                           leading: null,
-                          picked: mode == themeChoice.value.mode,
+                          picked: mode == settings.theme.value.mode,
                           onPicked: () {
                             ThemeFade.start(context);
-                            themeChoice.pickMode(mode);
+                            settings.theme.pickMode(mode);
                           },
                         ),
                     ],
@@ -130,13 +104,13 @@ class SettingsPage extends StatelessWidget {
                             segueColors(
                               Theme.of(context).brightness,
                               palette: palette,
-                              highContrast: themeChoice.value.highContrast,
+                              highContrast: settings.theme.value.highContrast,
                             ),
                           ),
-                          picked: palette == themeChoice.value.palette,
+                          picked: palette == settings.theme.value.palette,
                           onPicked: () {
                             ThemeFade.start(context);
-                            themeChoice.pickPalette(palette);
+                            settings.theme.pickPalette(palette);
                           },
                         ),
                     ],
@@ -145,14 +119,12 @@ class SettingsPage extends StatelessWidget {
                     secondary: const ThemedIcon(HugeIcons.strokeRoundedView),
                     title: Text(strings.highContrast),
                     subtitle: Text(strings.highContrastDetail),
-                    value: themeChoice.value.highContrast,
+                    value: settings.theme.value.highContrast,
                     onChanged: (on) {
                       ThemeFade.start(context);
-                      themeChoice.turnHighContrast(on);
+                      settings.theme.turnHighContrast(on);
                     },
                   ),
-                ],
-                if (languageChoice != null)
                   _Choice(
                     icon: HugeIcons.strokeRoundedTranslate,
                     title: strings.language,
@@ -162,23 +134,24 @@ class SettingsPage extends StatelessWidget {
                           name: name,
                           detail: null,
                           leading: null,
-                          picked: language?.languageCode == languageChoice.value?.languageCode,
-                          onPicked: () => languageChoice.pick(language),
+                          picked: language?.languageCode == settings.language.value?.languageCode,
+                          onPicked: () => settings.language.pick(language),
                         ),
                     ],
                   ),
+                ],
               ],
             ),
             (
               strings.playback,
               [
-                // The automatic quality with what it does, under it.
-                if (qualityChoice != null)
+                if (settings != null) ...[
+                  // The automatic quality with what it does, under it.
                   _Choice(
                     icon: HugeIcons.strokeRoundedAudioWave01,
                     title: strings.audioQuality,
                     options: [
-                      for (final quality in qualityChoice.options)
+                      for (final quality in settings.quality.options)
                         (
                           name: strings.streamQuality(quality.name, quality.maxBitRate ?? 0),
                           detail: quality == StreamQuality.automatic
@@ -187,13 +160,12 @@ class SettingsPage extends StatelessWidget {
                                 )
                               : null,
                           leading: null,
-                          picked: quality == qualityChoice.value,
-                          onPicked: () => qualityChoice.pick(quality),
+                          picked: quality == settings.quality.value,
+                          onPicked: () => settings.quality.pick(quality),
                         ),
                     ],
                   ),
-                // Each way with what it does, under it.
-                if (replayGainChoice != null)
+                  // Each way with what it does, under it.
                   _Choice(
                     icon: HugeIcons.strokeRoundedVolumeHigh,
                     title: strings.volumeNormalization,
@@ -203,27 +175,25 @@ class SettingsPage extends StatelessWidget {
                           name: strings.replayGainMode(mode.name),
                           detail: strings.replayGainModeDetail(mode.name),
                           leading: null,
-                          picked: mode == replayGainChoice.value,
-                          onPicked: () => replayGainChoice.pick(mode),
+                          picked: mode == settings.replayGain.value,
+                          onPicked: () => settings.replayGain.pick(mode),
                         ),
                     ],
                   ),
-                // The equalizer, a page of its own in the page area, with the curve it plays with under its name.
-                if (equalizerChoice != null)
+                  // The equalizer, a page of its own in the page area, with the curve it plays with under its name.
                   ListTile(
                     leading: const ThemedIcon(HugeIcons.strokeRoundedSlidersVertical),
                     title: Text(strings.equalizer),
                     subtitle: Text(
-                      equalizerChoice.value.on
-                          ? strings.equalizerPreset(equalizerChoice.value.preset.name)
+                      settings.equalizer.value.on
+                          ? strings.equalizerPreset(settings.equalizer.value.preset.name)
                           : strings.equalizerOff,
                     ),
                     onTap: () =>
                         Navigator.of(context)
-                            .push(MaterialPageRoute<void>(builder: (_) => EqualizerPage(choice: equalizerChoice))),
+                            .push(MaterialPageRoute<void>(builder: (_) => EqualizerPage(choice: settings.equalizer))),
                   ),
-                // None with what it does, under it.
-                if (crossfade != null)
+                  // None with what it does, under it.
                   _Choice(
                     icon: HugeIcons.strokeRoundedBlend,
                     title: strings.crossfade,
@@ -233,19 +203,20 @@ class SettingsPage extends StatelessWidget {
                           name: strings.crossfadeLength(length.inSeconds),
                           detail: length == Duration.zero ? strings.crossfadeOffDetail : null,
                           leading: null,
-                          picked: length == crossfade.value,
-                          onPicked: () => crossfade.pick(length),
+                          picked: length == settings.crossfade.value,
+                          onPicked: () => settings.crossfade.pick(length),
                         ),
                     ],
                   ),
-                if (autoplay != null) AutoplaySwitch(autoplay),
+                  AutoplaySwitch(settings.autoplay),
+                ],
               ],
             ),
             // How the app downloads, and what it has downloaded, where it downloads.
             (
               strings.downloads,
               [
-                if (downloads != null && downloadChoice != null) ...[
+                if (downloads != null && settings != null) ...[
                   _Choice(
                     icon: HugeIcons.strokeRoundedAudioWave01,
                     title: strings.downloadQuality,
@@ -255,19 +226,19 @@ class SettingsPage extends StatelessWidget {
                           name: strings.streamQuality(quality.name, quality.maxBitRate ?? 0),
                           detail: null,
                           leading: null,
-                          picked: quality == downloadChoice.value.quality,
-                          onPicked: () => downloadChoice.pickQuality(quality),
+                          picked: quality == settings.download.value.quality,
+                          onPicked: () => settings.download.pickQuality(quality),
                         ),
                     ],
                   ),
                   // Only where the device has mobile data, which it waits off until it is turned on.
-                  if (downloadChoice.mobileData)
+                  if (settings.download.mobileData)
                     SwitchListTile(
                       secondary: const ThemedIcon(HugeIcons.strokeRoundedWifiDisconnected02),
                       title: Text(strings.downloadOnMobileData),
                       subtitle: Text(strings.downloadOnMobileDataDetail),
-                      value: downloadChoice.value.onMobileData,
-                      onChanged: downloadChoice.pickOnMobileData,
+                      value: settings.download.value.onMobileData,
+                      onChanged: settings.download.pickOnMobileData,
                     ),
                 ],
                 // The albums and playlists downloaded, a page of their own in the page area, with the room they take under

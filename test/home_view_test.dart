@@ -12,12 +12,12 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:segue/connect/connect.dart';
 import 'package:segue/equalizer_choice.dart';
 import 'package:segue/l10n/app_localizations.dart';
-import 'package:segue/language_choice.dart';
 import 'package:segue/player/player.dart';
 import 'package:segue/quality_choice.dart';
 import 'package:segue/replay_gain_choice.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
+import 'package:segue/settings.dart';
 import 'package:segue/subsonic/api.dart';
 import 'package:segue/theme_choice.dart';
 import 'package:segue/ui/album/album_page.dart';
@@ -59,9 +59,9 @@ http.Response albumList(List<String> names) => subsonic({
 
 /// The home page on a screen of [size], over a server whose latest released albums are [released],
 /// whose most played are [mostPlayed] (null: it fails to list them) and whose latest added are
-/// [latest], however many are asked for. In the app's themes, as [themeChoice] picks them, which the home switches, as
-/// the app does (ThemeFade). [languageChoice] is the home's to pick, though the app stays in Portuguese. [packageInfo]
-/// is the version the settings show. Returns the queries of the album lists the rows asked for; not the mixes', which
+/// [latest], however many are asked for. With [settings], the settings show them to pick, and the home is in the app's
+/// themes, as they pick them, which it switches, as the app does (ThemeFade); the app stays in Portuguese, whatever
+/// language they pick. [packageInfo] is the version the settings show. Returns the queries of the album lists the rows asked for; not the mixes', which
 /// count the 500 most played (and find no genres there, nor any of the library's: the home has no mixes).
 Future<List<Map<String, String>>> pumpHome(
   WidgetTester tester,
@@ -70,11 +70,7 @@ Future<List<Map<String, String>>> pumpHome(
   List<String>? mostPlayed = const ['Pump', 'Toys in the Attic'],
   List<String> latest = const ['Night in the Ruts'],
   bool television = false,
-  ThemeChoice? themeChoice,
-  LanguageChoice? languageChoice,
-  QualityChoice? qualityChoice,
-  ReplayGainChoice? replayGainChoice,
-  EqualizerChoice? equalizerChoice,
+  Settings? settings,
   PackageInfo? packageInfo,
   VoidCallback? onSignOut,
 }) async {
@@ -125,35 +121,31 @@ Future<List<Map<String, String>>> pumpHome(
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
   Widget app() {
-    final ThemeSettings(:mode, :palette, :highContrast) = themeChoice?.value ?? const ThemeSettings();
+    final ThemeSettings(:mode, :palette, :highContrast) = settings?.theme.value ?? const ThemeSettings();
 
     return MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: const [Locale('pt')],
-      theme: themeChoice == null ? null : segueTheme(Brightness.light, palette: palette, highContrast: highContrast),
-      darkTheme: themeChoice == null ? null : segueTheme(Brightness.dark, palette: palette, highContrast: highContrast),
+      theme: settings == null ? null : segueTheme(Brightness.light, palette: palette, highContrast: highContrast),
+      darkTheme: settings == null ? null : segueTheme(Brightness.dark, palette: palette, highContrast: highContrast),
       themeMode: mode,
       themeAnimationDuration: Duration.zero,
-      builder: (context, child) => ThemeFade(
-        child: ServicesScope(
-          services: services,
-          child: DirectionalNavigation(enabled: television, child: child!),
-        ),
-      ),
-      home: HomePage(
-        onSignOut: onSignOut ?? () {},
-        themeChoice: themeChoice,
-        languageChoice: languageChoice,
-        qualityChoice: qualityChoice,
-        replayGainChoice: replayGainChoice,
-        equalizerChoice: equalizerChoice,
-        packageInfo: packageInfo,
-      ),
+      builder: (context, child) {
+        final page = ThemeFade(
+          child: ServicesScope(
+            services: services,
+            child: DirectionalNavigation(enabled: television, child: child!),
+          ),
+        );
+
+        return settings == null ? page : SettingsScope(settings: settings, child: page);
+      },
+      home: HomePage(onSignOut: onSignOut ?? () {}, packageInfo: packageInfo),
     );
   }
 
   await tester.pumpWidget(
-    themeChoice == null ? app() : ListenableBuilder(listenable: themeChoice, builder: (context, _) => app()),
+    settings == null ? app() : ListenableBuilder(listenable: settings.theme, builder: (context, _) => app()),
   );
   await tester.pumpAndSettle();
 
@@ -179,8 +171,11 @@ bool checked(String text) =>
 bool says(String choice, String picked) =>
     find.descendant(of: settingsItem(choice), matching: find.text(picked)).evaluate().isNotEmpty;
 
-/// In the settings, opens the sheet of the choice [choice]'s options.
+/// In the settings, opens the sheet of the choice [choice]'s options, its line scrolled to the top of the page first,
+/// clear of a phone's bars at the bottom.
 Future<void> openChoice(WidgetTester tester, String choice) async {
+  await tester.ensureVisible(settingsItem(choice));
+  await tester.pumpAndSettle();
   await tester.tap(settingsItem(choice));
   await tester.pumpAndSettle();
   expect(find.byType(BottomSheet), findsOneWidget, reason: choice);
@@ -339,9 +334,9 @@ void main() {
   testWidgets('the app in the old theme fades away over the new one', (tester) async {
     tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
     addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
-    final choice = ThemeChoice();
-    addTearDown(choice.dispose);
-    await pumpHome(tester, const Size(1000, 700), themeChoice: choice);
+    final settings = Settings();
+    addTearDown(settings.dispose);
+    await pumpHome(tester, const Size(1000, 700), settings: settings);
     final old = find.byKey(ThemeFade.oldThemeKey);
     double opacity() => tester.widget<FadeTransition>(old).opacity.value;
 
@@ -369,9 +364,9 @@ void main() {
   testWidgets('where the system asks for less motion, the new theme shows at once', (tester) async {
     tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(disableAnimations: true);
     addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
-    final choice = ThemeChoice();
-    addTearDown(choice.dispose);
-    await pumpHome(tester, const Size(1000, 700), themeChoice: choice);
+    final settings = Settings();
+    addTearDown(settings.dispose);
+    await pumpHome(tester, const Size(1000, 700), settings: settings);
     await openSettings(tester);
     await openChoice(tester, 'Tema');
     await tester.tap(option('Tema escuro'));
@@ -385,15 +380,13 @@ void main() {
     'on a phone, the theme, the language, the version and signing out are in the settings, a page whose button '
     'comes after the hub\'s status; each choice says the option picked, and opens a sheet of them all',
     (tester) async {
-      final (themeChoice, languageChoice) = (ThemeChoice(), LanguageChoice());
-      addTearDown(themeChoice.dispose);
-      addTearDown(languageChoice.dispose);
+      final settings = Settings();
+      addTearDown(settings.dispose);
       // A phone tall enough for every item of the settings, which their list builds only near the screen.
       await pumpHome(
         tester,
-        const Size(360, 800),
-        themeChoice: themeChoice,
-        languageChoice: languageChoice,
+        const Size(360, 1600),
+        settings: settings,
         packageInfo: PackageInfo(appName: 'Segue', packageName: 'segue', version: '0.1.0', buildNumber: '214'),
       );
 
@@ -421,6 +414,7 @@ void main() {
         'Alto contraste',
         'Idioma',
         'Idioma do sistema',
+        'Reprodução',
         'Sobre',
         'Versão',
         '0.1.0 (214)',
@@ -429,17 +423,21 @@ void main() {
       ];
       final tops = [for (final text in texts) tester.getTopLeft(find.text(text)).dy];
       expect([...tops]..sort(), tops, reason: 'in this order, top to bottom');
-      expect(find.text('Reprodução'), findsNothing, reason: 'with nothing in it to pick');
       expect(find.text('Tema claro'), findsNothing, reason: 'in the sheet of the themes alone');
       final lines = find.descendant(of: find.byType(SettingsPage), matching: find.byType(Divider));
-      expect(lines, findsNWidgets(2), reason: 'a line after each group');
+      expect(lines, findsNWidgets(3), reason: 'a line after each group');
       expect(
         tester.getCenter(lines.at(0)).dy,
-        inExclusiveRange(tops[texts.indexOf('Idioma do sistema')], tops[texts.indexOf('Sobre')]),
-        reason: 'between the appearance and the app\'s version, over the licenses',
+        inExclusiveRange(tops[texts.indexOf('Idioma do sistema')], tops[texts.indexOf('Reprodução')]),
+        reason: 'between the appearance and the playback',
       );
       expect(
         tester.getCenter(lines.at(1)).dy,
+        inExclusiveRange(tops[texts.indexOf('Reprodução')], tops[texts.indexOf('Sobre')]),
+        reason: 'between the playback and the app\'s version, over the licenses',
+      );
+      expect(
+        tester.getCenter(lines.at(2)).dy,
         inExclusiveRange(tops[texts.indexOf('Licenças de código aberto')], tops[texts.indexOf('Sair')]),
         reason: 'as before signing out',
       );
@@ -470,7 +468,7 @@ void main() {
       await openChoice(tester, 'Tema');
       final sheet = find.byType(BottomSheet);
       expect(find.descendant(of: sheet, matching: find.text('Tema')), findsOneWidget);
-      expect(tester.getRect(sheet).bottom, 800, reason: 'over the bars at the bottom too');
+      expect(tester.getRect(sheet).bottom, 1600, reason: 'over the bars at the bottom too');
       final themes = ['Tema do sistema', 'Tema claro', 'Tema escuro'];
       final themeTops = [for (final text in themes) tester.getTopLeft(option(text)).dy];
       expect([...themeTops]..sort(), themeTops, reason: 'in this order, top to bottom');
@@ -510,19 +508,10 @@ void main() {
       'status: the top bar has no button of its own for the theme, the language, the quality or signing out', (
     tester,
   ) async {
-    final (themeChoice, languageChoice, qualityChoice) = (ThemeChoice(), LanguageChoice(), QualityChoice());
-    addTearDown(themeChoice.dispose);
-    addTearDown(languageChoice.dispose);
-    addTearDown(qualityChoice.dispose);
+    final settings = Settings();
+    addTearDown(settings.dispose);
     var signedOut = false;
-    await pumpHome(
-      tester,
-      const Size(1000, 700),
-      themeChoice: themeChoice,
-      languageChoice: languageChoice,
-      qualityChoice: qualityChoice,
-      onSignOut: () => signedOut = true,
-    );
+    await pumpHome(tester, const Size(1000, 700), settings: settings, onSignOut: () => signedOut = true);
 
     for (final tooltip in ['Tema escuro', 'Tema claro', 'Idioma', 'Qualidade do áudio', 'Sair']) {
       expect(find.byTooltip(tooltip), findsNothing, reason: 'no button of its own: $tooltip');
@@ -599,19 +588,19 @@ void main() {
 
   testWidgets('on a wide screen, Esc closes the settings, as the top bar\'s arrow does, also from a setting with the '
       'focus', (tester) async {
-    final themeChoice = ThemeChoice();
-    addTearDown(themeChoice.dispose);
-    await pumpHome(tester, const Size(1000, 700), themeChoice: themeChoice);
-    final settings = find.byType(SettingsPage);
+    final settings = Settings();
+    addTearDown(settings.dispose);
+    await pumpHome(tester, const Size(1000, 700), settings: settings);
+    final page = find.byType(SettingsPage);
 
     await openSettings(tester);
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
-    expect(settings, findsNothing);
+    expect(page, findsNothing);
 
     await tester.tap(find.byTooltip('Avançar'));
     await tester.pumpAndSettle();
-    expect(settings, findsOneWidget, reason: 'and forward to them again');
+    expect(page, findsOneWidget, reason: 'and forward to them again');
     await tester.sendKeyEvent(LogicalKeyboardKey.tab);
     await tester.pump();
     final focused = FocusManager.instance.primaryFocus?.context;
@@ -619,7 +608,7 @@ void main() {
     expect(focused?.findAncestorWidgetOfExactType<SettingsPage>(), isNotNull);
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
-    expect(settings, findsNothing);
+    expect(page, findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -656,9 +645,9 @@ void main() {
   ) async {
     tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
     addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
-    final choice = ThemeChoice();
-    addTearDown(choice.dispose);
-    await pumpHome(tester, const Size(360, 640), themeChoice: choice);
+    final settings = Settings();
+    addTearDown(settings.dispose);
+    await pumpHome(tester, const Size(360, 640), settings: settings);
     Brightness shown() => Theme.of(tester.element(find.byType(HomePage))).brightness;
 
     await openSettings(tester);
@@ -687,9 +676,9 @@ void main() {
       'fading away each time', (tester) async {
     tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
     addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
-    final choice = ThemeChoice();
-    addTearDown(choice.dispose);
-    await pumpHome(tester, const Size(360, 640), themeChoice: choice);
+    final settings = Settings();
+    addTearDown(settings.dispose);
+    await pumpHome(tester, const Size(360, 640), settings: settings);
     ColorScheme shown() => Theme.of(tester.element(find.byType(HomePage))).colorScheme;
     final fading = find.byKey(ThemeFade.oldThemeKey);
     expect(shown().surface, iconBlack);
@@ -757,21 +746,9 @@ void main() {
     'on a phone, the quality is in the settings, after the language, under the playback, before signing out: the '
     'original first, picked until another is, then the automatic one, which a phone has mobile data for',
     (tester) async {
-      final (themeChoice, languageChoice, qualityChoice) = (
-        ThemeChoice(),
-        LanguageChoice(),
-        QualityChoice(mobileData: true),
-      );
-      addTearDown(themeChoice.dispose);
-      addTearDown(languageChoice.dispose);
-      addTearDown(qualityChoice.dispose);
-      await pumpHome(
-        tester,
-        const Size(360, 640),
-        themeChoice: themeChoice,
-        languageChoice: languageChoice,
-        qualityChoice: qualityChoice,
-      );
+      final settings = Settings(quality: QualityChoice(mobileData: true));
+      addTearDown(settings.dispose);
+      await pumpHome(tester, const Size(360, 640), settings: settings);
       expect(find.byTooltip('Qualidade do áudio'), findsNothing, reason: 'no button of its own');
 
       await openSettings(tester);
@@ -796,6 +773,8 @@ void main() {
         lessThanOrEqualTo(tester.getRect(find.byType(NavigationBar)).top),
       );
 
+      // Back up to the quality, which the lines after it took above the top.
+      await tester.scrollUntilVisible(settingsItem('Qualidade do áudio'), -100, scrollable: list);
       await openChoice(tester, 'Qualidade do áudio');
       final texts = [
         'Qualidade original',
@@ -817,7 +796,7 @@ void main() {
       );
 
       await pick(tester, 'Qualidade normal · 160 kbps');
-      expect(qualityChoice.value, StreamQuality.normal);
+      expect(settings.quality.value, StreamQuality.normal);
       expect((await QualityChoice.load(mobileData: true)).value, StreamQuality.normal);
       expect(says('Qualidade do áudio', 'Qualidade normal · 160 kbps'), isTrue);
       await openChoice(tester, 'Qualidade do áudio');
@@ -828,10 +807,9 @@ void main() {
 
   testWidgets('on a phone, the volume\'s normalization is in the settings, after the quality, each way with what it '
       'does; a pick holds, and is kept', (tester) async {
-    final (qualityChoice, replayGainChoice) = (QualityChoice(), ReplayGainChoice());
-    addTearDown(qualityChoice.dispose);
-    addTearDown(replayGainChoice.dispose);
-    await pumpHome(tester, const Size(360, 640), qualityChoice: qualityChoice, replayGainChoice: replayGainChoice);
+    final settings = Settings();
+    addTearDown(settings.dispose);
+    await pumpHome(tester, const Size(360, 640), settings: settings);
 
     await openSettings(tester);
     expect(
@@ -868,7 +846,7 @@ void main() {
     }
 
     await pick(tester, 'Por álbum');
-    expect(replayGainChoice.value, ReplayGainMode.album);
+    expect(settings.replayGain.value, ReplayGainMode.album);
     expect((await ReplayGainChoice.load()).value, ReplayGainMode.album);
     expect(says('Normalização do volume', 'Por álbum'), isTrue);
     await openChoice(tester, 'Normalização do volume');
@@ -880,20 +858,16 @@ void main() {
     'on a phone, the equalizer is in the settings, after the volume\'s normalization, with the curve it plays '
     'with, and opens its page, whose changes it shows',
     (tester) async {
-      final (replayGainChoice, equalizerChoice) = (ReplayGainChoice(), EqualizerChoice());
-      addTearDown(replayGainChoice.dispose);
-      addTearDown(equalizerChoice.dispose);
-      await pumpHome(
-        tester,
-        const Size(360, 640),
-        replayGainChoice: replayGainChoice,
-        equalizerChoice: equalizerChoice,
-      );
+      final settings = Settings();
+      addTearDown(settings.dispose);
+      await pumpHome(tester, const Size(360, 640), settings: settings);
 
       await openSettings(tester);
       final list = find.descendant(of: find.byType(SettingsPage), matching: find.byType(Scrollable));
-      // To the end, so that the bars at the bottom leave it in sight.
-      await tester.scrollUntilVisible(settingsItem('Sair'), 100, scrollable: list);
+      // Down to the volume's normalization, at the top of the page, the equalizer under it clear of the bars at the
+      // bottom.
+      await tester.scrollUntilVisible(settingsItem('Normalização do volume'), 100, scrollable: list);
+      await tester.pumpAndSettle();
       expect(
         tester.getTopLeft(find.text('Equalizador')).dy,
         greaterThan(tester.getTopLeft(find.text('Normalização do volume')).dy),
@@ -908,7 +882,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(ChoiceChip, 'Jazz'));
       await tester.pumpAndSettle();
-      expect(equalizerChoice.value, const EqualizerSettings(on: true, preset: EqualizerPreset.jazz));
+      expect(settings.equalizer.value, const EqualizerSettings(on: true, preset: EqualizerPreset.jazz));
 
       await tester.tap(find.byTooltip('Voltar'));
       await tester.pumpAndSettle();

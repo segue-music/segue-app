@@ -2,18 +2,14 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:path_provider/path_provider.dart';
 
-import 'autoplay_choice.dart';
 import 'connect/connect.dart';
-import 'crossfade_choice.dart';
 import 'download_choice.dart';
 import 'downloads/downloads.dart';
 import 'downloads/pending_plays.dart';
 import 'downloads/server_with_downloads.dart';
-import 'equalizer_choice.dart';
 import 'lyrics/lrclib.dart';
 import 'mobile_data.dart';
 import 'player/crossfade_engine.dart';
@@ -23,7 +19,6 @@ import 'pictures/fanart_tv.dart';
 import 'player/player.dart';
 import 'player/sleep_timer.dart';
 import 'quality_choice.dart';
-import 'replay_gain_choice.dart';
 import 'releases/musicbrainz.dart';
 import 'segue/client.dart';
 import 'segue/discovery.dart';
@@ -35,7 +30,7 @@ import 'server/reachability.dart';
 import 'server/server.dart';
 import 'server/sign_in.dart';
 import 'session.dart';
-import 'volume_choice.dart';
+import 'settings.dart';
 
 /// Everything a signed-in session runs on.
 class Services {
@@ -52,29 +47,15 @@ class Services {
     this.downloads,
     this.reachability,
     this.downloadHold,
-    this.autoplay,
-    this.crossfade,
     this.sleepTimer,
   });
 
-  /// Starts a session: the API, with what the user downloaded, this device's player, which streams in the quality picked
-  /// ([quality]; the original, with none), levels the songs' loudness the way picked ([replayGain]; not at all, with
-  /// none), plays them through the equalizer as set ([equalizer]; as they are, with none), goes on after the queue's
-  /// last song while [autoplay] is on (never, with none), crossfades them for as long as [crossfade] says (never, with
-  /// none) and plays at the volume [volume] keeps (all of it, with none), and, if a hub is found, the connection to it.
+  /// Starts a session: the API, with what the user downloaded, this device's player, which plays as [settings] say (its
+  /// quality, loudness, equalizer, autoplay, crossfade and volume; with none, the songs as they are, one after the other
+  /// to the queue's end, as loud as the system's volume), and, if a hub is found, the connection to it.
   /// Where none is found, the media server out of reach or the network blinking as the app opens, the hub is the one last
   /// found next to it, which the connection reaches once it can.
-  static Future<Services> start(
-    Session session, {
-    AudioEngine? engine,
-    ValueListenable<StreamQuality>? quality,
-    ValueListenable<ReplayGainMode>? replayGain,
-    ValueListenable<EqualizerSettings>? equalizer,
-    ValueListenable<DownloadSettings>? downloadSettings,
-    AutoplayChoice? autoplay,
-    CrossfadeChoice? crossfade,
-    VolumeChoice? volume,
-  }) async {
+  static Future<Services> start(Session session, {AudioEngine? engine, Settings? settings}) async {
     final server = openServer(
       session.server,
       session.credentials,
@@ -87,7 +68,7 @@ class Services {
     final mobileData = await MobileData.watch();
     final lrclib = Lrclib();
     final fanartTv = fanartTvKey.isEmpty ? null : FanartTv(apiKey: fanartTvKey);
-    final downloadHold = DownloadHold(downloadSettings ?? ValueNotifier(const DownloadSettings()), mobileData);
+    final downloadHold = DownloadHold(settings?.download ?? ValueNotifier(const DownloadSettings()), mobileData);
     // Where there is nowhere to keep them, none: the app plays from the server alone.
     Downloads? downloads;
     PendingPlays? pendingPlays;
@@ -98,7 +79,7 @@ class Services {
         directory,
         server,
         reachability: reachability,
-        maxBitRate: () => downloadSettings?.value.quality.maxBitRate,
+        maxBitRate: () => settings?.download.value.quality.maxBitRate,
         hold: downloadHold,
         lyricsOf: (song) => _lyricsOf(song, server, lrclib),
         artistPicture: fanartTv == null ? null : (artist) => _fanartPicture(artist, fanartTv),
@@ -114,13 +95,13 @@ class Services {
     final player = PlayerController(
       engine ?? MediaKitEngine(),
       api,
-      quality: () => (quality?.value ?? StreamQuality.original).inUse(onMobileData: mobileData.value),
-      replayGain: replayGain,
-      equalizer: equalizer,
-      autoplay: autoplay,
-      crossfade: crossfade,
-      crossfadeEngine: crossfade == null ? null : () => CrossfadeEngine(() => crossfade.value),
-      volume: volume,
+      quality: () => (settings?.quality.value ?? StreamQuality.original).inUse(onMobileData: mobileData.value),
+      replayGain: settings?.replayGain,
+      equalizer: settings?.equalizer,
+      autoplay: settings?.autoplay,
+      crossfade: settings?.crossfade,
+      crossfadeEngine: settings == null ? null : () => CrossfadeEngine(() => settings.crossfade.value),
+      volume: settings?.volume,
     );
     // Not found, the hub last found there, also with the server in reach: a request that failed as the app opened (the
     // network blinking, a VPN coming up) left the app without one until it was opened again.
@@ -158,8 +139,6 @@ class Services {
       downloads: downloads,
       reachability: reachability,
       downloadHold: downloadHold,
-      autoplay: autoplay,
-      crossfade: crossfade,
       sleepTimer: SleepTimer(player),
     );
     unawaited(client?.start());
@@ -237,13 +216,6 @@ class Services {
 
   /// Whether the downloads wait for Wi-Fi or a cable; null, they never do.
   final DownloadHold? downloadHold;
-
-  /// Whether [player] goes on after the queue's last song with songs like it, which the settings and the queue's page
-  /// turn on and off; null, it never does, nor shows a way to.
-  final AutoplayChoice? autoplay;
-
-  /// How long [player] crossfades the songs for, which the settings pick; null, it never does, nor shows a way to.
-  final CrossfadeChoice? crossfade;
 
   /// What pauses [player] after a while, or as the song ends; null, nothing does, nor shows a way to.
   final SleepTimer? sleepTimer;
