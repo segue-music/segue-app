@@ -8,10 +8,20 @@ import 'albums_view.dart';
 
 /// A titled row of albums, which scrolls sideways: by the arrows in its right corner, or dragged.
 class AlbumRow extends StatelessWidget {
-  const AlbumRow({required this.title, required this.albums, this.empty, this.onShowAll, super.key});
+  const AlbumRow({
+    required this.title,
+    required this.albums,
+    this.initialAlbums,
+    this.empty,
+    this.onShowAll,
+    super.key,
+  });
 
   final String title;
   final Future<List<Album>> albums;
+
+  /// What it shows until [albums] come, rather than a spinner: on the home, those it showed the time before.
+  final List<Album>? initialAlbums;
 
   /// What the row says when there are none; null, nothing, for a page that leaves an empty row out.
   final String? empty;
@@ -30,6 +40,7 @@ class AlbumRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) => FutureBuilder(
     future: albums,
+    initialData: initialAlbums,
     builder: (context, snapshot) {
       final text = Theme.of(context).textTheme;
       final strings = AppLocalizations.of(context);

@@ -10,11 +10,13 @@ import 'download_choice.dart';
 import 'downloads/downloads.dart';
 import 'downloads/pending_plays.dart';
 import 'downloads/server_with_downloads.dart';
+import 'home_cache.dart';
 import 'lyrics/lrclib.dart';
 import 'mobile_data.dart';
 import 'player/crossfade_engine.dart';
 import 'player/engine.dart';
 import 'player/play_counter.dart';
+import 'pictures/cover_cache.dart';
 import 'pictures/fanart_tv.dart';
 import 'player/player.dart';
 import 'player/sleep_timer.dart';
@@ -48,6 +50,8 @@ class Services {
     this.reachability,
     this.downloadHold,
     this.sleepTimer,
+    this.homeCache,
+    this.covers,
   });
 
   /// Starts a session: the API, with what the user downloaded, this device's player, which plays as [settings] say (its
@@ -92,6 +96,19 @@ class Services {
     final api = downloads == null
         ? server
         : ServerWithDownloads(server, downloads, reachability, pendingPlays: pendingPlays);
+    // Where there is nowhere to keep them, none: the home comes from the server alone, and the covers.
+    HomeCache? homeCache;
+    CoverCache? covers;
+
+    try {
+      final directory = await cacheDirectory(session);
+      homeCache = await HomeCache.open(File('${directory.path}/home.json'), reachability: reachability);
+      covers = CoverCache(Directory('${directory.path}/covers'));
+      unawaited(covers.trim());
+    } on Object catch (e) {
+      debugPrint('cache unavailable: $e');
+    }
+
     final player = PlayerController(
       engine ?? MediaKitEngine(),
       api,
@@ -118,6 +135,8 @@ class Services {
       reachability: reachability,
       downloadHold: downloadHold,
       sleepTimer: SleepTimer(player),
+      homeCache: homeCache,
+      covers: covers,
     );
 
     if (rememberedHub != null) {
@@ -203,6 +222,12 @@ class Services {
   /// What pauses [player] after a while, or as the song ends; null, nothing does, nor shows a way to.
   final SleepTimer? sleepTimer;
 
+  /// What the home showed, which it shows at once as the app opens; null, nothing kept.
+  final HomeCache? homeCache;
+
+  /// The covers and pictures shown, kept on the device; null, none are, each loaded again.
+  final CoverCache? covers;
+
   bool _disposed = false;
 
   /// Connects to the hub at [url], [connect] going through it.
@@ -277,13 +302,30 @@ class Services {
   }
 
   /// Where the downloads of [session]'s user on its server are kept: a folder of their own, in the app's.
-  static Future<Directory> downloadsDirectory(Session session) async {
-    final account = base64Url
-        .encode(utf8.encode('${session.server}\n${session.credentials.username}'))
-        .replaceAll('=', '');
+  static Future<Directory> downloadsDirectory(Session session) async =>
+      Directory('${(await getApplicationSupportDirectory()).path}/downloads/${_account(session)}');
 
-    return Directory('${(await getApplicationSupportDirectory()).path}/downloads/$account');
+  /// Where what is kept of [session]'s user on its server, to show at once, is ([HomeCache], [CoverCache]): a folder of
+  /// their own in the app's cache, which the system may empty.
+  static Future<Directory> cacheDirectory(Session session) async =>
+      Directory('${(await getApplicationCacheDirectory()).path}/library/${_account(session)}');
+
+  /// Deletes what is kept of [session]'s user, as they sign out ([cacheDirectory]).
+  static Future<void> clearCache(Session session) async {
+    try {
+      final directory = await cacheDirectory(session);
+
+      if (await directory.exists()) {
+        await directory.delete(recursive: true);
+      }
+    } on Object catch (e) {
+      debugPrint('cache not cleared: $e');
+    }
   }
+
+  /// A folder's name for [session]'s user on its server: both, in base 64, as URLs have it, without its padding.
+  static String _account(Session session) =>
+      base64Url.encode(utf8.encode('${session.server}\n${session.credentials.username}')).replaceAll('=', '');
 
   Future<void> dispose() async {
     _disposed = true;
@@ -304,6 +346,8 @@ class Services {
     downloads?.dispose();
     downloadHold?.dispose();
     reachability?.dispose();
+    homeCache?.close();
+    covers?.close();
   }
 }
 
@@ -313,7 +357,11 @@ class ServicesScope extends InheritedWidget {
 
   final Services services;
 
-  static Services of(BuildContext context) => context.dependOnInheritedWidgetOfExactType<ServicesScope>()!.services;
+  static Services of(BuildContext context) => maybeOf(context)!;
+
+  /// The services, where there are some: a picture from elsewhere shows without them.
+  static Services? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<ServicesScope>()?.services;
 
   @override
   bool updateShouldNotify(ServicesScope oldWidget) => services != oldWidget.services;

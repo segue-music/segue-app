@@ -324,6 +324,16 @@ Running two app instances on one machine as different devices:
   share one request for the 500 most played albums, and on Jellyfin one for the most played songs, while it's under
   way. A genre's page has a button that plays its mix (`MixButton`). The mix goes to the hub as any queue does: the
   protocol knows nothing of it.
+- `HomeCache` (`lib/home_cache.dart`, `Services.homeCache`) keeps what the home showed (`home.json`, in a folder of the
+  app's cache for each user on each server, `Services.cacheDirectory`, deleted as they sign out): as the app opens,
+  each row shows its albums the time before (`AlbumRow.initialAlbums`) until they come again (`keepAlbums`, which gives
+  back those shown where the server lists the same, so that the row stays as it is), and the mixes are those picked
+  the time before (`SuggestedMixes.kept`, with their first songs and pictures), the next time's picked meanwhile, once
+  a session, with the server in reach. What the downloads give out of reach isn't kept. `CoverCache`
+  (`lib/pictures/cover_cache.dart`, `Services.covers`) keeps the covers `Cover` shows, and the pictures from elsewhere,
+  in the same folder (`covers/`, by their SHA-256), so that they show at once the next time, out of reach too: one
+  older than 30 days shows and comes again for the next time, and the oldest go past 100 MB (`trim`, as the session
+  starts). Tests leave both null.
 - `Favorites` (`lib/server/favorites.dart`, `Services.favorites`) holds the user's favorite songs, albums and artists:
   as the media server last gave them (`MediaServer.favorites`: Subsonic's getStarred2, the latest starred first;
   Jellyfin's items marked `IsFavorite`, by name, since it doesn't say when), with the changes made here since, which

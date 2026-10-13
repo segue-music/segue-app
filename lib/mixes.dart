@@ -60,6 +60,9 @@ class DecadeMix extends Mix {
 /// An artist whose picture a mix's tile shows: the media server's ([Artist.coverArt]), or else fanart.tv's ([picture]).
 typedef MixPicture = ({Artist artist, Uri? picture});
 
+/// A mix as a home showed it, kept for another ([SuggestedMixes.kept]): its first songs, and its picture, if any.
+typedef KeptMix = ({Mix mix, List<Song> firstSongs, MixPicture? picture});
+
 /// The mixes the home suggests, and the first songs of each, which its tile shows and it plays first, and the first of
 /// their artists with a picture, which it shows: asked for once, as the tile first shows, and the same until the home
 /// loads again.
@@ -67,7 +70,19 @@ class SuggestedMixes {
   // Its failure is the row's, which takes it up as it's built: not one of the zone's, should the home load again, as
   // pulled down, before the row is built anew.
   SuggestedMixes(this._server, {Random? random, this._fanartTv})
-    : mixes = _suggested(_server, random ?? Random(seed))..ignore();
+    : mixes = _suggested(_server, random ?? Random(seed))..ignore(),
+      keptMixes = null;
+
+  /// The mixes [kept], as another home showed them, with their first songs and pictures, which come at once.
+  SuggestedMixes.kept(this._server, List<KeptMix> kept, {this._fanartTv})
+    : keptMixes = [for (final mix in kept) mix.mix],
+      mixes = Future.value([for (final mix in kept) mix.mix]) {
+    for (final mix in kept) {
+      _kept[mix.mix] = mix;
+      _firstSongs[mix.mix] = Future.value(mix.firstSongs);
+      _pictures[mix.mix] = Future.value(mix.picture);
+    }
+  }
 
   /// The seed of the [Random] that picks the mixes, where none is given (the home's): with none, other mixes each
   /// time. The README's pictures (tool/screenshots.dart) give one, so that the computer's home shows the same mixes each
@@ -86,6 +101,10 @@ class SuggestedMixes {
   /// favorites mostly among them, and first. None where the library has no genres.
   final Future<List<Mix>> mixes;
 
+  /// [mixes], where they were kept ([SuggestedMixes.kept]): what the row shows at once, rather than as they come.
+  final List<Mix>? keptMixes;
+
+  final _kept = <Mix, KeptMix>{};
   final _firstSongs = <Mix, Future<List<Song>>>{};
   final _pictures = <Mix, Future<MixPicture?>>{};
 
@@ -102,6 +121,26 @@ class SuggestedMixes {
 
   /// The first songs of [mix], one of [mixes].
   Future<List<Song>> firstSongs(Mix mix) => _firstSongs[mix] ??= mix.songs(_server, size: firstSize);
+
+  /// [firstSongs], where [mix] was kept.
+  List<Song>? keptFirstSongs(Mix mix) => _kept[mix]?.firstSongs;
+
+  /// [picture], where [mix] was kept.
+  MixPicture? keptPicture(Mix mix) => _kept[mix]?.picture;
+
+  /// The mixes, each with its first songs and picture, once they have all come, for another home to show; a mix whose
+  /// songs fail is left out.
+  Future<List<KeptMix>> keep() async {
+    Future<KeptMix?> keep(Mix mix) async {
+      try {
+        return (mix: mix, firstSongs: await firstSongs(mix), picture: await picture(mix));
+      } on Object {
+        return null;
+      }
+    }
+
+    return (await Future.wait([for (final mix in await mixes) keep(mix)])).nonNulls.toList();
+  }
 
   /// The first artist of [mix]'s first songs, in the order they play, who has a picture, the server's or else
   /// fanart.tv's: one after another, each asked for as the one before has none. Null where none has one (nor their ids,

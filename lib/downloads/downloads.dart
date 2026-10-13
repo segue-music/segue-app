@@ -102,7 +102,7 @@ class Downloads extends ChangeNotifier {
         }
 
         for (final item in json['artists'] as List? ?? const []) {
-          final artist = _artist(item as Map<String, dynamic>);
+          final artist = Artist.fromJson(item as Map<String, dynamic>);
           artists[artist.id] = artist;
         }
       } on Object catch (e) {
@@ -528,7 +528,7 @@ class Downloads extends ChangeNotifier {
     await part.writeAsString(
       jsonEncode({
         'downloads': [for (final download in _downloads.values) _downloadJson(download)],
-        'artists': [for (final artist in _artists.values) _artistJson(artist)],
+        'artists': [for (final artist in _artists.values) artist.toJson()],
       }),
       flush: true,
     );
@@ -576,144 +576,22 @@ class Downloads extends ChangeNotifier {
 // The index, as JSON: what the app needs of each album, playlist and song to show and play them.
 
 Map<String, Object?> _downloadJson(Download download) => {
-  if (download.album case final album?) 'album': _albumJson(album),
-  if (download.playlist case final playlist?) 'playlist': _playlistJson(playlist),
-  'songs': [for (final song in download.songs) _songJson(song)],
+  if (download.album case final album?) 'album': album.toJson(),
+  if (download.playlist case final playlist?) 'playlist': playlist.toJson(),
+  'songs': [for (final song in download.songs) song.toJson()],
   'added': download.added.millisecondsSinceEpoch,
 };
 
 Download _download(Map<String, dynamic> json) {
-  final songs = [for (final song in json['songs'] as List) _song(song as Map<String, dynamic>)];
+  final songs = [for (final song in json['songs'] as List) Song.fromJson(song as Map<String, dynamic>)];
   final added = DateTime.fromMillisecondsSinceEpoch((json['added'] as num).toInt());
 
   return switch ((json['album'], json['playlist'])) {
-    (final Map<String, dynamic> album, _) => Download.album(_album(album), songs, added: added),
-    (_, final Map<String, dynamic> playlist) => Download.playlist(_playlist(playlist), songs, added: added),
+    (final Map<String, dynamic> album, _) => Download.album(Album.fromJson(album), songs, added: added),
+    (_, final Map<String, dynamic> playlist) => Download.playlist(Playlist.fromJson(playlist), songs, added: added),
     _ => throw const FormatException('neither an album nor a playlist'),
   };
 }
-
-Map<String, Object?> _albumJson(Album album) => {
-  'id': album.id,
-  'name': album.name,
-  'artist': album.artist,
-  'coverArt': album.coverArt,
-  'year': album.year,
-  'songCount': album.songCount,
-  'artistId': album.artistId,
-  if (album.releaseDate case final date?) 'releaseDate': [date.year, date.month, date.day],
-  'recordLabels': album.recordLabels,
-  'musicBrainzId': album.musicBrainzId,
-  'releaseType': album.releaseType?.name,
-  'genres': [
-    for (final genre in album.genres) {'id': genre.id, 'name': genre.name},
-  ],
-};
-
-Album _album(Map<String, dynamic> json) => Album(
-  id: json['id'] as String,
-  name: json['name'] as String,
-  artist: json['artist'] as String?,
-  coverArt: json['coverArt'] as String?,
-  year: (json['year'] as num?)?.toInt(),
-  songCount: (json['songCount'] as num?)?.toInt(),
-  artistId: json['artistId'] as String?,
-  releaseDate: switch (json['releaseDate']) {
-    [final num year, final num? month, final num? day] => ReleaseDate(
-      year.toInt(),
-      month: month?.toInt(),
-      day: day?.toInt(),
-    ),
-    _ => null,
-  },
-  recordLabels: [for (final label in json['recordLabels'] as List? ?? const []) label as String],
-  musicBrainzId: json['musicBrainzId'] as String?,
-  releaseType: ReleaseType.values.asNameMap()[json['releaseType']],
-  genres: [
-    for (final genre in json['genres'] as List? ?? const [])
-      Genre(id: (genre as Map<String, dynamic>)['id'] as String, name: genre['name'] as String),
-  ],
-);
-
-Map<String, Object?> _playlistJson(Playlist playlist) => {
-  'id': playlist.id,
-  'name': playlist.name,
-  'coverArt': playlist.coverArt,
-  'songCount': playlist.songCount,
-  'editable': playlist.editable,
-};
-
-Playlist _playlist(Map<String, dynamic> json) => Playlist(
-  id: json['id'] as String,
-  name: json['name'] as String,
-  coverArt: json['coverArt'] as String?,
-  songCount: (json['songCount'] as num?)?.toInt(),
-  editable: json['editable'] as bool? ?? false,
-);
-
-Map<String, Object?> _songJson(Song song) => {
-  'id': song.id,
-  'title': song.title,
-  'artist': song.artist,
-  'album': song.album,
-  'coverArt': song.coverArt,
-  'durationMs': song.duration?.inMilliseconds,
-  'albumId': song.albumId,
-  'artists': [
-    for (final artist in song.artists) {'id': artist.id, 'name': artist.name},
-  ],
-  'musicBrainzId': song.musicBrainzId,
-  if (song.replayGain case final gain?)
-    'replayGain': {
-      'trackGain': gain.trackGain,
-      'albumGain': gain.albumGain,
-      'trackPeak': gain.trackPeak,
-      'albumPeak': gain.albumPeak,
-    },
-};
-
-Song _song(Map<String, dynamic> json) => Song(
-  id: json['id'] as String,
-  title: json['title'] as String,
-  artist: json['artist'] as String?,
-  album: json['album'] as String?,
-  coverArt: json['coverArt'] as String?,
-  duration: switch (json['durationMs']) {
-    final num ms => Duration(milliseconds: ms.toInt()),
-    _ => null,
-  },
-  albumId: json['albumId'] as String?,
-  artists: [
-    for (final artist in json['artists'] as List? ?? const [])
-      Artist(id: (artist as Map<String, dynamic>)['id'] as String, name: artist['name'] as String),
-  ],
-  musicBrainzId: json['musicBrainzId'] as String?,
-  replayGain: switch (json['replayGain']) {
-    final Map<String, dynamic> gain => ReplayGain(
-      trackGain: (gain['trackGain'] as num?)?.toDouble(),
-      albumGain: (gain['albumGain'] as num?)?.toDouble(),
-      trackPeak: (gain['trackPeak'] as num?)?.toDouble(),
-      albumPeak: (gain['albumPeak'] as num?)?.toDouble(),
-    ),
-    _ => null,
-  },
-);
-
-Map<String, Object?> _artistJson(Artist artist) => {
-  'id': artist.id,
-  'name': artist.name,
-  'coverArt': artist.coverArt,
-  'musicBrainzId': artist.musicBrainzId,
-  'albumCount': artist.albumCount,
-};
-
-Artist _artist(Map<String, dynamic> json) => Artist(
-  id: json['id'] as String,
-  name: json['name'] as String,
-  coverArt: json['coverArt'] as String?,
-  musicBrainzId: json['musicBrainzId'] as String?,
-  albumCount: (json['albumCount'] as num?)?.toInt(),
-);
 
 /// Lyrics as JSON, each line with when it starts, where they're synced; none, as no lines.
 Map<String, Object?> _lyricsJson(Lyrics? lyrics) => {

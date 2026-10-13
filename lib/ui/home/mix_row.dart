@@ -48,6 +48,7 @@ class MixRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) => FutureBuilder(
     future: mixes.mixes,
+    initialData: mixes.keptMixes,
     builder: (context, snapshot) {
       final strings = AppLocalizations.of(context);
       final suggested = snapshot.data;
@@ -121,6 +122,7 @@ class _MixTileState extends State<_MixTile> {
           padding: const EdgeInsets.all(AlbumTile.padding),
           child: FutureBuilder(
             future: widget.mixes.firstSongs(widget.mix),
+            initialData: widget.mixes.keptFirstSongs(widget.mix),
             builder: (context, snapshot) {
               final songs = snapshot.data ?? const <Song>[];
 
@@ -186,6 +188,7 @@ class _MixTileState extends State<_MixTile> {
       _MixArt(widget.mix),
       FutureBuilder(
         future: widget.mixes.picture(widget.mix),
+        initialData: widget.mixes.keptPicture(widget.mix),
         builder: (context, snapshot) => switch (snapshot.data) {
           (:final artist, :final picture) => Cover(artist.coverArt, url: picture, icon: HugeIcons.strokeRoundedUser),
           null => const SizedBox.shrink(),

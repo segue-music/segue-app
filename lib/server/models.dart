@@ -20,6 +20,29 @@ class Album {
     this.genres = const [],
   });
 
+  /// An album as [toJson] gave it.
+  factory Album.fromJson(Map<String, dynamic> json) => Album(
+    id: json['id'] as String,
+    name: json['name'] as String,
+    artist: json['artist'] as String?,
+    coverArt: json['coverArt'] as String?,
+    year: (json['year'] as num?)?.toInt(),
+    songCount: (json['songCount'] as num?)?.toInt(),
+    artistId: json['artistId'] as String?,
+    releaseDate: switch (json['releaseDate']) {
+      [final num year, final num? month, final num? day] => ReleaseDate(
+        year.toInt(),
+        month: month?.toInt(),
+        day: day?.toInt(),
+      ),
+      _ => null,
+    },
+    recordLabels: [for (final label in json['recordLabels'] as List? ?? const []) label as String],
+    musicBrainzId: json['musicBrainzId'] as String?,
+    releaseType: ReleaseType.values.asNameMap()[json['releaseType']],
+    genres: [for (final genre in json['genres'] as List? ?? const []) Genre.fromJson(genre as Map<String, dynamic>)],
+  );
+
   final String id;
   final String name;
   final String? artist;
@@ -47,6 +70,22 @@ class Album {
 
   /// Its genres; none when the server doesn't say, as Jellyfin doesn't unless asked.
   final List<Genre> genres;
+
+  /// It as JSON, as the app keeps it on the device (the downloads' index, the home's cache): what it needs to show it.
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'name': name,
+    'artist': artist,
+    'coverArt': coverArt,
+    'year': year,
+    'songCount': songCount,
+    'artistId': artistId,
+    if (releaseDate case final date?) 'releaseDate': [date.year, date.month, date.day],
+    'recordLabels': recordLabels,
+    'musicBrainzId': musicBrainzId,
+    'releaseType': releaseType?.name,
+    'genres': [for (final genre in genres) genre.toJson()],
+  };
 }
 
 /// What kind of release an album is, as MusicBrainz sorts them: by its primary type (an album, an EP, a single), or
@@ -117,6 +156,33 @@ class Song {
     duration: item.durationMs == null ? null : Duration(milliseconds: item.durationMs!),
   );
 
+  /// A song as [toJson] gave it.
+  factory Song.fromJson(Map<String, dynamic> json) => Song(
+    id: json['id'] as String,
+    title: json['title'] as String,
+    artist: json['artist'] as String?,
+    album: json['album'] as String?,
+    coverArt: json['coverArt'] as String?,
+    duration: switch (json['durationMs']) {
+      final num ms => Duration(milliseconds: ms.toInt()),
+      _ => null,
+    },
+    albumId: json['albumId'] as String?,
+    artists: [
+      for (final artist in json['artists'] as List? ?? const []) Artist.fromJson(artist as Map<String, dynamic>),
+    ],
+    musicBrainzId: json['musicBrainzId'] as String?,
+    replayGain: switch (json['replayGain']) {
+      final Map<String, dynamic> gain => ReplayGain(
+        trackGain: (gain['trackGain'] as num?)?.toDouble(),
+        albumGain: (gain['albumGain'] as num?)?.toDouble(),
+        trackPeak: (gain['trackPeak'] as num?)?.toDouble(),
+        albumPeak: (gain['albumPeak'] as num?)?.toDouble(),
+      ),
+      _ => null,
+    },
+  );
+
   final String id;
   final String title;
   final String? artist;
@@ -149,6 +215,26 @@ class Song {
 
   QueueItem toQueueItem() =>
       QueueItem(id: id, title: title, artist: artist, album: album, durationMs: duration?.inMilliseconds);
+
+  /// It as JSON, as the app keeps it on the device: what it needs to show and play it, its credits left out.
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'title': title,
+    'artist': artist,
+    'album': album,
+    'coverArt': coverArt,
+    'durationMs': duration?.inMilliseconds,
+    'albumId': albumId,
+    'artists': [for (final artist in artists) artist.toJson()],
+    'musicBrainzId': musicBrainzId,
+    if (replayGain case final gain?)
+      'replayGain': {
+        'trackGain': gain.trackGain,
+        'albumGain': gain.albumGain,
+        'trackPeak': gain.trackPeak,
+        'albumPeak': gain.albumPeak,
+      },
+  };
 }
 
 /// A song's ReplayGain, as the media server gives it: OpenSubsonic's, which Navidrome reads from the file's tags, or
@@ -286,6 +372,15 @@ class LyricLine {
 class Artist {
   const Artist({required this.id, required this.name, this.coverArt, this.albumCount, this.musicBrainzId});
 
+  /// An artist as [toJson] gave them.
+  factory Artist.fromJson(Map<String, dynamic> json) => Artist(
+    id: json['id'] as String,
+    name: json['name'] as String,
+    coverArt: json['coverArt'] as String?,
+    musicBrainzId: json['musicBrainzId'] as String?,
+    albumCount: (json['albumCount'] as num?)?.toInt(),
+  );
+
   final String id;
   final String name;
   final String? coverArt;
@@ -294,6 +389,15 @@ class Artist {
   /// Their id in MusicBrainz; null when the server doesn't know it, or doesn't say it where it is asked for them with
   /// others.
   final String? musicBrainzId;
+
+  /// Them as JSON, as the app keeps them on the device.
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'name': name,
+    'coverArt': coverArt,
+    'musicBrainzId': musicBrainzId,
+    'albumCount': albumCount,
+  };
 }
 
 /// What the media server says of an artist's life and work, a paragraph at a time.
@@ -356,17 +460,33 @@ class Biography {
 class Genre {
   const Genre({required this.id, required this.name, this.albumCount});
 
+  /// A genre as [toJson] gave it.
+  factory Genre.fromJson(Map<String, dynamic> json) =>
+      Genre(id: json['id'] as String, name: json['name'] as String, albumCount: (json['albumCount'] as num?)?.toInt());
+
   /// Its id in Jellyfin's API; in Subsonic's, which has no ids for genres, its name.
   final String id;
   final String name;
 
   /// How many albums it has; null when the server doesn't say.
   final int? albumCount;
+
+  /// It as JSON, as the app keeps it on the device.
+  Map<String, Object?> toJson() => {'id': id, 'name': name, 'albumCount': ?albumCount};
 }
 
 /// A playlist: songs in the order someone put them in, the user or another who shares it with them.
 class Playlist {
   const Playlist({required this.id, required this.name, this.coverArt, this.songCount, this.editable = true});
+
+  /// A playlist as [toJson] gave it.
+  factory Playlist.fromJson(Map<String, dynamic> json) => Playlist(
+    id: json['id'] as String,
+    name: json['name'] as String,
+    coverArt: json['coverArt'] as String?,
+    songCount: (json['songCount'] as num?)?.toInt(),
+    editable: json['editable'] as bool? ?? false,
+  );
 
   final String id;
   final String name;
@@ -380,6 +500,15 @@ class Playlist {
   /// Whether the user can change it: rename it, delete it, add songs to it, remove and move them. Not another user's,
   /// nor one the server makes itself from rules (Navidrome's smart playlists).
   final bool editable;
+
+  /// It as JSON, as the app keeps it on the device.
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'name': name,
+    'coverArt': coverArt,
+    'songCount': songCount,
+    'editable': editable,
+  };
 }
 
 /// What a search found.

@@ -12,8 +12,9 @@ import 'mix_row.dart';
 
 /// The first section: mixes of the genres and the decades the user plays most, which play as they're picked, then the
 /// latest released albums, the albums the user plays most and the latest added to the library, each in a row that
-/// scrolls sideways, whose title opens all of them. With the media server out of reach, the albums downloaded, the
-/// latest first, alone.
+/// scrolls sideways, whose title opens all of them. As the app opens, what it showed the time before, at once, while
+/// they come ([Services.homeCache]). With the media server out of reach, the albums downloaded, the latest first,
+/// alone.
 class HomeView extends StatefulWidget {
   const HomeView({this.onShowAll, super.key});
 
@@ -29,6 +30,9 @@ class _HomeViewState extends State<HomeView> {
   static const _rows = [AlbumOrder.released, AlbumOrder.mostPlayed, AlbumOrder.latest];
 
   late Map<AlbumOrder, Future<List<Album>>> _albums;
+
+  /// What each row shows until its albums come: those it showed the time before, where they were kept.
+  var _keptAlbums = const <AlbumOrder, List<Album>>{};
 
   /// None out of reach: a mix's songs are the server's to pick.
   SuggestedMixes? _mixes;
@@ -47,13 +51,27 @@ class _HomeViewState extends State<HomeView> {
     }
   }
 
-  void _load() {
+  /// Lists the rows' albums, and picks the mixes: as the home opens, those it showed the time before, at once, or,
+  /// [again] (pulled down), new ones.
+  void _load({bool again = false}) {
     final services = ServicesScope.of(context);
     _offline = !(services.reachability?.value ?? true);
-    // Out of reach, the server's albums are the downloaded ones, the latest downloaded first.
+    // Out of reach, the server's albums are the downloaded ones, the latest downloaded first, which aren't kept.
     final rows = _offline ? const [AlbumOrder.latest] : _rows;
-    _albums = {for (final order in rows) order: services.api.albums(order: order, size: AlbumRow.maxAlbums)};
-    _mixes = _offline ? null : SuggestedMixes(services.api, fanartTv: services.fanartTv);
+    final cache = _offline ? null : services.homeCache;
+    _keptAlbums = again || cache == null ? const {} : {for (final order in rows) order: ?cache.albums(order)};
+    _albums = {
+      for (final order in rows)
+        order: switch (services.api.albums(order: order, size: AlbumRow.maxAlbums)) {
+          final listed when cache != null => cache.keepAlbums(order, listed, shown: _keptAlbums[order]),
+          final listed => listed,
+        },
+    };
+    _mixes = switch (cache) {
+      _ when _offline => null,
+      final cache? when !again => cache.mixes(services.api, fanartTv: services.fanartTv),
+      _ => SuggestedMixes(services.api, fanartTv: services.fanartTv),
+    };
     _loaded = true;
   }
 
@@ -64,7 +82,7 @@ class _HomeViewState extends State<HomeView> {
 
     return RefreshIndicator(
       onRefresh: () async {
-        setState(_load);
+        setState(() => _load(again: true));
         // Each row shows its own failure.
         await Future.wait(_albums.values).catchError((_) => const <List<Album>>[]);
       },
@@ -95,6 +113,7 @@ class _HomeViewState extends State<HomeView> {
                       AlbumRow(
                         title: _offline ? strings.downloadedAlbums : order.label(strings),
                         albums: albums,
+                        initialAlbums: _keptAlbums[order],
                         empty: _offline ? strings.nothingDownloaded : order.emptyMessage(strings),
                         onShowAll: onShowAll == null ? null : () => onShowAll(order),
                       ),

@@ -170,6 +170,11 @@ class _SegueAppState extends State<SegueApp> {
     widget.interruptions?.attach(null);
     await services?.api.signOut();
     await services?.dispose();
+
+    if (services != null) {
+      await Services.clearCache(services.session);
+    }
+
     await Session.clear();
   }
 

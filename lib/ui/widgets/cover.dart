@@ -83,15 +83,22 @@ class Cover extends StatelessWidget {
   }
 
   /// The cover [id], asked of the media server at [size] pixels, or its file where it is downloaded, taken that many
-  /// across at most, or else the picture at [url], taken so too; null for neither.
+  /// across at most, or else the picture at [url], taken so too; null for neither. Kept on the device as they come
+  /// ([Services.covers]), where the session keeps them.
   static ImageProvider? _image(BuildContext context, String? id, Uri? url, int size) => switch ((id, url)) {
-    (final id?, _) => switch (ServicesScope.of(context).api.coverArtUrl(id, size: size)) {
-      final cover when cover.isScheme('file') => ResizeImage(FileImage(File.fromUri(cover)), width: size),
-      final cover => NetworkImage('$cover'),
-    },
-    (null, final url?) => ResizeImage(NetworkImage('$url'), width: size),
+    (final id?, _) => _cover(ServicesScope.of(context), id, size),
+    (null, final url?) => ResizeImage(
+      ServicesScope.maybeOf(context)?.covers?.picture(url) ?? NetworkImage('$url'),
+      width: size,
+    ),
     (null, null) => null,
   };
+
+  static ImageProvider _cover(Services services, String id, int size) =>
+      switch (services.api.coverArtUrl(id, size: size)) {
+        final cover when cover.isScheme('file') => ResizeImage(FileImage(File.fromUri(cover)), width: size),
+        final cover => services.covers?.cover(services.api, id, size: size) ?? NetworkImage('$cover'),
+      };
 
   @override
   Widget build(BuildContext context) {
