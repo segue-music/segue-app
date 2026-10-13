@@ -30,8 +30,8 @@ import 'television_player.dart';
 /// The full-screen player: what plays, wherever it plays, big, and its lyrics beside it (on a phone, under it). On a
 /// wide screen the player bar stays under it, with the controls; on a phone, where there is none, it has every control
 /// itself, and a drag down closes it, or takes its lyrics out, which a drag up brings in, and then full screen. On a TV,
-/// over everything, it is as a video player: the cover blurred behind it ([TelevisionBackdrop]), no top bar, and its
-/// controls coming as the remote's keys are pressed and going after a while ([TelevisionControls]).
+/// over everything, it is as a video player: no top bar, and its controls coming as the remote's keys are pressed and
+/// going after a while ([TelevisionControls]).
 class PlayerPage extends StatefulWidget {
   const PlayerPage(this._lyrics, {super.key});
 
@@ -177,7 +177,6 @@ class _PlayerPageState extends State<PlayerPage> with SingleTickerProviderStateM
                       final now => Stack(
                         fit: StackFit.expand,
                         children: [
-                          TelevisionBackdrop(now.coverArt),
                           SafeArea(
                             child: TelevisionControls(
                               now,

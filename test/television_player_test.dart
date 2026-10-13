@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:segue/server/models.dart';
 import 'package:segue/ui/player/player_page.dart';
 import 'package:segue/ui/player/television_player.dart';
-import 'package:segue/ui/widgets/cover.dart';
 
 import 'directional_navigation_test.dart' show focusedTip, press, pressUntil, pumpFullHdHome;
-import 'player_page_test.dart' show onPage, openPlayer, pumpBar;
 
 /// The full-screen player on a TV, from the side rail.
 Future<void> openTvPlayer(WidgetTester tester) async {
@@ -123,28 +120,6 @@ void main() {
     await player.pause();
     await tester.pump();
     expect(keptOn, [true, false]);
-    await tester.pumpWidget(const SizedBox());
-  });
-
-  testWidgets('on a TV, behind the full-screen player, its cover, asked for small, stretched over the screen', (
-    tester,
-  ) async {
-    await pumpBar(
-      tester,
-      size: const Size(960, 540),
-      television: true,
-      song: const Song(id: 's1', title: 'Sweet Emotion', coverArt: 'c1', duration: Duration(minutes: 4)),
-    );
-    await openPlayer(tester);
-    final backdrop = onPage(find.byType(TelevisionBackdrop));
-    expect(tester.getRect(backdrop), const Rect.fromLTWH(0, 0, 960, 540));
-    expect(
-      find.descendant(
-        of: backdrop,
-        matching: find.byWidgetPredicate((widget) => widget is Cover && widget.size == TelevisionBackdrop.size),
-      ),
-      findsOneWidget,
-    );
     await tester.pumpWidget(const SizedBox());
   });
 }

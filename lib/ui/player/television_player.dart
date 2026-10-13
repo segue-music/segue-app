@@ -11,7 +11,6 @@ import '../../services.dart';
 import '../playlist/playlist_dialogs.dart';
 import '../song/favorite_button.dart';
 import '../widgets/bar_traversal.dart';
-import '../widgets/cover.dart';
 import '../widgets/themed_icon.dart';
 import 'devices_sheet.dart';
 import 'player_controls.dart';
@@ -269,36 +268,6 @@ class _TelevisionControlsState extends State<TelevisionControls> {
           ),
         ],
       ),
-    );
-  }
-}
-
-/// On a TV, behind the full-screen player, the cover of what plays, from edge to edge, blurred and faint: asked of the
-/// server [size] pixels across, and stretched, which blurs it as a filter would, without one to work out at every frame.
-/// Nothing where there is no cover.
-class TelevisionBackdrop extends StatelessWidget {
-  const TelevisionBackdrop(this.coverArt, {super.key});
-
-  final String? coverArt;
-
-  /// Pixels asked of the server: few enough for the picture to blur, stretched over the screen.
-  static const size = 32;
-
-  @override
-  Widget build(BuildContext context) {
-    final coverArt = this.coverArt;
-
-    if (coverArt == null) {
-      return const SizedBox.expand();
-    }
-
-    // Over it, the background's color, so that the text on it reads, in either theme.
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        Cover(coverArt, size: size, gapless: true),
-        ColoredBox(color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.7)),
-      ],
     );
   }
 }

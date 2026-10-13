@@ -430,9 +430,8 @@ Running two app instances on one machine as different devices:
   (on a TV, left and right too). A text field opens the keyboard as the focus comes to it, and on a
   TV the keyboard covers half the screen and takes the D-pad, so there the home's search bar stays
   read-only until the center button (its `onTap`) opens it. On a TV the full-screen player is as a video player
-  (`lib/ui/player/television_player.dart`): no top bar, the cover behind it from edge to edge, faint and blurred
-  (`TelevisionBackdrop`: asked for at 32 pixels and stretched, as a blur filter would be worked out again at every
-  frame, the lyrics moving), and its controls under it (`TelevisionControls`) showing as it opens and as the arrows
+  (`lib/ui/player/television_player.dart`): no top bar, on the theme's background, and its controls under it
+  (`TelevisionControls`) showing as it opens and as the arrows
   or OK are pressed, which then only bring them back, play taking the focus, and going after 5 s with no key, but
   while a menu or a sheet opened from them shows; the slider stays. The remote's back hides them first, and only then
   closes the player. The screen stays on while it plays. On a TV the lyrics are karaoke (`LyricsView.karaoke`, by the
