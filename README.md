@@ -10,12 +10,12 @@ Segue's protocol and its hub, which runs next to the media server, are in
 [segue-music/segue](https://github.com/segue-music/segue). Without a hub, the app plays on the device it runs on.
 
 <p align="center">
-  <img src="docs/screenshots/desktop.png" width="51%" alt="The home on a computer: mixes by genre and decade, new releases and the most played albums, with the player bar at the bottom">
-  <img src="docs/screenshots/tv.png" width="47%" alt="The full-screen player on a TV, the lyrics as karaoke beside the cover and the controls under them">
+  <a href="docs/screenshots/desktop.png"><img src="docs/screenshots/desktop.webp" width="51%" alt="The home on a computer: mixes by genre and decade, new releases and the most played albums, with the player bar at the bottom"></a>
+  <a href="docs/screenshots/tv.png"><img src="docs/screenshots/tv.webp" width="47%" alt="The full-screen player on a TV, the lyrics as karaoke beside the cover and the controls under them"></a>
 </p>
 <p align="center">
-  <img src="docs/screenshots/phone.png" width="26.4%" alt="The full-screen player on a phone: the cover, the song, the time played and the controls">
-  <img src="docs/screenshots/tablet.png" width="71.6%" alt="The full-screen player on a tablet, in the light theme, with the synced lyrics beside the cover">
+  <a href="docs/screenshots/phone.png"><img src="docs/screenshots/phone.webp" width="26.4%" alt="The full-screen player on a phone: the cover, the song, the time played and the controls"></a>
+  <a href="docs/screenshots/tablet.png"><img src="docs/screenshots/tablet.webp" width="71.6%" alt="The full-screen player on a tablet, in the light theme, with the synced lyrics beside the cover"></a>
 </p>
 
 > [!NOTE]
@@ -394,8 +394,10 @@ artwork needs them measured again.
 
 The pictures above (`docs/screenshots/`) are of the app on a made-up library, its covers drawn in code: `tool/flutter.sh
 test tool/screenshots.dart` makes them again, rendering the app as the widget tests do, with Roboto from Flutter's own
-copy, in each device's frame, drawn there too (Android's status and gesture bars on the phone and the tablet). The mixes
-on the computer's home are picked at random, as in the app, so each run may show others.
+copy, in each device's frame, drawn there too (Android's status and gesture bars on the phone and the tablet). Each is a
+PNG, whole, which the page links to, and a WebP at half its width, which the page shows, a tenth as heavy and as sharp
+as the page needs on a screen of 2 pixels per point (cwebp, in the dev image). The mixes on the computer's home are
+picked at random, as in the app, so each run may show others.
 
 ### Keys
 
@@ -453,7 +455,7 @@ env SEGUE_DEVICE_ID=second SEGUE_DEVICE_NAME="Second copy" segue/segue
 | `lib/l10n/` | The app's words in each language, as ARB files |
 | `test/` | Unit and widget tests, and tests against the real Go hub (`hub_test.dart`) |
 | `tool/` | The Docker images and scripts to build and test without installing Flutter; `icons.dart`, every icon from `icon.png`; `screenshots.dart`, the README's pictures |
-| `docs/screenshots/` | The README's pictures, which `tool/screenshots.dart` makes |
+| `docs/screenshots/` | The README's pictures, which `tool/screenshots.dart` makes: whole, as PNG, and as the page shows them, as WebP |
 
 `CLAUDE.md` goes into how these fit together.
 

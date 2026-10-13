@@ -24,3 +24,7 @@ RUN curl -fsSL "https://storage.googleapis.com/flutter_infra_release/releases/st
     && flutter precache --linux \
     && dart --disable-analytics \
     && chmod -R a+rwX /opt/flutter
+# cwebp, which makes the README's pictures small (tool/screenshots.dart). In a layer of its own, after the SDK's, so
+# that a change here doesn't build that one again.
+RUN apt-get update && apt-get install -y --no-install-recommends webp \
+    && rm -rf /var/lib/apt/lists/*

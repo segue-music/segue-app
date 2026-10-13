@@ -215,18 +215,33 @@ Future<void> _settle(WidgetTester tester) async {
   }
 }
 
-/// Saves the screen as [device]'s picture, in its frame, in device pixels.
+/// Saves the screen as [device]'s picture, in its frame: whole, as PNG, which the README links to, and at half its
+/// width, as WebP, which the README shows, a tenth as heavy, as sharp as the page shows it on a screen of 2 pixels per
+/// point.
 Future<void> _save(WidgetTester tester, _Device device) async {
   final screen = _screen.currentContext!.findRenderObject()! as RenderRepaintBoundary;
   await tester.runAsync(() async {
     final image = await screen.toImage(pixelRatio: device.pixelRatio);
     final framed = await _frame(image, device);
     final png = await framed.toByteData(format: ui.ImageByteFormat.png);
+    final width = framed.width;
     image.dispose();
     framed.dispose();
     final file = File('$_folder/${device.name}.png');
     await file.parent.create(recursive: true);
     await file.writeAsBytes(png!.buffer.asUint8List());
+    // cwebp is in the dev image (tool/dev.Dockerfile).
+    final webp = await Process.run('cwebp', [
+      '-quiet',
+      ...['-q', '88', '-alpha_q', '100'],
+      ...['-resize', '${width ~/ 2}', '0'],
+      file.path,
+      ...['-o', '$_folder/${device.name}.webp'],
+    ]);
+
+    if (webp.exitCode != 0) {
+      throw Exception('cwebp failed: ${webp.stderr}');
+    }
   });
 }
 
