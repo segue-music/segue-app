@@ -539,30 +539,39 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 // In each section, what there is to use there, rather than its name, or the app's: the bar at the
                 // bottom says where it is.
                 appBar: AppBar(
-                  titleSpacing: switch (destination) {
-                    // The chips from the edge, which they scroll to, the first one 16 from it.
-                    _Destination.home => 0,
-                    // The search bar 16 from the edge, lined up with what the search shows under it.
-                    _Destination.search => 16,
-                    // The first tab's name 16 from the edge, past the room around it.
-                    _Destination.library => 16 - _libraryTabPadding,
-                  },
-                  title: switch (destination) {
-                    _Destination.home => HomeChips(onFavorites: _openFavorites),
-                    _Destination.search => searchBar,
-                    // As wide as their names, from the left, scrolling sideways where they don't fit; with no line under
-                    // them across the bar, which has none.
-                    _Destination.library => TabBar(
-                      controller: _libraryTabs,
-                      isScrollable: true,
-                      tabAlignment: TabAlignment.start,
-                      padding: EdgeInsets.zero,
-                      labelPadding: const EdgeInsets.symmetric(horizontal: _libraryTabPadding),
-                      dividerHeight: 0,
-                      tabs: [for (final section in _Destination.libraryTabs) Tab(text: section.label(strings))],
-                      onTap: (index) => _select(_Destination.libraryTabs[index]),
-                    ),
-                  },
+                  // Each destination's controls keep their own room at their sides, which stays as they come and go.
+                  titleSpacing: 0,
+                  title: _TopBarControls(
+                    shown: destination.index,
+                    controls: [
+                      for (final destination in _Destination.values)
+                        switch (destination) {
+                          // The chips from the edge, which they scroll to, the first one 16 from it.
+                          _Destination.home => HomeChips(onFavorites: _openFavorites),
+                          // The search bar 16 from the edge, lined up with what the search shows under it.
+                          _Destination.search => Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: searchBar,
+                          ),
+                          // The first tab's name 16 from the edge, past the room around it. As wide as their names,
+                          // from the left, scrolling sideways where they don't fit; with no line under them across the
+                          // bar, which has none.
+                          _Destination.library => Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16 - _libraryTabPadding),
+                            child: TabBar(
+                              controller: _libraryTabs,
+                              isScrollable: true,
+                              tabAlignment: TabAlignment.start,
+                              padding: EdgeInsets.zero,
+                              labelPadding: const EdgeInsets.symmetric(horizontal: _libraryTabPadding),
+                              dividerHeight: 0,
+                              tabs: [for (final section in _Destination.libraryTabs) Tab(text: section.label(strings))],
+                              onTap: (index) => _select(_Destination.libraryTabs[index]),
+                            ),
+                          ),
+                        },
+                    ],
+                  ),
                   actions: actions,
                 ),
                 // A swipe goes from a section to the next, as the bar at the bottom and the library's tabs line them up.
@@ -832,6 +841,131 @@ class _KeptAliveState extends State<_KeptAlive> with AutomaticKeepAliveClientMix
     super.build(context);
 
     return widget.child;
+  }
+}
+
+/// On a phone, the top bar's controls, one for each destination, those of the destination [shown] in sight. As it
+/// changes, they go as the sections lie, side by side, rather than one taking the other's place at once: the one shown
+/// moves aside, the way the sections go, fading out, and once it is gone the next one comes in from the other side,
+/// fading in (Material's shared axis).
+class _TopBarControls extends StatefulWidget {
+  const _TopBarControls({required this.shown, required this.controls});
+
+  /// The index in [controls] of the destination shown.
+  final int shown;
+
+  /// Each destination's, in their order, with the room they keep at their sides.
+  final List<Widget> controls;
+
+  @override
+  State<_TopBarControls> createState() => _TopBarControlsState();
+}
+
+class _TopBarControlsState extends State<_TopBarControls> with TickerProviderStateMixin {
+  /// How far aside the controls go: they show on the half of the way next to where they stand.
+  static const _travel = 30.0;
+
+  /// How long the controls take from aside to where they stand, or back.
+  static const _duration = Duration(milliseconds: 300);
+
+  /// Each destination's controls' place: 0 where they stand, -1 aside before and 1 after, as the destination is before
+  /// the one shown or after it.
+  late final _places = [
+    for (var index = 0; index < widget.controls.length; index++)
+      AnimationController(vsync: this, lowerBound: -1, value: _side(index)),
+  ];
+
+  /// Where the controls at [index] go: 0 for the destination shown, -1 for one before it and 1 for one after.
+  double _side(int index) => (index - widget.shown).sign.toDouble();
+
+  /// How much of the controls at [place] shows: all of them where they stand, none from half their way aside, so that
+  /// those going are gone as the next ones show.
+  static double _opacity(double place) => (1 - 2 * place.abs()).clamp(0, 1);
+
+  @override
+  void didUpdateWidget(_TopBarControls oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (widget.shown == oldWidget.shown) {
+      return;
+    }
+
+    final animated = !MediaQuery.disableAnimationsOf(context);
+
+    for (final (index, place) in _places.indexed) {
+      final side = _side(index);
+      final unseen = _opacity(place.value) == 0;
+
+      if (side == 0 && animated) {
+        // In from the side they lay on, or, on their way out still, back from where they are.
+        if (unseen) {
+          place.value = (index - oldWidget.shown).sign.toDouble();
+        }
+
+        _move(place, 0);
+      } else if (unseen || !animated) {
+        // To the other side at once, rather than through where they would show.
+        place.value = side;
+      } else {
+        // Out on their side, which, on their way in still, is the one they came from: going on to the other, they would
+        // show again on the way.
+        _move(place, place.value == 0 ? side : place.value.sign);
+      }
+    }
+  }
+
+  /// Moves [place] to [target], in [_duration] the whole way between aside and where the controls stand, in less a part
+  /// of it.
+  void _move(AnimationController place, double target) =>
+      place.animateTo(target, duration: _duration * (target - place.value).abs(), curve: Curves.fastOutSlowIn);
+
+  @override
+  void dispose() {
+    for (final place in _places) {
+      place.dispose();
+    }
+
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Toward the end of the line, as the sections after the one shown lie.
+    final after = Directionality.of(context) == TextDirection.ltr ? _travel : -_travel;
+
+    return Stack(
+      alignment: AlignmentDirectional.centerStart,
+      children: [
+        for (final (index, controls) in widget.controls.indexed)
+          AnimatedBuilder(
+            animation: _places[index],
+            builder: (context, child) {
+              final place = _places[index].value;
+              final opacity = _opacity(place);
+              final shown = index == widget.shown;
+
+              // Unseen, they aren't there, as before; those shown are from the start, for the focus to go to them (the
+              // key "/" to the search bar).
+              if (opacity == 0 && !shown) {
+                return const SizedBox.shrink();
+              }
+
+              // Out of reach on their way out.
+              return IgnorePointer(
+                ignoring: !shown,
+                child: ExcludeFocus(
+                  excluding: !shown,
+                  child: Opacity(
+                    opacity: opacity,
+                    child: Transform.translate(offset: Offset(place * after, 0), child: child),
+                  ),
+                ),
+              );
+            },
+            child: controls,
+          ),
+      ],
+    );
   }
 }
 

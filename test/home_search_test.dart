@@ -14,6 +14,7 @@ import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/app/home_page.dart';
+import 'package:segue/ui/home/home_chips.dart';
 import 'package:segue/ui/player/now_playing_bar.dart';
 
 import 'fakes.dart';
@@ -171,6 +172,59 @@ void main() {
     expect(queries, ['dream']);
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
   });
+
+  testWidgets(
+    'on a phone, the top bar\'s controls go as the sections lie: those shown move aside and fade out, and the '
+    'next ones come in from the other side once they are gone',
+    (tester) async {
+      await pumpHome(tester, const Size(360, 640));
+      final sections = find.byType(NavigationBar);
+      final chips = find.byType(HomeChips);
+      final searchBar = find.byType(SearchBar);
+      double opacity(Finder controls) =>
+          tester.widget<Opacity>(find.ancestor(of: controls, matching: find.byType(Opacity)).first).opacity;
+      final chipsStart = tester.getTopLeft(chips).dx;
+
+      await tester.tap(find.descendant(of: sections, matching: find.text('Buscar')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(tester.getTopLeft(chips).dx, lessThan(chipsStart), reason: 'to the left, as the home goes');
+      expect(opacity(chips), inExclusiveRange(0, 1));
+      expect(opacity(searchBar), 0, reason: 'there already, for the focus, but not in sight');
+
+      await tester.pump(const Duration(milliseconds: 150));
+      expect(chips, findsNothing);
+      expect(tester.getTopLeft(searchBar).dx, greaterThan(16), reason: 'from the right, as the search comes');
+      expect(opacity(searchBar), inExclusiveRange(0, 1));
+
+      await tester.pumpAndSettle();
+      expect(tester.getTopLeft(searchBar).dx, 16);
+      expect(opacity(searchBar), 1);
+
+      await tester.tap(find.descendant(of: sections, matching: find.text('Início')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(tester.getTopLeft(searchBar).dx, greaterThan(16), reason: 'to the right, the other way');
+      await tester.pump(const Duration(milliseconds: 150));
+      expect(searchBar, findsNothing);
+      expect(tester.getTopLeft(chips).dx, lessThan(chipsStart), reason: 'from the left');
+      await tester.pumpAndSettle();
+      expect(tester.getTopLeft(chips).dx, chipsStart);
+
+      // From the home to the library, the search's, between them, stays out of sight.
+      await tester.tap(find.descendant(of: sections, matching: find.text('Biblioteca')));
+
+      for (var frame = 0; frame < 20; frame++) {
+        await tester.pump(const Duration(milliseconds: 16));
+        expect(searchBar, findsNothing);
+      }
+
+      await tester.pumpAndSettle();
+      expect(find.byType(TabBar), findsOneWidget);
+      expect(chips, findsNothing);
+      await tester.pumpWidget(const SizedBox()); // stops the bar's timer
+    },
+  );
 
   testWidgets('on a phone, a touch off the search bar closes the keyboard, and one on the bar, as on its clear button, '
       'leaves it open', (tester) async {

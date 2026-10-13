@@ -271,7 +271,10 @@ Running two app instances on one machine as different devices:
   `lib/ui/home/home_chips.dart`), one that plays the whole library at random (`ShuffleLibraryChip`, `LibraryMix`) and
   one that opens the favorites (`FavoritesPage`). A wide screen has them too: the first in its top bar, before the
   hub's status, over every page; the favorites in the side rail, after the sections, a page it marks as one while it
-  is on top (`_favoritesShown`, by its `RouteSettings`, as the settings' button does).
+  is on top (`_favoritesShown`, by its `RouteSettings`, as the settings' button does). As the destination changes,
+  those of the one before move aside, the way the sections go, and fade out, and the next ones come in from the other
+  side once they are gone (`_TopBarControls`, Material's shared axis): one destination's controls never show over
+  another's, and those of a destination passed over (the search's, from the home to the library) not at all.
 - `MediaServer` (`lib/server/server.dart`) is what pages, the player and the media controls ask of
   the media server, in either API: `SubsonicApi` (`lib/subsonic/`) or `JellyfinApi`
   (`lib/jellyfin/`). The user types only the address: `signIn` (`lib/server/sign_in.dart`) asks it
