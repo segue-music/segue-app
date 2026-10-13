@@ -538,6 +538,16 @@ Running two app instances on one machine as different devices:
   a name the server sorts by another letter (an article one of them leaves out and the other doesn't) doesn't take it
   there. The albums come a page at a time, with no count on Subsonic: a letter not there yet asks for the pages up to
   it, 500 albums at a time, as many as Navidrome gives.
+- On a TV, the full-screen player is on the color of the cover (`CoverBackground`, `lib/ui/player/television_player.dart`:
+  `prominentColorOf`, in `cover.dart`, the hue most of its colored pixels have, or a gray for a cover with hardly any,
+  rather than their average, often brown; at the dark or the light theme's lightness, for its text), and, its controls
+  hidden, what it shows drifts about its place (`_Drift`: 12 by 8 at most, on a Lissajous path of minutes, a step a
+  second on the screen's whole pixels, no frames in between), for an OLED screen not to keep a mark of the cover and the
+  slider; back in place as the controls come. `IdlePlayer` (`lib/ui/player/idle_player.dart`, around the home) brings
+  it (`PlayerPage.show`: back to the one open, closing what is over it, or a new one) after three minutes with no key,
+  while this device plays, and keeps the screen on meanwhile, for it to come before the system's screen saver; not
+  with the keyboard up, whose keys the app doesn't see. Music on another device leaves the TV as the system has it,
+  which would otherwise stay on for hours, the music playing elsewhere.
 - `MainActivity` extends audio_service's `AudioServiceActivity`, so the screen and the plugin share
   one Flutter engine. With a plain `FlutterActivity`, audio_service started an engine of its own,
   and with it a second, hidden copy of the app that connected to the hub as the same device. It

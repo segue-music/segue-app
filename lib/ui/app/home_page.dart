@@ -20,6 +20,7 @@ import '../artist/artists_view.dart';
 import '../genre/genres_view.dart';
 import '../home/home_chips.dart';
 import '../home/home_view.dart';
+import '../player/idle_player.dart';
 import '../player/now_playing_bar.dart';
 import 'page_area.dart';
 import '../player/player_page.dart';
@@ -423,8 +424,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     super.dispose();
   }
 
+  /// On a TV, the full-screen player comes as the remote is left alone.
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => IdlePlayer(child: _home(context));
+
+  Widget _home(BuildContext context) {
     final services = ServicesScope.of(context);
     final strings = AppLocalizations.of(context);
     final results = _results;

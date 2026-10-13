@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -11,8 +12,10 @@ import '../../services.dart';
 import '../playlist/playlist_dialogs.dart';
 import '../song/favorite_button.dart';
 import '../widgets/bar_traversal.dart';
+import '../widgets/cover.dart';
 import '../widgets/themed_icon.dart';
 import 'devices_sheet.dart';
+import 'player_page.dart';
 import 'player_controls.dart';
 import 'queue_page.dart';
 import 'sleep_timer_button.dart';
@@ -248,48 +251,257 @@ class _TelevisionControlsState extends State<TelevisionControls> {
     return Focus(
       focusNode: _waiting,
       onKeyEvent: _key,
-      child: Column(
-        children: [
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: TelevisionControls.side),
-              child: widget.child,
-            ),
-          ),
-          // Hidden, out of the focus's way, the slider too: the arrows only bring them back.
-          ExcludeFocus(
-            excluding: !_shown,
-            child: FocusTraversalGroup(
-              policy: BarTraversalPolicy.bottom,
+      // While no one presses a key, the song plays to no one at the screen, maybe for hours.
+      child: _Drift(
+        moving: !_shown,
+        child: Column(
+          children: [
+            Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: TelevisionControls.side),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Where it plays, when that's another device, stays as the buttons go, as the slider does.
-                    Row(
-                      children: [
-                        Expanded(
-                          flex: 3,
-                          child: device == null ? const SizedBox.shrink() : _PlayingOn(now, device, shown: _shown),
-                        ),
-                        Expanded(
-                          flex: 7,
-                          child: IgnorePointer(
-                            ignoring: !_shown,
-                            child: AnimatedOpacity(opacity: _shown ? 1 : 0, duration: _fade, child: buttons),
+                child: widget.child,
+              ),
+            ),
+            // Hidden, out of the focus's way, the slider too: the arrows only bring them back.
+            ExcludeFocus(
+              excluding: !_shown,
+              child: FocusTraversalGroup(
+                policy: BarTraversalPolicy.bottom,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: TelevisionControls.side),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Where it plays, when that's another device, stays as the buttons go, as the slider does.
+                      Row(
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: device == null ? const SizedBox.shrink() : _PlayingOn(now, device, shown: _shown),
                           ),
-                        ),
-                      ],
-                    ),
-                    SeekSlider(now, timesAtEnds: true),
-                  ],
+                          Expanded(
+                            flex: 7,
+                            child: IgnorePointer(
+                              ignoring: !_shown,
+                              child: AnimatedOpacity(opacity: _shown ? 1 : 0, duration: _fade, child: buttons),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SeekSlider(now, timesAtEnds: true),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
+    );
+  }
+}
+
+/// What the full-screen player shows on a TV, moving slowly about its place while the controls are hidden, a few pixels
+/// over minutes, which whoever watches doesn't see move: rather than the cover's edges, the title and the slider's line
+/// lighting the same pixels for hours, which an OLED screen would keep a mark of (burn-in). Back in its place as the
+/// controls come, for them to line up with what plays.
+class _Drift extends StatefulWidget {
+  const _Drift({required this.moving, required this.child});
+
+  final bool moving;
+  final Widget child;
+
+  /// How far it goes from its place at most, sideways and up and down: less than the room at the screen's sides
+  /// ([TelevisionControls.side], and the TV's edges), and than the slider's under its line.
+  static const reach = Offset(12, 8);
+
+  /// How long it takes to go to one side, to the other and back, and up, down and back: times apart, so that it goes
+  /// over the whole of its room rather than to and fro along a line.
+  static const sideways = Duration(minutes: 7);
+  static const upAndDown = Duration(minutes: 5);
+
+  /// How often it moves on: a step of a fraction of a pixel, which, drawn on the screen's whole pixels, moves it one
+  /// now and then, with no frames in between.
+  static const step = Duration(seconds: 1);
+
+  @override
+  State<_Drift> createState() => _DriftState();
+}
+
+class _DriftState extends State<_Drift> {
+  Timer? _ticker;
+
+  /// How long it has been moving.
+  Duration _moved = Duration.zero;
+
+  @override
+  void initState() {
+    super.initState();
+    _follow();
+  }
+
+  @override
+  void didUpdateWidget(_Drift oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (widget.moving != oldWidget.moving) {
+      _follow();
+    }
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
+
+  /// Starts moving, from its place, or stops.
+  void _follow() {
+    _ticker?.cancel();
+    _ticker = null;
+    _moved = Duration.zero;
+
+    if (widget.moving) {
+      _ticker = Timer.periodic(_Drift.step, (_) => setState(() => _moved += _Drift.step));
+    }
+  }
+
+  /// Where it is, [_moved] in, on the path it takes: a Lissajous figure, from its place.
+  Offset get _offset {
+    double wave(Duration period) => sin(2 * pi * _moved.inMilliseconds / period.inMilliseconds);
+
+    return Offset(_Drift.reach.dx * wave(_Drift.sideways), _Drift.reach.dy * wave(_Drift.upAndDown));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // On the screen's whole pixels: between them, the cover and the text would be drawn blurred.
+    final ratio = MediaQuery.devicePixelRatioOf(context);
+    final offset = widget.moving ? _offset * ratio : Offset.zero;
+
+    return TweenAnimationBuilder(
+      tween: Tween(end: Offset(offset.dx.roundToDouble(), offset.dy.roundToDouble()) / ratio),
+      duration: widget.moving ? Duration.zero : _TelevisionControlsState._fade,
+      curve: Curves.easeOut,
+      builder: (context, offset, child) => Transform.translate(offset: offset, child: child),
+      child: widget.child,
+    );
+  }
+}
+
+/// On a TV, the full-screen player's background: the color of the cover of what plays ([prominentColorOf]), dark in the
+/// dark theme and light in the light one, for the theme's text to read on it, and darker toward the controls. It goes
+/// from one song's color to the next's; meanwhile, and where there is no cover, the one before, or the theme's.
+class CoverBackground extends StatefulWidget {
+  const CoverBackground(this.coverArt, {required this.child, super.key});
+
+  final String? coverArt;
+  final Widget child;
+
+  /// How long it takes to go from a color to the next.
+  static const change = Duration(milliseconds: 800);
+
+  /// The background for a cover of [color]: its hue, not too vivid, light or dark as the theme's background is.
+  static Color backdrop(Color color, Brightness brightness) {
+    final hsl = HSLColor.fromColor(color);
+
+    return hsl
+        .withSaturation(min(hsl.saturation, 0.6))
+        .withLightness(brightness == Brightness.dark ? 0.18 : 0.88)
+        .toColor();
+  }
+
+  /// [backdrop] at the bottom: darker, for the controls, and the lyrics fading into it.
+  static Color _bottom(Color backdrop, Brightness brightness) {
+    final hsl = HSLColor.fromColor(backdrop);
+
+    return hsl.withLightness(brightness == Brightness.dark ? hsl.lightness * 0.55 : hsl.lightness - 0.06).toColor();
+  }
+
+  @override
+  State<CoverBackground> createState() => _CoverBackgroundState();
+}
+
+class _CoverBackgroundState extends State<CoverBackground> {
+  /// The colors of the last few covers, by their ids: the player opened again on a song has its color at once.
+  static final _known = <String, Color>{};
+
+  /// How many covers' colors [_known] keeps.
+  static const _remembered = 20;
+
+  /// The cover [_color] is of, or being found out.
+  String? _cover;
+  Color? _color;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _find();
+  }
+
+  @override
+  void didUpdateWidget(CoverBackground oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _find();
+  }
+
+  /// Finds out the color of the cover of what plays, where it is another; the one before stays meanwhile.
+  void _find() {
+    final cover = widget.coverArt;
+
+    if (cover == null || cover == _cover) {
+      return;
+    }
+
+    _cover = cover;
+
+    if (_known[cover] case final known?) {
+      _color = known;
+      return;
+    }
+
+    unawaited(
+      Cover.prominentColor(context, cover, size: PlayerPage.coverSize.toInt()).then((color) {
+        if (color == null) {
+          return;
+        }
+
+        _known
+          ..remove(cover)
+          ..[cover] = color;
+
+        if (_known.length > _remembered) {
+          _known.remove(_known.keys.first);
+        }
+
+        if (mounted && _cover == cover) {
+          setState(() => _color = color);
+        }
+      }),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final brightness = theme.brightness;
+    final color = _color;
+
+    return TweenAnimationBuilder(
+      tween: ColorTween(end: color == null ? theme.colorScheme.surface : CoverBackground.backdrop(color, brightness)),
+      duration: CoverBackground.change,
+      curve: Curves.easeInOut,
+      builder: (context, backdrop, child) => DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [backdrop!, CoverBackground._bottom(backdrop, brightness)],
+          ),
+        ),
+        child: child,
+      ),
+      child: widget.child,
     );
   }
 }

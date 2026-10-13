@@ -19,6 +19,7 @@ import '../widgets/cover.dart';
 import '../widgets/directional_navigation.dart';
 import '../widgets/themed_icon.dart';
 import 'devices_sheet.dart';
+import 'idle_player.dart';
 import 'lyrics_page.dart';
 import 'lyrics_view.dart';
 import 'now_playing_bar.dart';
@@ -42,12 +43,27 @@ class PlayerPage extends StatefulWidget {
   /// How long the lyrics take to come in, beside the player or under it, and to go.
   static const lyricsTransition = Duration(milliseconds: 350);
 
+  /// How big the cover gets, at most: as big as the image asked of the server.
+  static const coverSize = 800.0;
+
   /// Slides it up over the current page, with the lyrics if [lyrics]; by default, on a TV, where they are sung along to
   /// from across the room ([LyricsView.karaoke]), and elsewhere without. On a wide screen, in the page area; on a phone
   /// and a TV, over everything, the page area's bars too.
   static Future<void> open(BuildContext context, {bool? lyrics}) =>
       PageArea.playerNavigatorOf(context)
           .push(PlayerRoute(lyrics: lyrics ?? LyricsView.karaoke(context), area: PageArea.maybeOf(context)));
+
+  /// Brings it to the front, as it opens: where it is open already, closing what opened over it (the queue, a menu),
+  /// or else opening it, as [open] does: on a TV, as the remote is left alone ([IdlePlayer]).
+  static void show(BuildContext context) {
+    final navigator = PageArea.playerNavigatorOf(context);
+
+    if (PlayerRoute._open.any((route) => route.navigator == navigator && route.isActive)) {
+      navigator.popUntil((route) => route is PlayerRoute);
+    } else {
+      unawaited(open(context));
+    }
+  }
 
   @override
   State<PlayerPage> createState() => _PlayerPageState();
@@ -172,19 +188,24 @@ class _PlayerPageState extends State<PlayerPage> with SingleTickerProviderStateM
 
                 if (DirectionalNavigation.of(context)) {
                   return Scaffold(
-                    body: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        SafeArea(
-                          child: TelevisionControls(
-                            now,
-                            lyrics: widget._lyrics,
-                            child: _Player(now, lyrics: _shown, controls: false, scroll: scroll),
+                    // The cover's color, rather than the theme's.
+                    backgroundColor: Colors.transparent,
+                    body: CoverBackground(
+                      now.coverArt,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          SafeArea(
+                            child: TelevisionControls(
+                              now,
+                              lyrics: widget._lyrics,
+                              child: _Player(now, lyrics: _shown, controls: false, scroll: scroll),
+                            ),
                           ),
-                        ),
-                        // While the music plays, it is watched, not touched: the screen stays on.
-                        if (now.playing) const KeepScreenOn(child: SizedBox.shrink()),
-                      ],
+                          // While the music plays, it is watched, not touched: the screen stays on.
+                          if (now.playing) const KeepScreenOn(child: SizedBox.shrink()),
+                        ],
+                      ),
                     ),
                   );
                 }
@@ -296,6 +317,15 @@ class PlayerRoute extends PageRouteBuilder<void> {
   /// its links open their pages there all the same.
   final PageArea? area;
 
+  /// The players in a navigator, whichever: [PlayerPage.show] goes back to one rather than opening another.
+  static final _open = <PlayerRoute>{};
+
+  @override
+  void install() {
+    super.install();
+    _open.add(this);
+  }
+
   /// Slides it up as it opens and down as it closes, and, as a drag down moves it, with no curve, with the finger.
   @override
   Widget buildTransitions(
@@ -321,6 +351,7 @@ class PlayerRoute extends PageRouteBuilder<void> {
 
   @override
   void dispose() {
+    _open.remove(this);
     lyrics.dispose();
     super.dispose();
   }
@@ -867,9 +898,6 @@ class _Player extends StatelessWidget {
   /// ([LyricsView.karaoke]), three fifths.
   static double _lyricsShare(BuildContext context) => LyricsView.karaoke(context) ? 3 / 5 : 1 / 2;
 
-  /// How big the cover gets, at most: as big as the image asked of the server.
-  static const _maxCover = 800.0;
-
   @override
   Widget build(BuildContext context) {
     // The lyrics, made once for all the steps of their coming and going, rather than at each: the same widgets, which
@@ -907,8 +935,8 @@ class _Player extends StatelessWidget {
     // Under the player, the lyrics take that room from the cover as they come in: in the end, it keeps two fifths.
     final width = room - 48;
     final height = box.maxHeight - (controls ? 280 : 160);
-    final alone = min(width, height).clamp(96.0, _maxCover);
-    final withLyrics = min(width, height * 2 / 5).clamp(96.0, _maxCover);
+    final alone = min(width, height).clamp(96.0, PlayerPage.coverSize);
+    final withLyrics = min(width, height * 2 / 5).clamp(96.0, PlayerPage.coverSize);
     final side = beside ? alone : alone + (withLyrics - alone) * shown;
     final title = SongLink.title(
       now,
@@ -1120,7 +1148,7 @@ class _SwipeToSkipState extends State<_SwipeToSkip> with SingleTickerProviderSta
     _ahead = ahead;
 
     for (final id in [ahead.next, ahead.previous].nonNulls) {
-      unawaited(Cover.preload(context, id, size: _Player._maxCover.toInt()));
+      unawaited(Cover.preload(context, id, size: PlayerPage.coverSize.toInt()));
     }
   }
 
@@ -1198,7 +1226,7 @@ class _SwipeToSkipState extends State<_SwipeToSkip> with SingleTickerProviderSta
             borderRadius: BorderRadius.circular(12),
             child: Cover(
               leaving == null ? widget.coverArt : leaving.coverArt,
-              size: _Player._maxCover.toInt(),
+              size: PlayerPage.coverSize.toInt(),
               gapless: true,
             ),
           ),

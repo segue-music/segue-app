@@ -191,8 +191,10 @@ knows nothing of them, and another device plays as it has them.
   little bigger. The text is a bit bigger than on a phone, and everything keeps out of the screen's edges, which some
   TVs cut off, but for the rows of albums, which run on to the side as they scroll, as Google TV's do. No player bar
   under the pages: the side rail's first button, while something plays, opens the full-screen player, as a video player:
-  the controls showing as a key is pressed and going after a few seconds, back hiding them first. The screen stays on
-  while the music plays. The keyboard opens on the search bar with the center button, and with it open the remote's
+  the controls showing as a key is pressed and going after a few seconds, back hiding them first, on the color of the
+  cover. The screen stays on while the music plays. Left alone for three minutes while the TV plays, the app opens
+  the full-screen player by itself, as a screen saver would come, the screen staying on; with the controls hidden,
+  what it shows moves slowly about, a few pixels in minutes, for an OLED screen not to keep a mark of it. The keyboard opens on the search bar with the center button, and with it open the remote's
   microphone, held, types what is said. OK held opens a menu, and a song of the queue or of a playlist moves by the
   remote ("Mover" in its menu, then the arrows and OK). The remote's play/pause, next and previous buttons drive
   playback. Through a long list, its channel buttons go a page down or up, and back, far down a list, goes back to its

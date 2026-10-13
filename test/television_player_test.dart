@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -98,6 +100,43 @@ void main() {
     await tester.pump(TelevisionControls.idle);
     await tester.pumpAndSettle();
     expect(controlsShown(), isFalse, reason: 'and go a while after it closed');
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a TV, with the controls hidden, what plays moves slowly about its place, a few pixels in minutes, '
+      'on the screen\'s whole pixels, and is back in it as they come', (tester) async {
+    await pumpFullHdHome(tester);
+    await openTvPlayer(tester);
+    final place = tester.getRect(playerCover);
+    final slider = tester.getRect(find.byType(Slider));
+    await tester.pump(TelevisionControls.idle);
+    await tester.pumpAndSettle();
+    expect(controlsShown(), isFalse);
+
+    final moves = <Offset>[];
+
+    for (var i = 0; i < 70; i++) {
+      await tester.pump(const Duration(seconds: 6));
+      final moved = tester.getRect(playerCover).topLeft - place.topLeft;
+      moves.add(moved);
+      expect(tester.getRect(find.byType(Slider)).topLeft - slider.topLeft, moved, reason: 'all of it together');
+    }
+
+    expect(moves.map((move) => move.dx.abs()).reduce(max), inInclusiveRange(10, 12));
+    expect(moves.map((move) => move.dy.abs()).reduce(max), inInclusiveRange(6, 8));
+
+    for (final (i, move) in moves.indexed.skip(1)) {
+      expect((move - moves[i - 1]).distance, lessThan(2), reason: 'slowly');
+      expect(
+        [move.dx * 2, move.dy * 2],
+        [(move.dx * 2).roundToDouble(), (move.dy * 2).roundToDouble()],
+        reason: 'on whole pixels: two to each of its own',
+      );
+    }
+
+    await press(tester, LogicalKeyboardKey.select);
+    expect(controlsShown(), isTrue);
+    expect(tester.getRect(playerCover), place);
     await tester.pumpWidget(const SizedBox());
   });
 

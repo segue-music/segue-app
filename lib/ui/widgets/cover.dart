@@ -53,7 +53,27 @@ class Cover extends StatelessWidget {
     Uri? url,
     required Rect Function(Size image) region,
     int size = 300,
-  }) async {
+  }) => _colorOf(
+    context,
+    id,
+    url,
+    size,
+    (image) => averageColorOf(image, region(Size(image.width.toDouble(), image.height.toDouble()))),
+  );
+
+  /// The color the cover [id] is of, at [size] pixels ([prominentColorOf]); null where it can't be loaded.
+  static Future<Color?> prominentColor(BuildContext context, String id, {int size = 300}) =>
+      _colorOf(context, id, null, size, prominentColorOf);
+
+  /// What [measure] says of the cover [id], or else of the picture at [url], at [size] pixels, once loaded; null where
+  /// it can't be.
+  static Future<Color?> _colorOf(
+    BuildContext context,
+    String? id,
+    Uri? url,
+    int size,
+    Future<Color?> Function(ui.Image image) measure,
+  ) async {
     final image = _image(context, id, url, size);
 
     if (image == null) {
@@ -75,8 +95,7 @@ class Cover extends StatelessWidget {
     }
 
     try {
-      final image = info.image;
-      return await averageColorOf(image, region(Size(image.width.toDouble(), image.height.toDouble())));
+      return await measure(info.image);
     } finally {
       info.dispose();
     }
@@ -148,6 +167,94 @@ Future<Color?> averageColorOf(ui.Image image, Rect region) async {
 
   return Color.fromARGB(alpha ~/ pixels, channel(red), channel(green), channel(blue));
 }
+
+/// The color [image] is of, as one would name it: of its pixels with some color, rather than grays, those of the hue
+/// most of them have, the more colorful the more they count, on average; where few have any (a black and white photo),
+/// the average of them all, a gray. Not the average of them all, which for a cover of two colors would be a third,
+/// often brown. A few thousand pixels, evenly apart, say it as well as all of them.
+Future<Color?> prominentColorOf(ui.Image image) async {
+  final bytes = await image.toByteData();
+
+  if (bytes == null || image.width == 0 || image.height == 0) {
+    return null;
+  }
+
+  final step = max(1, sqrt(image.width * image.height / _sampled).floor());
+  // By hue, in slices of 360 / _hues degrees: how much color the pixels there have, all told, and their channels' sums,
+  // each by its color.
+  final weights = List.filled(_hues, 0.0);
+  final sums = List.generate(_hues, (_) => [0.0, 0.0, 0.0]);
+  var (red, green, blue, pixels, colored) = (0, 0, 0, 0, 0);
+
+  for (var y = step ~/ 2; y < image.height; y += step) {
+    for (var x = step ~/ 2; x < image.width; x += step) {
+      final at = (y * image.width + x) * 4;
+      final alpha = bytes.getUint8(at + 3);
+
+      if (alpha < 128) {
+        continue; // mostly see-through: not what the picture shows
+      }
+
+      // The bytes are premultiplied by the alpha.
+      int channel(int byte) => min(byte * 255 ~/ alpha, 255);
+      final (r, g, b) = (channel(bytes.getUint8(at)), channel(bytes.getUint8(at + 1)), channel(bytes.getUint8(at + 2)));
+      red += r;
+      green += g;
+      blue += b;
+      pixels++;
+      final (most, least) = (max(r, max(g, b)), min(r, min(g, b)));
+      final chroma = (most - least) / 255;
+
+      if (chroma < _colorFrom) {
+        continue;
+      }
+
+      colored++;
+      final hue = HSVColor.fromColor(Color.fromARGB(255, r, g, b)).hue;
+      final slice = (hue / 360 * _hues).floor() % _hues;
+      weights[slice] += chroma;
+      sums[slice][0] += r * chroma;
+      sums[slice][1] += g * chroma;
+      sums[slice][2] += b * chroma;
+    }
+  }
+
+  if (pixels == 0) {
+    return null;
+  }
+
+  if (colored < pixels * _coloredFrom) {
+    return Color.fromARGB(255, red ~/ pixels, green ~/ pixels, blue ~/ pixels);
+  }
+
+  // The slice with the most color, with those on either side, so that a hue on the edge between two counts whole.
+  double around(int slice, double Function(int slice) of) =>
+      of((slice + _hues - 1) % _hues) + of(slice) + of((slice + 1) % _hues);
+  var best = 0;
+
+  for (var slice = 1; slice < _hues; slice++) {
+    if (around(slice, (i) => weights[i]) > around(best, (i) => weights[i])) {
+      best = slice;
+    }
+  }
+
+  final weight = around(best, (i) => weights[i]);
+  int average(int channel) => (around(best, (i) => sums[i][channel]) / weight).round().clamp(0, 255);
+
+  return Color.fromARGB(255, average(0), average(1), average(2));
+}
+
+/// How many pixels [prominentColorOf] looks at, about.
+const _sampled = 4096;
+
+/// How many slices of hue [prominentColorOf] counts the pixels in.
+const _hues = 24;
+
+/// How much color a pixel has, at least, for [prominentColorOf] to count its hue: less, it's a gray.
+const _colorFrom = 0.15;
+
+/// How many of the pixels have some color, at least, for a picture to be of a color rather than a gray.
+const _coloredFrom = 0.1;
 
 /// A cover asked of the server at [size] pixels, more than [Cover]'s usual: the usual one, which the page that led here
 /// has likely loaded already, shows under it until it comes.
