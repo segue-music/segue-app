@@ -181,12 +181,7 @@ class _PlayerPageState extends State<PlayerPage> with SingleTickerProviderStateM
                             child: TelevisionControls(
                               now,
                               lyrics: widget._lyrics,
-                              child: Stack(
-                                children: [
-                                  _Player(now, lyrics: _shown, controls: false, scroll: scroll),
-                                  if (device != null) _PlayingOn(now, device),
-                                ],
-                              ),
+                              child: _Player(now, lyrics: _shown, controls: false, scroll: scroll),
                             ),
                           ),
                           // While the music plays, it is watched, not touched: the screen stays on.
@@ -274,44 +269,6 @@ class _PlayerPageState extends State<PlayerPage> with SingleTickerProviderStateM
                         ),
                 );
               },
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// On a TV, at the full-screen player's corner, where the music plays, when that's another device.
-class _PlayingOn extends StatelessWidget {
-  const _PlayingOn(this.now, this.device);
-
-  final NowPlaying now;
-  final String device;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final strings = AppLocalizations.of(context);
-
-    return Align(
-      alignment: AlignmentDirectional.topStart,
-      child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: DecoratedBox(
-          decoration: BoxDecoration(color: colors.primaryContainer, borderRadius: BorderRadius.circular(16)),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ThemedIcon(HugeIcons.strokeRoundedSpeaker, size: 18, color: colors.onPrimaryContainer),
-                const SizedBox(width: 6),
-                Text(
-                  now.playing ? strings.playingOn(device) : strings.pausedOn(device),
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(color: colors.onPrimaryContainer),
-                ),
-              ],
             ),
           ),
         ),

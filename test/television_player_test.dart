@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:segue/segue/protocol.dart';
 import 'package:segue/ui/player/player_page.dart';
 import 'package:segue/ui/player/television_player.dart';
 
 import 'directional_navigation_test.dart' show focusedTip, press, pressUntil, pumpFullHdHome;
+import 'player_page_test.dart' show openPlayer, playerCover, pumpBar, tvPlaying;
 
 /// The full-screen player on a TV, from the side rail.
 Future<void> openTvPlayer(WidgetTester tester) async {
@@ -120,6 +122,31 @@ void main() {
     await player.pause();
     await tester.pump();
     expect(keptOn, [true, false]);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a TV following another device, where it plays shows beside the controls, clear of the cover, and '
+      'stays as they go', (tester) async {
+    await pumpBar(
+      tester,
+      size: const Size(960, 540),
+      television: true,
+      client: tvPlaying(const QueueItem(id: 's1', title: 'Dream On', artist: 'Aerosmith', durationMs: 240000)),
+    );
+    await openPlayer(tester);
+    final playingOn = find.text('Tocando em Sala de estar');
+    expect(playingOn, findsOneWidget);
+    expect(tester.getRect(playingOn).overlaps(tester.getRect(playerCover)), isFalse);
+
+    await tester.pump(TelevisionControls.idle);
+    await tester.pumpAndSettle();
+    expect(controlsShown(), isFalse);
+    expect(playingOn, findsOneWidget);
+    expect(
+      find.ancestor(of: playingOn, matching: find.byType(AnimatedOpacity)),
+      findsNothing,
+      reason: 'not fading',
+    );
     await tester.pumpWidget(const SizedBox());
   });
 }

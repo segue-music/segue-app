@@ -433,9 +433,10 @@ Running two app instances on one machine as different devices:
   (`lib/ui/player/television_player.dart`): no top bar, on the theme's background, and its controls under it
   (`TelevisionControls`) showing as it opens and as the arrows
   or OK are pressed, which then only bring them back, play taking the focus, and going after 5 s with no key, but
-  while a menu or a sheet opened from them shows; the slider stays. The remote's back hides them first, and only then
-  closes the player. The screen stays on while it plays. On a TV the lyrics are karaoke (`LyricsView.karaoke`, by the
-  navigation mode): the full-screen player opens with them, in three fifths of the screen, keeping the screen on,
+  while a menu or a sheet opened from them shows; the slider stays, and where it plays, when another device does, beside
+  them. The remote's back hides them first, and only then closes the player. The screen stays on while it plays. On a TV
+  the lyrics are karaoke (`LyricsView.karaoke`, by
+  the navigation mode): the full-screen player opens with them, in three fifths of the screen, keeping the screen on,
   and the line that plays is bigger, in the middle (its style animated, `TweenAnimationBuilder`, on the `Text` itself,
   and the scroll going, along with it, straight to where the line ends up once grown and the one before shrunk:
   `_growth` lays their text out in the style they go to). As they come and go, the player makes them once for all

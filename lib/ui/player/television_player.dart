@@ -18,7 +18,8 @@ import 'queue_page.dart';
 import 'sleep_timer_button.dart';
 
 /// On a TV, the full-screen player's controls, under [child], as a video player has them: they show as the player opens,
-/// play taking the focus, and go after [idle] with no key pressed, leaving [child] and the slider, where the song is.
+/// play taking the focus, and go after [idle] with no key pressed, leaving [child], the slider, where the song is, and
+/// where it plays, when that's another device.
 /// Hidden, the arrows and OK only bring them back, play taking the focus again, and the remote's back closes the
 /// player; shown, back hides them first. The remote's play/pause, next and previous keys work either way.
 class TelevisionControls extends StatefulWidget {
@@ -160,7 +161,6 @@ class _TelevisionControlsState extends State<TelevisionControls> {
     // Where the music goes, and what goes on beside it, as the wide player bar has them.
     final buttons = Row(
       children: [
-        const Spacer(flex: 3),
         Expanded(
           flex: 4,
           child: FittedBox(
@@ -239,6 +239,7 @@ class _TelevisionControlsState extends State<TelevisionControls> {
         ),
       ],
     );
+    final device = now.device;
 
     return Focus(
       focusNode: _waiting,
@@ -256,9 +257,18 @@ class _TelevisionControlsState extends State<TelevisionControls> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    IgnorePointer(
-                      ignoring: !_shown,
-                      child: AnimatedOpacity(opacity: _shown ? 1 : 0, duration: _fade, child: buttons),
+                    // Where it plays, when that's another device, stays as the buttons go, as the slider does.
+                    Row(
+                      children: [
+                        Expanded(flex: 3, child: device == null ? const SizedBox.shrink() : _PlayingOn(now, device)),
+                        Expanded(
+                          flex: 7,
+                          child: IgnorePointer(
+                            ignoring: !_shown,
+                            child: AnimatedOpacity(opacity: _shown ? 1 : 0, duration: _fade, child: buttons),
+                          ),
+                        ),
+                      ],
                     ),
                     SeekSlider(now),
                   ],
@@ -267,6 +277,44 @@ class _TelevisionControlsState extends State<TelevisionControls> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Where the music plays, when that's another device, beside the controls.
+class _PlayingOn extends StatelessWidget {
+  const _PlayingOn(this.now, this.device);
+
+  final NowPlaying now;
+  final String device;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final strings = AppLocalizations.of(context);
+
+    return Align(
+      alignment: AlignmentDirectional.centerStart,
+      child: DecoratedBox(
+        decoration: BoxDecoration(color: colors.primaryContainer, borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ThemedIcon(HugeIcons.strokeRoundedSpeaker, size: 18, color: colors.onPrimaryContainer),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  now.playing ? strings.playingOn(device) : strings.pausedOn(device),
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(color: colors.onPrimaryContainer),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
