@@ -23,7 +23,7 @@ import '../home/home_view.dart';
 import '../player/now_playing_bar.dart';
 import 'page_area.dart';
 import '../player/player_page.dart';
-import '../playlist/favorite_songs_page.dart';
+import '../playlist/favorites_page.dart';
 import '../playlist/playlists_view.dart';
 import '../home/search_results.dart';
 import '../settings/settings_page.dart';
@@ -128,6 +128,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
   /// Whether the albums tab shows the library's in [_albumOrder], or the downloaded or the favorites alone.
   AlbumsShown _albumsShown = AlbumsShown.library;
+
+  /// The order of the artists tab, or the favorites alone, which the favorites' page opens.
+  ArtistOrder _artistOrder = ArtistOrder.name;
 
   /// The sections opened so far: each loads the first time it is opened. On a phone the pages a swipe goes through
   /// build each as it first comes into sight.
@@ -268,9 +271,26 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     _select(_Section.albums);
   }
 
-  /// The user's favorite songs, in the page area: what the phone's home's chip opens, as the playlists' list does.
-  void _openFavoriteSongs() {
-    _pages.currentState?.push(MaterialPageRoute<void>(builder: (_) => const FavoriteSongsPage()));
+  /// The user's favorites, in the page area: what the phone's home's chip opens, and the playlists' list. Their rows'
+  /// titles open all of them, in their tab.
+  void _openFavorites() {
+    _pages.currentState?.push(
+      MaterialPageRoute<void>(
+        builder: (_) => FavoritesPage(onShowAlbums: _showFavoriteAlbums, onShowArtists: _showFavoriteArtists),
+      ),
+    );
+  }
+
+  /// The albums tab, with the favorites alone.
+  void _showFavoriteAlbums() {
+    setState(() => _albumsShown = AlbumsShown.favorites);
+    _select(_Section.albums);
+  }
+
+  /// The artists tab, with the favorites alone.
+  void _showFavoriteArtists() {
+    setState(() => _artistOrder = ArtistOrder.favorites);
+    _select(_Section.artists);
   }
 
   void _typed(String text) {
@@ -444,9 +464,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           shown: _albumsShown,
           onShown: (shown) => setState(() => _albumsShown = shown),
         ),
-        _Section.artists => const ArtistsView(),
+        _Section.artists => ArtistsView(order: _artistOrder, onOrder: (order) => setState(() => _artistOrder = order)),
         _Section.genres => const GenresView(),
-        _Section.playlists => const PlaylistsView(),
+        _Section.playlists => PlaylistsView(onFavorites: _openFavorites),
         // On a phone, the genres until a search finds something, which come back as it is cleared, where they were.
         _Section.search => Stack(
           fit: StackFit.expand,
@@ -505,7 +525,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     _Destination.library => 16 - _libraryTabPadding,
                   },
                   title: switch (destination) {
-                    _Destination.home => HomeChips(onFavorites: _openFavoriteSongs),
+                    _Destination.home => HomeChips(onFavorites: _openFavorites),
                     _Destination.search => searchBar,
                     // As wide as their names, from the left, scrolling sideways where they don't fit; with no line under
                     // them across the bar, which has none.

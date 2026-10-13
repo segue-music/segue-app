@@ -15,7 +15,7 @@ String albumCount(AppLocalizations strings, int? count) => count == null ? '' : 
 
 /// Orders the library's artists come in, or the user's favorite ones alone: what the chip above them says of one, and
 /// what a list in it says when it has none.
-enum _ArtistOrder {
+enum ArtistOrder {
   name,
   mostPlayed,
   favorites;
@@ -36,17 +36,22 @@ enum _ArtistOrder {
 /// The library's artists, by name or the most played first, or the user's favorite ones alone, as they change, as
 /// picked in chips above them ([OrderChips]), as the albums' orders are.
 class ArtistsView extends StatefulWidget {
-  const ArtistsView({super.key});
+  const ArtistsView({required this.order, required this.onOrder, super.key});
+
+  /// The order picked: the home's, which the favorites' page also picks, opening them.
+  final ArtistOrder order;
+
+  /// Picks another order, in the chips.
+  final ValueChanged<ArtistOrder> onOrder;
 
   @override
   State<ArtistsView> createState() => _ArtistsViewState();
 }
 
 class _ArtistsViewState extends State<ArtistsView> {
-  _ArtistOrder _order = _ArtistOrder.name;
   Future<List<Artist>>? _artists;
 
-  /// The user's favorites, which [_ArtistOrder.favorites] lists as they change.
+  /// The user's favorites, which [ArtistOrder.favorites] lists as they change.
   Favorites? _favorites;
 
   @override
@@ -62,6 +67,16 @@ class _ArtistsViewState extends State<ArtistsView> {
   }
 
   @override
+  void didUpdateWidget(ArtistsView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // Another order lists them again, from the start.
+    if (widget.order != oldWidget.order) {
+      _artists = _load();
+    }
+  }
+
+  @override
   void dispose() {
     _favorites?.removeListener(_favoritesChanged);
     super.dispose();
@@ -71,7 +86,7 @@ class _ArtistsViewState extends State<ArtistsView> {
   void _favoritesChanged() {
     final favorites = _favorites!;
 
-    if (_order == _ArtistOrder.favorites && favorites.loaded) {
+    if (widget.order == ArtistOrder.favorites && favorites.loaded) {
       // In braces: setState takes no callback that returns a future, as the assignment would.
       setState(() {
         _artists = Future.value(favorites.artists);
@@ -85,10 +100,10 @@ class _ArtistsViewState extends State<ArtistsView> {
     final services = ServicesScope.of(context);
     final api = services.api;
 
-    return switch (_order) {
-      _ArtistOrder.name => api.artists(),
-      _ArtistOrder.mostPlayed => api.mostPlayedArtists(),
-      _ArtistOrder.favorites => _loadFavorites(services.favorites),
+    return switch (widget.order) {
+      ArtistOrder.name => api.artists(),
+      ArtistOrder.mostPlayed => api.mostPlayedArtists(),
+      ArtistOrder.favorites => _loadFavorites(services.favorites),
     };
   }
 
@@ -104,13 +119,10 @@ class _ArtistsViewState extends State<ArtistsView> {
     return favorites.artists;
   }
 
-  /// Another order lists them again, from the start; the one picked, as they are.
-  void _reorder(_ArtistOrder order) {
-    if (order != _order) {
-      setState(() {
-        _order = order;
-        _artists = _load();
-      });
+  /// Another order lists them again, from the start ([didUpdateWidget]); the one picked, as they are.
+  void _reorder(ArtistOrder order) {
+    if (order != widget.order) {
+      widget.onOrder(order);
     }
   }
 
@@ -122,12 +134,12 @@ class _ArtistsViewState extends State<ArtistsView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        OrderChips(_order, orders: _ArtistOrder.values, label: (order) => order.label(strings), onOrder: _reorder),
+        OrderChips(widget.order, orders: ArtistOrder.values, label: (order) => order.label(strings), onOrder: _reorder),
         Expanded(
           child: FutureBuilder(
             // Another order's starts over, with none of the last one's artists; a refresh keeps them until the new
             // come.
-            key: ValueKey(_order),
+            key: ValueKey(widget.order),
             future: _artists,
             builder: (context, snapshot) {
               if (snapshot.hasError) {
@@ -150,7 +162,7 @@ class _ArtistsViewState extends State<ArtistsView> {
                     // Scrolling all the same, for the refresh to pull.
                     ? ListView(
                         padding: const EdgeInsets.all(16),
-                        children: [Center(child: Text(_order.emptyMessage(strings)))],
+                        children: [Center(child: Text(widget.order.emptyMessage(strings)))],
                       )
                     : _ArtistGrid(artists),
               );

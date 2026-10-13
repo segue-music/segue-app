@@ -1035,13 +1035,9 @@
   "@home": {
     "description": "The first section, of rows of albums."
   },
-  "favoriteSongsChip": "Favoritas",
-  "@favoriteSongsChip": {
-    "description": "On a phone, the chip in the home's top bar that opens the user's favorite songs: short, beside one more."
-  },
   "shuffleLibrary": "Aleatório",
   "@shuffleLibrary": {
-    "description": "On a phone, the chip in the home's top bar that plays songs of the whole library at random, a different few each time: short, beside one more."
+    "description": "On a phone, the chip in the home's top bar that plays songs of the whole library at random, a different few each time."
   },
   "genres": "Gêneros",
   "@genres": {
@@ -1548,15 +1544,19 @@
   },
   "favoriteSongs": "Músicas favoritas",
   "@favoriteSongs": {
-    "description": "The list of the user's favorite songs, first among the playlists, and its page's title."
+    "description": "The user's favorite songs' page, its title, which the songs' line on the page of all the favorites opens; and their list as Android Auto shows it among the playlists."
   },
   "favorites": "Favoritos",
   "@favorites": {
-    "description": "The chip over the albums, and the choice over the artists, that shows the user's favorite ones alone."
+    "description": "The chip over the albums, and the choice over the artists, that shows the user's favorite ones alone; the page of all the user's favorites, its title, first among the playlists; and, on a phone, the chip in the home's top bar that opens it."
   },
   "favoriteSongsEmpty": "Nenhuma música favorita ainda. O coração de uma música, no player ou no menu dela, a põe aqui.",
   "@favoriteSongsEmpty": {
     "description": "The favorite songs' page when the user has none, saying how to add one."
+  },
+  "favoritesEmpty": "Nenhum favorito ainda. O coração de uma música, de um álbum ou de um artista o põe aqui.",
+  "@favoritesEmpty": {
+    "description": "The page of the user's favorites, while none of their songs, albums or artists is one."
   },
   "favoriteAlbumsEmpty": "Nenhum álbum favorito ainda. O coração na página de um álbum o põe aqui.",
   "@favoriteAlbumsEmpty": {

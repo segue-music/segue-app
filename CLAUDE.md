@@ -269,7 +269,7 @@ Running two app instances on one machine as different devices:
   has what there is to use there, rather than a name: the search its bar, the library its tabs, and the home, rather
   than the app's icon and name, which only said again what the bar at the bottom says, two chips (`HomeChips`,
   `lib/ui/home/home_chips.dart`), one that plays the whole library at random (`LibraryMix`) and one that opens the
-  favorite songs.
+  favorites (`FavoritesPage`).
 - `MediaServer` (`lib/server/server.dart`) is what pages, the player and the media controls ask of
   the media server, in either API: `SubsonicApi` (`lib/subsonic/`) or `JellyfinApi`
   (`lib/jellyfin/`). The user types only the address: `signIn` (`lib/server/sign_in.dart`) asks it
@@ -343,8 +343,11 @@ Running two app instances on one machine as different devices:
   Jellyfin's items marked `IsFavorite`, by name, since it doesn't say when), with the changes made here since, which
   show at once and go to the server one after another (`setFavorite`: star and unstar; `UserFavoriteItems/{id}`), a
   refused one undone; once none is left, they load again. `Services.start` loads them, and again as the server comes
-  back in reach; the pages that list them (`FavoriteSongsPage`, first among the playlists, the albums' and the
-  artists' "Favoritos" chips) load them as they open. `FavoriteButton` (`lib/ui/song/favorite_button.dart`) is the
+  back in reach; the pages that list them load them as they open: `FavoritesPage` (`lib/ui/playlist/favorites_page.dart`,
+  first among the playlists, and the phone's home's chip), their songs as a line that opens `FavoriteSongsPage`, as a
+  playlist, then a row of the albums and one of the artists, whose titles open the albums' and the artists' tabs with
+  their "Favoritos" chips (the home's `_showFavoriteAlbums` and `_showFavoriteArtists`: the artists' order is the
+  home's, `ArtistOrder`, as the albums' is), which list them too. `FavoriteButton` (`lib/ui/song/favorite_button.dart`) is the
   heart, filled (`filledHeart`, Hugeicons' outline with a fill, as its free icons have no filled heart) while the item
   is a favorite: on an album's page, an artist's, the phone's full-screen player (by the title) and the wide player
   bar; a song's menu has it as an item. A favorite song's line in a list has it too, filled, before its duration

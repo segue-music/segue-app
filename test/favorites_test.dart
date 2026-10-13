@@ -15,13 +15,18 @@ import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/album/album_page.dart';
 import 'package:segue/ui/album/albums_view.dart';
+import 'package:segue/ui/app/home_page.dart';
+import 'package:segue/ui/artist/artists_view.dart';
 import 'package:segue/ui/player/now_playing_bar.dart';
 import 'package:segue/ui/player/player_page.dart';
 import 'package:segue/ui/playlist/favorite_songs_page.dart';
+import 'package:segue/ui/playlist/favorites_page.dart';
 import 'package:segue/ui/playlist/playlists_view.dart';
 import 'package:segue/ui/song/favorite_button.dart';
+import 'package:segue/ui/widgets/cover.dart';
 
 import 'fakes.dart';
+import 'sections.dart';
 
 http.Response subsonic(Map<String, Object?> body) => http.Response(
   jsonEncode({
@@ -31,12 +36,13 @@ http.Response subsonic(Map<String, Object?> body) => http.Response(
   headers: {'content-type': 'application/json'},
 );
 
-/// A server whose starred songs and albums change as the app asks, at first the song s1 and the album a1, of the
-/// library's two albums, a1 and a2, the first with the songs s1 and s2, of 3:35 each. While [held], it answers no change; with
-/// [refuses], it refuses them; [down], it answers nothing.
+/// A server whose starred songs and albums change as the app asks, at first the song s1, the album a1 and the artist
+/// ar1, of the library's two albums, a1 and a2, the first with the songs s1 and s2, of 3:35 each. While [held], it
+/// answers no change; with [refuses], it refuses them; [down], it answers nothing.
 class Starred {
   final songs = {'s1'};
   final albums = {'a1'};
+  final artists = {'ar1'};
   final changes = <String>[];
   Completer<void>? held;
   bool refuses = false;
@@ -54,6 +60,9 @@ class Starred {
       case 'getStarred2.view':
         return subsonic({
           'starred2': {
+            'artist': [
+              for (final id in artists) {'id': id, 'name': 'Artist $id'},
+            ],
             'album': [
               for (final id in albums) {'id': id, 'name': 'Album $id'},
             ],
@@ -308,29 +317,115 @@ void main() {
       expect(albumHeart(filled: true), findsOneWidget);
     });
 
-    testWidgets('the favorite songs come first among the playlists, with how many they are, and open their page, which '
-        'plays them and follows them', (tester) async {
-      server.songs.add('s2');
-      await pump(tester, const Scaffold(body: PlaylistsView()));
-      final favorites = find.widgetWithText(ListTile, 'Músicas favoritas');
-      expect(tester.getRect(favorites).top, greaterThan(tester.getRect(find.text('Nova playlist')).top));
-      expect(find.descendant(of: favorites, matching: find.text('2 faixas')), findsOneWidget);
+    testWidgets(
+      'the favorites come first among the playlists, with how many songs they are, and open their page, whose '
+      'songs\' line opens theirs, which plays them and follows them',
+      (tester) async {
+        server.songs.add('s2');
+        await pump(tester, const Scaffold(body: PlaylistsView()));
+        final favorites = find.widgetWithText(ListTile, 'Favoritos');
+        expect(tester.getRect(favorites).top, greaterThan(tester.getRect(find.text('Nova playlist')).top));
+        expect(find.descendant(of: favorites, matching: find.text('2 faixas')), findsOneWidget);
 
-      await tester.tap(favorites);
-      await tester.pumpAndSettle();
-      expect(find.byType(FavoriteSongsPage), findsOneWidget);
-      expect(find.widgetWithText(ListTile, 'Song s1'), findsOneWidget);
-      await tester.tap(find.widgetWithText(ListTile, 'Song s2'));
-      await tester.pumpAndSettle();
-      expect([for (final track in engine.tracks) track.queryParameters['id']], unorderedEquals(['s1', 's2']));
-      expect(player.queue[player.index].id, 's2', reason: 'from the one picked');
+        await tester.tap(favorites);
+        await tester.pumpAndSettle();
+        expect(find.byType(FavoritesPage), findsOneWidget);
+        await tester.tap(find.text('2 faixas'));
+        await tester.pumpAndSettle();
+        expect(find.byType(FavoriteSongsPage), findsOneWidget);
+        expect(find.widgetWithText(ListTile, 'Song s1'), findsOneWidget);
+        await tester.tap(find.widgetWithText(ListTile, 'Song s2'));
+        await tester.pumpAndSettle();
+        expect([for (final track in engine.tracks) track.queryParameters['id']], unorderedEquals(['s1', 's2']));
+        expect(player.queue[player.index].id, 's2', reason: 'from the one picked');
 
-      await tester.tap(songMenu('Song s1'));
+        await tester.tap(songMenu('Song s1'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Remover dos favoritos'));
+        await tester.pumpAndSettle();
+        expect(find.widgetWithText(ListTile, 'Song s1'), findsNothing);
+        expect(find.widgetWithText(ListTile, 'Song s2'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'the favorites\' page has their songs, as a line of their picture as big as an album\'s cover, lined up '
+      'with the covers, how many they are and the button that plays them; then a row of the albums and one of the '
+      'artists',
+      (tester) async {
+        server.songs.add('s2');
+        await pump(tester, const FavoritesPage());
+        final titles = [
+          for (final title in ['Músicas', 'Álbuns', 'Artistas']) tester.getRect(find.text(title)).top,
+        ];
+        expect([...titles]..sort(), titles, reason: 'in this order, top to bottom');
+        final picture = tester.getRect(find.byType(FavoritesPicture));
+        final cover = tester.getRect(find.descendant(of: find.byType(AlbumTile), matching: find.byType(Cover)));
+        expect(picture.size, cover.size);
+        expect(picture.left, cover.left);
+        final count = tester.getRect(find.text('2 faixas'));
+        final play = tester.getRect(find.byTooltip('Tocar'));
+        expect(count.center.dy, moreOrLessEquals(play.center.dy, epsilon: 1), reason: 'on the same line');
+        expect(play.left, greaterThan(count.right), reason: 'after it');
+        expect(find.text('Album a1'), findsOneWidget);
+        expect(find.text('Artist ar1'), findsOneWidget);
+
+        await tester.tap(find.byTooltip('Tocar'));
+        await tester.pumpAndSettle();
+        expect([for (final song in player.queue) song.id], ['s1', 's2']);
+        expect(player.index, 0, reason: 'from the first');
+        expect(find.byType(FavoriteSongsPage), findsNothing, reason: 'played, not opened');
+
+        await tester.tap(find.text('Músicas'));
+        await tester.pumpAndSettle();
+        expect(find.byType(FavoriteSongsPage), findsOneWidget, reason: 'opened by the title too');
+      },
+    );
+
+    testWidgets('a kind with no favorites isn\'t on the favorites\' page; with none at all, it says how to add one', (
+      tester,
+    ) async {
+      server.albums.clear();
+      await pump(tester, const FavoritesPage());
+      expect(find.text('Álbuns'), findsNothing);
+      expect(find.text('Músicas'), findsOneWidget);
+      expect(find.text('Artistas'), findsOneWidget);
+
+      server
+        ..songs.clear()
+        ..artists.clear();
+      await pump(tester, const FavoritesPage());
+      expect(find.textContaining('Nenhum favorito ainda'), findsOneWidget);
+    });
+
+    testWidgets('the favorites\' rows\' titles open them all, in the albums tab and the artists\', with the favorites '
+        'alone', (tester) async {
+      await pump(tester, HomePage(onSignOut: () {}));
+      await openSection(tester, 'Playlists');
+      await tester.tap(find.widgetWithText(ListTile, 'Favoritos'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Remover dos favoritos'));
+      await tester.tap(find.text('Álbuns'));
       await tester.pumpAndSettle();
-      expect(find.widgetWithText(ListTile, 'Song s1'), findsNothing);
-      expect(find.widgetWithText(ListTile, 'Song s2'), findsOneWidget);
+      expect(find.byType(FavoritesPage), findsNothing, reason: 'closed, as a section does');
+      final albumsChip = find.descendant(
+        of: find.byType(AlbumsView),
+        matching: find.widgetWithText(ChoiceChip, 'Favoritos'),
+      );
+      expect(tester.widget<ChoiceChip>(albumsChip).selected, isTrue);
+      expect(find.text('Album a1'), findsOneWidget);
+      expect(find.text('Album a2'), findsNothing);
+
+      await openSection(tester, 'Playlists');
+      await tester.tap(find.widgetWithText(ListTile, 'Favoritos'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Artistas'));
+      await tester.pumpAndSettle();
+      final artistsChip = find.descendant(
+        of: find.byType(ArtistsView),
+        matching: find.widgetWithText(ChoiceChip, 'Favoritos'),
+      );
+      expect(tester.widget<ChoiceChip>(artistsChip).selected, isTrue);
+      expect(find.text('Artist ar1'), findsOneWidget);
     });
 
     testWidgets('with none, the favorite songs\' page says how to add one', (tester) async {

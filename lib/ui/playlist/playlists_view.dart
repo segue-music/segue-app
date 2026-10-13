@@ -12,16 +12,20 @@ import '../widgets/menu_shortcuts.dart';
 import '../widgets/order_chips.dart';
 import '../widgets/spinner.dart';
 import 'favorite_songs_page.dart';
+import 'favorites_page.dart';
 import 'playlist_dialogs.dart';
 import 'playlist_menu.dart';
 import 'playlist_page.dart';
 
 /// The user's playlists, and those others share with them, by name, each with its picture and how many songs it has,
-/// opening its page, under a button that makes a new one and the user's favorite songs ([FavoriteSongsPage]). Held, one opens its menu, which plays it next or adds it to
-/// the queue, and renames and deletes one the user can change. They load again as the app changes any. Where the app
+/// opening its page, under a button that makes a new one and the user's favorites ([FavoritesPage]). Held, one opens
+/// its menu, which plays it next or adds it to the queue, and renames and deletes one the user can change. They load again as the app changes any. Where the app
 /// downloads, chips over them show them all, or the downloaded alone, as these come and go.
 class PlaylistsView extends StatefulWidget {
-  const PlaylistsView({super.key});
+  const PlaylistsView({this.onFavorites, super.key});
+
+  /// Opens the user's favorites: the home's, whose page links to its tabs; where null, a page of them with no links.
+  final VoidCallback? onFavorites;
 
   @override
   State<PlaylistsView> createState() => _PlaylistsViewState();
@@ -136,7 +140,7 @@ class _PlaylistsViewState extends State<PlaylistsView> {
           child: ListView.builder(
             // At the end, clear of the bars a phone's home has over it.
             padding: EdgeInsets.only(top: 8, bottom: 8 + MediaQuery.paddingOf(context).bottom),
-            // The button that makes one first, then the favorite songs; with no playlists, a line that says so under
+            // The button that makes one first, then the favorites; with no playlists, a line that says so under
             // them, which a drag down loads again, as it does the list.
             itemCount: 2 + (playlists.isEmpty ? 1 : playlists.length),
             itemBuilder: (context, i) {
@@ -145,7 +149,7 @@ class _PlaylistsViewState extends State<PlaylistsView> {
               }
 
               if (i == 1) {
-                return const _FavoritesTile();
+                return _FavoritesTile(onTap: widget.onFavorites);
               }
 
               if (playlists.isEmpty) {
@@ -164,10 +168,12 @@ class _PlaylistsViewState extends State<PlaylistsView> {
   );
 }
 
-/// The user's favorite songs, as a playlist in the list, with how many they are once they have come: a tap opens their
-/// page.
+/// The user's favorites, as a playlist in the list, with how many songs they are once they have come: a tap opens their
+/// page ([onTap]; where null, a page of them with no links to the tabs).
 class _FavoritesTile extends StatelessWidget {
-  const _FavoritesTile();
+  const _FavoritesTile({this.onTap});
+
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -178,9 +184,10 @@ class _FavoritesTile extends StatelessWidget {
       listenable: favorites,
       builder: (context, _) => ListTile(
         leading: const SizedBox.square(dimension: Thumbnail.size, child: FavoritesPicture(radius: 4)),
-        title: Text(strings.favoriteSongs, maxLines: 1, overflow: TextOverflow.ellipsis),
+        title: Text(strings.favorites, maxLines: 1, overflow: TextOverflow.ellipsis),
         subtitle: favorites.loaded ? Text(strings.trackCount(favorites.songs.length)) : null,
-        onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const FavoriteSongsPage())),
+        onTap:
+            onTap ?? () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const FavoritesPage())),
       ),
     );
   }

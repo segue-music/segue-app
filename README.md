@@ -43,7 +43,7 @@ screen, and the Windows build on Windows 11. macOS has no package yet.
   latest added. A row's title opens the albums tab in that order. Dragging the home down from its top loads it again.
   As the app opens, the home shows at once what it showed the time before, covers too, kept on the device, while it
   loads again; its mixes are those picked the time before. On a phone, its top bar has two chips: "Aleatório", which
-  plays the whole library at random, and "Favoritas", which opens the favorite songs.
+  plays the whole library at random, and "Favoritos", which opens the favorites.
 - **Mixes**: 100 songs of the library at random, of a genre ("Rock") or of a decade ("Anos 70"), from the genres and
   decades the user plays most (before anything has played, the genres with the most albums). They are picked again
   each time the home loads, the more played the likelier. A mix plays the first songs its tile shows, and autoplay
@@ -138,9 +138,11 @@ knows nothing of them, and another device plays as it has them.
   or a smart one, can only be played next or added to the queue.
 - A song's menu is the button after its duration, the menu key or Shift+F10, a right click, or OK held on a TV's
   remote.
-- **Favorites**: a heart on a song, an album or an artist (Subsonic's star, Jellyfin's favorite). The favorite songs
-  come first among the playlists ("Músicas favoritas"), and the albums and artists tabs have a "Favoritos" chip. On a
-  Subsonic server the latest come first; on Jellyfin, which doesn't say when, by name.
+- **Favorites**: a heart on a song, an album or an artist (Subsonic's star, Jellyfin's favorite). They have a page
+  of their own ("Favoritos", first among the playlists, and on a phone a chip on the home): the songs, a line that
+  plays them or opens them as a playlist, then a row of the albums and one of the artists. A row's title opens the
+  albums or artists tab with its "Favoritos" chip, which shows them alone. On a Subsonic server the latest come first;
+  on Jellyfin, which doesn't say when, by name.
 - Each change shows at once and goes to the server as it's made. One the server refuses goes back, and says so.
 
 ### Downloads and offline

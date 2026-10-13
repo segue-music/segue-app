@@ -6,7 +6,7 @@ import 'package:segue/player/player.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/ui/home/home_chips.dart';
-import 'package:segue/ui/playlist/favorite_songs_page.dart';
+import 'package:segue/ui/playlist/favorites_page.dart';
 
 import 'fakes.dart';
 import 'home_search_test.dart' show pumpHome;
@@ -49,15 +49,16 @@ void main() {
     expect(asked.single.keys, isNot(anyOf(contains('genre'), contains('fromYear'), contains('toYear'))));
   });
 
-  testWidgets('on a phone, "Favoritas" opens the favorite songs over the home, under the bars at the bottom, which '
-      'stay', (tester) async {
+  testWidgets('on a phone, "Favoritos" opens the favorites over the home, under the bars at the bottom, which stay', (
+    tester,
+  ) async {
     await pumpHome(tester, const Size(360, 800));
     // Scrolled to, as with the tests' font, whose letters are all as wide as tall, it doesn't fit beside the first.
-    await tester.ensureVisible(find.text('Favoritas'));
+    await tester.ensureVisible(find.text('Favoritos'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Favoritas'));
+    await tester.tap(find.text('Favoritos'));
     await tester.pumpAndSettle();
-    expect(find.byType(FavoriteSongsPage), findsOneWidget);
+    expect(find.byType(FavoritesPage), findsOneWidget);
     expect(find.text('Início').hitTestable(), findsOneWidget, reason: 'the sections\' bar\'s');
     await tester.pumpWidget(const SizedBox());
   });

@@ -10,8 +10,8 @@ import '../widgets/themed_icon.dart';
 import 'mix_row.dart';
 
 /// On a phone, the home's top bar, where the app's icon and name would only say again what the bar at the bottom says:
-/// a chip that plays the whole library at random, and one that opens the user's favorite songs, one tap away rather
-/// than among the playlists. From the screen's edge, the first one lined up with the home's rows.
+/// a chip that plays the whole library at random, and one that opens the user's favorites (songs, albums and artists),
+/// one tap away rather than among the playlists. From the screen's edge, the first one lined up with the home's rows.
 class HomeChips extends StatefulWidget {
   const HomeChips({required this.onFavorites, super.key});
 
@@ -75,7 +75,7 @@ class _HomeChipsState extends State<HomeChips> {
                   : const ThemedIcon(HugeIcons.strokeRoundedShuffle),
               _shuffle,
             ),
-            chip(strings.favoriteSongsChip, const ThemedIcon(HugeIcons.strokeRoundedFavourite), widget.onFavorites),
+            chip(strings.favorites, const ThemedIcon(HugeIcons.strokeRoundedFavourite), widget.onFavorites),
           ],
         ),
       ),
