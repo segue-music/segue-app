@@ -75,7 +75,7 @@ void main() {
     await tester.tap(find.byTooltip('Tocando agora'));
     await tester.pumpAndSettle();
 
-    for (final tooltip in ['Fechar', 'Tocar', 'Próxima', 'Repetir a lista', 'Fila', 'Aparelhos']) {
+    for (final tooltip in ['Tocar', 'Próxima', 'Repetir a lista', 'Fila', 'Aparelhos']) {
       final rect = tester.getRect(find.byTooltip(tooltip).first);
       expect(screen.contains(rect.topLeft) && screen.contains(rect.bottomRight), isTrue, reason: '$tooltip: $rect');
     }

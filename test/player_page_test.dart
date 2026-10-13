@@ -934,7 +934,8 @@ void main() {
       television: true,
     );
     await openPlayer(tester);
-    await tester.tap(onPage(find.byTooltip('Fechar')));
+    // The remote's back, which closes it.
+    await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
 
     await tester.tap(openerOfPlayer());

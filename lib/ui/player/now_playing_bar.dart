@@ -21,6 +21,7 @@ import 'player_controls.dart';
 import 'player_page.dart';
 import 'queue_page.dart';
 import 'sleep_timer_button.dart';
+import 'television_player.dart';
 import 'volume_control.dart';
 
 export 'player_controls.dart' show formatDuration;
@@ -33,9 +34,9 @@ export 'player_controls.dart' show formatDuration;
 /// playlist to add the song to, the queue, the sleep timer, the devices and, on a computer, the volume. On a phone, the
 /// slider is over the song and its few buttons, the rest in the full-screen player.
 ///
-/// Each page has one, but for the pages of a [PageArea], under which the home's stays. A TV's pages have none, whose
-/// remote would find a strip of small buttons at the bottom of every one: there the side rail opens the full-screen
-/// player, over everything, with the bar under it, the remote on play.
+/// Each page has one, but for the pages of a [PageArea], under which the home's stays. A TV has none, whose remote would
+/// find a strip of small buttons at the bottom of every page: there the side rail opens the full-screen player, over
+/// everything, which has controls of its own ([TelevisionControls]).
 class NowPlayingBar extends StatelessWidget {
   const NowPlayingBar({this.lyrics, super.key});
 
@@ -71,9 +72,8 @@ class NowPlayingBar extends StatelessWidget {
     // full-screen player).
     final wide = MediaQuery.sizeOf(context).width >= wideFrom;
     final lyrics = this.lyrics;
-    final television = DirectionalNavigation.of(context);
 
-    if (PageArea.holds(context) || (television && lyrics == null)) {
+    if (PageArea.holds(context) || DirectionalNavigation.of(context)) {
       return const SizedBox.shrink();
     }
 
@@ -143,7 +143,6 @@ class NowPlayingBar extends StatelessWidget {
                                   Padding(
                                     padding: const EdgeInsets.symmetric(horizontal: 4),
                                     child: IconButton.filled(
-                                      autofocus: television,
                                       tooltip: now.playing ? strings.pause : strings.play,
                                       icon: playIcon,
                                       onPressed: toggle,
@@ -316,7 +315,7 @@ class _Song extends StatelessWidget {
       child: ClipRRect(borderRadius: BorderRadius.circular(4), child: Cover(now.coverArt, size: 96, gapless: true)),
     );
 
-    // Closed from the navigator it opened in: the page area's, or on a TV, where it covers everything, the app's.
+    // Closed from the navigator it opened in: the page area's, or where it covers everything, the app's.
     void openOrClose() => lyrics == null ? PlayerPage.open(context) : PageArea.playerNavigatorOf(context).maybePop();
 
     if (wide) {

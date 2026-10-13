@@ -731,7 +731,7 @@
   },
   "nowPlaying": "Tocando agora",
   "@nowPlaying": {
-    "description": "On a TV, which has no player bar under its pages, the side rail's first button, which opens the full-screen player on what plays."
+    "description": "On a TV, which has no player bar, the side rail's first button, which opens the full-screen player on what plays."
   },
   "showLyrics": "Mostrar a letra",
   "@showLyrics": {

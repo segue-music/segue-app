@@ -221,11 +221,10 @@ Running two app instances on one machine as different devices:
 - On a wide screen, `HomePage` keeps its bars (the top one, the side rail, the player's) and opens
   pages between them, in a nested navigator, the page area (`lib/ui/app/page_area.dart`), whose
   `PageHistory` the top bar's arrows and the keyboard's left and right go back and forward through. A TV has no
-  arrows there: its remote's back closes the page on top (`NavigatorPopHandler`). Nor has a TV the player bar under
-  its pages (`NowPlayingBar` is empty there, but under the full-screen player): a strip of small buttons the remote
-  went through at the bottom of every page. There the side rail's first button, while something plays ("Tocando
-  agora", its icon the `Equalizer`), opens the full-screen player over everything, as on a phone
-  (`PageArea.holdsPlayer`), with the bar under it, the remote on play.
+  arrows there: its remote's back closes the page on top (`NavigatorPopHandler`). Nor has a TV the player bar
+  (`NowPlayingBar` is empty there): a strip of small buttons the remote went through at the bottom of every page.
+  There the side rail's first button, while something plays ("Tocando agora", its icon the `Equalizer`), opens the
+  full-screen player over everything, as on a phone (`PageArea.holdsPlayer`), as a video player.
   From outside it (the player bar), pages open with `PageArea.navigatorOf(context)`, not
   `Navigator.of`; the full-screen cover and the sheets open in the app's navigator, over the window.
   A navigator's pages keep the arrows in them, so the page area's lets them on from a page's edges
@@ -430,14 +429,21 @@ Running two app instances on one machine as different devices:
   `adb shell input keyevent` sends. `TextFieldArrowShortcuts` lets up and down leave text fields
   (on a TV, left and right too). A text field opens the keyboard as the focus comes to it, and on a
   TV the keyboard covers half the screen and takes the D-pad, so there the home's search bar stays
-  read-only until the center button (its `onTap`) opens it. On a TV the lyrics are karaoke (`LyricsView.karaoke`, by
-  the navigation mode): the full-screen player opens with them, in three fifths of the screen, keeping the screen on,
+  read-only until the center button (its `onTap`) opens it. On a TV the full-screen player is as a video player
+  (`lib/ui/player/television_player.dart`): no top bar, the cover behind it from edge to edge, faint and blurred
+  (`TelevisionBackdrop`: asked for at 32 pixels and stretched, as a blur filter would be worked out again at every
+  frame, the lyrics moving), and its controls under it (`TelevisionControls`) showing as it opens and as the arrows
+  or OK are pressed, which then only bring them back, play taking the focus, and going after 5 s with no key, but
+  while a menu or a sheet opened from them shows; the slider stays. The remote's back hides them first, and only then
+  closes the player. The screen stays on while it plays. On a TV the lyrics are karaoke (`LyricsView.karaoke`, by the
+  navigation mode): the full-screen player opens with them, in three fifths of the screen, keeping the screen on,
   and the line that plays is bigger, in the middle (its style animated, `TweenAnimationBuilder`, on the `Text` itself,
   and the scroll going, along with it, straight to where the line ends up once grown and the one before shrunk:
-  `_growth` lays their text out in the style they go to). A song without lyrics shows the cover alone, the lyrics
-  still on for the next: the player asks `lyricsOf` (`lib/ui/player/lyrics_view.dart`), which `LyricsView` asks
-  too, and which remembers the last few songs' lyrics for each media server, so that they are asked for once, and a
-  player opened again on a song without them knows at once (`hasLyrics`). A TV's remote seldom has a menu key, so a song's or a
+  `_growth` lays their text out in the style they go to). A song without lyrics shows the cover alone, the lyrics still
+  on for the next: the player asks `lyricsOf` (`lib/ui/player/lyrics_view.dart`), which `LyricsView` asks too, and which
+  remembers the last few songs' lyrics for each media server, so that they are asked for once, and a player opened again
+  on a song without them knows
+  at once (`hasLyrics`). A TV's remote seldom has a menu key, so a song's or a
   playlist's menu also opens with the center button held (`MenuShortcuts`, `lib/ui/widgets/menu_shortcuts.dart`):
   there a press of it plays the song (opens the playlist) as it is let go, not as it goes down. A TV has no drag, so
   the queue's and a playlist's songs move by the remote (`MovableSongs`, `lib/ui/song/movable_song.dart`, the list

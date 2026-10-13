@@ -20,6 +20,8 @@ import 'package:segue/ui/app/television_screen.dart';
 import 'package:segue/ui/home/home_view.dart';
 import 'package:segue/ui/player/now_playing_bar.dart';
 import 'package:segue/ui/player/player_page.dart';
+import 'package:segue/ui/player/television_player.dart';
+import 'package:segue/ui/widgets/text_link.dart';
 
 import 'fakes.dart';
 
@@ -225,8 +227,10 @@ void main() {
     await tester.pumpWidget(const SizedBox()); // stops the player's timers
   });
 
-  testWidgets('on a TV, in the bar under the full-screen player, down from play goes to the slider, which left and '
-      'right move, down from it stays there, and up goes back to the buttons, without moving the song', (tester) async {
+  testWidgets('on a TV, in the full-screen player\'s controls, down from play goes to the slider, which left and right '
+      'move, down from it stays there, and up goes back to the buttons, and on to the song, without moving it', (
+    tester,
+  ) async {
     final player = await pumpFullHdHome(tester);
     await tester.tap(find.byTooltip('Tocando agora'));
     await tester.pumpAndSettle();
@@ -238,28 +242,23 @@ void main() {
     expect(moved, greaterThan(Duration.zero));
 
     await press(tester, LogicalKeyboardKey.arrowDown);
-    expect(sliderFocused(), isTrue, reason: 'the bar is the floor');
+    expect(sliderFocused(), isTrue, reason: 'the controls are the floor');
     await press(tester, LogicalKeyboardKey.arrowUp);
-    expect(inBar() && !sliderFocused(), isTrue);
+    expect(focusedIn<TelevisionControls>() && !sliderFocused() && !focusedIn<TextLink>(), isTrue);
     await press(tester, LogicalKeyboardKey.arrowUp);
-    expect(inBar(), isFalse, reason: 'up out of the bar, to the player');
+    expect(focusedIn<TextLink>(), isTrue, reason: 'up out of the controls, to the song');
     expect(player.position, moved);
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('on a TV, up from the end of the bar under the full-screen player goes through what can be pressed, not '
-      'to the page as a whole, which shows nothing for it, up to the close button', (tester) async {
+  testWidgets('on a TV, up from the end of the full-screen player\'s controls goes to the song, not to the page as a '
+      'whole, which shows nothing for it', (tester) async {
     await pumpFullHdHome(tester);
     await tester.tap(find.byTooltip('Tocando agora'));
     await tester.pumpAndSettle();
     await pressUntil(tester, LogicalKeyboardKey.arrowRight, () => focusedTip() == 'Aparelhos');
-
-    for (var i = 0; i < 5 && focusedTip() != 'Fechar'; i++) {
-      await press(tester, LogicalKeyboardKey.arrowUp);
-      expect(FocusManager.instance.primaryFocus!.rect.size, isNot(const Size(960, 540)));
-    }
-
-    expect(focusedTip(), 'Fechar');
+    await press(tester, LogicalKeyboardKey.arrowUp);
+    expect(focusedIn<TextLink>(), isTrue);
     await tester.pumpWidget(const SizedBox());
   });
 

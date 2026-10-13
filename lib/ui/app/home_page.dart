@@ -647,8 +647,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             navigator: _pages,
             history: _history,
             underTopBar: true,
-            // On a TV, which has no player bar under its pages, the full-screen player covers everything, with the bar
-            // under it, the rail opening it.
+            // On a TV, which has no player bar, the full-screen player covers everything, with controls of its own, the
+            // rail opening it.
             holdsPlayer: !television,
             child: Scaffold(
               // Left and right along its buttons, rather than to a card scrolled under it.
@@ -841,7 +841,7 @@ class _SideRail extends StatelessWidget {
   final ValueChanged<_Section> onSelected;
 
   /// Whether its first button opens the full-screen player, while there is something to play: on a TV, which has no
-  /// player bar under its pages. Its icon is what marks the song that plays, moving while it plays.
+  /// player bar. Its icon is what marks the song that plays, moving while it plays.
   final bool opensPlayer;
 
   /// Where a tooltip's top left corner goes: to the right of its icon, level with it, as far from its center as a

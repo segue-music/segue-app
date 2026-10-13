@@ -170,8 +170,9 @@ knows nothing of them, and another device plays as it has them.
 - **TV**: the remote drives the app, a white ring showing where it is, and an album, an artist or a mix it is on a
   little bigger. The text is a bit bigger than on a phone, and everything keeps out of the screen's edges, which some
   TVs cut off, but for the rows of albums, which run on to the side as they scroll, as Google TV's do. No player bar
-  under the pages: the side rail's first button, while something plays, opens the full-screen player, with the
-  controls under it, the remote starting on play. The keyboard opens on the search bar with the
+  under the pages: the side rail's first button, while something plays, opens the full-screen player, as a video
+  player: the cover blurred behind it, and the controls showing as a key is pressed and going after a few seconds,
+  back hiding them first. The screen stays on while the music plays. The keyboard opens on the search bar with the
   center button, OK held opens a menu, and a song of the queue or of a playlist moves by the remote ("Mover" in its
   menu, then the arrows and OK). The remote's play/pause, next and previous buttons drive playback.
 - **The system's media controls** show and command what the player bar shows, the device it follows included: on

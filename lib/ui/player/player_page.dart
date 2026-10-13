@@ -25,11 +25,13 @@ import 'now_playing_bar.dart';
 import 'player_controls.dart';
 import 'queue_page.dart';
 import 'sleep_timer_button.dart';
+import 'television_player.dart';
 
 /// The full-screen player: what plays, wherever it plays, big, and its lyrics beside it (on a phone, under it). On a
 /// wide screen the player bar stays under it, with the controls; on a phone, where there is none, it has every control
-/// itself, and a drag down closes it, or takes its lyrics out, which a drag up brings in, and then full screen. A TV has
-/// no player bar on its pages, but under this one, over everything, the remote starting on play.
+/// itself, and a drag down closes it, or takes its lyrics out, which a drag up brings in, and then full screen. On a TV,
+/// over everything, it is as a video player: the cover blurred behind it ([TelevisionBackdrop]), no top bar, and its
+/// controls coming as the remote's keys are pressed and going after a while ([TelevisionControls]).
 class PlayerPage extends StatefulWidget {
   const PlayerPage(this._lyrics, {super.key});
 
@@ -150,7 +152,7 @@ class _PlayerPageState extends State<PlayerPage> with SingleTickerProviderStateM
 
     return CallbackShortcuts(
       bindings: {const SingleActivator(LogicalKeyboardKey.escape): close},
-      // On a TV, play, in the bar under it, takes the focus instead, the remote starting from it. Out of the arrows' and
+      // On a TV, play, in its controls, takes the focus instead, the remote starting from it. Out of the arrows' and
       // Tab's way: as wide as the page, it would be where the remote went up from the bar, with nothing to show it.
       child: Focus(
         autofocus: !DirectionalNavigation.of(context),
@@ -167,6 +169,34 @@ class _PlayerPageState extends State<PlayerPage> with SingleTickerProviderStateM
                 final colors = Theme.of(context).colorScheme;
                 final device = now?.device;
                 final strings = AppLocalizations.of(context);
+
+                if (DirectionalNavigation.of(context)) {
+                  return Scaffold(
+                    body: switch (now) {
+                      null => Center(child: Text(strings.nothingPlaying)),
+                      final now => Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          TelevisionBackdrop(now.coverArt),
+                          SafeArea(
+                            child: TelevisionControls(
+                              now,
+                              lyrics: widget._lyrics,
+                              child: Stack(
+                                children: [
+                                  _Player(now, lyrics: _shown, controls: false, scroll: scroll),
+                                  if (device != null) _PlayingOn(now, device),
+                                ],
+                              ),
+                            ),
+                          ),
+                          // While the music plays, it is watched, not touched: the screen stays on.
+                          if (now.playing) const KeepScreenOn(child: SizedBox.shrink()),
+                        ],
+                      ),
+                    },
+                  );
+                }
 
                 return Scaffold(
                   appBar: AppBar(
@@ -245,6 +275,44 @@ class _PlayerPageState extends State<PlayerPage> with SingleTickerProviderStateM
                         ),
                 );
               },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// On a TV, at the full-screen player's corner, where the music plays, when that's another device.
+class _PlayingOn extends StatelessWidget {
+  const _PlayingOn(this.now, this.device);
+
+  final NowPlaying now;
+  final String device;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final strings = AppLocalizations.of(context);
+
+    return Align(
+      alignment: AlignmentDirectional.topStart,
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: DecoratedBox(
+          decoration: BoxDecoration(color: colors.primaryContainer, borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ThemedIcon(HugeIcons.strokeRoundedSpeaker, size: 18, color: colors.onPrimaryContainer),
+                const SizedBox(width: 6),
+                Text(
+                  now.playing ? strings.playingOn(device) : strings.pausedOn(device),
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(color: colors.onPrimaryContainer),
+                ),
+              ],
             ),
           ),
         ),

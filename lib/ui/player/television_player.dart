@@ -1,0 +1,304 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:hugeicons/hugeicons.dart';
+
+import '../../connect/connect.dart';
+import '../../l10n/app_localizations.dart';
+import '../../server/models.dart';
+import '../../services.dart';
+import '../playlist/playlist_dialogs.dart';
+import '../song/favorite_button.dart';
+import '../widgets/bar_traversal.dart';
+import '../widgets/cover.dart';
+import '../widgets/themed_icon.dart';
+import 'devices_sheet.dart';
+import 'player_controls.dart';
+import 'queue_page.dart';
+import 'sleep_timer_button.dart';
+
+/// On a TV, the full-screen player's controls, under [child], as a video player has them: they show as the player opens,
+/// play taking the focus, and go after [idle] with no key pressed, leaving [child] and the slider, where the song is.
+/// Hidden, the arrows and OK only bring them back, play taking the focus again, and the remote's back closes the
+/// player; shown, back hides them first. The remote's play/pause, next and previous keys work either way.
+class TelevisionControls extends StatefulWidget {
+  const TelevisionControls(this.now, {required this.lyrics, required this.child, super.key});
+
+  final NowPlaying now;
+
+  /// Whether the full-screen player shows the lyrics, which a button turns on and off.
+  final ValueNotifier<bool> lyrics;
+
+  /// What plays: the cover, the song, its lyrics.
+  final Widget child;
+
+  /// How long the controls stay with no key pressed.
+  static const idle = Duration(seconds: 5);
+
+  @override
+  State<TelevisionControls> createState() => _TelevisionControlsState();
+}
+
+class _TelevisionControlsState extends State<TelevisionControls> {
+  /// Where the focus waits while the controls are hidden: it takes the keys that bring them back.
+  final _waiting = FocusNode(debugLabel: 'Hidden controls', skipTraversal: true);
+
+  final _play = FocusNode(debugLabel: 'Play');
+
+  bool _shown = true;
+  Timer? _hiding;
+
+  /// Whether back went down while the controls showed, hiding them: its going up is theirs too, rather than the
+  /// system's, which would close the player.
+  bool _backHides = false;
+
+  /// The keys that bring the controls back: the remote's arrows and OK, a keyboard's Enter.
+  static final _bringers = {
+    LogicalKeyboardKey.arrowUp,
+    LogicalKeyboardKey.arrowDown,
+    LogicalKeyboardKey.arrowLeft,
+    LogicalKeyboardKey.arrowRight,
+    LogicalKeyboardKey.select,
+    LogicalKeyboardKey.enter,
+    LogicalKeyboardKey.numpadEnter,
+    LogicalKeyboardKey.gameButtonA,
+  };
+
+  static final _backs = {LogicalKeyboardKey.goBack, LogicalKeyboardKey.escape};
+
+  /// How long the controls take to come and go.
+  static const _fade = Duration(milliseconds: 250);
+
+  @override
+  void initState() {
+    super.initState();
+    HardwareKeyboard.instance.addHandler(_pressed);
+    _hideLater();
+  }
+
+  @override
+  void dispose() {
+    HardwareKeyboard.instance.removeHandler(_pressed);
+    _hiding?.cancel();
+    _waiting.dispose();
+    _play.dispose();
+    super.dispose();
+  }
+
+  /// Any key, while the controls show, keeps them a while longer: those a focused slider takes too (left and right),
+  /// which never reach [_key].
+  bool _pressed(KeyEvent event) {
+    if (_shown && event is! KeyUpEvent) {
+      _hideLater();
+    }
+
+    return false;
+  }
+
+  void _hideLater() {
+    _hiding?.cancel();
+    _hiding = Timer(TelevisionControls.idle, _hide);
+  }
+
+  /// Hides the controls, the focus waiting out of them, unless something opened over the player (a menu, the devices,
+  /// the queue): they stay a while longer then, for the focus to come back to them.
+  void _hide() {
+    if (!mounted) {
+      return;
+    }
+
+    if (!(ModalRoute.of(context)?.isCurrent ?? true)) {
+      _hideLater();
+      return;
+    }
+
+    _hiding?.cancel();
+    _waiting.requestFocus();
+    setState(() => _shown = false);
+  }
+
+  void _show() {
+    setState(() => _shown = true);
+    _hideLater();
+    // Once they can take it again.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _play.requestFocus());
+  }
+
+  KeyEventResult _key(FocusNode node, KeyEvent event) {
+    final key = event.logicalKey;
+
+    if (_backs.contains(key)) {
+      if (event is KeyDownEvent) {
+        _backHides = _shown;
+
+        if (_shown) {
+          _hide();
+        }
+      }
+
+      return _backHides ? KeyEventResult.handled : KeyEventResult.ignored;
+    }
+
+    if (!_shown && _bringers.contains(key)) {
+      if (event is KeyDownEvent) {
+        _show();
+      }
+
+      return KeyEventResult.handled;
+    }
+
+    return KeyEventResult.ignored;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final now = widget.now;
+    final strings = AppLocalizations.of(context);
+    final colors = Theme.of(context).colorScheme;
+    final connect = ServicesScope.of(context).connect;
+    final songId = now.songId;
+    // Where the music goes, and what goes on beside it, as the wide player bar has them.
+    final buttons = Row(
+      children: [
+        const Spacer(flex: 3),
+        Expanded(
+          flex: 4,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                switch (songId) {
+                  final id? => FavoriteButton(FavoriteKind.song, id),
+                  // Disabled for a song the hub couldn't give in the app's API.
+                  null => IconButton(
+                    tooltip: strings.addToFavorites,
+                    icon: const ThemedIcon(HugeIcons.strokeRoundedFavourite),
+                    onPressed: null,
+                  ),
+                },
+                ShuffleButton(now),
+                IconButton(
+                  tooltip: strings.previous,
+                  icon: const ThemedIcon(HugeIcons.strokeRoundedPrevious),
+                  onPressed: () => runCommand(context, connect.previous),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: IconButton.filled(
+                    focusNode: _play,
+                    autofocus: true,
+                    tooltip: now.playing ? strings.pause : strings.play,
+                    iconSize: 32,
+                    padding: const EdgeInsets.all(12),
+                    icon: ThemedIcon(now.playing ? HugeIcons.strokeRoundedPause : HugeIcons.strokeRoundedPlay),
+                    onPressed: () => runCommand(context, connect.toggle),
+                  ),
+                ),
+                IconButton(
+                  tooltip: strings.next,
+                  icon: const ThemedIcon(HugeIcons.strokeRoundedNext),
+                  onPressed: () => runCommand(context, connect.next),
+                ),
+                RepeatButton(now),
+                ValueListenableBuilder(
+                  valueListenable: widget.lyrics,
+                  builder: (context, on, _) => IconButton(
+                    tooltip: on ? strings.hideLyrics : strings.showLyrics,
+                    icon: ThemedIcon(HugeIcons.strokeRoundedMicVocal, color: on ? colors.primary : null),
+                    onPressed: () => widget.lyrics.value = !on,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        Expanded(
+          flex: 3,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              AddToPlaylistButton(now),
+              IconButton(
+                tooltip: strings.queue,
+                icon: const ThemedIcon(HugeIcons.strokeRoundedPlaylist03),
+                onPressed: () => QueuePage.open(context),
+              ),
+              // The timer pauses this device's player: none while another device plays.
+              if (now.device == null) const SleepTimerButton(),
+              IconButton(
+                tooltip: strings.devices,
+                icon: ThemedIcon(
+                  HugeIcons.strokeRoundedMonitorSpeaker,
+                  color: now.device == null ? null : colors.primary,
+                ),
+                onPressed: () => showDevicesSheet(context),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+
+    return Focus(
+      focusNode: _waiting,
+      onKeyEvent: _key,
+      child: Column(
+        children: [
+          Expanded(child: widget.child),
+          // Hidden, out of the focus's way, the slider too: the arrows only bring them back.
+          ExcludeFocus(
+            excluding: !_shown,
+            child: FocusTraversalGroup(
+              policy: BarTraversalPolicy.bottom,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IgnorePointer(
+                      ignoring: !_shown,
+                      child: AnimatedOpacity(opacity: _shown ? 1 : 0, duration: _fade, child: buttons),
+                    ),
+                    SeekSlider(now),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// On a TV, behind the full-screen player, the cover of what plays, from edge to edge, blurred and faint: asked of the
+/// server [size] pixels across, and stretched, which blurs it as a filter would, without one to work out at every frame.
+/// Nothing where there is no cover.
+class TelevisionBackdrop extends StatelessWidget {
+  const TelevisionBackdrop(this.coverArt, {super.key});
+
+  final String? coverArt;
+
+  /// Pixels asked of the server: few enough for the picture to blur, stretched over the screen.
+  static const size = 32;
+
+  @override
+  Widget build(BuildContext context) {
+    final coverArt = this.coverArt;
+
+    if (coverArt == null) {
+      return const SizedBox.expand();
+    }
+
+    // Over it, the background's color, so that the text on it reads, in either theme.
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Cover(coverArt, size: size, gapless: true),
+        ColoredBox(color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.7)),
+      ],
+    );
+  }
+}

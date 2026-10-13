@@ -5,8 +5,8 @@ import '../player/player_page.dart';
 /// The middle of the home, where pages open (an album, an artist, a genre), between bars that stay as they come and go.
 /// On a wide screen the bars are the top one, the side rail and the player's, and the full-screen player and the queue
 /// open in it too ([holdsPlayer]); the top bar's arrows go back and forward, so the pages have no back arrow of their
-/// own ([underTopBar]). A TV has no player bar under its pages: there the full-screen player, with the bar under it,
-/// and the queue cover everything, as on a phone. On a phone the bars are the player's and the sections', at the bottom; the pages
+/// own ([underTopBar]). A TV has no player bar: there the full-screen player, with controls of its own, and the queue
+/// cover everything, as on a phone. On a phone the bars are the player's and the sections', at the bottom; the pages
 /// keep their own top bar, with the back arrow, and the full-screen player and the queue cover everything, the bars
 /// too.
 ///
