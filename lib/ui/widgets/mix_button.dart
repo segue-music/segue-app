@@ -56,9 +56,14 @@ Future<void> playMix(BuildContext context, Mix mix, {List<Song> first = const []
 
 /// A button that plays [mix], a spinner in its icon's place while its songs come: a genre's mix, an artist's radio.
 class MixButton extends StatefulWidget {
-  const MixButton(this.mix, {super.key});
+  const MixButton(this.mix, {super.key}) : _round = false;
+
+  /// The button round and big, its icon alone, its words in its tooltip: as a music app's play button, at the end of an
+  /// artist's name over their picture, on a phone.
+  const MixButton.round(this.mix, {super.key}) : _round = true;
 
   final Mix mix;
+  final bool _round;
 
   @override
   State<MixButton> createState() => _MixButtonState();
@@ -85,20 +90,30 @@ class _MixButtonState extends State<MixButton> {
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context);
+    final colors = Theme.of(context).colorScheme;
     final mix = widget.mix;
+    final icon = ThemedIcon(switch (mix) {
+      RandomMix() => HugeIcons.strokeRoundedShuffle,
+      RadioMix() => HugeIcons.strokeRoundedRadio,
+    });
+    final label = switch (mix) {
+      RandomMix() => strings.playMix,
+      RadioMix() => mixName(strings, mix),
+    };
+
+    if (widget._round) {
+      return IconButton.filled(
+        onPressed: _play,
+        tooltip: label,
+        style: IconButton.styleFrom(minimumSize: const Size.square(48)),
+        icon: _loading ? Spinner(size: 20, strokeWidth: 2, color: colors.onPrimary) : icon,
+      );
+    }
 
     return FilledButton.tonalIcon(
       onPressed: _play,
-      icon: _loading
-          ? Spinner(size: 18, strokeWidth: 2, color: Theme.of(context).colorScheme.onSecondaryContainer)
-          : ThemedIcon(switch (mix) {
-              RandomMix() => HugeIcons.strokeRoundedShuffle,
-              RadioMix() => HugeIcons.strokeRoundedRadio,
-            }),
-      label: Text(switch (mix) {
-        RandomMix() => strings.playMix,
-        RadioMix() => mixName(strings, mix),
-      }),
+      icon: _loading ? Spinner(size: 18, strokeWidth: 2, color: colors.onSecondaryContainer) : icon,
+      label: Text(label),
     );
   }
 }

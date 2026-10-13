@@ -861,15 +861,18 @@ void main() {
       ),
     );
     expect(tester.getRect(heading).left, 16);
-    expect(tester.getRect(heading).center.dy, greaterThan(picture.center.dy));
+    expect(tester.getRect(heading).top, greaterThan(picture.center.dy));
     expect(tester.getSize(heading).height, greaterThan(tester.getSize(title).height));
     final choice = tester.getRect(find.byWidgetPredicate((widget) => widget is SegmentedChoice));
     expect(choice.bottom, lessThanOrEqualTo(picture.bottom));
     expect(choice.top, greaterThan(tester.getRect(heading).bottom), reason: 'under the name');
-    // Their radio under the name, before the choice: the page's first way to play anything of theirs.
-    final radio = tester.getRect(find.text('Rádio do artista'));
-    expect(radio.top, greaterThan(tester.getRect(heading).bottom));
-    expect(choice.top, greaterThan(radio.bottom));
+    // Their radio at the end of the name's line, round, as a music app's play button: the page's first way to play
+    // anything of theirs.
+    final radio = tester.getRect(find.byTooltip('Rádio do artista'));
+    expect(radio.size, const Size.square(48));
+    expect(radio.right, moreOrLessEquals(360 - 16, epsilon: 1));
+    expect(radio.left, greaterThan(tester.getRect(heading).right));
+    expect(radio.bottom, lessThanOrEqualTo(choice.top));
     final count = tester.getRect(find.text('1 álbum'));
     expect(count.center.dy, moreOrLessEquals(choice.center.dy, epsilon: 1), reason: 'on the choice\'s line');
     final heart = tester.getRect(find.byTooltip('Adicionar aos favoritos'));
@@ -919,7 +922,7 @@ void main() {
     Color bar() => tester.widget<Material>(find.descendant(of: appBar, matching: find.byType(Material)).first).color!;
     expect(bar().a, 0);
 
-    await tester.drag(find.byType(AlbumGrid), const Offset(0, -50));
+    await tester.drag(find.byType(AlbumGrid), const Offset(0, -100));
     await tester.pumpAndSettle();
     expect(bar().a, inExclusiveRange(0, 1), reason: 'some of it');
     expect(titleOpacity(), 0, reason: 'the name still under the bar');

@@ -351,7 +351,7 @@ class _ArtistPageState extends State<ArtistPage> {
     final count = _counts(artist, albums, end: narrow);
     final genres = _genres(albums);
     // The first way to play anything of theirs from the page: a radio, as a genre's page has its mix.
-    final radio = MixButton(ArtistRadio(artist));
+    final radio = ArtistRadio(artist);
 
     if (narrow) {
       // The system's bar, which the picture goes on under, as under the page's.
@@ -393,21 +393,32 @@ class _ArtistPageState extends State<ArtistPage> {
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
+                          // Their radio at the end of the name's line, as a music app's play button: a line of its own
+                          // pushed the name up the picture.
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Text(
-                              artist.name,
-                              key: _name,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: text.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+                            padding: EdgeInsets.fromLTRB(16, 0, 16, heading == null ? 4 : 0),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        artist.name,
+                                        key: _name,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: text.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+                                      ),
+                                      ?genres,
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                MixButton.round(radio),
+                              ],
                             ),
-                          ),
-                          if (genres != null)
-                            Padding(padding: const EdgeInsets.symmetric(horizontal: 16), child: genres),
-                          Padding(
-                            padding: EdgeInsets.fromLTRB(16, 8, 16, heading == null ? 4 : 0),
-                            child: Align(alignment: AlignmentDirectional.centerStart, child: radio),
                           ),
                           heading ??
                               Padding(
@@ -469,7 +480,7 @@ class _ArtistPageState extends State<ArtistPage> {
                         Text(artist.name, style: text.titleLarge),
                         count,
                         ?genres,
-                        Padding(padding: const EdgeInsets.only(top: 8), child: radio),
+                        Padding(padding: const EdgeInsets.only(top: 8), child: MixButton(radio)),
                       ],
                     ),
                   ),
