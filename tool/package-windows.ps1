@@ -30,6 +30,9 @@ try {
 
   New-Item -ItemType Directory (Split-Path $package) -Force | Out-Null
   Copy-Item build\windows\x64\runner\Release $package -Recurse
+  # A debug build (flutter run) leaves its Dart code, kernel_blob.bin, in build\flutter_assets, which the release build
+  # shares and copies whole beside the app: over 100 MB the release doesn't read, its code being compiled (app.so).
+  Remove-Item $package\data\flutter_assets\kernel_blob.bin -ErrorAction Ignore
 
   # Visual C++'s runtime, which the app and its plugins take (msvcp140.dll, vcruntime140.dll, ...) and a Windows
   # without its redistributable lacks: Microsoft lets an app carry it in its own folder. It comes from the latest
