@@ -269,7 +269,10 @@ class _TelevisionControlsState extends State<TelevisionControls> {
                     // Where it plays, when that's another device, stays as the buttons go, as the slider does.
                     Row(
                       children: [
-                        Expanded(flex: 3, child: device == null ? const SizedBox.shrink() : _PlayingOn(now, device)),
+                        Expanded(
+                          flex: 3,
+                          child: device == null ? const SizedBox.shrink() : _PlayingOn(now, device, shown: _shown),
+                        ),
                         Expanded(
                           flex: 7,
                           child: IgnorePointer(
@@ -293,10 +296,14 @@ class _TelevisionControlsState extends State<TelevisionControls> {
 
 /// Where the music plays, when that's another device, beside the controls.
 class _PlayingOn extends StatelessWidget {
-  const _PlayingOn(this.now, this.device);
+  const _PlayingOn(this.now, this.device, {required this.shown});
 
   final NowPlaying now;
   final String device;
+
+  /// Whether the controls show: with them, on a pill of the theme's color; without, the words alone, faint, lined up
+  /// with the cover and the times, for what plays to stand out.
+  final bool shown;
 
   @override
   Widget build(BuildContext context) {
@@ -305,25 +312,37 @@ class _PlayingOn extends StatelessWidget {
 
     return Align(
       alignment: AlignmentDirectional.centerStart,
-      child: DecoratedBox(
-        decoration: BoxDecoration(color: colors.primaryContainer, borderRadius: BorderRadius.circular(16)),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ThemedIcon(HugeIcons.strokeRoundedSpeaker, size: 18, color: colors.onPrimaryContainer),
-              const SizedBox(width: 6),
-              Flexible(
-                child: Text(
-                  now.playing ? strings.playingOn(device) : strings.pausedOn(device),
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(color: colors.onPrimaryContainer),
-                ),
+      // As the controls come and go: 1 with the pill, 0 without.
+      child: TweenAnimationBuilder(
+        tween: Tween<double>(end: shown ? 1 : 0),
+        duration: _TelevisionControlsState._fade,
+        builder: (context, pill, _) {
+          final ink = Color.lerp(colors.onSurfaceVariant, colors.onPrimaryContainer, pill);
+
+          return DecoratedBox(
+            decoration: BoxDecoration(
+              color: colors.primaryContainer.withValues(alpha: colors.primaryContainer.a * pill),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 12 * pill, vertical: 6),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ThemedIcon(HugeIcons.strokeRoundedSpeaker, size: 18, color: ink),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      now.playing ? strings.playingOn(device) : strings.pausedOn(device),
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(color: ink),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }

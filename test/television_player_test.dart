@@ -6,6 +6,7 @@ import 'package:segue/ui/player/player_page.dart';
 import 'package:segue/ui/player/lyrics_view.dart';
 import 'package:segue/ui/player/player_controls.dart';
 import 'package:segue/ui/player/television_player.dart';
+import 'package:segue/ui/widgets/themed_icon.dart';
 
 import 'directional_navigation_test.dart' show focusedTip, press, pressUntil, pumpFullHdHome;
 import 'player_page_test.dart' show onPage, openPlayer, playerCover, pumpBar, tvPlaying, verse, withLyrics;
@@ -127,8 +128,8 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('on a TV following another device, where it plays shows beside the controls, clear of the cover, and '
-      'stays as they go', (tester) async {
+  testWidgets('on a TV following another device, where it plays shows beside the controls, clear of the cover, on a '
+      'pill, and stays as they go, the words alone then, lined up with the time played', (tester) async {
     await pumpBar(
       tester,
       size: const Size(960, 540),
@@ -140,6 +141,10 @@ void main() {
     expect(playingOn, findsOneWidget);
     expect(tester.getRect(playingOn).overlaps(tester.getRect(playerCover)), isFalse);
 
+    final pill = find.ancestor(of: playingOn, matching: find.byType(DecoratedBox)).first;
+    double pillAlpha() => (tester.widget<DecoratedBox>(pill).decoration as BoxDecoration).color!.a;
+    expect(pillAlpha(), 1);
+
     await tester.pump(TelevisionControls.idle);
     await tester.pumpAndSettle();
     expect(controlsShown(), isFalse);
@@ -149,6 +154,16 @@ void main() {
       findsNothing,
       reason: 'not fading',
     );
+    expect(pillAlpha(), 0);
+    final played = find.descendant(of: find.byType(SeekSlider), matching: find.byType(Text)).first;
+    expect(
+      tester.getRect(find.descendant(of: pill, matching: find.byType(ThemedIcon))).left,
+      tester.getRect(played).left,
+    );
+
+    await press(tester, LogicalKeyboardKey.arrowUp);
+    expect(controlsShown(), isTrue);
+    expect(pillAlpha(), 1);
     await tester.pumpWidget(const SizedBox());
   });
 
