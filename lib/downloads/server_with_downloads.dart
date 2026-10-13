@@ -342,6 +342,12 @@ class ServerWithDownloads implements MediaServer {
   Future<List<Song>> similarSongs(Song song, {int size = 50}) =>
       _either(() => server.similarSongs(song, size: size), () => const []);
 
+  /// Out of reach, it fails: a radio asked for from a menu says why it doesn't play, where autoplay goes quietly
+  /// without.
+  @override
+  Future<List<Song>> radioSongs(String id, {String? artistId, int size = 50}) =>
+      _only(() => server.radioSongs(id, artistId: artistId, size: size));
+
   /// The song's file, where it is downloaded, the server in reach or not: it plays as it is, whatever [maxBitRate].
   @override
   Uri streamUrl(String songId, {int? maxBitRate}) =>

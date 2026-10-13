@@ -67,12 +67,6 @@ disliked. A page of stats the whole year round isn't even Spotify's (stats.fm fi
 date (OpenSubsonic and Jellyfin give only the last one), but the hub sees every device's: it could keep the history
 and give each device the recap of them all, which no client alone can.
 
-### A radio from a song, an album or an artist
-
-Autoplay adds songs like the last one at the end of the queue; nothing starts them from a song's menu, an album's or an
-artist's page, as Spotify's song radio, Plexamp's artist and album radios, or Jellyfin's Instant Mix do.
-`MediaServer.similarSongs` (getSimilarSongs2, Jellyfin's `InstantMix`) is already there.
-
 ### "Don't play this again"
 
 Navidrome's Ideas #3899 (skipping disliked songs, 19 votes), Spotify's taste profile exclusions (October 2025) and its

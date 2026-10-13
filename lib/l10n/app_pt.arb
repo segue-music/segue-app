@@ -1622,6 +1622,36 @@
       }
     }
   },
+  "songRadio": "Rádio da música",
+  "@songRadio": {
+    "description": "The item of a song's menu that plays songs like it, the song first (feminine in Portuguese and Spanish: a rádio, la radio)."
+  },
+  "releaseRadio": "{type, select, ep{Rádio do EP} single{Rádio do single} compilation{Rádio da coletânea} other{Rádio do álbum}}",
+  "@releaseRadio": {
+    "description": "The item of an album's menu that plays songs like the album's, by its type: album, ep, single or compilation (feminine in Portuguese and Spanish: a rádio, la radio).",
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "artistRadio": "Rádio do artista",
+  "@artistRadio": {
+    "description": "The button on an artist's page that plays songs of the artist and of those like them (feminine in Portuguese and Spanish: a rádio, la radio)."
+  },
+  "radioEmpty": "Não achei músicas parecidas.",
+  "@radioEmpty": {
+    "description": "A radio of a song, an album or an artist for which the server found no songs like them."
+  },
+  "couldNotPlayRadio": "Não consegui tocar a rádio: {error}",
+  "@couldNotPlayRadio": {
+    "description": "A radio of a song, an album or an artist that couldn't start playing, with the error.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "mixArtists": "{artists} e mais",
   "@mixArtists": {
     "description": "Under a mix's picture: the first few artists of its first songs (artists, named one after another, apart by commas), and that it has more.",

@@ -80,7 +80,7 @@ const toys = Album(id: 'a1', name: 'Toys in the Attic', artist: 'Aerosmith', yea
 const pump = Album(id: 'a2', name: 'Pump', artist: 'Aerosmith', year: 1989);
 
 /// What [mixes] are of: the library, a genre by its name, a decade by its first year.
-List<Object> about(List<Mix> mixes) => [
+List<Object> about(List<RandomMix> mixes) => [
   for (final mix in mixes)
     switch (mix) {
       LibraryMix() => 'library',

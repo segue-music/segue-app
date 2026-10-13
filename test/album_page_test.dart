@@ -38,6 +38,9 @@ http.Response subsonic(Map<String, Object?> body) => http.Response(
   headers: {'content-type': 'application/json'},
 );
 
+/// The album's menu, beside its play button: a song's has the actions on songs alone.
+final albumMenu = find.byType(PopupMenuButton<Object>);
+
 /// The library's artists: Aerosmith, whose picture is `ar-ar1`, and Steven Tyler, whose MusicBrainz id is `mb1`.
 const libraryArtists = [
   {'id': 'ar1', 'name': 'Aerosmith', 'albumCount': 1, 'coverArt': 'ar-ar1'},
@@ -47,7 +50,9 @@ const libraryArtists = [
 /// The page of Toys in the Attic, with the cover [coverArt], two songs by Aerosmith, `s1` and `s2`, with their
 /// [contributors], by their ids, and then [more] songs and [others], the release date [releaseDate], the record labels
 /// [recordLabels], the release types [releaseTypes] and the MusicBrainz id [musicBrainzId], on a screen of [size], with
-/// what [musicBrainz] adds. Aerosmith's albums are this one and [moreByArtist]. Returns the player's engine.
+/// what [musicBrainz] adds. Aerosmith's albums are this one and [moreByArtist]. Like the album, or one of its songs,
+/// are Dream On (`x1`) and Sweet Emotion, unless [similar] says otherwise ([asked] has what the server was asked for
+/// them). Returns the player's engine.
 Future<FakeEngine> pumpAlbum(
   WidgetTester tester, {
   String? coverArt = 'al-a1',
@@ -61,6 +66,11 @@ Future<FakeEngine> pumpAlbum(
   MusicBrainz? musicBrainz,
   List<Map<String, Object?>> moreByArtist = const [],
   Size size = const Size(1000, 700),
+  List<Map<String, String>>? asked,
+  List<Map<String, Object?>> similar = const [
+    {'id': 'x1', 'title': 'Dream On', 'artist': 'Aerosmith', 'artistId': 'ar1', 'duration': 267},
+    {'id': 's2', 'title': 'Sweet Emotion', 'artist': 'Aerosmith', 'artistId': 'ar1', 'duration': 274},
+  ],
 }) async {
   const credentials = SubsonicCredentials(username: 'a', token: 't', salt: 's');
   final api = SubsonicApi(
@@ -79,6 +89,14 @@ Future<FakeEngine> pumpAlbum(
                 ...moreByArtist,
               ],
           },
+        });
+      }
+
+      if (request.url.path.endsWith('getSimilarSongs2.view')) {
+        asked?.add(request.url.queryParameters);
+
+        return subsonic({
+          'similarSongs2': {'song': similar},
         });
       }
 
@@ -358,7 +376,7 @@ void main() {
       expect(queue(), ['s1', 's2', 's2']);
       expect(find.text('Vai tocar a seguir'), findsOneWidget);
 
-      await pick(find.byTooltip('Adicionar'), 'Adicionar à fila');
+      await pick(albumMenu, 'Adicionar à fila');
       expect(queue(), ['s1', 's2', 's2', 's1', 's2']);
       expect(engine.index, 0, reason: 'the song that played plays on');
       await tester.pump(const Duration(seconds: 5)); // the message before goes
@@ -448,12 +466,51 @@ void main() {
   });
 
   testWidgets(
-    'on a phone, the button that adds the album to the queue or a playlist comes before the play button, whose edge is '
-    '16 from the screen\'s, also on a touch screen, whose buttons have room around them',
+    'the album\'s menu plays its radio, songs like its own, and a song\'s menu that song\'s, the song first',
+    (tester) async {
+      final asked = <Map<String, String>>[];
+      final engine = await pumpAlbum(tester, asked: asked);
+      List<String?> queue() => [for (final i in engine.order) engine.tracks[i].queryParameters['id']];
+
+      await tester.tap(albumMenu);
+      await tester.pumpAndSettle();
+      expect(find.text('Rádio da música'), findsNothing, reason: 'the album\'s radio, rather than a song\'s');
+      await tester.tap(find.text('Rádio do álbum'));
+      await tester.pumpAndSettle();
+      expect(asked.single, allOf(containsPair('id', 'a1'), containsPair('count', '100')));
+      expect(queue(), ['x1', 's2']);
+      expect(engine.index, 0);
+
+      await tester.tap(find.descendant(of: song('Walk This Way'), matching: find.byTooltip('Mais opções')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Rádio da música'));
+      await tester.pumpAndSettle();
+      expect(asked.last, containsPair('id', 's1'));
+      expect(queue(), ['s1', 'x1', 's2'], reason: 'the song first, then those like it');
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets('a radio the server finds no songs like says so, and plays nothing: a song\'s, not even the song', (
+    tester,
+  ) async {
+    final engine = await pumpAlbum(tester, similar: const []);
+    await tester.tap(find.descendant(of: song('Walk This Way'), matching: find.byTooltip('Mais opções')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Rádio da música'));
+    await tester.pumpAndSettle();
+    expect(find.text('Não achei músicas parecidas.'), findsOneWidget);
+    expect(engine.tracks, isEmpty);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets(
+    'on a phone, the album\'s menu comes before the play button, whose edge is 16 from the screen\'s, also on a touch '
+    'screen, whose buttons have room around them',
     variant: const TargetPlatformVariant({TargetPlatform.android, TargetPlatform.linux}),
     (tester) async {
       await pumpAlbum(tester, size: const Size(360, 640));
-      final add = tester.getRect(find.byTooltip('Adicionar'));
+      final add = tester.getRect(albumMenu);
       final play = tester.getRect(find.byTooltip('Tocar o álbum'));
       expect(play.right, 360 - 16);
       expect(play.left, greaterThan(add.right), reason: 'after it, apart');

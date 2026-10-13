@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../mixes.dart';
 import '../../releases/album_credits.dart';
 import '../../releases/musicbrainz.dart';
 import '../../server/models.dart';
@@ -22,6 +23,8 @@ import '../widgets/cover.dart';
 import '../widgets/download_button.dart';
 import '../widgets/equalizer.dart';
 import '../widgets/errors.dart';
+import '../widgets/menu_item_label.dart';
+import '../widgets/mix_button.dart';
 import '../widgets/spinner.dart';
 import '../widgets/themed_icon.dart';
 import '../widgets/tile_row.dart';
@@ -31,6 +34,9 @@ import 'cover_page.dart';
 import 'credits_page.dart';
 import 'dates.dart';
 import 'release_types.dart';
+
+/// What the album's menu does besides what a song's menu does with its songs ([SongAction]).
+enum _AlbumAction { radio }
 
 class AlbumPage extends StatefulWidget {
   const AlbumPage(this.album, {super.key});
@@ -249,8 +255,8 @@ class _AlbumPageState extends State<AlbumPage> {
   }
 
   /// The top of the page: the album's cover, its type (album, EP, ...), its name and byline, and the buttons that play
-  /// it, make it one of the user's favorites, and add it (its menu: to the queue, or to a playlist). On a wide screen the name is beside the cover, the type
-  /// above it, the buttons under them; on a narrow one ([narrow]) the name is in the page's bar (a [PageBar]), over the
+  /// it, make it one of the user's favorites, and more (its menu: to the queue, to a playlist, its radio). On a wide
+  /// screen the name is beside the cover, the type above it, the buttons under them; on a narrow one ([narrow]) the name is in the page's bar (a [PageBar]), over the
   /// cover, which is centered, and the byline under the cover, from the page's margin as the songs are, with the buttons
   /// at the end of its line, the play button last ([SongListTopLine]), and the type before the year.
   Widget _header(Album album, List<Song> songs, {required ReleaseType? type, required bool narrow}) {
@@ -266,12 +272,21 @@ class _AlbumPageState extends State<AlbumPage> {
       credits: _creditsButton(album, songs),
     );
     final play = _playButton(songs, type: type);
-    final add = PopupMenuButton<SongAction>(
-      tooltip: strings.add,
+    // What a song's menu does with the album's songs, and the album's radio rather than a song's.
+    final more = PopupMenuButton<Object>(
+      tooltip: strings.moreOptions,
       enabled: songs.isNotEmpty,
-      icon: const ThemedIcon(HugeIcons.strokeRoundedAddCircle),
-      onSelected: (action) => runSongAction(context, action, songs),
-      itemBuilder: songMenuItems,
+      icon: const ThemedIcon(HugeIcons.strokeRoundedMoreVertical),
+      onSelected: (action) =>
+          action is SongAction ? runSongAction(context, action, songs) : playMix(context, AlbumRadio(album)),
+      itemBuilder: (context) => [
+        ...songMenuItems(context, radio: false),
+        const PopupMenuDivider(),
+        PopupMenuItem(
+          value: _AlbumAction.radio,
+          child: MenuItemLabel(strings.releaseRadio(releaseSelector(type)), icon: HugeIcons.strokeRoundedRadio),
+        ),
+      ],
     );
 
     if (narrow) {
@@ -293,7 +308,7 @@ class _AlbumPageState extends State<AlbumPage> {
             details: byline,
             button: Row(
               mainAxisSize: MainAxisSize.min,
-              children: [FavoriteButton(FavoriteKind.album, album.id), DownloadButton.album(album, songs), add],
+              children: [FavoriteButton(FavoriteKind.album, album.id), DownloadButton.album(album, songs), more],
             ),
             play: play,
           ),
@@ -329,7 +344,7 @@ class _AlbumPageState extends State<AlbumPage> {
                       play,
                       const SizedBox(width: 8),
                       FavoriteButton(FavoriteKind.album, album.id),
-                      add,
+                      more,
                       DownloadButton.album(album, songs),
                     ],
                   ),

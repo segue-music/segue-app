@@ -193,7 +193,7 @@ FanartTv fanartTv(Set<String> pictured, {List<String>? asked}) => FanartTv(
 );
 
 /// What [mixes] are of: the library, a genre by its name, a decade by its first year.
-List<Object> about(List<Mix> mixes) => [
+List<Object> about(List<RandomMix> mixes) => [
   for (final mix in mixes)
     switch (mix) {
       LibraryMix() => 'library',
@@ -410,6 +410,54 @@ void main() {
     expect(mixName(english, const DecadeMix(1980)), '1980s');
     expect(mixName(spanish, const DecadeMix(1980)), 'Años 80');
     expect(mixName(portuguese, const GenreMix(Genre(id: 'Rock', name: 'Rock'))), 'Rock');
+  });
+
+  test('a song\'s radio is the song, then those the server finds like it, each once, as many as a mix has; an album\'s '
+      'and an artist\'s, those like them', () async {
+    final asked = <Map<String, String>>[];
+    final server = SubsonicApi(
+      Uri.parse('https://music.test'),
+      credentials,
+      client: MockClient((request) async {
+        asked.add(request.url.queryParameters);
+
+        return subsonic({
+          'similarSongs2': {
+            'song': [
+              {'id': 's1', 'title': 'Walk This Way'},
+              for (var i = 0; i < 120; i++) {'id': 'x$i', 'title': 'Song $i'},
+            ],
+          },
+        });
+      }),
+    );
+    const walk = Song(
+      id: 's1',
+      title: 'Walk This Way',
+      artists: [Artist(id: 'ar1', name: 'Aerosmith')],
+    );
+    final radio = await const SongRadio(walk).queue(server);
+    expect([for (final song in radio.take(3)) song.id], ['s1', 'x0', 'x1']);
+    expect(radio, hasLength(Mix.size));
+    expect(asked.single, allOf(containsPair('id', 's1'), containsPair('count', '100')));
+
+    const album = Album(id: 'al1', name: 'Toys in the Attic', artistId: 'ar1');
+    expect((await const AlbumRadio(album).queue(server)).first.id, 's1', reason: 'in the server\'s order');
+    expect(asked.last, containsPair('id', 'al1'));
+    await const ArtistRadio(Artist(id: 'ar1', name: 'Aerosmith')).queue(server);
+    expect(asked.last, containsPair('id', 'ar1'));
+  });
+
+  test('a radio is called by what it is of', () {
+    final portuguese = lookupAppLocalizations(const Locale('pt'));
+    const walk = Song(id: 's1', title: 'Walk This Way');
+    expect(mixName(portuguese, const SongRadio(walk)), 'Rádio da música');
+    expect(mixName(portuguese, const AlbumRadio(Album(id: 'al1', name: 'Toys in the Attic'))), 'Rádio do álbum');
+    expect(
+      mixName(portuguese, const AlbumRadio(Album(id: 'al2', name: 'Covers', releaseType: ReleaseType.compilation))),
+      'Rádio da coletânea',
+    );
+    expect(mixName(portuguese, const ArtistRadio(Artist(id: 'ar1', name: 'Aerosmith'))), 'Rádio do artista');
   });
 
   testWidgets('the home starts with its mixes, each the picture of its first artist with its name over it, and under '

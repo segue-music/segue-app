@@ -4,39 +4,14 @@ import 'package:hugeicons/hugeicons.dart';
 import '../../l10n/app_localizations.dart';
 import '../../mixes.dart';
 import '../../server/models.dart';
-import '../../services.dart';
 import '../album/album_row.dart';
 import '../album/albums_view.dart';
 import '../widgets/cover.dart';
-import '../widgets/errors.dart';
 import '../widgets/focus_ring.dart';
+import '../widgets/mix_button.dart';
 import '../widgets/spinner.dart';
 import '../widgets/themed_icon.dart';
 import '../widgets/tile_row.dart';
-
-/// Plays [mix], with [first] first: the songs its tile shows. Says why where it can't.
-Future<void> playMix(BuildContext context, Mix mix, {List<Song> first = const []}) async {
-  final services = ServicesScope.of(context);
-  final messenger = ScaffoldMessenger.of(context);
-  final strings = AppLocalizations.of(context);
-
-  try {
-    final songs = await mix.queue(services.api, first: first);
-
-    if (songs.isEmpty) {
-      messenger.showSnackBar(SnackBar(content: Text(strings.mixEmpty)));
-      return;
-    }
-
-    final result = await services.connect.playSongs(songs, 0);
-
-    if (!result.ok) {
-      messenger.showSnackBar(SnackBar(content: Text(describeError(strings, result.error))));
-    }
-  } on Object catch (error) {
-    messenger.showSnackBar(SnackBar(content: Text(strings.couldNotPlayMix('$error'))));
-  }
-}
 
 /// The home's row of mixes, each a tile that plays it at once, as tall as a row of albums. Not there, nor its title,
 /// while they come, where there are none, or where the server can't say: unlike the albums', a row of suggestions.
@@ -74,7 +49,7 @@ class MixRow extends StatelessWidget {
 class _MixTile extends StatefulWidget {
   const _MixTile(this.mix, {required this.mixes});
 
-  final Mix mix;
+  final RandomMix mix;
 
   /// The mixes it is one of, which have its first songs and the picture of one of their artists.
   final SuggestedMixes mixes;
@@ -215,7 +190,7 @@ class _MixTileState extends State<_MixTile> {
 class _MixArt extends StatelessWidget {
   const _MixArt(this.mix);
 
-  final Mix mix;
+  final RandomMix mix;
 
   @override
   Widget build(BuildContext context) {
@@ -268,42 +243,4 @@ class _PlayBadge extends StatelessWidget {
       ),
     );
   }
-}
-
-/// A button that plays [mix], a spinner in its icon's place while its songs come.
-class MixButton extends StatefulWidget {
-  const MixButton(this.mix, {super.key});
-
-  final Mix mix;
-
-  @override
-  State<MixButton> createState() => _MixButtonState();
-}
-
-class _MixButtonState extends State<MixButton> {
-  /// The mix's songs are on their way.
-  bool _loading = false;
-
-  Future<void> _play() async {
-    // Pressed again meanwhile, nothing: the button stays enabled, so that the focus stays on it.
-    if (_loading) {
-      return;
-    }
-
-    setState(() => _loading = true);
-    await playMix(context, widget.mix);
-
-    if (mounted) {
-      setState(() => _loading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) => FilledButton.tonalIcon(
-    onPressed: _play,
-    icon: _loading
-        ? Spinner(size: 18, strokeWidth: 2, color: Theme.of(context).colorScheme.onSecondaryContainer)
-        : const ThemedIcon(HugeIcons.strokeRoundedShuffle),
-    label: Text(AppLocalizations.of(context).playMix),
-  );
 }

@@ -855,6 +855,18 @@ void main() {
     expect(similar.last.artistId, 'ar1');
   });
 
+  test('an album\'s or an artist\'s radio is their Items/{id}/InstantMix', () async {
+    final asked = <http.Request>[];
+    final api = jellyfin((_) => items([song]), asked);
+    expect(await api.radioSongs('al1', artistId: 'ar1', size: 100), hasLength(1));
+    expect(await api.radioSongs('ar1'), hasLength(1));
+    expect(
+      [for (final request in asked) request.url.path],
+      ['/jellyfin/Items/al1/InstantMix', '/jellyfin/Items/ar1/InstantMix'],
+    );
+    expect(asked.first.url.queryParameters, containsPair('Limit', '100'));
+  });
+
   test('audio and covers come from URLs a player can open, the token in the stream\'s', () {
     final api = jellyfin((_) => http.Response('', 404));
     final stream = api.streamUrl('s1');

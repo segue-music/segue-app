@@ -6,16 +6,17 @@ import 'l10n/app_localizations.dart';
 import 'pictures/fanart_tv.dart';
 import 'server/models.dart';
 import 'server/server.dart';
+import 'ui/album/release_types.dart';
 
-/// A mix: songs at random ([MediaServer.randomSongs]) of the whole library, of a genre or of a decade, a different few
-/// each time.
+/// Songs the app picks to play: at random, of the whole library, a genre or a decade ([RandomMix]), or like a song, an
+/// album or an artist ([RadioMix]). The mix goes to the hub as any queue does: the protocol knows nothing of it.
 sealed class Mix {
   const Mix();
 
   /// How many songs a mix plays: hours of them, after which autoplay goes on with songs like the last.
   static const size = 100;
 
-  /// Its songs, [size] at most, at random.
+  /// Its songs, [size] at most.
   Future<List<Song>> songs(MediaServer server, {int size = size});
 
   /// What it plays: [first] (the songs its tile shows), then more of its own, each song once, [size] in all.
@@ -30,22 +31,31 @@ sealed class Mix {
   }
 }
 
-/// What [mix] is called: its genre's name, or its decade's ("Anos 80").
+/// What [mix] is called: its genre's name, or its decade's ("Anos 80"); a radio by what it is of ("Rádio do álbum").
 String mixName(AppLocalizations strings, Mix mix) => switch (mix) {
   LibraryMix() => strings.shuffleLibrary,
   GenreMix(:final genre) => genre.name,
   DecadeMix(:final decade) => strings.decade('$decade'),
+  SongRadio() => strings.songRadio,
+  AlbumRadio(:final album) => strings.releaseRadio(releaseSelector(album.releaseType)),
+  ArtistRadio() => strings.artistRadio,
 };
 
+/// Songs at random ([MediaServer.randomSongs]) of the whole library, of a genre or of a decade, a different few each
+/// time: the home's mixes ([SuggestedMixes]), and a genre's page's.
+sealed class RandomMix extends Mix {
+  const RandomMix();
+}
+
 /// The whole library's: what the phone's home plays shuffled, from its top bar. Never one of the [SuggestedMixes].
-class LibraryMix extends Mix {
+class LibraryMix extends RandomMix {
   const LibraryMix();
 
   @override
   Future<List<Song>> songs(MediaServer server, {int size = Mix.size}) => server.randomSongs(size: size);
 }
 
-class GenreMix extends Mix {
+class GenreMix extends RandomMix {
   const GenreMix(this.genre);
 
   final Genre genre;
@@ -55,7 +65,7 @@ class GenreMix extends Mix {
       server.randomSongs(size: size, genre: genre.id);
 }
 
-class DecadeMix extends Mix {
+class DecadeMix extends RandomMix {
   const DecadeMix(this.decade);
 
   /// The decade's first year: 1980 for the 1980s.
@@ -66,11 +76,52 @@ class DecadeMix extends Mix {
       server.randomSongs(size: size, years: (from: decade, to: decade + 9));
 }
 
+/// Songs like a song, an album or an artist, as the media server finds them ([MediaServer.radioSongs]), as Spotify's
+/// radios and Jellyfin's Instant Mix: from a song's menu, an album's, and a button on an artist's page.
+sealed class RadioMix extends Mix {
+  const RadioMix();
+}
+
+/// The song first, then those like it.
+class SongRadio extends RadioMix {
+  const SongRadio(this.song);
+
+  final Song song;
+
+  @override
+  Future<List<Song>> songs(MediaServer server, {int size = Mix.size}) async => [
+    song,
+    ...await server.radioSongs(song.id, artistId: song.artistId, size: size),
+  ];
+}
+
+/// Songs like the album's, its own among them where the server mixes them in (Navidrome); on a server that takes no
+/// album for it, its artist's radio.
+class AlbumRadio extends RadioMix {
+  const AlbumRadio(this.album);
+
+  final Album album;
+
+  @override
+  Future<List<Song>> songs(MediaServer server, {int size = Mix.size}) =>
+      server.radioSongs(album.id, artistId: album.artistId, size: size);
+}
+
+/// Songs of the artist and of those like them.
+class ArtistRadio extends RadioMix {
+  const ArtistRadio(this.artist);
+
+  final Artist artist;
+
+  @override
+  Future<List<Song>> songs(MediaServer server, {int size = Mix.size}) => server.radioSongs(artist.id, size: size);
+}
+
 /// An artist whose picture a mix's tile shows: the media server's ([Artist.coverArt]), or else fanart.tv's ([picture]).
 typedef MixPicture = ({Artist artist, Uri? picture});
 
 /// A mix as a home showed it, kept for another ([SuggestedMixes.kept]): its first songs, and its picture, if any.
-typedef KeptMix = ({Mix mix, List<Song> firstSongs, MixPicture? picture});
+typedef KeptMix = ({RandomMix mix, List<Song> firstSongs, MixPicture? picture});
 
 /// The mixes the home suggests, and the first songs of each, which its tile shows and it plays first, and the first of
 /// their artists with a picture, which it shows: asked for once, as the tile first shows, and the same until the home
@@ -108,14 +159,14 @@ class SuggestedMixes {
   /// of the genres with the most albums alone. Picked at random among more of them, one after another, each the likelier
   /// the more the user plays it ([_pickedByRank]): another few, in another order, each time the home loads, the
   /// favorites mostly among them, and first. None where the library has no genres.
-  final Future<List<Mix>> mixes;
+  final Future<List<RandomMix>> mixes;
 
   /// [mixes], where they were kept ([SuggestedMixes.kept]): what the row shows at once, rather than as they come.
-  final List<Mix>? keptMixes;
+  final List<RandomMix>? keptMixes;
 
-  final _kept = <Mix, KeptMix>{};
-  final _firstSongs = <Mix, Future<List<Song>>>{};
-  final _pictures = <Mix, Future<MixPicture?>>{};
+  final _kept = <RandomMix, KeptMix>{};
+  final _firstSongs = <RandomMix, Future<List<Song>>>{};
+  final _pictures = <RandomMix, Future<MixPicture?>>{};
 
   /// How many songs of a mix its tile has: enough to name a few artists, and that there are more.
   static const firstSize = 12;
@@ -129,18 +180,18 @@ class SuggestedMixes {
   static const _decadesToPickFrom = 6;
 
   /// The first songs of [mix], one of [mixes].
-  Future<List<Song>> firstSongs(Mix mix) => _firstSongs[mix] ??= mix.songs(_server, size: firstSize);
+  Future<List<Song>> firstSongs(RandomMix mix) => _firstSongs[mix] ??= mix.songs(_server, size: firstSize);
 
   /// [firstSongs], where [mix] was kept.
-  List<Song>? keptFirstSongs(Mix mix) => _kept[mix]?.firstSongs;
+  List<Song>? keptFirstSongs(RandomMix mix) => _kept[mix]?.firstSongs;
 
   /// [picture], where [mix] was kept.
-  MixPicture? keptPicture(Mix mix) => _kept[mix]?.picture;
+  MixPicture? keptPicture(RandomMix mix) => _kept[mix]?.picture;
 
   /// The mixes, each with its first songs and picture, once they have all come, for another home to show; a mix whose
   /// songs fail is left out.
   Future<List<KeptMix>> keep() async {
-    Future<KeptMix?> keep(Mix mix) async {
+    Future<KeptMix?> keep(RandomMix mix) async {
       try {
         return (mix: mix, firstSongs: await firstSongs(mix), picture: await picture(mix));
       } on Object {
@@ -154,9 +205,9 @@ class SuggestedMixes {
   /// The first artist of [mix]'s first songs, in the order they play, who has a picture, the server's or else
   /// fanart.tv's: one after another, each asked for as the one before has none. Null where none has one (nor their ids,
   /// nor the server, can say).
-  Future<MixPicture?> picture(Mix mix) => _pictures[mix] ??= _findPicture(mix);
+  Future<MixPicture?> picture(RandomMix mix) => _pictures[mix] ??= _findPicture(mix);
 
-  Future<MixPicture?> _findPicture(Mix mix) async {
+  Future<MixPicture?> _findPicture(RandomMix mix) async {
     final List<Song> songs;
 
     try {
@@ -187,7 +238,7 @@ class SuggestedMixes {
     return null;
   }
 
-  static Future<List<Mix>> _suggested(MediaServer server, Random random) async {
+  static Future<List<RandomMix>> _suggested(MediaServer server, Random random) async {
     // A mix of a decade is a suggestion more, which the genres' go without where the server can't say.
     final decades = server.mostPlayedDecades(size: _decadesToPickFrom).catchError((_) => const <int>[]);
     var genres = await server.mostPlayedGenres(size: _genresToPickFrom);

@@ -5,9 +5,9 @@ import 'package:hugeicons/hugeicons.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../mixes.dart';
+import '../widgets/mix_button.dart';
 import '../widgets/spinner.dart';
 import '../widgets/themed_icon.dart';
-import 'mix_row.dart';
 
 /// On a phone, the home's top bar, where the app's icon and name would only say again what the bar at the bottom says:
 /// a chip that plays the whole library at random ([ShuffleLibraryChip]), and one that opens the user's favorites

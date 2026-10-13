@@ -102,17 +102,22 @@ class BrowseTree {
     [albums] => [for (final album in await _server.albums(order: AlbumOrder.name, size: _listSize)) _album(album)],
     [artists] => [for (final artist in (await _server.artists()).take(_listSize)) _artist(artist)],
     [favoriteSongs] => _songs([favoriteSongs], await _favoriteSongs()),
-    ['album', final id] => _songs(['album', id], (await _server.album(id)).$2),
+    ['album', final id] => await _albumItems(id),
     ['playlist', final id] => _songs(['playlist', id], (await _server.playlist(id)).$2),
-    ['artist', final id] => [for (final album in (await _server.artist(id)).$2) _album(album)],
+    ['artist', final id] => await _artistItems(id),
     _ => const [],
   };
 
   /// The songs the item whose id is [id] plays, and which of them first: a song of an album, of a playlist or of the
-  /// favorite ones, which plays them from it; a mix; a song found, alone (autoplay goes on after it). Null for an item
-  /// that plays nothing (a tab, an album), or one the tree no longer has.
+  /// favorite ones, which plays them from it; a mix; an album's or an artist's radio; a song found, alone (autoplay goes
+  /// on after it). Null for an item that plays nothing (a tab, an album), or one the tree no longer has.
   Future<(List<Song>, int)?> queueOf(String id) async {
     switch (_parts(id)) {
+      case ['radio', 'album', final album]:
+        return _radio(AlbumRadio((await _server.album(album)).$1));
+      case ['radio', 'artist', final artist]:
+        // Asked for by their id alone.
+        return _radio(ArtistRadio(Artist(id: artist, name: '')));
       case ['album', final album, final index]:
         return _at((await _server.album(album)).$2, index);
       case ['playlist', final playlist, final index]:
@@ -245,7 +250,7 @@ class BrowseTree {
     final mixes = _mixes ??= SuggestedMixes(_server, random: _random);
     // Each part says nothing where it fails, as the home's rows do.
     final (suggested, rows) = await (
-      mixes.mixes.catchError((Object _) => const <Mix>[]),
+      mixes.mixes.catchError((Object _) => const <RandomMix>[]),
       Future.wait([
         for (final order in _rows)
           _server.albums(order: order, size: _rowSize).catchError((Object _) => const <Album>[]),
@@ -319,6 +324,13 @@ class BrowseTree {
 
     final first = await mixes.firstSongs(mix).catchError((Object _) => const <Song>[]);
     final songs = await mix.queue(_server, first: first);
+
+    return songs.isEmpty ? null : (songs, 0);
+  }
+
+  /// [radio]'s songs, from the first.
+  Future<(List<Song>, int)?> _radio(RadioMix radio) async {
+    final songs = await radio.queue(_server);
 
     return songs.isEmpty ? null : (songs, 0);
   }
@@ -415,6 +427,29 @@ class BrowseTree {
     playable: false,
     extras: group == null ? null : {_groupTitle: group},
   );
+
+  /// An album's radio, which plays, then its songs: the car makes an item either play or open, never both.
+  Future<List<MediaItem>> _albumItems(String id) async {
+    final (album, songs) = await _server.album(id);
+
+    return [
+      _radioItem(AlbumRadio(album), ['radio', 'album', id], album.coverArt),
+      ..._songs(['album', id], songs),
+    ];
+  }
+
+  /// An artist's radio, which plays, then their albums, which open.
+  Future<List<MediaItem>> _artistItems(String id) async {
+    final (artist, albums) = await _server.artist(id);
+
+    return [
+      _radioItem(ArtistRadio(artist), ['radio', 'artist', id], artist.coverArt),
+      for (final album in albums) _album(album),
+    ];
+  }
+
+  MediaItem _radioItem(RadioMix radio, List<String> parts, String? cover) =>
+      MediaItem(id: _id(parts), title: mixName(strings(), radio), artUri: coverUri(cover), playable: true);
 
   /// [songs] as the items of the list whose id's parts are [list], each by its place in it.
   List<MediaItem> _songs(List<String> list, List<Song> songs) => [

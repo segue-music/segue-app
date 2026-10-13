@@ -513,6 +513,12 @@ void main() {
       expect(await api.mostPlayedAlbums(), isEmpty);
       await expectLater(api.album('al9'), throwsA(ServerWithDownloads.unreachable));
       await expectLater(api.renamePlaylist('p1', 'Other'), throwsA(ServerWithDownloads.unreachable));
+      expect(await api.similarSongs(songs.first), isEmpty, reason: 'autoplay goes quietly without');
+      await expectLater(
+        api.radioSongs('al1'),
+        throwsA(ServerWithDownloads.unreachable),
+        reason: 'a radio says why it doesn\'t play',
+      );
       expect(server.requests.where((request) => !request.startsWith('stream') && !request.startsWith('get')), isEmpty);
     });
 

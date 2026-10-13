@@ -49,6 +49,10 @@ screen, and the Windows build on Windows 11. macOS has no package yet.
   decades the user plays most (before anything has played, the genres with the most albums). They are picked again
   each time the home loads, the more played the likelier. A mix plays the first songs its tile shows, and autoplay
   goes on after its last. Out of the server's reach, there are no mixes.
+- **Radios**: 100 songs like a song (the song first), an album or an artist, as the server finds them (Navidrome's
+  getSimilarSongs2, from its agents and the item's own songs; Jellyfin's instant mix): from a song's menu, an album's
+  menu ("Mais opções") and a button on an artist's page. Autoplay goes on after the last, on the device that plays
+  them.
 - **Albums**: by name, latest released, most played or latest added. Wherever albums are listed, the album's artist
   opens their page, and on a computer or a tablet a button on the cover plays the album. By name, they have their
   letters beside them, which scroll to where each starts: a letter pressed, or a finger slid along them, as in a
@@ -211,9 +215,9 @@ knows nothing of them, and another device plays as it has them.
 - **Android** plays in the background and with the screen off. Swiped out of the recent apps, the app closes as a
   window does on a computer: this device's music pauses, and another device's plays on. Playing pauses another app's
   music, and another app playing pauses this one.
-- **Android Auto**: the home (mixes and albums), the playlists, the albums and the artists, search, and what is said
-  ("Ok Google, toca Aerosmith no Segue"). What the car plays, it plays on the phone, and a device the app was
-  controlling stops. Android's media controls offer the last song to resume.
+- **Android Auto**: the home (mixes and albums), the playlists, the albums and the artists, with their radios first,
+  search, and what is said ("Ok Google, toca Aerosmith no Segue"). What the car plays, it plays on the phone, and a
+  device the app was controlling stops. Android's media controls offer the last song to resume.
 - **iOS** plays in the background and with the silent switch on.
 - On iOS and Android, a call pauses the music, which plays again after it, and leaving the car or unplugging the
   headphones pauses it.

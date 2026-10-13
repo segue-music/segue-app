@@ -7,8 +7,8 @@ import '../../services.dart';
 import '../album/album_row.dart';
 import '../album/albums_view.dart';
 import '../app/page_area.dart';
-import '../home/mix_row.dart';
 import '../player/now_playing_bar.dart';
+import '../widgets/mix_button.dart';
 
 /// A genre's albums, by name, under a button that plays a mix of its songs and a row of the albums the user plays most:
 /// once any has played.

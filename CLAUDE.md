@@ -333,10 +333,16 @@ Running two app instances on one machine as different devices:
   song, so `moveInPlaylist` sends the playlist's songs back in their new order (`createPlaylist` with its id), in a
   form's body where the server has OpenSubsonic's formPost; Jellyfin removes and moves by the entry's id
   (`PlaylistItemId`, from `Playlists/{id}/Items`), so the API asks for the entries first.
-- Mixes (`lib/mixes.dart`): a `Mix` is songs at random (`MediaServer.randomSongs`: Subsonic's getRandomSongs,
+- Mixes (`lib/mixes.dart`): a `Mix` is 100 songs the app picks, after which autoplay goes on from the last. A
+  `RandomMix` is songs at random (`MediaServer.randomSongs`: Subsonic's getRandomSongs,
   Jellyfin's `Items` sorted `Random`, out of reach the downloaded albums') of the whole library (`LibraryMix`, the
-  phone's home's "Aleatório", never suggested), of a genre (`GenreMix`) or a decade (`DecadeMix`), 100 of them,
-  after which autoplay goes on from the last. `SuggestedMixes` are the home's (`MixRow`, `lib/ui/home/mix_row.dart`, above the albums' rows): two genres, then a decade, and so on, 6 of the 12 genres
+  phone's home's "Aleatório", never suggested), of a genre (`GenreMix`) or a decade (`DecadeMix`). A `RadioMix` is
+  songs like a song (`SongRadio`, from a song's menu, the song first), an album (`AlbumRadio`, from the album's menu,
+  "Mais opções") or an artist (`ArtistRadio`, a `MixButton` under their name), as the server finds them
+  (`MediaServer.radioSongs`: getSimilarSongs2, which Navidrome takes any of their ids for, mixing its agents' songs
+  with the item's own, and another Subsonic server only an artist's, which it falls back to; Jellyfin's
+  `Items/{id}/InstantMix`): unlike autoplay's `similarSongs`, it needs the server, and out of reach fails, the menu
+  saying why (`playMix`, `lib/ui/widgets/mix_button.dart`, as for a mix). `SuggestedMixes` are the home's (`MixRow`, `lib/ui/home/mix_row.dart`, above the albums' rows): two genres, then a decade, and so on, 6 of the 12 genres
   the user plays most (before anything has played, of those with the most albums) and 3 of the 6 decades
   (`MediaServer.mostPlayedDecades`), picked at random each time the home loads, the higher one ranks the likelier
   (`_pickedByRank`; the tests give it a seeded `Random`); each with its first songs, asked for once, as its tile
@@ -411,7 +417,8 @@ Running two app instances on one machine as different devices:
   without a screen: as a media session ends, Android's media controls bind to the app's `MediaBrowserService` to look
   for music to resume, and audio_service's service starts the Flutter engine, and with it the whole app. That
   `MediaBrowserService` is also Android Auto's: `MediaControls` answers what the car browses from a `BrowseTree`
-  (`lib/player/browse_tree.dart`: tabs, home, playlists, albums, artists; search; what is said, from Android's
+  (`lib/player/browse_tree.dart`: tabs, home, playlists, albums, artists, an album's and an artist's radio first among
+  what they open, the car making an item either play or open, never both; search; what is said, from Android's
   `MediaStore` extras), plays what it picks on this device (`ConnectController.playHere`, the hub then stopping the
   device that played, SPEC.md section 4), shows a stretch of the queue, and gives the song that played last as the
   music to resume (the `recent` root), without opening the app again for it. What the car asks before the app has a

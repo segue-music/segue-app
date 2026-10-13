@@ -54,7 +54,7 @@ http.Response subsonic(Map<String, Object?> body) => http.Response(
 /// Unless [played], nothing has played: not even Cheap Trick's songs. Cheap Trick's popular songs are three of that
 /// album's, Big Eyes first; the others' fail, as on a server that has none to give. Aerosmith has a biography, Last.fm's,
 /// a MusicBrainz id, and Cheap Trick and Ramones as the artists like them; the others have neither, which fails too.
-/// Ramones is the user's favorite artist.
+/// Ramones is the user's favorite artist. Cheap Trick's radio is Big Eyes, then Blitzkrieg Bop, by Ramones.
 http.Response server(http.Request request, {bool played = true}) {
   final path = request.url.path;
   final id = request.url.queryParameters['id'];
@@ -71,6 +71,17 @@ http.Response server(http.Request request, {bool played = true}) {
 
   if (path.endsWith('star.view') || path.endsWith('unstar.view')) {
     return subsonic({});
+  }
+
+  if (path.endsWith('getSimilarSongs2.view') && id == 'ar2') {
+    return subsonic({
+      'similarSongs2': {
+        'song': [
+          {'id': 's3', 'title': 'Big Eyes', 'album': 'In Color', 'duration': 187},
+          {'id': 'r1', 'title': 'Blitzkrieg Bop', 'artist': 'Ramones', 'duration': 132},
+        ],
+      },
+    });
   }
 
   if (path.endsWith('getTopSongs.view') && request.url.queryParameters['artist'] == 'Cheap Trick') {
@@ -643,6 +654,26 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('the button under the artist\'s name plays their radio: songs of theirs and of those like them', (
+    tester,
+  ) async {
+    final engine = await pumpHome(tester, const Size(1000, 900));
+    await tester.tap(find.byTooltip('Artistas'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cheap Trick'));
+    await tester.pumpAndSettle();
+    expect(
+      tester.getRect(find.text('Rádio do artista')).top,
+      greaterThan(tester.getRect(find.text('Cheap Trick').last).bottom),
+      reason: 'under their name',
+    );
+    await tester.tap(find.text('Rádio do artista'));
+    await tester.pumpAndSettle();
+    expect([for (final track in engine.tracks) track.queryParameters['id']], ['s3', 'r1']);
+    expect(engine.index, 0);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('picking the popular ones shows the artist\'s songs everyone plays most, as the server gives them, which '
       'play from the one picked', (tester) async {
     final engine = await pumpHome(tester, const Size(1000, 900));
@@ -830,11 +861,15 @@ void main() {
       ),
     );
     expect(tester.getRect(heading).left, 16);
-    expect(tester.getRect(heading).top, greaterThan(picture.center.dy));
+    expect(tester.getRect(heading).center.dy, greaterThan(picture.center.dy));
     expect(tester.getSize(heading).height, greaterThan(tester.getSize(title).height));
     final choice = tester.getRect(find.byWidgetPredicate((widget) => widget is SegmentedChoice));
     expect(choice.bottom, lessThanOrEqualTo(picture.bottom));
     expect(choice.top, greaterThan(tester.getRect(heading).bottom), reason: 'under the name');
+    // Their radio under the name, before the choice: the page's first way to play anything of theirs.
+    final radio = tester.getRect(find.text('Rádio do artista'));
+    expect(radio.top, greaterThan(tester.getRect(heading).bottom));
+    expect(choice.top, greaterThan(radio.bottom));
     final count = tester.getRect(find.text('1 álbum'));
     expect(count.center.dy, moreOrLessEquals(choice.center.dy, epsilon: 1), reason: 'on the choice\'s line');
     final heart = tester.getRect(find.byTooltip('Adicionar aos favoritos'));
@@ -884,7 +919,7 @@ void main() {
     Color bar() => tester.widget<Material>(find.descendant(of: appBar, matching: find.byType(Material)).first).color!;
     expect(bar().a, 0);
 
-    await tester.drag(find.byType(AlbumGrid), const Offset(0, -100));
+    await tester.drag(find.byType(AlbumGrid), const Offset(0, -50));
     await tester.pumpAndSettle();
     expect(bar().a, inExclusiveRange(0, 1), reason: 'some of it');
     expect(titleOpacity(), 0, reason: 'the name still under the bar');

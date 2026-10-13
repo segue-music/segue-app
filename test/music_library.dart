@@ -141,6 +141,15 @@ Map<String, Object?>? _answer(String endpoint, Map<String, String> query) {
       'album': {..._albums[id]!, 'song': songsOf(id!)},
     },
     'getSong' when _songs[id] != null => {'song': _songs[id]},
+    // Like an album, or an artist: the songs of the others.
+    'getSimilarSongs2' => {
+      'similarSongs2': {
+        'song': [
+          for (final song in _songs.values)
+            if (song['albumId'] != id && _albums[song['albumId']]!['artistId'] != id) song,
+        ],
+      },
+    },
     'getArtists' => {
       'artists': {
         'index': [

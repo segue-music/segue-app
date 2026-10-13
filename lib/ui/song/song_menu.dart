@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../mixes.dart';
 import '../../segue/protocol.dart';
 import '../../server/models.dart';
 import '../../services.dart';
@@ -9,22 +10,25 @@ import '../playlist/playlist_dialogs.dart';
 import '../widgets/errors.dart';
 import '../widgets/menu_shortcuts.dart';
 import '../widgets/menu_item_label.dart';
+import '../widgets/mix_button.dart';
 import '../widgets/themed_icon.dart';
 import 'favorite_button.dart';
 
 /// What a menu of songs does: a song's, or an album's with all of its songs.
-enum SongAction { playNext, addToQueue, addToPlaylist, favorite, unfavorite, move, remove }
+enum SongAction { playNext, addToQueue, addToPlaylist, favorite, unfavorite, radio, move, remove }
 
 /// The list a song's menu takes it out of ([SongAction.remove]).
 enum SongList { playlist, queue }
 
 /// The items of a menu of songs: playing them next and adding them to the queue, where the device the app controls
 /// takes it, and adding them to a playlist; a song's, with whether it is one of the user's favorites ([favorite]),
-/// making it one or no longer one; where it is [movable], moving it in its list by the remote's arrows; with
-/// [removableFrom], taking the song out of that list.
+/// making it one or no longer one, and, unless not [radio] (an album's songs, whose menu has the album's), playing its
+/// radio; where it is [movable], moving it in its list by the remote's arrows; with [removableFrom], taking the song out
+/// of that list.
 List<PopupMenuEntry<SongAction>> songMenuItems(
   BuildContext context, {
   bool? favorite,
+  bool radio = true,
   bool movable = false,
   SongList? removableFrom,
 }) {
@@ -55,6 +59,11 @@ List<PopupMenuEntry<SongAction>> songMenuItems(
               value: SongAction.favorite,
               child: MenuItemLabel(strings.addToFavorites, icon: HugeIcons.strokeRoundedFavourite),
             ),
+    if (radio)
+      PopupMenuItem(
+        value: SongAction.radio,
+        child: MenuItemLabel(strings.songRadio, icon: HugeIcons.strokeRoundedRadio),
+      ),
     if (movable)
       PopupMenuItem(
         value: SongAction.move,
@@ -90,6 +99,8 @@ void runSongAction(
       for (final song in songs) {
         setFavorite(context, FavoriteKind.song, song.id, favorite: action == SongAction.favorite);
       }
+    case SongAction.radio:
+      playMix(context, SongRadio(songs.single));
     case SongAction.move:
       onMove?.call();
     case SongAction.remove:
@@ -116,7 +127,7 @@ Future<bool> addToQueue(BuildContext context, List<Song> songs, {required bool n
 
 /// A song's menu, at the end of its line in a list, after its duration: what can be done with it besides playing it,
 /// playing it next, adding it to the queue or to a playlist, making it one of the user's favorites or no longer one,
-/// and, in a list that the user can change ([onRemove]), a playlist or the queue ([list]), taking it out, and on a TV
+/// playing its radio, and, in a list that the user can change ([onRemove]), a playlist or the queue ([list]), taking it out, and on a TV
 /// moving it there ([onMove]). Its button takes no focus: for the keyboard and the remote the song stays one stop,
 /// where the menu key, Shift+F10, or OK held opens the menu ([MenuShortcuts]). [builder] makes the song's line, with
 /// the button ([SongMenu.width] wide) where it goes.

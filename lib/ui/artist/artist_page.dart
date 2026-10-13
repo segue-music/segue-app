@@ -7,6 +7,7 @@ import 'package:flutter/rendering.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../mixes.dart';
 import '../../releases/musicbrainz.dart';
 import '../../server/models.dart';
 import '../../server/server.dart';
@@ -23,6 +24,7 @@ import '../song/song_list_header.dart';
 import '../song/song_menu.dart';
 import '../widgets/cover.dart';
 import '../widgets/errors.dart';
+import '../widgets/mix_button.dart';
 import '../widgets/segmented_choice.dart';
 import '../widgets/spinner.dart';
 import '../widgets/text_link.dart';
@@ -348,6 +350,8 @@ class _ArtistPageState extends State<ArtistPage> {
     final picture = artist.coverArt ?? widget.artist.coverArt;
     final count = _counts(artist, albums, end: narrow);
     final genres = _genres(albums);
+    // The first way to play anything of theirs from the page: a radio, as a genre's page has its mix.
+    final radio = MixButton(ArtistRadio(artist));
 
     if (narrow) {
       // The system's bar, which the picture goes on under, as under the page's.
@@ -400,7 +404,11 @@ class _ArtistPageState extends State<ArtistPage> {
                             ),
                           ),
                           if (genres != null)
-                            Padding(padding: EdgeInsets.fromLTRB(16, 0, 16, heading == null ? 4 : 0), child: genres),
+                            Padding(padding: const EdgeInsets.symmetric(horizontal: 16), child: genres),
+                          Padding(
+                            padding: EdgeInsets.fromLTRB(16, 8, 16, heading == null ? 4 : 0),
+                            child: Align(alignment: AlignmentDirectional.centerStart, child: radio),
+                          ),
                           heading ??
                               Padding(
                                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -461,6 +469,7 @@ class _ArtistPageState extends State<ArtistPage> {
                         Text(artist.name, style: text.titleLarge),
                         count,
                         ?genres,
+                        Padding(padding: const EdgeInsets.only(top: 8), child: radio),
                       ],
                     ),
                   ),

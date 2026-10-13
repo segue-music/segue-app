@@ -1373,6 +1373,44 @@ void main() {
     await expectLater(api.similarSongs(const Song(id: 's1', title: 'Walk This Way')), throwsA(isA<ServerError>()));
   });
 
+  test('a radio is getSimilarSongs2\'s by the album\'s or the artist\'s id, which Navidrome takes, or by the album\'s '
+      'artist\'s where the server refuses an album\'s', () async {
+    final asked = <Map<String, String>>[];
+    var albumIds = true;
+    final api = SubsonicApi(
+      Uri.parse('https://music.test'),
+      credentials,
+      client: MockClient((request) async {
+        asked.add(request.url.queryParameters);
+
+        return request.url.queryParameters['id'] == 'al1' && !albumIds
+            ? subsonic({
+                'status': 'failed',
+                'error': {'code': 70, 'message': 'Artist not found'},
+              })
+            : subsonic({
+                'status': 'ok',
+                'similarSongs2': {
+                  'song': [
+                    {'id': 's2', 'title': 'Dream On', 'artist': 'Aerosmith', 'artistId': 'ar1'},
+                  ],
+                },
+              });
+      }),
+    );
+    expect(await api.radioSongs('al1', artistId: 'ar1', size: 100), hasLength(1));
+    expect(asked.single, allOf(containsPair('id', 'al1'), containsPair('count', '100')));
+    asked.clear();
+    expect(await api.radioSongs('ar1'), hasLength(1));
+    expect(asked.single, containsPair('id', 'ar1'));
+
+    albumIds = false;
+    asked.clear();
+    expect(await api.radioSongs('al1', artistId: 'ar1'), hasLength(1));
+    expect([for (final query in asked) query['id']], ['al1', 'ar1']);
+    await expectLater(api.radioSongs('al1'), throwsA(isA<ServerError>()), reason: 'no artist to ask by');
+  });
+
   test('search asks for artists, albums and songs', () async {
     late Uri asked;
     final api = SubsonicApi(

@@ -431,10 +431,17 @@ class SubsonicApi implements MediaServer {
   ];
 
   /// getSimilarSongs2 by the song's id, for which Navidrome mixes songs like it (from its agents: Last.fm's, or a
-  /// plugin's), else its artist's. The Subsonic API takes only an artist's id there: a server that refuses the song's
-  /// is asked by its artist's, for songs of the artist and of those like them.
+  /// plugin's), else its artist's ([radioSongs]).
   @override
-  Future<List<Song>> similarSongs(Song song, {int size = 50}) async {
+  Future<List<Song>> similarSongs(Song song, {int size = 50}) =>
+      radioSongs(song.id, artistId: song.artistId, size: size);
+
+  /// getSimilarSongs2, which Navidrome takes a song's, an album's or an artist's id for (from 0.64 at least), mixing
+  /// songs from its agents (Last.fm's, a plugin's) and topping them up with the item's own. The Subsonic API takes only
+  /// an artist's id there: a server that refuses the item's is asked by [artistId], for songs of the artist and of those
+  /// like them.
+  @override
+  Future<List<Song>> radioSongs(String id, {String? artistId, int size = 50}) async {
     Future<List<Song>> like(String id) async {
       final body = await _get('getSimilarSongs2', {'id': id, 'count': '$size'});
 
@@ -445,11 +452,9 @@ class SubsonicApi implements MediaServer {
     }
 
     try {
-      return await like(song.id);
+      return await like(id);
     } on ServerError catch (error) {
-      final artistId = song.artistId;
-
-      if (error.isAuth || artistId == null) {
+      if (error.isAuth || artistId == null || artistId == id) {
         rethrow;
       }
 

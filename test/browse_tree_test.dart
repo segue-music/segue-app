@@ -77,17 +77,22 @@ void main() {
     ]);
   });
 
-  test('an album opens its songs, each of which plays the album from it', () async {
+  test('an album opens its radio, then its songs, each of which plays the album from it', () async {
     final browse = tree();
     final albums = await browse.children(BrowseTree.albums);
     expect(titles(albums).map((album) => album.$1), ['Kind of Blue', 'Pump', 'Toys in the Attic'], reason: 'by name');
 
     final songs = await browse.children(albums.last.id);
-    expect(songs.map((song) => song.title), ['Sweet Emotion', 'Walk This Way']);
+    expect(songs.map((song) => song.title), ['Rádio do álbum', 'Sweet Emotion', 'Walk This Way']);
     expect(songs.every((song) => song.playable ?? false), isTrue);
-    expect(songs.first.artist, 'Aerosmith');
+    expect(songs[1].artist, 'Aerosmith');
     expect(played(await browse.queueOf(songs.last.id)), ['Sweet Emotion', 'Walk This Way', 1]);
     expect(await browse.queueOf(albums.last.id), isNull, reason: 'an album opens, rather than play');
+    expect(played(await browse.queueOf(songs.first.id)), [
+      'Love in an Elevator',
+      'So What',
+      0,
+    ], reason: 'songs like the album\'s');
   });
 
   test('the playlists have the favorite songs first, then the playlists by name, which play from a song', () async {
@@ -109,12 +114,16 @@ void main() {
     ], reason: 'none, without favorite songs');
   });
 
-  test('an artist opens their albums', () async {
+  test('an artist opens their radio, which plays, then their albums', () async {
     final browse = tree();
     final artists = await browse.children(BrowseTree.artists);
     expect(artists.map((artist) => artist.title), ['Aerosmith', 'Miles Davis']);
     expect(artists.first.artUri, Uri.parse('cover:ar-ar1'));
-    expect((await browse.children(artists.first.id)).map((album) => album.title), ['Toys in the Attic', 'Pump']);
+    final items = await browse.children(artists.first.id);
+    expect(items.map((item) => item.title), ['Rádio do artista', 'Toys in the Attic', 'Pump']);
+    expect(items.map((item) => item.playable), [true, false, false]);
+    expect(items.first.artUri, Uri.parse('cover:ar-ar1'));
+    expect(played(await browse.queueOf(items.first.id)), ['So What', 0], reason: 'songs like theirs');
   });
 
   test('a mix plays its first songs, then more of its own', () async {

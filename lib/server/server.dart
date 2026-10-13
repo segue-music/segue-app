@@ -168,6 +168,12 @@ abstract interface class MediaServer {
   /// it can't say. The song itself may be among them.
   Future<List<Song>> similarSongs(Song song, {int size = 50});
 
+  /// Songs of the library like the song, album or artist whose id is [id], to play as its radio: [size] at most, as
+  /// the server mixes them (Navidrome from its agents, topped up with the item's own songs; Jellyfin's Instant Mix). A
+  /// server that takes only an artist for it (a Subsonic one but Navidrome) is asked by [artistId], the item's artist,
+  /// where given. Unlike [similarSongs], it needs the server: out of reach, it fails rather than give none.
+  Future<List<Song>> radioSongs(String id, {String? artistId, int size = 50});
+
   /// Where a song's audio is, for the player: the URL carries the credentials. With [maxBitRate], in kbps, the server
   /// transcodes a song whose bitrate is higher, as it goes: on Subsonic a stream that can't seek ([transcodedStreamUrl]
   /// stands in), and on Jellyfin HLS, which can.

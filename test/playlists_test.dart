@@ -479,11 +479,11 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('the album\'s button adds all its songs, also to a new playlist, named in a dialog', (tester) async {
+  testWidgets('the album\'s menu adds all its songs, also to a new playlist, named in a dialog', (tester) async {
     final library = Library();
     await pumpHome(tester, const Size(1000, 700), library: library);
     await tap(tester, find.text('Toys in the Attic').first);
-    await tap(tester, find.byTooltip('Adicionar'));
+    await tap(tester, find.byType(PopupMenuButton<Object>));
     await tap(tester, item('Adicionar à playlist'));
     await tap(tester, item('Nova playlist'));
     await tester.enterText(nameField, 'Aerosmith');
