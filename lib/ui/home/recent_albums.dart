@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -10,7 +12,7 @@ import '../widgets/tile_row.dart';
 
 /// The albums the user played last, at the top of the home, as small tiles in a grid, each its cover and its name: to go
 /// back to one at a glance, as Spotify's home starts, rather than a row of big covers that pushes the rest down. [max] at
-/// most, in two columns on a phone and four on a wider screen, under the title, which opens them all ([onShowAll]). Out,
+/// most, in two columns on a phone and four on a wider screen, each [maxTileWidth] wide at most, under the title, which opens them all ([onShowAll]). Out,
 /// title and all, until they come, and before anything has played; [initialAlbums], those the home showed the time
 /// before, meanwhile.
 class RecentAlbums extends StatelessWidget {
@@ -25,6 +27,10 @@ class RecentAlbums extends StatelessWidget {
 
   /// How tall a tile is, its cover as tall.
   static const tileHeight = 56.0;
+
+  /// How wide a tile gets at most: on a computer's wide screen, four wider ones would stretch a name on its card far past
+  /// its cover. The grid starts at the page's margin, as the rows under it do.
+  static const maxTileWidth = 280.0;
 
   static const _gap = 8.0;
 
@@ -60,12 +66,19 @@ class RecentAlbums extends StatelessWidget {
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final columns = constraints.maxWidth < 560 ? 2 : 4;
-                final width = (constraints.maxWidth - _gap * (columns - 1)) / columns;
+                final width = min((constraints.maxWidth - _gap * (columns - 1)) / columns, maxTileWidth);
 
-                return Wrap(
-                  spacing: _gap,
-                  runSpacing: _gap,
-                  children: [for (final album in albums.take(max)) SizedBox(width: width, child: _RecentAlbum(album))],
+                // As wide as its columns: the wrap would otherwise fit as many narrower tiles on a line as the screen has
+                // room for.
+                return SizedBox(
+                  width: width * columns + _gap * (columns - 1),
+                  child: Wrap(
+                    spacing: _gap,
+                    runSpacing: _gap,
+                    children: [
+                      for (final album in albums.take(max)) SizedBox(width: width, child: _RecentAlbum(album)),
+                    ],
+                  ),
                 );
               },
             ),

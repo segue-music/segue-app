@@ -28,6 +28,7 @@ import 'package:segue/ui/genre/genres_view.dart';
 import 'package:segue/ui/app/home_page.dart';
 import 'package:segue/ui/home/home_chips.dart';
 import 'package:segue/ui/home/home_view.dart';
+import 'package:segue/ui/home/recent_albums.dart';
 import 'package:segue/ui/playlist/playlists_view.dart';
 import 'package:segue/ui/settings/settings_page.dart';
 import 'package:segue/ui/app/theme.dart';
@@ -1333,6 +1334,12 @@ void main() {
     await tester.tap(find.text('Get a Grip'));
     await tester.pumpAndSettle();
     expect(find.byType(AlbumPage), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+
+    await pumpHome(tester, const Size(1920, 1080), recentlyPlayed: played);
+    expect(tile('Get a Grip').width, RecentAlbums.maxTileWidth, reason: 'not stretched across a wide screen');
+    expect(tile('Permanent Vacation').left, tile('Get a Grip').right + 8);
+    expect(tile('Rocks').top, greaterThan(tile('Get a Grip').bottom), reason: 'four a line still, however wide');
     await tester.pumpWidget(const SizedBox());
 
     await pumpHome(tester, const Size(360, 640), recentlyPlayed: played);
