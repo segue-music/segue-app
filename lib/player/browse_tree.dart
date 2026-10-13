@@ -74,7 +74,7 @@ class BrowseTree {
   static const _listSize = 500;
 
   /// The home's rows of albums, in order.
-  static const _rows = [AlbumOrder.recentlyPlayed, AlbumOrder.released, AlbumOrder.mostPlayed, AlbumOrder.latest];
+  static const _rows = [AlbumOrder.recentlyPlayed, AlbumOrder.latest, AlbumOrder.released, AlbumOrder.mostPlayed];
 
   /// How many of a mix's first songs' artists its item names, before "and more".
   static const _artistsNamed = 3;
@@ -237,8 +237,8 @@ class BrowseTree {
     ];
   }
 
-  /// The mixes, then the rows of albums, each album in the first row that has it, as the app's home; out of reach, the
-  /// downloaded albums alone.
+  /// The albums played last, then the mixes, then the other rows of albums, each album in the first row that has it, as
+  /// the app's home; out of reach, the downloaded albums alone.
   Future<List<MediaItem>> _home() async {
     final strings = this.strings();
 
@@ -261,7 +261,14 @@ class BrowseTree {
     ]);
     final shown = <String>{};
 
+    List<MediaItem> row(int i) => [
+      for (final album in rows[i])
+        if (shown.add(album.id)) _album(album, group: _rowTitle(strings, _rows[i])),
+    ];
+
     return [
+      // The first row, of the albums played last.
+      ...row(0),
       for (final (i, mix) in suggested.indexed)
         MediaItem(
           id: _id(['mix', '$i']),
@@ -271,9 +278,7 @@ class BrowseTree {
           playable: true,
           extras: {_groupTitle: strings.mixes},
         ),
-      for (final (i, order) in _rows.indexed)
-        for (final album in rows[i])
-          if (shown.add(album.id)) _album(album, group: _rowTitle(strings, order)),
+      for (var i = 1; i < _rows.length; i++) ...row(i),
     ];
   }
 

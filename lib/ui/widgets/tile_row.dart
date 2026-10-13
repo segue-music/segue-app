@@ -52,6 +52,10 @@ class TileRow extends StatelessWidget {
   static const _edge = 16 - tilePadding;
   static const _gap = 16 - 2 * tilePadding;
 
+  /// How much further in than the page's margin a row starts, its title and its tiles alike: on a TV, the room the card
+  /// with the focus grows into ([_TelevisionTileRow]); elsewhere, none. What lines up with the rows starts there too.
+  static double startOf(BuildContext context) => DirectionalNavigation.of(context) ? _TelevisionTileRow._grownSide : 0;
+
   @override
   Widget build(BuildContext context) =>
       DirectionalNavigation.of(context) ? _TelevisionTileRow(this) : _PointerTileRow(this);

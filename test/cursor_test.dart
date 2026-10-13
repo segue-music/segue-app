@@ -16,6 +16,7 @@ import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/settings.dart';
 import 'package:segue/subsonic/api.dart';
+import 'package:segue/ui/album/albums_view.dart';
 import 'package:segue/ui/settings/equalizer_page.dart';
 import 'package:segue/ui/app/home_page.dart';
 import 'package:segue/ui/app/login_page.dart';
@@ -172,7 +173,12 @@ void main() {
     await expectHand('the app\'s icon', find.byTooltip('Início'));
     await expectHand('a section in the side rail', find.byTooltip('Álbuns'));
     await expectHand('a button in the top bar', find.byTooltip('Configurações'));
-    await expectHand('an album', find.text('Toys in the Attic').first);
+    // The server lists the same albums for every row: the first, those played last, as small tiles.
+    await expectHand('an album played last', find.text('Toys in the Attic').first);
+    await expectHand(
+      'an album',
+      find.descendant(of: find.byType(AlbumTile), matching: find.text('Toys in the Attic')).first,
+    );
     await expectHand('its play button', find.byTooltip('Tocar o álbum').first);
     await expectHand('its artist', find.text('Aerosmith').first);
     await expectHand('the song in the player bar', find.byTooltip('Abrir o player'));

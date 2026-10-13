@@ -9,10 +9,12 @@ import '../../services.dart';
 import '../album/album_row.dart';
 import '../album/albums_view.dart';
 import 'mix_row.dart';
+import 'recent_albums.dart';
 
-/// The first section: mixes of the genres and the decades the user plays most, which play as they're picked, then the
-/// latest released albums, the albums the user plays most and the latest added to the library, each in a row that
-/// scrolls sideways, whose title opens all of them. As the app opens, what it showed the time before, at once, while
+/// The first section, in the order the user turns to them: the albums played last, to go back to one, as small tiles
+/// ([RecentAlbums]); mixes of the genres and the decades the user plays most, which play as they're picked; then the
+/// latest added to the library, what is new there, the latest released and the albums the user plays most, which change
+/// least, each in a row that scrolls sideways. Each title opens all of them. As the app opens, what it showed the time before, at once, while
 /// they come ([Services.homeCache]). With the media server out of reach, the albums downloaded, the latest first,
 /// alone.
 class HomeView extends StatefulWidget {
@@ -27,7 +29,7 @@ class HomeView extends StatefulWidget {
 
 class _HomeViewState extends State<HomeView> {
   /// The rows' orders, from the top.
-  static const _rows = [AlbumOrder.recentlyPlayed, AlbumOrder.released, AlbumOrder.mostPlayed, AlbumOrder.latest];
+  static const _rows = [AlbumOrder.recentlyPlayed, AlbumOrder.latest, AlbumOrder.released, AlbumOrder.mostPlayed];
 
   late Map<AlbumOrder, Future<List<Album>>> _albums;
 
@@ -62,7 +64,10 @@ class _HomeViewState extends State<HomeView> {
     _keptAlbums = again || cache == null ? const {} : {for (final order in rows) order: ?cache.albums(order)};
     _albums = {
       for (final order in rows)
-        order: switch (services.api.albums(order: order, size: AlbumRow.maxAlbums)) {
+        order: switch (services.api.albums(
+          order: order,
+          size: order == AlbumOrder.recentlyPlayed ? RecentAlbums.max : AlbumRow.maxAlbums,
+        )) {
           final listed when cache != null => cache.keepAlbums(order, listed, shown: _keptAlbums[order]),
           final listed => listed,
         },
@@ -108,20 +113,22 @@ class _HomeViewState extends State<HomeView> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    if (_albums[AlbumOrder.recentlyPlayed] case final albums?)
+                      RecentAlbums(
+                        albums: albums,
+                        initialAlbums: _keptAlbums[AlbumOrder.recentlyPlayed],
+                        onShowAll: onShowAll == null ? null : () => onShowAll(AlbumOrder.recentlyPlayed),
+                      ),
                     if (_mixes case final mixes?) MixRow(mixes, key: ObjectKey(mixes)),
                     for (final MapEntry(key: order, value: albums) in _albums.entries)
-                      AlbumRow(
-                        title: _offline ? strings.downloadedAlbums : order.label(strings),
-                        albums: albums,
-                        initialAlbums: _keptAlbums[order],
-                        empty: switch (order) {
-                          _ when _offline => strings.nothingDownloaded,
-                          // Before anything has played, out: the most played's row says what goes there.
-                          AlbumOrder.recentlyPlayed => null,
-                          _ => order.emptyMessage(strings),
-                        },
-                        onShowAll: onShowAll == null ? null : () => onShowAll(order),
-                      ),
+                      if (order != AlbumOrder.recentlyPlayed)
+                        AlbumRow(
+                          title: _offline ? strings.downloadedAlbums : order.label(strings),
+                          albums: albums,
+                          initialAlbums: _keptAlbums[order],
+                          empty: _offline ? strings.nothingDownloaded : order.emptyMessage(strings),
+                          onShowAll: onShowAll == null ? null : () => onShowAll(order),
+                        ),
                   ],
                 ),
               ),

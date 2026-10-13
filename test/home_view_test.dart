@@ -232,26 +232,32 @@ void main() {
   // Where the theme picked is kept.
   setUpAll(() => SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty());
 
-  testWidgets('the app opens on the home: a row of the latest released albums, then the most played, then the latest '
-      'added', (tester) async {
-    await pumpHome(tester, const Size(1000, 700));
+  testWidgets('the app opens on the home: the albums played last, as small tiles, then the latest added, the latest '
+      'released and the most played, each in a row', (tester) async {
+    await pumpHome(tester, const Size(1000, 700), recentlyPlayed: ['Get a Grip']);
     expectHomeInRail();
 
+    final recent = tester.getRect(find.text('Tocados recentemente'));
+    final grip = tester.getRect(find.text('Get a Grip'));
+    final latest = tester.getRect(find.text('Adicionados recentemente'));
+    final ruts = tester.getRect(find.text('Night in the Ruts'));
     final released = tester.getRect(find.text('Lançamentos'));
     final another = tester.getRect(find.text('Music from Another Dimension!'));
     final mostPlayed = tester.getRect(find.text('Mais tocados'));
     final pump = tester.getRect(find.text('Pump'));
     final toys = tester.getRect(find.text('Toys in the Attic'));
-    final latest = tester.getRect(find.text('Adicionados recentemente'));
-    final ruts = tester.getRect(find.text('Night in the Ruts'));
+    expect(grip.top, greaterThan(recent.bottom));
+    expect(latest.top, greaterThan(grip.bottom));
+    expect(ruts.top, greaterThan(latest.bottom));
+    expect(released.top, greaterThan(ruts.bottom));
     expect(another.top, greaterThan(released.bottom));
     expect(mostPlayed.top, greaterThan(another.bottom));
     expect(pump.top, greaterThan(mostPlayed.bottom));
     expect(toys.top, pump.top, reason: 'side by side, the most played first');
     expect(toys.left, greaterThan(pump.right));
-    expect(latest.top, greaterThan(pump.bottom));
-    expect(ruts.top, greaterThan(latest.bottom));
 
+    await tester.ensureVisible(find.text('Pump'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Pump'));
     await tester.pumpAndSettle();
     expect(find.descendant(of: find.byType(AlbumPage), matching: find.text('Pump')), findsOneWidget);
@@ -1029,7 +1035,7 @@ void main() {
     }
 
     // From a row's title: along a row, a swipe goes along it.
-    await swipe(find.text('Mais tocados'), -300);
+    await swipe(find.text('Adicionados recentemente'), -300);
     expect(destination(), 1);
     expect(find.byType(GenresView), findsOneWidget);
     expect(find.byType(HomeView), findsNothing);
@@ -1093,30 +1099,30 @@ void main() {
   });
 
   testWidgets('on a phone, a row goes on sideways', (tester) async {
-    await pumpHome(tester, const Size(360, 640), released: [for (var i = 0; i < 10; i++) 'Released $i']);
-    expect(find.text('Released 0'), findsOneWidget);
-    expect(find.text('Released 9'), findsNothing);
-    await tester.drag(find.text('Released 0'), const Offset(-2000, 0));
+    await pumpHome(tester, const Size(360, 640), latest: [for (var i = 0; i < 10; i++) 'Latest $i']);
+    expect(find.text('Latest 0'), findsOneWidget);
+    expect(find.text('Latest 9'), findsNothing);
+    await tester.drag(find.text('Latest 0'), const Offset(-2000, 0));
     await tester.pumpAndSettle();
-    expect(find.text('Released 9'), findsOneWidget);
+    expect(find.text('Latest 9'), findsOneWidget);
     expect(find.text('Pump'), findsOneWidget, reason: 'the other rows stay');
     await tester.pumpWidget(const SizedBox());
   });
 
   testWidgets('the home pulled down, its rows start again from their first album', (tester) async {
-    final asked = await pumpHome(tester, const Size(360, 640), released: [for (var i = 0; i < 10; i++) 'Released $i']);
+    final asked = await pumpHome(tester, const Size(360, 640), latest: [for (var i = 0; i < 10; i++) 'Latest $i']);
     final rows = asked.length;
-    await tester.drag(find.text('Released 0'), const Offset(-2000, 0));
+    await tester.drag(find.text('Latest 0'), const Offset(-2000, 0));
     await tester.pumpAndSettle();
-    expect(find.text('Released 0'), findsNothing);
-    expect(find.text('Released 9'), findsOneWidget);
+    expect(find.text('Latest 0'), findsNothing);
+    expect(find.text('Latest 9'), findsOneWidget);
 
     final list = find.descendant(of: find.byType(HomeView), matching: find.byType(Scrollable)).first;
     await tester.dragFrom(tester.getTopLeft(list) + const Offset(180, 20), const Offset(0, 300));
     await tester.pumpAndSettle();
     expect(asked.length, 2 * rows, reason: 'listed again');
-    expect(find.text('Released 0'), findsOneWidget);
-    expect(find.text('Released 9'), findsNothing);
+    expect(find.text('Latest 0'), findsOneWidget);
+    expect(find.text('Latest 9'), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -1126,8 +1132,8 @@ void main() {
     await pumpHome(
       tester,
       const Size(1000, 700),
-      mostPlayed: [for (var i = 0; i < 20; i++) 'Most $i'],
       latest: [for (var i = 0; i < 20; i++) 'Latest $i'],
+      mostPlayed: [for (var i = 0; i < 20; i++) 'Most $i'],
     );
     expect(
       find.descendant(of: rows, matching: find.byType(Scrollbar)),
@@ -1136,13 +1142,13 @@ void main() {
     );
     final back = find.byTooltip('Anteriores').first;
     final forward = find.byTooltip('Próximos').first;
-    final heading = tester.getRect(find.text('Mais tocados'));
+    final heading = tester.getRect(find.text('Adicionados recentemente'));
     expect(tester.getRect(back).left, greaterThan(heading.right));
     expect(tester.getRect(forward).left, greaterThan(tester.getRect(back).right - 1));
     expect(tester.getRect(forward).right, greaterThan(1000 - 64), reason: 'in the right corner');
     expect(tester.getCenter(forward).dy, moreOrLessEquals(heading.center.dy, epsilon: 4));
 
-    final scroll = tester.widget<ListView>(find.ancestor(of: find.text('Most 0'), matching: rows)).controller!;
+    final scroll = tester.widget<ListView>(find.ancestor(of: find.text('Latest 0'), matching: rows)).controller!;
 
     bool enabled(Finder arrow) =>
         tester.widget<IconButton>(find.ancestor(of: arrow, matching: find.byType(IconButton)).first).onPressed != null;
@@ -1152,16 +1158,16 @@ void main() {
 
     await tester.tap(forward);
     await tester.pumpAndSettle();
-    expect(find.text('Most 0'), findsNothing);
+    expect(find.text('Latest 0'), findsNothing);
     expect(scroll.offset, greaterThan(0));
     expect(scroll.offset % (160 + 16), 0, reason: 'an album at the left edge');
-    expect(find.text('Latest 0'), findsOneWidget, reason: 'the other row stays');
+    expect(find.text('Most 0'), findsOneWidget, reason: 'the other row stays');
     expect(enabled(back), isTrue);
 
     await tester.tap(back);
     await tester.pumpAndSettle();
     expect(scroll.offset, 0);
-    expect(find.text('Most 0'), findsOneWidget);
+    expect(find.text('Latest 0'), findsOneWidget);
     expect(enabled(back), isFalse);
 
     for (var i = 0; i < 10 && enabled(forward); i++) {
@@ -1171,18 +1177,18 @@ void main() {
 
     expect(enabled(forward), isFalse, reason: 'at the end');
     expect(scroll.offset, scroll.position.maxScrollExtent);
-    expect(find.text('Most 19'), findsOneWidget);
+    expect(find.text('Latest 19'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   }, variant: TargetPlatformVariant.only(TargetPlatform.linux));
 
   testWidgets('on a touch screen, as wide as a tablet\'s, a row has no arrows: a finger drags it', (tester) async {
-    await pumpHome(tester, const Size(1000, 700), mostPlayed: [for (var i = 0; i < 20; i++) 'Most $i']);
-    expect(find.text('Most 0'), findsOneWidget);
+    await pumpHome(tester, const Size(1000, 700), latest: [for (var i = 0; i < 20; i++) 'Latest $i']);
+    expect(find.text('Latest 0'), findsOneWidget);
     expect(find.byTooltip('Próximos'), findsNothing);
     expect(find.byTooltip('Anteriores'), findsNothing);
-    await tester.drag(find.text('Most 0'), const Offset(-2000, 0));
+    await tester.drag(find.text('Latest 0'), const Offset(-2000, 0));
     await tester.pumpAndSettle();
-    expect(find.text('Most 0'), findsNothing);
+    expect(find.text('Latest 0'), findsNothing);
     await tester.pumpWidget(const SizedBox());
   }, variant: TargetPlatformVariant.mobile());
 
@@ -1293,7 +1299,7 @@ void main() {
       mostPlayed: [for (var i = 0; i < 40; i++) 'Most $i'],
       latest: [for (var i = 0; i < 40; i++) 'Latest $i'],
     );
-    expect([for (final query in asked) query['size']], ['30', '30', '30', '30']);
+    expect([for (final query in asked) query['size']], ['8', '30', '30', '30'], reason: 'those played last, 8');
 
     for (final prefix in ['Released', 'Most', 'Latest']) {
       // By its albums: the list builds the rows that show, which change as it scrolls.
@@ -1309,15 +1315,29 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('the albums played last are the home\'s first row; before anything has played, it is out', (
-    tester,
-  ) async {
-    await pumpHome(tester, const Size(1000, 700), recentlyPlayed: ['Pump']);
+  testWidgets('the albums played last come first, as small tiles, four a line on a computer and two on a phone, each '
+      'opening its album; before anything has played, they are out', (tester) async {
+    const played = ['Get a Grip', 'Permanent Vacation', 'Done with Mirrors', 'Draw the Line', 'Rocks'];
+    Rect tile(String album) =>
+        tester.getRect(find.ancestor(of: find.text(album), matching: find.byType(InkWell)).first);
+
+    await pumpHome(tester, const Size(1000, 700), recentlyPlayed: played);
+    expect(tile('Get a Grip').bottom, lessThan(tester.getRect(find.text('Adicionados recentemente')).top));
+    expect([for (final album in played.take(4)) tile(album).top], everyElement(tile('Get a Grip').top));
+    expect(tile('Rocks').top, greaterThan(tile('Get a Grip').bottom), reason: 'the fifth on the next line');
     expect(
-      tester.getRect(find.text('Tocados recentemente')).bottom,
-      lessThan(tester.getRect(find.text('Lançamentos')).top),
+      tile('Get a Grip').left,
+      tester.getRect(find.text('Adicionados recentemente')).left,
+      reason: 'from the page\'s margin, as a row\'s title',
     );
-    expect(find.text('Pump'), findsNWidgets(2), reason: 'there and among the most played');
+    await tester.tap(find.text('Get a Grip'));
+    await tester.pumpAndSettle();
+    expect(find.byType(AlbumPage), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+
+    await pumpHome(tester, const Size(360, 640), recentlyPlayed: played);
+    expect(tile('Permanent Vacation').top, tile('Get a Grip').top);
+    expect(tile('Done with Mirrors').top, greaterThan(tile('Get a Grip').bottom), reason: 'two a line');
     await tester.pumpWidget(const SizedBox());
 
     await pumpHome(tester, const Size(1000, 700));
@@ -1364,27 +1384,27 @@ void main() {
     await pumpHome(
       tester,
       const Size(960, 540),
-      mostPlayed: [for (var i = 0; i < 12; i++) 'Most $i'],
       latest: [for (var i = 0; i < 12; i++) 'Latest $i'],
+      released: [for (var i = 0; i < 12; i++) 'Released $i'],
       television: true,
     );
 
     final cover = find.descendant(
-      of: find.ancestor(of: find.text('Most 0'), matching: find.byType(AlbumTile)),
+      of: find.ancestor(of: find.text('Latest 0'), matching: find.byType(AlbumTile)),
       matching: find.byType(AspectRatio),
     );
     expect(
-      tester.getRect(find.text('Mais tocados').first).left,
+      tester.getRect(find.text('Adicionados recentemente').first).left,
       moreOrLessEquals(tester.getRect(cover.first).left),
       reason: 'the row\'s title over its covers',
     );
 
-    for (var i = 0; i < 100 && focusedAlbum() != 'Most 0'; i++) {
+    for (var i = 0; i < 100 && focusedAlbum() != 'Latest 0'; i++) {
       await tester.sendKeyEvent(LogicalKeyboardKey.tab);
       await tester.pump();
     }
 
-    expect(focusedAlbum(), 'Most 0');
+    expect(focusedAlbum(), 'Latest 0');
 
     Rect tile(String album) => tester.getRect(find.ancestor(of: find.text(album), matching: find.byType(AlbumTile)));
 
@@ -1395,25 +1415,25 @@ void main() {
       return MatrixUtils.transformRect(box.getTransformTo(null), Offset.zero & box.size);
     }
 
-    final first = tile('Most 0').left;
+    final first = tile('Latest 0').left;
 
     for (var i = 0; i < 7; i++) {
       await press(tester, LogicalKeyboardKey.arrowRight);
     }
 
-    expect(focusedAlbum(), 'Most 7');
-    expect(tile('Most 7').left, moreOrLessEquals(first), reason: 'in the first one\'s place');
-    final row = tester.getRect(find.ancestor(of: find.text('Most 7'), matching: find.byType(Scrollable)).first);
+    expect(focusedAlbum(), 'Latest 7');
+    expect(tile('Latest 7').left, moreOrLessEquals(first), reason: 'in the first one\'s place');
+    final row = tester.getRect(find.ancestor(of: find.text('Latest 7'), matching: find.byType(Scrollable)).first);
     expect(focusedCard().left - row.left, greaterThanOrEqualTo(8), reason: 'its ring clear of the rail');
-    expect(tile('Most 11').left, lessThan(960), reason: 'a piece of the last, at the screen\'s side');
-    expect(tile('Most 11').right, greaterThan(960));
+    expect(tile('Latest 11').left, lessThan(960), reason: 'a piece of the last, at the screen\'s side');
+    expect(tile('Latest 11').right, greaterThan(960));
     await press(tester, LogicalKeyboardKey.arrowLeft);
-    expect(focusedAlbum(), 'Most 6');
-    expect(tile('Most 6').left, moreOrLessEquals(first), reason: 'back in the first one\'s place');
+    expect(focusedAlbum(), 'Latest 6');
+    expect(tile('Latest 6').left, moreOrLessEquals(first), reason: 'back in the first one\'s place');
     // Through the next row's title, a link, over its first card.
     await press(tester, LogicalKeyboardKey.arrowDown);
     await press(tester, LogicalKeyboardKey.arrowDown);
-    expect(focusedAlbum(), startsWith('Latest'));
+    expect(focusedAlbum(), startsWith('Released'));
     final page = tester.getRect(find.descendant(of: find.byType(HomeView), matching: find.byType(Scrollable)).first);
     expect(focusedCard().bottom, lessThanOrEqualTo(page.bottom - 8 + 0.01), reason: 'at the page\'s bottom');
     await tester.pumpWidget(const SizedBox());

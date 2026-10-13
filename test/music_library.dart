@@ -117,6 +117,7 @@ Map<String, Object?>? _answer(String endpoint, Map<String, String> query) {
           'frequent' => albums(['a1', 'a3']),
           'newest' => albums(['a3', 'a2']),
           'alphabeticalByName' => albums(['a3', 'a2', 'a1']),
+          'recent' => albums(['a2']),
           _ => const <Map<String, Object?>>[],
         },
       },

@@ -44,31 +44,29 @@ void main() {
     expect(tabs.every((tab) => tab.playable == false), isTrue);
   });
 
-  test(
-    'the home has the mixes, which play, then the rows of albums, each album in the first one that has it',
-    () async {
-      final home = await tree().children(BrowseTree.home);
-      final mixes = home.where((item) => item.extras?[groupTitle] == 'Mixes').toList();
-      expect(mixes, isNotEmpty);
-      expect(mixes.every((mix) => mix.playable ?? false), isTrue);
-      expect(home.take(mixes.length), mixes, reason: 'first');
-      expect(mixes.map((mix) => mix.title), containsAll(['Rock', 'Jazz']));
-      expect(mixes.firstWhere((mix) => mix.title == 'Jazz').artist, 'Miles Davis', reason: 'its first songs\' artists');
-      expect(
-        mixes.firstWhere((mix) => mix.title == 'Jazz').artUri,
-        Uri.parse('cover:al-a3'),
-        reason: 'its first song\'s',
-      );
+  test('the home has the albums played last, then the mixes, which play, then the other rows of albums, each album in '
+      'the first one that has it, as the app\'s home', () async {
+    final home = await tree().children(BrowseTree.home);
+    expect(titles(home.take(1).toList()), [('Pump', 'Tocados recentemente')]);
+    final mixes = home.where((item) => item.extras?[groupTitle] == 'Mixes').toList();
+    expect(mixes, isNotEmpty);
+    expect(mixes.every((mix) => mix.playable ?? false), isTrue);
+    expect(home.skip(1).take(mixes.length), mixes, reason: 'after them');
+    expect(mixes.map((mix) => mix.title), containsAll(['Rock', 'Jazz']));
+    expect(mixes.firstWhere((mix) => mix.title == 'Jazz').artist, 'Miles Davis', reason: 'its first songs\' artists');
+    expect(
+      mixes.firstWhere((mix) => mix.title == 'Jazz').artUri,
+      Uri.parse('cover:al-a3'),
+      reason: 'its first song\'s',
+    );
 
-      expect(titles(home.skip(mixes.length).toList()), [
-        ('Pump', 'Lançamentos'),
-        ('Toys in the Attic', 'Lançamentos'),
-        ('Kind of Blue', 'Lançamentos'),
-      ]);
-      expect(home.last.playable, isFalse, reason: 'an album opens');
-      expect(home.last.artUri, Uri.parse('cover:al-a3'));
-    },
-  );
+    expect(titles(home.skip(1 + mixes.length).toList()), [
+      ('Kind of Blue', 'Adicionados recentemente'),
+      ('Toys in the Attic', 'Lançamentos'),
+    ]);
+    expect(home.last.playable, isFalse, reason: 'an album opens');
+    expect(home.last.artUri, Uri.parse('cover:al-a1'));
+  });
 
   test('out of reach, the home has the downloaded albums alone', () async {
     expect(titles(await tree(offline: true).children(BrowseTree.home)), [

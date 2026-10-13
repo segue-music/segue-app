@@ -354,7 +354,8 @@ Running two app instances on one machine as different devices:
   protocol knows nothing of it.
 - `HomeCache` (`lib/home_cache.dart`, `Services.homeCache`) keeps what the home showed (`home.json`, in a folder of the
   app's cache for each user on each server, `Services.cacheDirectory`, deleted as they sign out): as the app opens,
-  each row shows its albums the time before (`AlbumRow.initialAlbums`) until they come again (`keepAlbums`, which gives
+  each row shows its albums the time before (`AlbumRow.initialAlbums`, and the grid of those played last at its top,
+  `RecentAlbums`) until they come again (`keepAlbums`, which gives
   back those shown where the server lists the same, so that the row stays as it is), and the mixes are those picked
   the time before (`SuggestedMixes.kept`, with their first songs and pictures), the next time's picked meanwhile, once
   a session, with the server in reach. What the downloads give out of reach isn't kept. `CoverCache`

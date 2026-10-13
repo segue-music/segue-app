@@ -443,10 +443,11 @@ void main() {
     final page = tester.state<ScrollableState>(
       find.descendant(of: find.byType(HomeView), matching: find.byType(Scrollable)).first,
     );
-    page.position.jumpTo(170);
+    final band = FocusManager.instance.primaryFocus!.rect;
+    // The first row of albums level with the search, scrolled under the bar.
+    page.position.jumpTo(tester.getRect(find.byType(AlbumTile).first).center.dy - band.center.dy);
     await tester.pumpAndSettle();
 
-    final band = FocusManager.instance.primaryFocus!.rect;
     final under = [
       for (final tile in tester.widgetList(find.byType(AlbumTile)))
         if (tester.getRect(find.byWidget(tile)) case final rect when rect.top < band.bottom && rect.bottom > band.top)

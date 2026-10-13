@@ -559,6 +559,6 @@ void main() {
   testWidgets('a library without genres has no row of mixes, nor its title', (tester) async {
     await pumpHome(tester, played: false, genres: false);
     expect(find.text('Mixes'), findsNothing);
-    expect(tester.getRect(find.text('Lançamentos')).top, lessThan(100), reason: 'the first row');
+    expect(tester.getRect(find.text('Adicionados recentemente')).top, lessThan(100), reason: 'the first row');
   });
 }
