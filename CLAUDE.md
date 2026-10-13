@@ -409,8 +409,8 @@ Running two app instances on one machine as different devices:
   them (`BarTraversalPolicy`, `lib/ui/widgets/bar_traversal.dart`), leaving only on the page's side: Flutter's
   directional search looks at the whole screen, where cards scrolled under the top bar, or, on a computer, built
   under the player's, lie level with their buttons. `TelevisionScreen` (`lib/ui/app/television_screen.dart`,
-  around the app on a TV) has the text 15% bigger than the system's and gives the screen's edges room (12 by 6,
-  about a quarter of Android TV's 48 by 27, for TVs that cut them off, since the bars keep their own inside it) as
+  around the app on a TV) has the text 15% bigger than the system's and gives the screen's edges room (6 all round,
+  an eighth of Android TV's 48 at the sides, for TVs that cut them off, since the bars keep their own inside it) as
   the system's padding, which the bars keep out of by themselves, and the home's rail by its `SafeArea`, their
   backgrounds going on to the edges. The page area goes on to the right edge,
   the left's padding taken out of it (the rail's), so that a row of tiles runs on to the side as it scrolls, as Google

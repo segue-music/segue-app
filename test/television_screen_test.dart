@@ -32,7 +32,7 @@ void main() {
     await pump(television: true);
     expect(media.textScaler.scale(10), moreOrLessEquals(10 * 1.1 * 1.15));
     expect(media.navigationMode, NavigationMode.directional);
-    expect(media.padding, const EdgeInsets.symmetric(horizontal: 12, vertical: 6));
+    expect(media.padding, TelevisionScreen.margins);
     expect(media.viewPadding, media.padding);
 
     await pump(television: false);
@@ -45,7 +45,7 @@ void main() {
       'bar\'s background going on to them, and the rows of tiles running on to the side as they scroll, their last '
       'tile in', (tester) async {
     await pumpFullHdHome(tester);
-    const screen = Rect.fromLTRB(12, 6, 960 - 12, 540 - 6);
+    final screen = TelevisionScreen.margins.deflateRect(Offset.zero & const Size(960, 540));
 
     for (final tooltip in ['Início', 'Tocando agora', 'Álbuns', 'Artistas', 'Configurações']) {
       final rect = tester.getRect(find.byTooltip(tooltip).first);
@@ -57,7 +57,7 @@ void main() {
       find.descendant(of: find.byType(HomeView), matching: find.byType(Scrollable)),
     )) {
       final rect = tester.getRect(find.byWidget(scrollable));
-      expect(rect.left, greaterThanOrEqualTo(12), reason: '$rect');
+      expect(rect.left, greaterThanOrEqualTo(screen.left), reason: '$rect');
       expect(rect.right, 960, reason: '$rect');
     }
 
@@ -66,7 +66,7 @@ void main() {
     final scroll = tester.state<ScrollableState>(strip).position;
     scroll.jumpTo(scroll.maxScrollExtent);
     await tester.pumpAndSettle();
-    expect(tester.getRect(find.text('Album 29').first).right, lessThanOrEqualTo(960 - 12), reason: 'the last tile');
+    expect(tester.getRect(find.text('Album 29').first).right, lessThanOrEqualTo(screen.right), reason: 'the last tile');
 
     final bar = tester.getRect(find.byType(AppBar));
     expect((bar.left, bar.right, bar.top), (0, 960, 0), reason: 'to the edges');

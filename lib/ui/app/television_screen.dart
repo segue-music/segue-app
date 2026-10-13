@@ -15,10 +15,11 @@ class TelevisionScreen extends StatelessWidget {
   /// How much bigger the text is: a seventh, about, over the sizes Material gives a phone, which are Android TV's own.
   static const textScale = 1.15;
 
-  /// The room at the screen's edges: about a quarter of Android TV's 48 by 27, since the bars keep their own room
-  /// inside it. With all of it, on a TV that shows its whole picture, the content stood 60 from the sides and the two
-  /// bars took a third of the screen's height; with half, it still looked far from the edges.
-  static const margins = EdgeInsets.symmetric(horizontal: 12, vertical: 6);
+  /// The room at the screen's edges: an eighth of Android TV's 48 at the sides, and less than a quarter of its 27 above
+  /// and below, since the bars keep their own room inside it. With all of it, on a TV that shows its whole picture, the
+  /// content stood 60 from the sides and the two bars took a third of the screen's height; with half, it still looked
+  /// far from the edges, and with a quarter, the home's sides too.
+  static const margins = EdgeInsets.all(6);
 
   @override
   Widget build(BuildContext context) {
