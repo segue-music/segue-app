@@ -189,8 +189,10 @@ knows nothing of them, and another device plays as it has them.
   under the pages: the side rail's first button, while something plays, opens the full-screen player, as a video
   player: the controls showing as a key is pressed and going after a few seconds,
   back hiding them first. The screen stays on while the music plays. The keyboard opens on the search bar with the
-  center button, OK held opens a menu, and a song of the queue or of a playlist moves by the remote ("Mover" in its
-  menu, then the arrows and OK). The remote's play/pause, next and previous buttons drive playback.
+  center button, and with it open the remote's microphone, held, types what is said. OK held opens a menu, and a song
+  of the queue or of a playlist moves by the remote ("Mover" in its menu, then the arrows and OK). The remote's
+  play/pause, next and previous buttons drive playback. Google TV's Assistant doesn't reach the app: music asked for by
+  name ("toca Aerosmith no Segue" too) it plays on YouTube, and away from the keyboard the microphone is its own.
 - **The system's media controls** show and command what the player bar shows, the device it follows included: on
   Linux (MPRIS) the media keys, the desktop's player widget and KDE Connect; on iOS the lock screen, Control Center,
   the headphones' buttons and CarPlay's Now Playing; on Android the notification, the lock screen and the

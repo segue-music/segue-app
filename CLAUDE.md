@@ -479,7 +479,14 @@ Running two app instances on one machine as different devices:
   `adb shell input keyevent` sends. `TextFieldArrowShortcuts` lets up and down leave text fields
   (on a TV, left and right too). A text field opens the keyboard as the focus comes to it, and on a
   TV the keyboard covers half the screen and takes the D-pad, so there the home's search bar stays
-  read-only until the center button (its `onTap`) opens it. On a TV the full-screen player is as a video player
+  read-only until the center button (its `onTap`) opens it. Voice reaches the search only through that keyboard: the
+  remote's microphone is `KEYCODE_ASSIST`, which Android hands the Assistant, never the app, and the Assistant passes
+  what is said to the keyboard where one is open (Gboard's dictation, the microphone held). Tried on a Google TV and
+  given up: a microphone of the app's through the system's `RECOGNIZE_SPEECH` (two activities, so a chooser, and the
+  Assistant's heard nothing) or a `SpeechRecognizer` (`RECORD_AUDIO`, on the TV's own microphone, silent to apps); and
+  music asked for by name ("toca Aerosmith no Segue"), which the Assistant plays on YouTube, or by a link to a service
+  whose catalog Google knows (Spotify's), never through the media session's `playFromSearch`, while the app plays in
+  front too, with `MEDIA_PLAY_FROM_SEARCH` in the manifest or not. On a TV the full-screen player is as a video player
   (`lib/ui/player/television_player.dart`): no top bar, on the theme's background, and its controls under it
   (`TelevisionControls`) showing as it opens and as the arrows
   or OK are pressed, which then only bring them back, play taking the focus, and going after 5 s with no key, but
