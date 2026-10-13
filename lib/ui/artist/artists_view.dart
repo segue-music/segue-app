@@ -36,8 +36,8 @@ enum ArtistOrder {
 }
 
 /// The library's artists, by name or the most played first, or the user's favorite ones alone, as they change, as
-/// picked in chips above them ([OrderChips]), as the albums' orders are. On a TV and on a computer, by name, their
-/// letters beside them ([LetterBar]).
+/// picked in chips above them ([OrderChips]), as the albums' orders are. By name, their letters beside them
+/// ([LetterBar]).
 class ArtistsView extends StatefulWidget {
   const ArtistsView({required this.order, required this.onOrder, super.key});
 
@@ -180,7 +180,7 @@ class _ArtistsViewState extends State<ArtistsView> {
                     : _ArtistGrid(artists, gridKey: _grid),
               );
 
-              if (artists.isEmpty || widget.order != ArtistOrder.name || !LetterBar.shownIn(context)) {
+              if (artists.isEmpty || widget.order != ArtistOrder.name) {
                 return list;
               }
 

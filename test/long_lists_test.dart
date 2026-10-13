@@ -361,11 +361,35 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('on a tablet, the albums by name have no letters', (tester) async {
+  testWidgets('on a tablet, the albums by name have their letters too', (tester) async {
     await _pumpHome(tester, television: false);
     await openSection(tester, 'Álbuns');
-    expect(find.text('A00'), findsOneWidget);
-    expect(find.byType(LetterBar), findsNothing);
+    expect(find.byType(LetterBar), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('on a phone, a finger slid along the letters takes the albums to each it goes onto, that one big beside '
+      'them, and they end over the bars at the bottom, under the settings button', (tester) async {
+    await _pumpHome(tester, television: false, size: const Size(1080, 2340));
+    await openSection(tester, 'Álbuns');
+    _expectUnderSettings(tester);
+    Finder letter(String text) => find.descendant(of: find.byType(LetterBar), matching: find.text(text)).first;
+    expect(tester.getRect(letter('Z')).bottom, lessThan(tester.getRect(find.byType(NavigationBar)).top));
+
+    final finger = await tester.startGesture(tester.getCenter(letter('A')));
+    await finger.moveTo(tester.getCenter(letter('F')));
+    await tester.pumpAndSettle();
+    expect(find.text('F'), findsNWidgets(2), reason: 'in the bar and beside it');
+    expect(_atTop(tester, 'F00'), isTrue);
+
+    await finger.moveTo(tester.getCenter(letter('M')));
+    await tester.pumpAndSettle();
+    expect(_atTop(tester, 'M00'), isTrue);
+
+    await finger.up();
+    await tester.pumpAndSettle();
+    expect(find.text('M'), findsOneWidget, reason: 'beside them no more');
+    expect(_atTop(tester, 'M00'), isTrue);
     await tester.pumpWidget(const SizedBox());
   });
 

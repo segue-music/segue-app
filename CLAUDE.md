@@ -522,18 +522,22 @@ Running two app instances on one machine as different devices:
   the list the focus is in by as much as it shows, the focus going to what is then where it was on the screen
   (`focusNextPage`); its back, with what has the focus past the list's first screen, scrolls the list to its start, the
   focus on what is first there (`focusListStart`), the key's going up taken too, as the full-screen player takes it; and
-  the albums and the artists by name (a genre's albums too) have their letters beside them, as on a computer
-  (`LetterBar`, `lib/ui/widgets/letter_bar.dart`, `LetterBar.shownIn`). A letter scrolls the grid to the first under it,
-  its row at the top, the focus staying on the letter, from which left goes on to the grid (`scrollToGridChild`, which
-  lays the grid out again first: given more children, a sliver keeps the length it had until it is laid out, as
-  scrolling does, Flutter's `SliverMultiBoxAdaptorElement.performRebuild`). The letter with the focus, or under the
-  pointer, shows big in a circle beside them, as the theme's ring hardly showed on one so small; they stand under the
-  top bar's settings button, as wide as a Material icon button, 40, or 48 where the theme pads what is touched
-  (`materialTapTargetSize`), and right of them is nowhere, rather than up to that button. A name's letter (`letterOf`)
-  is its first, past an article (Navidrome's), without its accent; a letter starts (`letterStart`) at its first name
-  past where the letter before it starts, so that a name the server sorts by another letter (an article one of them
-  leaves out and the other doesn't) doesn't take it there. The albums come a page at a time, with no count on Subsonic:
-  a letter not there yet asks for the pages up to it, 500 albums at a time, as many as Navidrome gives.
+  the albums and the artists by name (a genre's albums too) have their letters beside them, as on every device
+  (`LetterBar`, `lib/ui/widgets/letter_bar.dart`). A letter jumps as it is pressed (OK, a click, a tap) or as a finger,
+  or the mouse held, slides along them onto it (`_slide`, from the letter it went down on, `DragStartBehavior.down`,
+  with a haptic click), as a phone's contacts' index does: a phone's height gives each about 20, too small to tap one.
+  It scrolls the grid to the first under it, its row at the top, the focus staying where it was, on the letter, from
+  which left goes on to the grid (`scrollToGridChild`, which lays the grid out again first: given more children, a
+  sliver keeps the length it had until it is laid out, as scrolling does, Flutter's
+  `SliverMultiBoxAdaptorElement.performRebuild`). The letter with the focus, under the pointer or under the finger shows
+  big in a circle beside them, as the theme's ring hardly showed on one so small; they stand under the top bar's
+  settings button, as wide as a Material icon button, 40, or 48 where the theme pads what is touched
+  (`materialTapTargetSize`), clear of the bars a phone's home has over the list at the bottom, and right of them is
+  nowhere, rather than up to that button. A name's letter (`letterOf`) is its first, past an article (Navidrome's),
+  without its accent; a letter starts (`letterStart`) at its first name past where the letter before it starts, so that
+  a name the server sorts by another letter (an article one of them leaves out and the other doesn't) doesn't take it
+  there. The albums come a page at a time, with no count on Subsonic: a letter not there yet asks for the pages up to
+  it, 500 albums at a time, as many as Navidrome gives.
 - `MainActivity` extends audio_service's `AudioServiceActivity`, so the screen and the plugin share
   one Flutter engine. With a plain `FlutterActivity`, audio_service started an engine of its own,
   and with it a second, hidden copy of the app that connected to the hub as the same device. It

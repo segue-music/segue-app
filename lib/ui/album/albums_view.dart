@@ -38,8 +38,8 @@ enum AlbumsShown { library, downloaded, favorites }
 
 /// The library's albums in [order], or a genre's by name, a page at a time: the next as the grid nears
 /// its end; or the albums downloaded, or the user's favorite ones ([shown]). Above the library's, chips pick the order,
-/// and after them "Favoritos", the favorites alone, and, where the app downloads, "Baixados", the downloaded alone. On a
-/// TV and on a computer, the albums by name have their letters beside them ([LetterBar]).
+/// and after them "Favoritos", the favorites alone, and, where the app downloads, "Baixados", the downloaded alone. The
+/// albums by name have their letters beside them ([LetterBar]).
 class AlbumsView extends StatefulWidget {
   const AlbumsView({
     this.genre,
@@ -430,7 +430,7 @@ class _AlbumsViewState extends State<AlbumsView> {
       ),
     );
 
-    if (!_byName || !LetterBar.shownIn(context)) {
+    if (!_byName) {
       return grid;
     }
 

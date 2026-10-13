@@ -50,8 +50,10 @@ screen, and the Windows build on Windows 11. macOS has no package yet.
   each time the home loads, the more played the likelier. A mix plays the first songs its tile shows, and autoplay
   goes on after its last. Out of the server's reach, there are no mixes.
 - **Albums**: by name, latest released, most played or latest added. Wherever albums are listed, the album's artist
-  opens their page, and on a computer or a tablet a button on the cover plays the album.
-- **Artists**: by name or most played.
+  opens their page, and on a computer or a tablet a button on the cover plays the album. By name, they have their
+  letters beside them, which scroll to where each starts: a letter pressed, or a finger slid along them, as in a
+  phone's contacts.
+- **Artists**: by name or most played; by name, with their letters beside them too.
 - **Genres**: by name, under the ten the user listens to most. A genre's page has a button that plays its mix, a
   row of its most played albums, and its albums by name.
 - **Playlists**: the user's and those shared with them, each with its picture and how many songs it has. A
@@ -175,8 +177,7 @@ knows nothing of them, and another device plays as it has them.
   bar stay, and pages open between them. Arrows beside the app's icon, and the keyboard's left and right, go back and
   forward through them, as a browser's do. `/` goes to the search bar, and Esc takes the focus off what has it. A
   section's button in the side rail, picked again, takes it back to its start. On a computer the window opens maximized
-  and gets no narrower than 960, and the albums and the artists by name have their letters beside them, which scroll
-  to where each starts.
+  and gets no narrower than 960.
 - **Phone**: the player bar and a bar with the home, the search and the library stay at the bottom, and a swipe goes
   from section to section; the home or the library picked again there goes back to its start. Pages open over the
   rest, and a swipe to the right from anywhere goes back.
@@ -194,10 +195,9 @@ knows nothing of them, and another device plays as it has them.
   while the music plays. The keyboard opens on the search bar with the center button, and with it open the remote's
   microphone, held, types what is said. OK held opens a menu, and a song of the queue or of a playlist moves by the
   remote ("Mover" in its menu, then the arrows and OK). The remote's play/pause, next and previous buttons drive
-  playback. Through a long list, its channel buttons go a page down or up, the albums and the artists by name have their
-  letters beside them, which scroll to where each starts, and back, far down a list, goes back to its top before it
-  leaves the page. Google TV's Assistant doesn't reach the app: music asked for by name ("toca Aerosmith no Segue" too)
-  it plays on YouTube, and away from the keyboard the microphone is its own.
+  playback. Through a long list, its channel buttons go a page down or up, and back, far down a list, goes back to its
+  top before it leaves the page. Google TV's Assistant doesn't reach the app: music asked for by name ("toca Aerosmith
+  no Segue" too) it plays on YouTube, and away from the keyboard the microphone is its own.
 - **The system's media controls** show and command what the player bar shows, the device it follows included: on
   Linux (MPRIS) the media keys, the desktop's player widget and KDE Connect; on iOS the lock screen, Control Center,
   the headphones' buttons and CarPlay's Now Playing; on Android the notification, the lock screen and the

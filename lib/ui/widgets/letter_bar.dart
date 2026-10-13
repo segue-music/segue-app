@@ -1,9 +1,8 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../l10n/app_localizations.dart';
-import 'directional_navigation.dart';
 
 /// The letters a long list by name jumps to, in its order: the numbers and the other signs first, as the media servers
 /// sort them.
@@ -67,21 +66,14 @@ int? letterStart(List<String> listed, String letter) {
 }
 
 /// A long list's letters, beside it, which jump to where each starts ([onLetter]): with thousands of albums, the remote
-/// would take long going down a row at a time, and the mouse's wheel too. The letter with the focus, or under the
-/// pointer, shows big beside them, in a circle, as Material's ring would hardly show around one so small.
+/// would take long going down a row at a time, and the mouse's wheel and the finger too. A letter jumps as it is
+/// pressed, or as a finger (or the mouse, held) slides along them onto it, as the index of a phone's contacts does:
+/// 27 letters in a phone's height are each too small for a finger to pick. The letter with the focus, under the pointer
+/// or under the finger shows big beside them, in a circle, as Material's ring would hardly show around one so small.
 class LetterBar extends StatefulWidget {
   const LetterBar({required this.onLetter, super.key});
 
   final ValueChanged<String> onLetter;
-
-  /// Whether the long lists by name have their letters beside them where [context] is: on a TV and on a computer. A
-  /// finger goes down them fast enough, on a phone or a tablet.
-  static bool shownIn(BuildContext context) =>
-      DirectionalNavigation.of(context) ||
-      switch (defaultTargetPlatform) {
-        TargetPlatform.linux || TargetPlatform.macOS || TargetPlatform.windows => true,
-        _ => false,
-      };
 
   @override
   State<LetterBar> createState() => _LetterBarState();
@@ -94,6 +86,20 @@ class _LetterBarState extends State<LetterBar> {
   /// The letter under the pointer, which shows rather than the one with the focus.
   String? _hovered;
 
+  /// The letter a finger sliding along them is on, which shows rather than the others.
+  String? _slid;
+
+  /// Jumps to the letter at [position] along them, each of a [share] of their height, as a finger slides onto it.
+  void _slide(Offset position, double share) {
+    final letter = letters[(position.dy / share).floor().clamp(0, letters.length - 1)];
+
+    if (letter != _slid) {
+      HapticFeedback.selectionClick();
+      setState(() => _slid = letter);
+      widget.onLetter(letter);
+    }
+  }
+
   static const _width = 36.0;
 
   /// The circle the letter shown shows big in.
@@ -104,7 +110,7 @@ class _LetterBarState extends State<LetterBar> {
     final strings = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final shown = _hovered ?? _focused;
+    final shown = _slid ?? _hovered ?? _focused;
     final style =
         TextButton.styleFrom(
           padding: EdgeInsets.zero,
@@ -125,9 +131,12 @@ class _LetterBarState extends State<LetterBar> {
     // what is touched more room (a phone's, a TV's), as far from the screen's edge (a TV's, which it may cut off).
     final button = theme.materialTapTargetSize == MaterialTapTargetSize.padded ? kMinInteractiveDimension : 40.0;
 
-    // As tall as the list, each letter as small as its share of that needs it, and no bigger.
+    final padding = MediaQuery.paddingOf(context);
+
+    // As tall as the list, each letter as small as its share of that needs it, and no bigger: clear of the bars a
+    // phone's home has over the list, at the bottom.
     return Padding(
-      padding: EdgeInsets.fromLTRB(0, 8, MediaQuery.paddingOf(context).right + (button - _width) / 2, 8),
+      padding: EdgeInsets.fromLTRB(0, 8, padding.right + (button - _width) / 2, 8 + padding.bottom),
       child: SizedBox(
         width: _width,
         child: LayoutBuilder(
@@ -141,38 +150,47 @@ class _LetterBarState extends State<LetterBar> {
                 clipBehavior: Clip.none,
                 children: [
                   // As wide as the bar, each letter in its middle.
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      for (final letter in letters)
-                        Expanded(
-                          child: Semantics(
-                            label: strings.jumpToLetter(letter),
-                            button: true,
-                            excludeSemantics: true,
-                            child: TextButton(
-                              style: style,
-                              // The next letter may take the focus, or the pointer, before this one says it lost it.
-                              onFocusChange: (on) => setState(() {
-                                if (on) {
-                                  _focused = letter;
-                                } else if (_focused == letter) {
-                                  _focused = null;
-                                }
-                              }),
-                              onHover: (on) => setState(() {
-                                if (on) {
-                                  _hovered = letter;
-                                } else if (_hovered == letter) {
-                                  _hovered = null;
-                                }
-                              }),
-                              onPressed: () => widget.onLetter(letter),
-                              child: FittedBox(fit: BoxFit.scaleDown, child: Text(letter)),
+                  GestureDetector(
+                    // From the letter the finger went down on, rather than where it had moved to by the time it
+                    // slid far enough to tell a slide from a tap.
+                    dragStartBehavior: DragStartBehavior.down,
+                    onVerticalDragStart: (details) => _slide(details.localPosition, share),
+                    onVerticalDragUpdate: (details) => _slide(details.localPosition, share),
+                    onVerticalDragEnd: (_) => setState(() => _slid = null),
+                    onVerticalDragCancel: () => setState(() => _slid = null),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (final letter in letters)
+                          Expanded(
+                            child: Semantics(
+                              label: strings.jumpToLetter(letter),
+                              button: true,
+                              excludeSemantics: true,
+                              child: TextButton(
+                                style: style,
+                                // The next letter may take the focus, or the pointer, before this one says it lost it.
+                                onFocusChange: (on) => setState(() {
+                                  if (on) {
+                                    _focused = letter;
+                                  } else if (_focused == letter) {
+                                    _focused = null;
+                                  }
+                                }),
+                                onHover: (on) => setState(() {
+                                  if (on) {
+                                    _hovered = letter;
+                                  } else if (_hovered == letter) {
+                                    _hovered = null;
+                                  }
+                                }),
+                                onPressed: () => widget.onLetter(letter),
+                                child: FittedBox(fit: BoxFit.scaleDown, child: Text(letter)),
+                              ),
                             ),
                           ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
                   // Over the list beside, at the letter's height.
                   if (shown != null)
