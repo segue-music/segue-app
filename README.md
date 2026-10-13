@@ -10,7 +10,7 @@ Segue's protocol and its hub, which runs next to the media server, are in
 [segue-music/segue](https://github.com/segue-music/segue). Without a hub, the app plays on the device it runs on.
 
 <p align="center">
-  <a href="docs/screenshots/desktop.png"><img src="docs/screenshots/desktop.webp" width="51%" alt="The home on a computer: mixes by genre and decade, new releases and the most played albums, with the player bar at the bottom"></a>
+  <a href="docs/screenshots/desktop.png"><img src="docs/screenshots/desktop.webp" width="51%" alt="The home on a computer: mixes by genre and decade, the albums played last and new releases, with the player bar at the bottom"></a>
   <a href="docs/screenshots/tv.png"><img src="docs/screenshots/tv.webp" width="47%" alt="The full-screen player on a TV, the lyrics as karaoke beside the cover and the controls under them"></a>
 </p>
 <p align="center">
@@ -39,12 +39,13 @@ screen, and the Windows build on Windows 11. macOS has no package yet.
 
 ### Library
 
-- **Home**, where the app opens: a row of mixes, then rows of the latest released albums, the most played and the
-  latest added. A row's title opens the albums tab in that order. Dragging the home down from its top loads it again.
-  As the app opens, the home shows at once what it showed the time before, covers too, kept on the device, while it
-  loads again; its mixes are those picked the time before. On a phone, its top bar has two chips: "Aleatório", which
-  plays the whole library at random, and "Favoritos", which opens the favorites. On a computer, a tablet or a TV,
-  "Aleatório" is in the top bar, over every page, and the favorites in the side rail.
+- **Home**, where the app opens: a row of mixes, then rows of the albums played last (once any has played), the
+  latest released, the most played and the latest added. A row's title opens the albums tab in that order. Dragging
+  the home down from its top loads it again. As the app opens, the home shows at once what it showed the time
+  before, covers too, kept on the device, while it loads again; its mixes are those picked the time before. On a
+  phone, its top bar has two chips: "Aleatório", which plays the whole library at random, and "Favoritos", which
+  opens the favorites. On a computer, a tablet or a TV, "Aleatório" is in the top bar, over every page, and the
+  favorites in the side rail.
 - **Mixes**: 100 songs of the library at random, of a genre ("Rock") or of a decade ("Anos 70"), from the genres and
   decades the user plays most (before anything has played, the genres with the most albums). They are picked again
   each time the home loads, the more played the likelier. A mix plays the first songs its tile shows, and autoplay
@@ -53,10 +54,10 @@ screen, and the Windows build on Windows 11. macOS has no package yet.
   getSimilarSongs2, from its agents and the item's own songs; Jellyfin's instant mix): from a song's menu, an album's
   menu ("Mais opções") and a button on an artist's page. Autoplay goes on after the last, on the device that plays
   them.
-- **Albums**: by name, latest released, most played or latest added. Wherever albums are listed, the album's artist
-  opens their page, and on a computer or a tablet a button on the cover plays the album. By name, they have their
-  letters beside them, which scroll to where each starts: a letter pressed, or a finger slid along them, as in a
-  phone's contacts.
+- **Albums**: by name, latest released, most played, played last or latest added. Wherever albums are listed, the
+  album's artist opens their page, and on a computer or a tablet a button on the cover plays the album. By name,
+  they have their letters beside them, which scroll to where each starts: a letter pressed, or a finger slid along
+  them, as in a phone's contacts.
 - **Artists**: by name or most played; by name, with their letters beside them too.
 - **Genres**: by name, under the ten the user listens to most. A genre's page has a button that plays its mix, a
   row of its most played albums, and its albums by name.
@@ -70,10 +71,10 @@ screen, and the Windows build on Windows 11. macOS has no package yet.
 ### Album and artist pages
 
 - **Album**: its cover (which opens full screen), what kind of release it is (album, EP, single, compilation), its
-  artist, year, songs and how long they last, and at the end its release date, its record labels and a row of the
-  artist's other albums ("Mais de Aerosmith"). Where the server doesn't say the date, the labels or the kind,
-  MusicBrainz fills them in: by the album's MusicBrainz id, or, for the date and the kind only, by its name, artist
-  and year.
+  artist, year, songs (numbered as their tags have them, under each disc's number and title where it has several)
+  and how long they last, and at the end its release date, its record labels and a row of the artist's other albums
+  ("Mais de Aerosmith"). Where the server doesn't say the date, the labels or the kind, MusicBrainz fills them in:
+  by the album's MusicBrainz id, or, for the date and the kind only, by its name, artist and year.
 - **Credits**, from a button on the album's page: who performed it (with what they played or sang), wrote it and
   produced it, one a line, with the songs where it isn't all of them ("voz principal, gaita (faixa 2)"). The
   server's credits (OpenSubsonic's contributors, which Navidrome reads from the tags; Jellyfin's people), or, where

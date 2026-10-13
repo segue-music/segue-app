@@ -26,11 +26,15 @@ extension AlbumOrderText on AlbumOrder {
     AlbumOrder.name => strings.orderName,
     AlbumOrder.released => strings.orderReleased,
     AlbumOrder.mostPlayed => strings.mostPlayed,
+    AlbumOrder.recentlyPlayed => strings.orderRecentlyPlayed,
     AlbumOrder.latest => strings.orderLatest,
   };
 
-  String emptyMessage(AppLocalizations strings) =>
-      this == AlbumOrder.mostPlayed ? strings.mostPlayedAlbumsEmpty : strings.libraryEmpty;
+  String emptyMessage(AppLocalizations strings) => switch (this) {
+    AlbumOrder.mostPlayed => strings.mostPlayedAlbumsEmpty,
+    AlbumOrder.recentlyPlayed => strings.recentlyPlayedAlbumsEmpty,
+    AlbumOrder.name || AlbumOrder.released || AlbumOrder.latest => strings.libraryEmpty,
+  };
 }
 
 /// Which albums the albums tab shows: the library's, in an order, the downloaded alone, or the user's favorites alone.
@@ -81,7 +85,13 @@ class _AlbumsViewState extends State<AlbumsView> {
   static const _jumpPageSize = 500;
 
   /// The orders the chips pick from.
-  static const _orders = [AlbumOrder.name, AlbumOrder.released, AlbumOrder.mostPlayed, AlbumOrder.latest];
+  static const _orders = [
+    AlbumOrder.name,
+    AlbumOrder.released,
+    AlbumOrder.mostPlayed,
+    AlbumOrder.recentlyPlayed,
+    AlbumOrder.latest,
+  ];
 
   /// How far from the end of the grid the next page is asked for.
   static const _ahead = 800.0;

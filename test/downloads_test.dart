@@ -26,6 +26,7 @@ const album = Album(
   releaseDate: ReleaseDate(1975, month: 4, day: 8),
   genres: [Genre(id: 'Rock', name: 'Rock')],
   releaseType: ReleaseType.album,
+  discTitles: {1: 'Side A'},
 );
 
 const songs = [
@@ -39,6 +40,8 @@ const songs = [
     duration: Duration(seconds: 220),
     artists: [Artist(id: 'ar1', name: 'Aerosmith')],
     replayGain: ReplayGain(trackGain: -6.5, albumGain: -7, trackPeak: 0.9),
+    track: 4,
+    disc: 1,
   ),
   Song(id: 's2', title: 'Sweet Emotion', artist: 'Aerosmith', albumId: 'al1', coverArt: 'al1'),
 ];
@@ -149,6 +152,8 @@ void main() {
     expect(download.songs.first.replayGain?.albumGain, -7);
     expect(download.songs.first.artists.single.name, 'Aerosmith');
     expect(download.songs.first.duration, const Duration(seconds: 220));
+    expect((download.songs.first.track, download.songs.first.disc), (4, 1));
+    expect(download.album!.discTitles, {1: 'Side A'});
     expect(again.songFile('s2'), isNotNull);
   });
 
@@ -500,6 +505,7 @@ void main() {
       expect((await api.artist('ar1')).$1.coverArt, 'ar-ar1', reason: 'with their picture');
       expect((await api.albums(order: AlbumOrder.name)).map((album) => album.name), ['Toys in the Attic']);
       expect(await api.albums(order: AlbumOrder.mostPlayed), isEmpty);
+      expect(await api.albums(order: AlbumOrder.recentlyPlayed), isEmpty, reason: 'nor when');
       expect((await api.album('al1')).$2.map((song) => song.title), ['Walk This Way', 'Sweet Emotion']);
       expect((await api.playlists()).single.name, 'Road trip');
       expect((await api.playlist('p1')).$2.single.id, 's2');

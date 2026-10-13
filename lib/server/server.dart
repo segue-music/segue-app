@@ -39,6 +39,9 @@ enum AlbumOrder {
 
   /// The ones the user plays most first; none before anything has played.
   mostPlayed,
+
+  /// The ones the user played last first; none before anything has played.
+  recentlyPlayed,
 }
 
 /// The keys of [counts], the highest count first; a tie keeps their order in [counts].

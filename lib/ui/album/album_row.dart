@@ -23,7 +23,7 @@ class AlbumRow extends StatelessWidget {
   /// What it shows until [albums] come, rather than a spinner: on the home, those it showed the time before.
   final List<Album>? initialAlbums;
 
-  /// What the row says when there are none; null, nothing, for a page that leaves an empty row out.
+  /// What the row says when there are none; null, nothing: the row is out, its title too, once they have come.
   final String? empty;
 
   /// Shows all of them, past the row's: what its title, a link then, opens.
@@ -53,6 +53,10 @@ class AlbumRow extends StatelessWidget {
 
       // While new albums come (the home pulled down to list them again), the ones before, where they were.
       final albums = snapshot.data;
+
+      if (empty == null && !snapshot.hasError && (albums?.isEmpty ?? false)) {
+        return const SizedBox.shrink();
+      }
 
       return TileRow(
         // The new ones from the first, rather than where the ones before were scrolled to.

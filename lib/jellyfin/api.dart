@@ -186,12 +186,14 @@ class JellyfinApi implements MediaServer {
       AlbumOrder.name => {'SortBy': 'SortName', 'SortOrder': 'Ascending'},
       // The year first: an album may have one without a full date.
       AlbumOrder.released => {'SortBy': 'ProductionYear,PremiereDate,SortName', 'SortOrder': 'Descending'},
-      // Not one of Jellyfin's: see [_mostPlayedAlbums].
-      AlbumOrder.mostPlayed => null,
+      // Not Jellyfin's, which keeps plays by song alone: see [_mostPlayedAlbums] and [_recentlyPlayedAlbums].
+      AlbumOrder.mostPlayed || AlbumOrder.recentlyPlayed => null,
     };
 
     if (sort == null) {
-      return _mostPlayedAlbums(size: size, offset: offset);
+      return order == AlbumOrder.mostPlayed
+          ? _mostPlayedAlbums(size: size, offset: offset)
+          : _recentlyPlayedAlbums(size: size, offset: offset);
     }
 
     return [
@@ -222,8 +224,31 @@ class JellyfinApi implements MediaServer {
       }
     }
 
-    final ids = rankedByCount(plays).skip(offset).take(size).toList();
+    return _albumsByIds(rankedByCount(plays).skip(offset).take(size).toList());
+  }
 
+  /// Jellyfin keeps when a song last played (DatePlayed), not an album: the albums of the user's songs played last, in
+  /// that order, each once. A page past the first goes through them again, and takes its part.
+  Future<List<Album>> _recentlyPlayedAlbums({required int size, int offset = 0}) async {
+    final ids = <String>{};
+
+    for (final song in await _items({
+      'IncludeItemTypes': 'Audio',
+      'Filters': 'IsPlayed',
+      'SortBy': 'DatePlayed',
+      'SortOrder': 'Descending',
+      'Limit': '1000',
+    })) {
+      if (song['AlbumId'] case final String album) {
+        ids.add(album);
+      }
+    }
+
+    return _albumsByIds(ids.skip(offset).take(size).toList());
+  }
+
+  /// The albums whose ids are [ids], in that order.
+  Future<List<Album>> _albumsByIds(List<String> ids) async {
     if (ids.isEmpty) {
       return const [];
     }
@@ -848,6 +873,8 @@ Song _song(Map<String, dynamic> json, {double? albumGain}) => Song(
     (null, null) => null,
     (final trackGain, final albumGain) => ReplayGain(trackGain: trackGain, albumGain: albumGain),
   },
+  track: (json['IndexNumber'] as num?)?.toInt(),
+  disc: (json['ParentIndexNumber'] as num?)?.toInt(),
 );
 
 Artist _artist(Map<String, dynamic> json) => Artist(

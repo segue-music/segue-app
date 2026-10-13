@@ -478,7 +478,8 @@ List<_Album> _albumList(Map<String, String> query) {
   final albums = switch (query['type']) {
     'byYear' => [..._albums]..sort((a, b) => b.year.compareTo(a.year)),
     'frequent' => [..._albums]..sort((a, b) => b.plays.compareTo(a.plays)),
-    'newest' || 'recent' => _albums,
+    'newest' => _albums,
+    'recent' => [for (final id in _recentlyPlayed) _albums.firstWhere((album) => album.id == id)],
     'alphabeticalByName' => [..._albums]..sort((a, b) => a.name.compareTo(b.name)),
     'byGenre' => [
       for (final album in _albums)
@@ -493,6 +494,9 @@ List<_Album> _albumList(Map<String, String> query) {
 
   return albums.skip(int.parse(query['offset'] ?? '0')).take(int.parse(query['size'] ?? '20')).toList();
 }
+
+/// The albums played last, the one playing on the computer's picture first.
+const _recentlyPlayed = ['arcade', 'estrada', 'kite', 'saudade', 'coastline', 'northern', 'varanda', 'prism'];
 
 /// Songs of the genre and the years [query] asks for, in an order of their own, the same each time.
 List<Map<String, Object?>> _randomSongs(Map<String, String> query) {

@@ -74,7 +74,7 @@ class SubsonicApi implements MediaServer {
 
   /// Albums by name are getAlbumList2's alphabeticalByName; the latest added, its newest; by release
   /// date, its byYear over every year, which Navidrome sorts by the full date where it has one; the most
-  /// played, its frequent.
+  /// played, its frequent; the recently played, its recent.
   @override
   Future<List<Album>> albums({required AlbumOrder order, int size = 100, int offset = 0}) => _albumList(
     switch (order) {
@@ -83,6 +83,7 @@ class SubsonicApi implements MediaServer {
       // A range from a later year to an earlier one lists the latest first.
       AlbumOrder.released => {'type': 'byYear', 'fromYear': '9999', 'toYear': '0'},
       AlbumOrder.mostPlayed => {'type': 'frequent'},
+      AlbumOrder.recentlyPlayed => {'type': 'recent'},
     },
     size: size,
     offset: offset,
@@ -214,15 +215,23 @@ class SubsonicApi implements MediaServer {
     return rankedByCount(plays).take(size).toList();
   }
 
-  /// getTopSongs, which asks by the artist's name: Navidrome learns the artist's top tracks from its agents (Last.fm's,
-  /// where it's on) and gives those it has; none where no agent knows them.
+  /// getTopSongs: Navidrome learns the artist's top tracks from its agents (Last.fm's, where it's on) and gives those it
+  /// has; none where no agent knows them. By the artist's id where the server has OpenSubsonic's topSongsByArtistId
+  /// (Navidrome from 0.64), and otherwise by their name, which another artist may have too.
   @override
   Future<List<Song>> popularSongs(Artist artist, {int size = 10}) async {
-    if (artist.name.isEmpty) {
+    final byId = await _has('topSongsByArtistId');
+
+    if (!byId && artist.name.isEmpty) {
       return const [];
     }
 
-    final body = await _get('getTopSongs', {'artist': artist.name, 'count': '$size'});
+    final body = await _get('getTopSongs', {
+      if (byId) 'id': artist.id,
+      // With the id too, which goes first: the API names an artist so, and a server may still want it.
+      if (artist.name.isNotEmpty) 'artist': artist.name,
+      'count': '$size',
+    });
 
     return [
       for (final song in (body['topSongs'] as Map<String, dynamic>?)?['song'] as List? ?? const [])
@@ -619,8 +628,8 @@ class SubsonicApi implements MediaServer {
   void close() => _http.close();
 }
 
-/// An album's record labels, release date and MusicBrainz id are OpenSubsonic's, which a plain Subsonic server doesn't
-/// give. The release date is that of the album's edition, else the original one. Navidrome fills them from the tags
+/// An album's record labels, release date, MusicBrainz id and discs' titles are OpenSubsonic's, which a plain Subsonic
+/// server doesn't give. The release date is that of the album's edition, else the original one. Navidrome fills them from the tags
 /// that say which date they are (a release date, an original date, or a date beside an original one); from a date tag
 /// alone it gives only the year.
 Album _album(Map<String, dynamic> json) => Album(
@@ -650,6 +659,11 @@ Album _album(Map<String, dynamic> json) => Album(
             if (type is String) type,
         ]),
   genres: [for (final name in _albumGenres(json)) Genre(id: name, name: name)],
+  discTitles: {
+    for (final disc in json['discTitles'] as List? ?? const [])
+      if (disc case {'disc': final num number, 'title': final String title} when title.isNotEmpty)
+        number.toInt(): title,
+  },
 );
 
 /// An OpenSubsonic ItemDate, as much of a date as the server knows; none without a year.
@@ -716,6 +730,8 @@ Song _song(Map<String, dynamic> json) => Song(
           ),
   ],
   replayGain: _replayGain(json['replayGain']),
+  track: (json['track'] as num?)?.toInt(),
+  disc: (json['discNumber'] as num?)?.toInt(),
 );
 
 /// OpenSubsonic's replayGain, whose values are there only where the server knows them; null where it has no gain.

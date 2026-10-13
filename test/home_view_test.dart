@@ -59,8 +59,8 @@ http.Response albumList(List<String> names) => subsonic({
 });
 
 /// The home page on a screen of [size], over a server whose latest released albums are [released],
-/// whose most played are [mostPlayed] (null: it fails to list them) and whose latest added are
-/// [latest], however many are asked for. With [settings], the settings show them to pick, and the home is in the app's
+/// whose most played are [mostPlayed] (null: it fails to list them), whose latest added are
+/// [latest] and whose played last are [recentlyPlayed] (none: nothing has played), however many are asked for. With [settings], the settings show them to pick, and the home is in the app's
 /// themes, as they pick them, which it switches, as the app does (ThemeFade); the app stays in Portuguese, whatever
 /// language they pick. [packageInfo] is the version the settings show. Returns the queries of the album lists the rows asked for; not the mixes', which
 /// count the 500 most played (and find no genres there, nor any of the library's: the home has no mixes).
@@ -70,6 +70,7 @@ Future<List<Map<String, String>>> pumpHome(
   List<String> released = const ['Music from Another Dimension!'],
   List<String>? mostPlayed = const ['Pump', 'Toys in the Attic'],
   List<String> latest = const ['Night in the Ruts'],
+  List<String> recentlyPlayed = const [],
   bool television = false,
   Settings? settings,
   PackageInfo? packageInfo,
@@ -92,6 +93,7 @@ Future<List<Map<String, String>>> pumpHome(
           'frequent' when mostPlayed != null => albumList(mostPlayed),
           'newest' => albumList(latest),
           'byYear' => albumList(released),
+          'recent' => albumList(recentlyPlayed),
           _ => http.Response('', 500),
         };
       }
@@ -938,7 +940,7 @@ void main() {
     testWidgets('dragged down from its top by $device, the home asks the server for its rows again', (tester) async {
       final asked = await pumpHome(tester, size);
       final rows = [for (final query in asked) query['type']];
-      expect(rows, unorderedEquals(['byYear', 'frequent', 'newest']));
+      expect(rows, unorderedEquals(['recent', 'byYear', 'frequent', 'newest']));
 
       final list = find.descendant(of: find.byType(HomeView), matching: find.byType(Scrollable)).first;
       await tester.dragFrom(tester.getTopLeft(list) + const Offset(300, 100), const Offset(0, 300), kind: kind);
@@ -1291,7 +1293,7 @@ void main() {
       mostPlayed: [for (var i = 0; i < 40; i++) 'Most $i'],
       latest: [for (var i = 0; i < 40; i++) 'Latest $i'],
     );
-    expect([for (final query in asked) query['size']], ['30', '30', '30']);
+    expect([for (final query in asked) query['size']], ['30', '30', '30', '30']);
 
     for (final prefix in ['Released', 'Most', 'Latest']) {
       // By its albums: the list builds the rows that show, which change as it scrolls.
@@ -1304,6 +1306,27 @@ void main() {
       expect(find.text('$prefix 30'), findsNothing);
     }
 
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('the albums played last are the home\'s first row; before anything has played, it is out', (
+    tester,
+  ) async {
+    await pumpHome(tester, const Size(1000, 700), recentlyPlayed: ['Pump']);
+    expect(
+      tester.getRect(find.text('Tocados recentemente')).bottom,
+      lessThan(tester.getRect(find.text('Lançamentos')).top),
+    );
+    expect(find.text('Pump'), findsNWidgets(2), reason: 'there and among the most played');
+    await tester.pumpWidget(const SizedBox());
+
+    await pumpHome(tester, const Size(1000, 700));
+    expect(find.text('Tocados recentemente'), findsNothing);
+    expect(
+      find.text('Os álbuns que você ouvir aparecem aqui.'),
+      findsNothing,
+      reason: 'the most played\'s row says it',
+    );
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -1327,10 +1350,11 @@ void main() {
 
     List<String?> types() => [for (final query in asked) query['type']];
 
-    expect(types(), unorderedEquals(['byYear', 'frequent', 'newest']));
+    const rows = ['recent', 'byYear', 'frequent', 'newest'];
+    expect(types(), unorderedEquals(rows));
     await tester.fling(find.text('Lançamentos'), const Offset(0, 400), 1000);
     await tester.pumpAndSettle();
-    expect(types(), unorderedEquals(['byYear', 'frequent', 'newest', 'byYear', 'frequent', 'newest']));
+    expect(types(), unorderedEquals([...rows, ...rows]));
     await tester.pumpWidget(const SizedBox());
   });
 

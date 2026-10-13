@@ -225,7 +225,9 @@ class _AlbumPageState extends State<AlbumPage> {
                           builder: (type) => _header(album, songs, type: type, narrow: narrow),
                         ),
                         if (!narrow) const SongListHeader(numbered: true, menus: true),
-                        for (var i = 0; i < songs.length; i++)
+                        for (var i = 0; i < songs.length; i++) ...[
+                          if (_discStarting(songs, i) case final disc?)
+                            _DiscHeader(disc, title: album.discTitles[disc]),
                           if (i == songs.length - 1)
                             _LastSong(
                               _song(songs, i, narrow: narrow),
@@ -235,6 +237,7 @@ class _AlbumPageState extends State<AlbumPage> {
                             )
                           else
                             _song(songs, i, narrow: narrow),
+                        ],
                         _moreByArtist(),
                       ],
                     ),
@@ -444,6 +447,23 @@ class _AlbumPageState extends State<AlbumPage> {
 
   /// The album's song at [index] in its list, which plays the album from it; on a [narrow] screen, its artists plain
   /// text.
+  /// The disc that [songs]' song at [index] starts, where the album has more than one; null for any other song, and
+  /// for an album of one disc, which goes without saying.
+  static int? _discStarting(List<Song> songs, int index) {
+    final disc = songs[index].disc;
+
+    if (disc == null || (index > 0 && songs[index - 1].disc == disc)) {
+      return null;
+    }
+
+    return songs.any((song) => song.disc != null && song.disc != disc) ? disc : null;
+  }
+
+  /// The number [songs]' song at [index] shows: its own on its disc, as its file's tags have it, where every song has
+  /// one, and otherwise its place in the album.
+  static int _numberOf(List<Song> songs, int index) =>
+      songs.every((song) => song.track != null) ? songs[index].track! : index + 1;
+
   Widget _song(List<Song> songs, int index, {required bool narrow}) {
     final song = songs[index];
 
@@ -458,7 +478,7 @@ class _AlbumPageState extends State<AlbumPage> {
           selected: current,
           leading: SizedBox(
             width: SongListHeader.numberWidth,
-            child: playing ? const Equalizer() : SongNumber(index + 1),
+            child: playing ? const Equalizer() : SongNumber(_numberOf(songs, index)),
           ),
           title: Text(song.title),
           // On a phone, where a finger on the song would often land on them, the artists are plain text: a tap plays the
@@ -472,6 +492,44 @@ class _AlbumPageState extends State<AlbumPage> {
           trailing: SongTrailing(song.id, song.duration, menu),
           onTap: () => _play(songs, index),
         ),
+      ),
+    );
+  }
+}
+
+/// Where a disc of an album of several starts, over its songs: its number, and its title where it has one. Its icon is as
+/// wide as the songs' numbers, so that its words start where their titles do.
+class _DiscHeader extends StatelessWidget {
+  const _DiscHeader(this.disc, {this.title});
+
+  final int disc;
+  final String? title;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = AppLocalizations.of(context);
+    final text = Theme.of(context).textTheme;
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+
+    return Padding(
+      padding: const EdgeInsetsDirectional.fromSTEB(16, 16, 16, 4),
+      child: Row(
+        children: [
+          ThemedIcon(HugeIcons.strokeRoundedCd, size: SongListHeader.numberWidth, color: muted),
+          const SizedBox(width: SongListHeader.numberGap),
+          Text(strings.disc(disc), style: text.titleSmall),
+          if (title case final title?) ...[
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: text.bodyMedium?.copyWith(color: muted),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

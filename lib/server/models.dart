@@ -18,6 +18,7 @@ class Album {
     this.musicBrainzId,
     this.releaseType,
     this.genres = const [],
+    this.discTitles = const {},
   });
 
   /// An album as [toJson] gave it.
@@ -41,6 +42,10 @@ class Album {
     musicBrainzId: json['musicBrainzId'] as String?,
     releaseType: ReleaseType.values.asNameMap()[json['releaseType']],
     genres: [for (final genre in json['genres'] as List? ?? const []) Genre.fromJson(genre as Map<String, dynamic>)],
+    discTitles: {
+      for (final MapEntry(:key, :value) in (json['discTitles'] as Map<String, dynamic>? ?? const {}).entries)
+        int.parse(key): value as String,
+    },
   );
 
   final String id;
@@ -71,6 +76,10 @@ class Album {
   /// Its genres; none when the server doesn't say, as Jellyfin doesn't unless asked.
   final List<Genre> genres;
 
+  /// The titles of its discs that have one ("Live at Budokan"), by their numbers, from 1; none where the server doesn't
+  /// say (OpenSubsonic's discTitles), as Jellyfin never does.
+  final Map<int, String> discTitles;
+
   /// It as JSON, as the app keeps it on the device (the downloads' index, the home's cache): what it needs to show it.
   Map<String, Object?> toJson() => {
     'id': id,
@@ -85,6 +94,7 @@ class Album {
     'musicBrainzId': musicBrainzId,
     'releaseType': releaseType?.name,
     'genres': [for (final genre in genres) genre.toJson()],
+    'discTitles': {for (final MapEntry(:key, :value) in discTitles.entries) '$key': value},
   };
 }
 
@@ -141,6 +151,8 @@ class Song {
     this.musicBrainzId,
     this.credits = const [],
     this.replayGain,
+    this.track,
+    this.disc,
   });
 
   /// A song another device sent, by its id in this device's API. The cover goes by the song id:
@@ -181,6 +193,8 @@ class Song {
       ),
       _ => null,
     },
+    track: (json['track'] as num?)?.toInt(),
+    disc: (json['disc'] as num?)?.toInt(),
   );
 
   final String id;
@@ -213,6 +227,13 @@ class Song {
   /// gives no gain for it, and for a song another device sent, as for [albumId].
   final ReplayGain? replayGain;
 
+  /// Its number on its disc of its album, as its file's tags have it; null where the server doesn't say, and for a song
+  /// another device sent, as for [albumId].
+  final int? track;
+
+  /// Which disc of its album it is on, from 1; null where the server doesn't say, as for [track].
+  final int? disc;
+
   QueueItem toQueueItem() =>
       QueueItem(id: id, title: title, artist: artist, album: album, durationMs: duration?.inMilliseconds);
 
@@ -234,6 +255,8 @@ class Song {
         'trackPeak': gain.trackPeak,
         'albumPeak': gain.albumPeak,
       },
+    'track': ?track,
+    'disc': ?disc,
   };
 }
 

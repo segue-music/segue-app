@@ -135,28 +135,39 @@ Future<void> scrollToEnd(WidgetTester tester, {int times = 1}) async {
 }
 
 void main() {
-  testWidgets('the albums tab lists them by name, or as picked: the latest released, the most played or the latest '
-      'added', (tester) async {
+  testWidgets('the albums tab lists them by name, or as picked: the latest released, the most played, the recently '
+      'played or the latest added', (tester) async {
     final asked = await pumpAlbums(tester, count: 3);
     expect(picked(tester, 'Nome'), isTrue);
     expect(picked(tester, 'Adicionados recentemente'), isFalse);
 
-    await tester.tap(order('Adicionados recentemente'));
-    await tester.pumpAndSettle();
+    // The chips' line scrolls sideways to those past its end.
+    Future<void> pick(String label) async {
+      await tester.ensureVisible(order(label));
+      await tester.pumpAndSettle();
+      await tester.tap(order(label));
+      await tester.pumpAndSettle();
+    }
+
+    await pick('Adicionados recentemente');
     expect(asked.last, 'newest 0 200');
     expect(picked(tester, 'Adicionados recentemente'), isTrue);
     expect(picked(tester, 'Nome'), isFalse);
     expect(tester.getRect(find.text('Album 001')).left, greaterThan(tester.getRect(find.text('Album 002')).left));
 
-    await tester.tap(order('Lançamentos'));
-    await tester.pumpAndSettle();
+    await pick('Lançamentos');
     expect(asked.last, 'byYear 0 200');
 
-    await tester.tap(order('Mais tocados'));
-    await tester.pumpAndSettle();
+    await pick('Mais tocados');
     expect(asked.last, 'frequent 0 200');
     expect(find.text('Os álbuns que você mais ouvir aparecem aqui.'), findsOneWidget, reason: 'nothing has played');
 
+    await pick('Tocados recentemente');
+    expect(asked.last, 'recent 0 200');
+    expect(find.text('Os álbuns que você ouvir aparecem aqui.'), findsOneWidget, reason: 'nothing has played');
+
+    await tester.ensureVisible(order('Nome'));
+    await tester.pumpAndSettle();
     await tester.tap(order('Nome'));
     await tester.pumpAndSettle();
     expect(asked.last, 'alphabeticalByName 0 200');

@@ -74,7 +74,7 @@ class BrowseTree {
   static const _listSize = 500;
 
   /// The home's rows of albums, in order.
-  static const _rows = [AlbumOrder.released, AlbumOrder.mostPlayed, AlbumOrder.latest];
+  static const _rows = [AlbumOrder.recentlyPlayed, AlbumOrder.released, AlbumOrder.mostPlayed, AlbumOrder.latest];
 
   /// How many of a mix's first songs' artists its item names, before "and more".
   static const _artistsNamed = 3;
@@ -482,6 +482,7 @@ class BrowseTree {
   static String _rowTitle(AppLocalizations strings, AlbumOrder order) => switch (order) {
     AlbumOrder.released => strings.orderReleased,
     AlbumOrder.mostPlayed => strings.mostPlayed,
+    AlbumOrder.recentlyPlayed => strings.orderRecentlyPlayed,
     AlbumOrder.latest => strings.orderLatest,
     AlbumOrder.name => strings.orderName,
   };

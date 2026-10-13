@@ -696,7 +696,7 @@ enum _SongRanking {
 class _ArtistSongs extends StatefulWidget {
   const _ArtistSongs(this.artist, {required this.mostPlayed, required this.builder, this.icons = false, this.trailing});
 
-  /// The artist as the server gives them, whose name is the one the popular songs are asked by: a link's may be an
+  /// The artist as the server gives them, whose id or name the popular songs are asked by: a link's name may be an
   /// album's artists together ("A & B").
   final Artist artist;
 

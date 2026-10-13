@@ -27,7 +27,7 @@ class HomeView extends StatefulWidget {
 
 class _HomeViewState extends State<HomeView> {
   /// The rows' orders, from the top.
-  static const _rows = [AlbumOrder.released, AlbumOrder.mostPlayed, AlbumOrder.latest];
+  static const _rows = [AlbumOrder.recentlyPlayed, AlbumOrder.released, AlbumOrder.mostPlayed, AlbumOrder.latest];
 
   late Map<AlbumOrder, Future<List<Album>>> _albums;
 
@@ -114,7 +114,12 @@ class _HomeViewState extends State<HomeView> {
                         title: _offline ? strings.downloadedAlbums : order.label(strings),
                         albums: albums,
                         initialAlbums: _keptAlbums[order],
-                        empty: _offline ? strings.nothingDownloaded : order.emptyMessage(strings),
+                        empty: switch (order) {
+                          _ when _offline => strings.nothingDownloaded,
+                          // Before anything has played, out: the most played's row says what goes there.
+                          AlbumOrder.recentlyPlayed => null,
+                          _ => order.emptyMessage(strings),
+                        },
                         onShowAll: onShowAll == null ? null : () => onShowAll(order),
                       ),
                   ],

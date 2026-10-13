@@ -589,6 +589,49 @@ void main() {
     expect(asked.queryParameters, containsPair('offset', '200'));
   });
 
+  test('a song says its number on its disc and which disc it is on; an album, its discs\' titles', () async {
+    final api = SubsonicApi(
+      Uri.parse('https://music.test'),
+      credentials,
+      client: MockClient(
+        (request) async => subsonic({
+          'status': 'ok',
+          'album': {
+            'id': 'a1',
+            'name': 'Alive!',
+            'discTitles': [
+              {'disc': 1, 'title': ''},
+              {'disc': 2, 'title': 'Encore'},
+            ],
+            'song': [
+              {'id': 's1', 'title': 'Deuce', 'track': 3, 'discNumber': 2},
+              {'id': 's2', 'title': 'Untagged'},
+            ],
+          },
+        }),
+      ),
+    );
+    final (album, songs) = await api.album('a1');
+    expect(album.discTitles, {2: 'Encore'}, reason: 'none for a disc whose title is empty');
+    expect((songs.first.track, songs.first.disc), (3, 2));
+    expect((songs.last.track, songs.last.disc), (null, null));
+  });
+
+  test('albums played last are getAlbumList2\'s recent', () async {
+    late Uri asked;
+    final api = SubsonicApi(
+      Uri.parse('https://music.test'),
+      credentials,
+      client: MockClient((request) async {
+        asked = request.url;
+
+        return subsonic({'status': 'ok', 'albumList2': <String, Object?>{}});
+      }),
+    );
+    await api.albums(order: AlbumOrder.recentlyPlayed, size: 30);
+    expect(asked.queryParameters, allOf(containsPair('type', 'recent'), containsPair('size', '30')));
+  });
+
   test('albums by release date are getAlbumList2\'s byYear, from the farthest year back to the first', () async {
     late Uri asked;
     final api = SubsonicApi(
@@ -1304,9 +1347,49 @@ void main() {
     final songs = await api.popularSongs(const Artist(id: 'ar1', name: 'Aerosmith'), size: 5);
     expect([for (final song in songs) song.title], ['Dream On', 'Walk This Way'], reason: 'in the server\'s order');
     expect(songs.first.album, 'Aerosmith');
-    expect(asked.single.path, '/rest/getTopSongs.view');
-    expect(asked.single.queryParameters, containsPair('artist', 'Aerosmith'));
-    expect(asked.single.queryParameters, containsPair('count', '5'));
+    expect(asked.last.path, '/rest/getTopSongs.view');
+    expect(asked.last.queryParameters, containsPair('artist', 'Aerosmith'));
+    expect(asked.last.queryParameters, containsPair('count', '5'));
+    expect(asked.last.queryParameters.containsKey('id'), isFalse, reason: 'a server without topSongsByArtistId');
+  });
+
+  test('on a server with topSongsByArtistId, an artist\'s popular songs are asked by their id, which another artist\'s '
+      'name can\'t be', () async {
+    final asked = <Uri>[];
+    final api = SubsonicApi(
+      Uri.parse('https://music.test'),
+      credentials,
+      client: MockClient((request) async {
+        asked.add(request.url);
+
+        return request.url.path.endsWith('getOpenSubsonicExtensions.view')
+            ? subsonic({
+                'status': 'ok',
+                'openSubsonicExtensions': [
+                  {
+                    'name': 'topSongsByArtistId',
+                    'versions': [1],
+                  },
+                ],
+              })
+            : subsonic({
+                'status': 'ok',
+                'topSongs': {
+                  'song': [
+                    {'id': 's3', 'title': 'Dream On', 'artistId': 'ar1'},
+                  ],
+                },
+              });
+      }),
+    );
+    expect(await api.popularSongs(const Artist(id: 'ar1', name: 'Aerosmith')), hasLength(1));
+    expect(asked.last.queryParameters, allOf(containsPair('id', 'ar1'), containsPair('artist', 'Aerosmith')));
+    expect(
+      await api.popularSongs(const Artist(id: 'ar1', name: '')),
+      hasLength(1),
+      reason: 'its id is enough',
+    );
+    expect(asked.last.queryParameters.containsKey('artist'), isFalse);
   });
 
   test('an artist the server knows no popular songs of has none; one without a name isn\'t asked about', () async {
@@ -1322,7 +1405,11 @@ void main() {
     );
     expect(await api.popularSongs(const Artist(id: 'ar1', name: 'Aerosmith')), isEmpty);
     expect(await api.popularSongs(const Artist(id: 'ar2', name: '')), isEmpty);
-    expect(asked, hasLength(1));
+    expect(
+      [for (final url in asked) url.pathSegments.last],
+      ['getOpenSubsonicExtensions.view', 'getTopSongs.view'],
+      reason: 'the server\'s extensions asked once',
+    );
   });
 
   test('the songs like one are getSimilarSongs2\'s, by the song\'s id, or by its artist\'s where the server refuses '

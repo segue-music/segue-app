@@ -214,13 +214,13 @@ void main() {
       ),
     );
     expect(find.byType(Spinner), findsNothing);
-    expect(find.text('Toys in the Attic'), findsNWidgets(3), reason: 'in each row');
+    expect(find.text('Toys in the Attic'), findsNWidgets(4), reason: 'in each row');
     expect(find.text('Rock'), findsOneWidget, reason: 'the mixes');
     expect(find.text('Aerosmith'), findsWidgets, reason: 'their artists');
 
     answer.complete();
     await tester.pumpAndSettle();
-    expect(find.text('Night in the Ruts'), findsNWidgets(3));
+    expect(find.text('Night in the Ruts'), findsNWidgets(4));
     expect(find.text('Toys in the Attic'), findsNothing);
     expect(find.text('Rock'), findsOneWidget, reason: 'the mixes the same until the home loads again');
     cache.close();

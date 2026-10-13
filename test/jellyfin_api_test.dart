@@ -364,6 +364,39 @@ void main() {
     expect(asked, hasLength(1), reason: 'the songs alone: no albums to ask for');
   });
 
+  test('albums played last are those of the songs played last, each once, in that order, a page at a time', () async {
+    final asked = <http.Request>[];
+    final api = jellyfin((request) {
+      final query = request.url.queryParameters;
+
+      if (query['IncludeItemTypes'] == 'Audio') {
+        return items([
+          {...song, 'Id': 's1', 'AlbumId': 'a2'},
+          {...song, 'Id': 's2', 'AlbumId': 'a1'},
+          {...song, 'Id': 's3', 'AlbumId': 'a2'},
+          {...song, 'Id': 's4', 'AlbumId': null}, // a song in no album
+          {...song, 'Id': 's5', 'AlbumId': 'a3'},
+        ]);
+      }
+
+      // Asked by id, in whatever order the server likes.
+      return items([
+        for (final id in (query['Ids']?.split(',') ?? const <String>[]).reversed)
+          {...album, 'Id': id, 'Name': 'Album $id'},
+      ]);
+    }, asked);
+    final albums = await api.albums(order: AlbumOrder.recentlyPlayed, size: 2);
+    expect([for (final album in albums) album.name], ['Album a2', 'Album a1']);
+    final songs = asked.first.url.queryParameters;
+    expect(songs, containsPair('Filters', 'IsPlayed'));
+    expect(songs, containsPair('SortBy', 'DatePlayed'));
+    expect(songs, containsPair('SortOrder', 'Descending'));
+    expect(asked.last.url.queryParameters, containsPair('Ids', 'a2,a1'));
+
+    final page = await api.albums(order: AlbumOrder.recentlyPlayed, size: 2, offset: 2);
+    expect([for (final album in page) album.name], ['Album a3']);
+  });
+
   test('a genre\'s most played albums add up the plays of its songs', () async {
     final asked = <http.Request>[];
     await jellyfin((_) => items([]), asked).mostPlayedAlbums(genre: 'g1');
@@ -853,6 +886,17 @@ void main() {
     expect(asked.single.url.queryParameters, allOf(containsPair('Limit', '20'), containsPair('userId', 'u1')));
     expect([for (final song in similar) song.title], ['Walk This Way', 'Sweet Emotion']);
     expect(similar.last.artistId, 'ar1');
+  });
+
+  test('a song says its number on its disc (IndexNumber) and which disc it is on (ParentIndexNumber)', () async {
+    final songs = await jellyfin(
+      (_) => items([
+        {...song, 'IndexNumber': 3, 'ParentIndexNumber': 2},
+        {...song, 'Id': 's2'},
+      ]),
+    ).randomSongs();
+    expect((songs.first.track, songs.first.disc), (3, 2));
+    expect((songs.last.track, songs.last.disc), (null, null));
   });
 
   test('an album\'s or an artist\'s radio is their Items/{id}/InstantMix', () async {

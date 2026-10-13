@@ -101,13 +101,13 @@ class ServerWithDownloads implements MediaServer {
     () => _page(_sorted(_albums, order), size: size, offset: offset),
   );
 
-  /// [albums] in [order]: the latest downloaded first for the latest added, and none for the most played, which the
-  /// downloads can't tell.
+  /// [albums] in [order]: the latest downloaded first for the latest added, and none for the most played and the
+  /// recently played, which the downloads can't tell.
   static List<Album> _sorted(List<Album> albums, AlbumOrder order) => switch (order) {
     AlbumOrder.latest => albums,
     AlbumOrder.name => [...albums]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase())),
     AlbumOrder.released => [...albums]..sort((a, b) => _released(b).compareTo(_released(a))),
-    AlbumOrder.mostPlayed => const [],
+    AlbumOrder.mostPlayed || AlbumOrder.recentlyPlayed => const [],
   };
 
   /// When [album] came out, as a number that sorts as the dates do; 0 where it isn't known.

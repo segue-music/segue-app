@@ -122,6 +122,15 @@
       }
     }
   },
+  "disc": "Disco {number}",
+  "@disc": {
+    "description": "Over the songs of one of an album's discs, where it has several, by its number.",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
   "couldNotOpenArtist": "Não consegui abrir o artista.",
   "@couldNotOpenArtist": {
     "description": "A song's artist whose page couldn't open, the media server not knowing them."
@@ -429,6 +438,10 @@
   "@mostPlayed": {
     "description": "A chip, a row or a heading of the albums, artists or genres the user plays most (masculine in Portuguese and Spanish, as all three are)."
   },
+  "orderRecentlyPlayed": "Tocados recentemente",
+  "@orderRecentlyPlayed": {
+    "description": "A chip, and a row of the home, of albums the user played last first (masculine in Portuguese and Spanish: os álbuns)."
+  },
   "orderLatest": "Adicionados recentemente",
   "@orderLatest": {
     "description": "A chip, and a row of the home, of albums the latest added to the library first."
@@ -440,6 +453,10 @@
   "mostPlayedAlbumsEmpty": "Os álbuns que você mais ouvir aparecem aqui.",
   "@mostPlayedAlbumsEmpty": {
     "description": "The most played albums before any has played."
+  },
+  "recentlyPlayedAlbumsEmpty": "Os álbuns que você ouvir aparecem aqui.",
+  "@recentlyPlayedAlbumsEmpty": {
+    "description": "The albums played last before any has played."
   },
   "mostPlayedArtistsEmpty": "Os artistas que você mais ouvir aparecem aqui.",
   "@mostPlayedArtistsEmpty": {

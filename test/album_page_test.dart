@@ -52,7 +52,8 @@ const libraryArtists = [
 /// [recordLabels], the release types [releaseTypes] and the MusicBrainz id [musicBrainzId], on a screen of [size], with
 /// what [musicBrainz] adds. Aerosmith's albums are this one and [moreByArtist]. Like the album, or one of its songs,
 /// are Dream On (`x1`) and Sweet Emotion, unless [similar] says otherwise ([asked] has what the server was asked for
-/// them). Returns the player's engine.
+/// them). [songs] stand in for all of the album's, its discs' titles as [discTitles] has them. Returns the player's
+/// engine.
 Future<FakeEngine> pumpAlbum(
   WidgetTester tester, {
   String? coverArt = 'al-a1',
@@ -67,6 +68,8 @@ Future<FakeEngine> pumpAlbum(
   List<Map<String, Object?>> moreByArtist = const [],
   Size size = const Size(1000, 700),
   List<Map<String, String>>? asked,
+  List<Map<String, Object?>>? songs,
+  List<Map<String, Object?>> discTitles = const [],
   List<Map<String, Object?>> similar = const [
     {'id': 'x1', 'title': 'Dream On', 'artist': 'Aerosmith', 'artistId': 'ar1', 'duration': 267},
     {'id': 's2', 'title': 'Sweet Emotion', 'artist': 'Aerosmith', 'artistId': 'ar1', 'duration': 274},
@@ -124,26 +127,29 @@ Future<FakeEngine> pumpAlbum(
           'recordLabels': [
             for (final label in recordLabels) {'name': label},
           ],
-          'song': [
-            {
-              'id': 's1',
-              'title': 'Walk This Way',
-              'artist': 'Aerosmith',
-              'artistId': 'ar1',
-              'duration': 220,
-              'contributors': ?contributors['s1'],
-            },
-            {
-              'id': 's2',
-              'title': 'Sweet Emotion',
-              'artist': 'Aerosmith',
-              'artistId': 'ar1',
-              'duration': 274,
-              'contributors': ?contributors['s2'],
-            },
-            for (var i = 1; i <= more; i++) {'id': 'm$i', 'title': 'Song $i', 'artist': 'Aerosmith', 'duration': 200},
-            ...others,
-          ],
+          'discTitles': discTitles,
+          'song': ?songs,
+          if (songs == null)
+            'song': [
+              {
+                'id': 's1',
+                'title': 'Walk This Way',
+                'artist': 'Aerosmith',
+                'artistId': 'ar1',
+                'duration': 220,
+                'contributors': ?contributors['s1'],
+              },
+              {
+                'id': 's2',
+                'title': 'Sweet Emotion',
+                'artist': 'Aerosmith',
+                'artistId': 'ar1',
+                'duration': 274,
+                'contributors': ?contributors['s2'],
+              },
+              for (var i = 1; i <= more; i++) {'id': 'm$i', 'title': 'Song $i', 'artist': 'Aerosmith', 'duration': 200},
+              ...others,
+            ],
         },
       });
     }),
@@ -490,6 +496,44 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     },
   );
+
+  testWidgets('an album of two discs has each one\'s number over its songs, its title too where it has one, the songs '
+      'numbered on their disc as their tags have them; an album of one disc goes without', (tester) async {
+    Map<String, Object?> track(String id, String title, int disc, int number) => {
+      'id': id,
+      'title': title,
+      'artist': 'Aerosmith',
+      'artistId': 'ar1',
+      'duration': 200,
+      'discNumber': disc,
+      'track': number,
+    };
+
+    await pumpAlbum(
+      tester,
+      songs: [track('d1', 'Dream On', 1, 1), track('d2', 'Sweet Emotion', 1, 2), track('d3', 'Walk This Way', 2, 1)],
+      discTitles: [
+        {'disc': 2, 'title': 'Live'},
+      ],
+    );
+    final one = tester.getRect(find.text('Disco 1'));
+    final two = tester.getRect(find.text('Disco 2'));
+    expect(one.bottom, lessThan(tester.getRect(song('Dream On')).top));
+    expect(two.top, greaterThan(tester.getRect(song('Sweet Emotion')).bottom));
+    expect(two.bottom, lessThan(tester.getRect(song('Walk This Way')).top));
+    expect(find.text('Live'), findsOneWidget);
+    expect(
+      find.descendant(of: song('Walk This Way'), matching: find.text('1')),
+      findsOneWidget,
+      reason: 'on its disc',
+    );
+    expect(one.left, moreOrLessEquals(tester.getRect(find.text('Dream On')).left, epsilon: 1), reason: 'as the titles');
+    await tester.pumpWidget(const SizedBox());
+
+    await pumpAlbum(tester);
+    expect(find.textContaining('Disco'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
 
   testWidgets('a radio the server finds no songs like says so, and plays nothing: a song\'s, not even the song', (
     tester,
