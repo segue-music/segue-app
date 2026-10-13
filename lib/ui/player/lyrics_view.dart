@@ -152,6 +152,9 @@ class _LyricsViewState extends State<LyricsView> {
   /// scrolls them.
   bool _following = false;
 
+  /// As karaoke, the style each line goes to, growing or shrinking, as the last build gave it ([_growth]).
+  TextStyle? Function(int line)? _endStyleOf;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -212,10 +215,10 @@ class _LyricsViewState extends State<LyricsView> {
     _following = true;
 
     if (animate) {
-      // Until it ends, or the user takes over.
+      // Until it ends, or the user takes over. As karaoke, along with the line's growing.
       await _scroll.animateTo(offset, duration: LyricsView._grow, curve: Curves.easeOut);
 
-      // As karaoke, the line grows as it comes and the one before shrinks, which moves it on the way: the rest of it.
+      // Should the lines have ended up elsewhere all the same, the rest of the way.
       if (_offsetToReveal(i, karaoke: karaoke) case final settled?
           when karaoke && (settled - _scroll.offset).abs() > 1) {
         await _scroll.animateTo(settled, duration: const Duration(milliseconds: 150), curve: Curves.easeOut);
@@ -228,7 +231,9 @@ class _LyricsViewState extends State<LyricsView> {
   }
 
   /// Where the lyrics scroll to for line [i] to be a third of the way down, or as [karaoke], in the middle; null before
-  /// they are laid out.
+  /// they are laid out. As karaoke, where it is once the lines growing and shrinking have ([_growth]): the line that
+  /// plays, and the one before. Scrolled to where it was as they started, the lyrics went past it, the line before
+  /// shrinking under it, and came back.
   double? _offsetToReveal(int i, {required bool karaoke}) {
     final line = _keys[i].currentContext?.findRenderObject();
 
@@ -237,11 +242,66 @@ class _LyricsViewState extends State<LyricsView> {
     }
 
     final position = _scroll.position;
+    var offset = RenderAbstractViewport.of(line).getOffsetToReveal(line, karaoke ? 0.5 : 0.35).offset;
+    var end = position.maxScrollExtent;
 
-    return RenderAbstractViewport.of(line)
-        .getOffsetToReveal(line, karaoke ? 0.5 : 0.35)
-        .offset
-        .clamp(position.minScrollExtent, position.maxScrollExtent);
+    if (karaoke) {
+      for (final (j, key) in _keys.indexed) {
+        final growth = _growth(key, _endStyleOf?.call(j));
+        // Those above it move it as much; its own growing, half as much, from its middle.
+        offset += j < i ? growth : (j == i ? growth / 2 : 0);
+        end += growth;
+      }
+    }
+
+    return offset.clamp(position.minScrollExtent, end);
+  }
+
+  /// How much taller the line [key] holds gets as its text goes to [style]: its text laid out as the [Text] will lay
+  /// it out then. None where its size is there already, or it has no text (a part with no singing, whose icon changes
+  /// size at once).
+  static double _growth(GlobalKey key, TextStyle? style) {
+    final context = key.currentContext;
+    final paragraph = _paragraphIn(context?.findRenderObject());
+
+    if (context == null || paragraph == null || style == null) {
+      return 0;
+    }
+
+    final now = paragraph.text.style;
+    final end = DefaultTextStyle.of(context).style.merge(style);
+
+    if (now?.fontSize == end.fontSize && now?.fontWeight == end.fontWeight && now?.height == end.height) {
+      return 0;
+    }
+
+    final painter = TextPainter(
+      text: TextSpan(text: paragraph.text.toPlainText(), style: end),
+      textAlign: paragraph.textAlign,
+      textDirection: paragraph.textDirection,
+      textScaler: paragraph.textScaler,
+      maxLines: paragraph.maxLines,
+      locale: paragraph.locale,
+      strutStyle: paragraph.strutStyle,
+      textWidthBasis: paragraph.textWidthBasis,
+      textHeightBehavior: paragraph.textHeightBehavior,
+    )..layout(minWidth: paragraph.constraints.minWidth, maxWidth: paragraph.constraints.maxWidth);
+    final growth = paragraph.constraints.constrainHeight(painter.height) - paragraph.size.height;
+    painter.dispose();
+
+    return growth;
+  }
+
+  /// The text in [object], the first found.
+  static RenderParagraph? _paragraphIn(RenderObject? object) {
+    if (object == null || object is RenderParagraph) {
+      return object as RenderParagraph?;
+    }
+
+    RenderParagraph? found;
+    object.visitChildren((child) => found ??= _paragraphIn(child));
+
+    return found;
   }
 
   @override
@@ -325,6 +385,8 @@ class _LyricsViewState extends State<LyricsView> {
       final playing? when i < playing => style?.copyWith(color: gone),
       _ => style?.copyWith(color: faded),
     };
+
+    _endStyleOf = karaoke ? styleOf : null;
 
     // Out of the focus's way: for the remote, the player's controls are what matters.
     return ExcludeFocus(

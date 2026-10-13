@@ -848,6 +848,47 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets(
+    'on a TV, the lyrics scroll to the next line as it grows and the one before shrinks, never past where they '
+    'end up, to come back',
+    (tester) async {
+      final player = await pumpBar(
+        tester,
+        // A line on one line as it is, on two as it plays, bigger: the one before shrinks the most there.
+        server: withLyrics([for (var i = 0; i < 60; i++) (i * 4, 'Line $i, sung on')]),
+        size: const Size(960, 540),
+        television: true,
+      );
+      await openPlayer(tester);
+      await player.seek(const Duration(seconds: 120));
+      await tester.pumpAndSettle();
+      final scroll = tester
+          .state<ScrollableState>(
+            find.descendant(of: onPage(find.byType(LyricsView)), matching: find.byType(Scrollable)).first,
+          )
+          .position;
+      final offsets = [scroll.pixels];
+
+      await player.seek(const Duration(seconds: 124));
+
+      for (var i = 0; i < 40; i++) {
+        await tester.pump(const Duration(milliseconds: 16));
+        offsets.add(scroll.pixels);
+      }
+
+      await tester.pumpAndSettle();
+      final settled = scroll.pixels;
+      expect(settled, greaterThan(offsets.first));
+
+      for (final (i, offset) in offsets.indexed) {
+        expect(offset, lessThanOrEqualTo(settled + 0.5), reason: 'frame $i: $offsets');
+        expect(offset, greaterThanOrEqualTo((i == 0 ? offset : offsets[i - 1]) - 0.5), reason: 'frame $i: $offsets');
+      }
+
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
   testWidgets('on a TV, a song without lyrics shows the cover alone, the lyrics still on, back with a song that has '
       'some', (tester) async {
     final player = await pumpBar(tester, server: withLyricsFor('s2'), size: const Size(960, 540), television: true);
