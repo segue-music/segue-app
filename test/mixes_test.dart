@@ -483,6 +483,23 @@ void main() {
     variant: TargetPlatformVariant.only(TargetPlatform.iOS),
   );
 
+  testWidgets('on an iPhone, pulled down to load again, the home bounces back to its top, where its mixes come anew', (
+    tester,
+  ) async {
+    final asked = <Map<String, String>>[];
+    await pumpHome(tester, asked: asked);
+    // Shorter than the home, which then scrolls.
+    tester.view.physicalSize = const Size(400, 500);
+    await tester.pumpAndSettle();
+    asked.clear();
+    final home = find.descendant(of: find.byType(HomeView), matching: find.byType(Scrollable)).first;
+    await tester.timedDrag(home, const Offset(0, 500), const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+    expect(asked, isNotEmpty, reason: 'the mixes\' first songs, asked for again');
+    expect(tester.state<ScrollableState>(home).position.pixels, 0);
+    expect(tester.getRect(find.text('Mixes')).top, lessThan(50), reason: 'the first row');
+  }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
+
   testWidgets('a library without genres has no row of mixes, nor its title', (tester) async {
     await pumpHome(tester, played: false, genres: false);
     expect(find.text('Mixes'), findsNothing);

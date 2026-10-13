@@ -72,28 +72,37 @@ class _HomeViewState extends State<HomeView> {
       // down from the top it refreshes the rows as well.
       child: ScrollConfiguration(
         behavior: ScrollConfiguration.of(context).copyWith(dragDevices: PointerDeviceKind.values.toSet()),
-        // Every row built, rather than a list's, which drops those far out of sight and builds them anew as they come
-        // back: a row then shows, for a moment, what it shows while it loads (the mixes nothing), of another height,
-        // and the rows after it jumped. As iOS's bounce past the end dropped the mixes and brought them back, the
-        // home jumped back up to its first rows.
-        child: SingleChildScrollView(
+        // Not a SingleChildScrollView, which takes the position back into range whenever it lays its rows out again: on
+        // iOS the refresh starts as the home still bounces back from the pull, the mixes go meanwhile, and the bounce,
+        // at its speed, went on down the home, which stayed there as the mixes came back above it.
+        child: CustomScrollView(
           // Down from the top to refresh, also where the rows all fit.
           physics: const AlwaysScrollableScrollPhysics(),
-          // At the end, clear of the bars a phone's home has over it.
-          padding: EdgeInsets.only(bottom: 16 + MediaQuery.paddingOf(context).bottom),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (_mixes case final mixes?) MixRow(mixes, key: ObjectKey(mixes)),
-              for (final MapEntry(key: order, value: albums) in _albums.entries)
-                AlbumRow(
-                  title: _offline ? strings.downloadedAlbums : order.label(strings),
-                  albums: albums,
-                  empty: _offline ? strings.nothingDownloaded : order.emptyMessage(strings),
-                  onShowAll: onShowAll == null ? null : () => onShowAll(order),
+          slivers: [
+            SliverPadding(
+              // At the end, clear of the bars a phone's home has over it.
+              padding: EdgeInsets.only(bottom: 16 + MediaQuery.paddingOf(context).bottom),
+              // Every row built, in one box, rather than a list's, which drops those far out of sight and builds them
+              // anew as they come back: a row then shows, for a moment, what it shows while it loads (the mixes
+              // nothing), of another height, and the rows after it jumped. As iOS's bounce past the end dropped the
+              // mixes and brought them back, the home jumped back up to its first rows.
+              sliver: SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (_mixes case final mixes?) MixRow(mixes, key: ObjectKey(mixes)),
+                    for (final MapEntry(key: order, value: albums) in _albums.entries)
+                      AlbumRow(
+                        title: _offline ? strings.downloadedAlbums : order.label(strings),
+                        albums: albums,
+                        empty: _offline ? strings.nothingDownloaded : order.emptyMessage(strings),
+                        onShowAll: onShowAll == null ? null : () => onShowAll(order),
+                      ),
+                  ],
                 ),
-            ],
-          ),
+              ),
+            ),
+          ],
         ),
       ),
     );
