@@ -62,7 +62,7 @@ Finder item(String name) =>
     find.ancestor(of: find.text(name), matching: find.byWidgetPredicate((widget) => widget is PopupMenuItem));
 
 /// What has the focus: the language menu's button, or by what it says, a text field, the sign-in's advanced settings or
-/// its button.
+/// its buttons.
 String? focused() {
   final context = FocusManager.instance.primaryFocus?.context;
 
@@ -74,10 +74,12 @@ String? focused() {
     context?.findAncestorWidgetOfExactType<TextField>(),
     context?.findAncestorWidgetOfExactType<ExpansionTile>(),
     context?.findAncestorWidgetOfExactType<FilledButton>(),
+    context?.findAncestorWidgetOfExactType<TextButton>(),
   )) {
-    (TextField(:final decoration?), _, _) => decoration.labelText,
-    (_, ExpansionTile(title: Text(:final data)), _) => data,
-    (_, _, FilledButton(child: Text(:final data))) => data,
+    (TextField(:final decoration?), _, _, _) => decoration.labelText,
+    (_, ExpansionTile(title: Text(:final data)), _, _) => data,
+    (_, _, FilledButton(child: Text(:final data)), _) => data,
+    (_, _, _, TextButton(child: Text(:final data))) => data,
     _ => null,
   };
 }
@@ -267,13 +269,13 @@ void main() {
     await tester.pumpWidget(SegueApp(session: null, settings: settings));
     final order = <String?>[];
 
-    for (var i = 0; i < 6; i++) {
+    for (var i = 0; i < 7; i++) {
       await tester.sendKeyEvent(LogicalKeyboardKey.tab);
       await tester.pump();
       order.add(focused());
     }
 
-    expect(order, ['Servidor', 'Usuário', 'Senha', 'Avançado', 'Entrar', 'language']);
+    expect(order, ['Servidor', 'Usuário', 'Senha', 'Entrar com uma chave de API', 'Avançado', 'Entrar', 'language']);
 
     await tester.tap(find.widgetWithText(TextFormField, 'Servidor'));
     await tester.pump();

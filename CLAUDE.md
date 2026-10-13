@@ -447,9 +447,13 @@ Running two app instances on one machine as different devices:
   keep, as `ThemeChoice` does the theme. Where no
   `BuildContext` reaches, the words come in: `describeError` takes them, and `MediaControls` gets
   them from a widget under `MaterialApp` (`app.dart`), again as the language changes.
-- `Session` keeps the token (Subsonic's, with its salt, or Jellyfin's access token) in secure
+- `Session` keeps the token (Subsonic's, with its salt, an API key, or Jellyfin's access token) in secure
   storage and everything else in `shared_preferences`, with the API under `api` (none: a session
-  saved before Jellyfin, so Subsonic). The password itself is never stored.
+  saved before Jellyfin, so Subsonic). The password itself is never stored. `SubsonicCredentials` is a token of the
+  password (`SubsonicToken`) or an API key (`SubsonicApiKey`, OpenSubsonic's apiKeyAuthentication), which the requests
+  carry alone (`apiKey`, the user's name with it an error, 43) and the hub's hello as its `apiKey` scheme (SPEC.md,
+  section 2): `signInWithApiKey` (`lib/server/sign_in.dart`) asks the server whose it is (tokenInfo), and a sign-in
+  with the password that the server refuses for taking keys alone (41, 42: `ServerError.wantsApiKey`) asks for one.
 - Pairing (`lib/pairing/pairing.dart`): a TV signs in from a phone signed in, the remote typing nothing. The TV's
   `LoginPage` (in directional mode) starts a `PairingServer`, an HTTP server on a port of its own, and shows its
   `PairingInvite` as a QR code (qr_flutter): the TV's address on the local network, its name, a random id (the path

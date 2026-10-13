@@ -15,12 +15,19 @@ abstract interface class Credentials {
 
 /// The media server refused a request, or answered with something the app can't use.
 class ServerError implements Exception {
-  const ServerError(this.message, {this.isAuth = false});
+  const ServerError(this.message, {this.isAuth = false, this.code});
 
   final String message;
 
   /// The server doesn't take the credentials: a wrong user or password, or a sign-in it forgot.
   final bool isAuth;
+
+  /// The Subsonic API's error code, where the server gave one: 41 or 42 for a server that takes no password, but an API
+  /// key (OpenSubsonic's apiKeyAuthentication).
+  final int? code;
+
+  /// Whether the server refused the password, taking API keys instead.
+  bool get wantsApiKey => code == 41 || code == 42;
 
   @override
   String toString() => message;

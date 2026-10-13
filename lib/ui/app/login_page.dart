@@ -43,9 +43,14 @@ class _LoginPageState extends State<LoginPage> {
   final _server = TextEditingController();
   final _username = TextEditingController();
   final _password = TextEditingController();
+  final _apiKey = TextEditingController();
   final _hub = TextEditingController();
   bool _busy = false;
   String? _error;
+
+  /// Whether the user signs in with an API key they made on the server (OpenSubsonic's apiKeyAuthentication), rather
+  /// than their name and password.
+  bool _withApiKey = false;
 
   /// On a TV, where it listens for a phone's sign-in, and whether it is signing in with one, or why it couldn't.
   PairingServer? _pairing;
@@ -111,7 +116,7 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   void dispose() {
-    for (final controller in [_server, _username, _password, _hub]) {
+    for (final controller in [_server, _username, _password, _apiKey, _hub]) {
       controller.dispose();
     }
 
@@ -136,14 +141,16 @@ class _LoginPageState extends State<LoginPage> {
     try {
       final deviceId = await Session.thisDeviceId();
       final deviceName = await Session.thisDeviceName();
-      api = await signIn(
-        server,
-        _username.text.trim(),
-        _password.text,
-        deviceId: deviceId,
-        deviceName: deviceName,
-        client: widget.client,
-      );
+      api = _withApiKey
+          ? await signInWithApiKey(server, _apiKey.text.trim(), client: widget.client)
+          : await signIn(
+              server,
+              _username.text.trim(),
+              _password.text,
+              deviceId: deviceId,
+              deviceName: deviceName,
+              client: widget.client,
+            );
       final hub = _hub.text.trim();
       final session = Session(
         server: server,
@@ -163,8 +170,20 @@ class _LoginPageState extends State<LoginPage> {
       widget.onSignedIn(session);
     } on NotAMediaServer {
       setState(() => _error = strings.notAMediaServer(server.host));
+    } on NoApiKeys {
+      setState(() => _error = strings.serverTakesNoApiKeys);
     } on ServerError catch (e) {
-      setState(() => _error = e.isAuth ? strings.wrongCredentials : strings.serverRefused('$e'));
+      setState(() {
+        // A server that takes a key alone (LMS) refuses the password so: the key's field, rather than the password's.
+        if (!_withApiKey && e.wantsApiKey) {
+          _withApiKey = true;
+          _error = strings.serverWantsApiKey;
+        } else if (e.isAuth) {
+          _error = _withApiKey ? strings.wrongApiKey : strings.wrongCredentials;
+        } else {
+          _error = strings.serverRefused('$e');
+        }
+      });
     } on Exception catch (e) {
       setState(() => _error = strings.couldNotReachServer(server.host, '$e'));
     } finally {
@@ -207,21 +226,43 @@ class _LoginPageState extends State<LoginPage> {
                   validator: _required,
                   onTapOutside: _closeKeyboard,
                 ),
-                TextFormField(
-                  controller: _username,
-                  decoration: InputDecoration(labelText: strings.username),
-                  textInputAction: TextInputAction.next,
-                  validator: _required,
-                  onTapOutside: _closeKeyboard,
-                ),
-                TextFormField(
-                  controller: _password,
-                  decoration: InputDecoration(labelText: strings.password),
-                  obscureText: true,
-                  textInputAction: TextInputAction.done,
-                  validator: _required,
-                  onTapOutside: _closeKeyboard,
-                  onFieldSubmitted: (_) => _submit(),
+                if (_withApiKey)
+                  TextFormField(
+                    controller: _apiKey,
+                    decoration: InputDecoration(labelText: strings.apiKey, helperText: strings.apiKeyHelp),
+                    obscureText: true,
+                    textInputAction: TextInputAction.done,
+                    validator: _required,
+                    onTapOutside: _closeKeyboard,
+                    onFieldSubmitted: (_) => _submit(),
+                  )
+                else ...[
+                  TextFormField(
+                    controller: _username,
+                    decoration: InputDecoration(labelText: strings.username),
+                    textInputAction: TextInputAction.next,
+                    validator: _required,
+                    onTapOutside: _closeKeyboard,
+                  ),
+                  TextFormField(
+                    controller: _password,
+                    decoration: InputDecoration(labelText: strings.password),
+                    obscureText: true,
+                    textInputAction: TextInputAction.done,
+                    validator: _required,
+                    onTapOutside: _closeKeyboard,
+                    onFieldSubmitted: (_) => _submit(),
+                  ),
+                ],
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: TextButton(
+                    onPressed: () => setState(() {
+                      _withApiKey = !_withApiKey;
+                      _error = null;
+                    }),
+                    child: Text(_withApiKey ? strings.signInWithPassword : strings.signInWithApiKey),
+                  ),
                 ),
                 ExpansionTile(
                   title: Text(strings.advanced),

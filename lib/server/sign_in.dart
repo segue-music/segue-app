@@ -18,6 +18,16 @@ class NotAMediaServer implements Exception {
   String toString() => '$server is neither a Subsonic nor a Jellyfin server';
 }
 
+/// The media server takes no API key: a Jellyfin server, or a Subsonic one without OpenSubsonic's apiKeyAuthentication.
+class NoApiKeys implements Exception {
+  const NoApiKeys(this.server);
+
+  final Uri server;
+
+  @override
+  String toString() => '$server takes no API key';
+}
+
 /// Which API the media server at [server] speaks, so that the user only types its address: Subsonic
 /// if it answers a ping (with an error, having no credentials), or else Jellyfin if it answers with
 /// its public info. Navidrome, which has both, answers as Subsonic at its address and as Jellyfin
@@ -98,6 +108,39 @@ Future<MediaServer> signIn(
       }
     case Api.jellyfin:
       return JellyfinApi.signIn(server, username, password, deviceId: deviceId, deviceName: deviceName, client: client);
+  }
+}
+
+/// Signs in to the Subsonic server at [server] with [apiKey], a key the user made there (OpenSubsonic's
+/// apiKeyAuthentication), which says nothing of whose it is: the server does (tokenInfo). Throws [NoApiKeys] where it
+/// takes none, and a [ServerError] (code 44) for a key it doesn't know.
+Future<MediaServer> signInWithApiKey(Uri server, String apiKey, {http.Client? client}) async {
+  if (await detectApi(server, client: client) != Api.subsonic) {
+    throw NoApiKeys(server);
+  }
+
+  final asking = SubsonicApi(
+    server,
+    SubsonicApiKey(username: '', apiKey: apiKey),
+    client: client,
+  );
+
+  try {
+    if (!await asking.takesApiKeys()) {
+      throw NoApiKeys(server);
+    }
+
+    final username = await asking.keyUsername();
+
+    return SubsonicApi(
+      server,
+      SubsonicApiKey(username: username, apiKey: apiKey),
+      client: client,
+    );
+  } finally {
+    if (client == null) {
+      asking.close();
+    }
   }
 }
 

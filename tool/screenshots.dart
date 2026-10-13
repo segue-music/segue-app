@@ -40,7 +40,7 @@ const _folder = 'docs/screenshots';
 const _language = Locale('en');
 
 final _server = Uri.parse('https://music.example');
-const _credentials = SubsonicCredentials(username: 'sam', token: 't', salt: 's');
+const _credentials = SubsonicToken(username: 'sam', token: 't', salt: 's');
 
 void main() {
   // Each picture is of the app at rest: an equalizer that moves would never let it settle. As in the tests

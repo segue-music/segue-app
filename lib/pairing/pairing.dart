@@ -177,13 +177,15 @@ class PairingOffer {
       server: Uri.parse(json['server']! as String),
       hub: hub == null ? null : Uri.parse(hub),
       api: api,
-      credentials: api == Api.subsonic
-          ? SubsonicCredentials(
-              username: json['username']! as String,
-              token: json['token']! as String,
-              salt: json['salt']! as String,
-            )
-          : null,
+      credentials: switch ((api, json['apiKey'])) {
+        (Api.subsonic, final String apiKey) => SubsonicApiKey(username: json['username']! as String, apiKey: apiKey),
+        (Api.subsonic, _) => SubsonicToken(
+          username: json['username']! as String,
+          token: json['token']! as String,
+          salt: json['salt']! as String,
+        ),
+        _ => null,
+      },
     );
   }
 
@@ -196,10 +198,10 @@ class PairingOffer {
     'server': '$server',
     'hub': ?hub?.toString(),
     'api': api.name,
-    if (credentials case final credentials?) ...{
-      'username': credentials.username,
-      'token': credentials.token,
-      'salt': credentials.salt,
+    ...switch (credentials) {
+      SubsonicToken(:final username, :final token, :final salt) => {'username': username, 'token': token, 'salt': salt},
+      SubsonicApiKey(:final username, :final apiKey) => {'username': username, 'apiKey': apiKey},
+      null => const {},
     },
   };
 

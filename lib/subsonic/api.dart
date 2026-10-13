@@ -10,25 +10,38 @@ import '../server/models.dart';
 import '../server/server.dart';
 import 'navidrome_ids.dart';
 
-/// Subsonic token authentication: the password never leaves the device, only md5(password + salt).
-class SubsonicCredentials implements Credentials {
-  const SubsonicCredentials({required this.username, required this.token, required this.salt});
+/// What a Subsonic server knows the user by: a token of their password ([SubsonicToken]), or, on an OpenSubsonic server
+/// with apiKeyAuthentication, a key they made there ([SubsonicApiKey]), which they can take back there without changing
+/// the password, and which a server may take alone (LMS; Navidrome's too, from the release after 0.64.2).
+sealed class SubsonicCredentials implements Credentials {
+  const factory SubsonicCredentials({required String username, required String token, required String salt}) =
+      SubsonicToken;
 
   factory SubsonicCredentials.fromPassword(String username, String password) {
     final random = Random.secure();
     final salt = List.generate(12, (_) => random.nextInt(16).toRadixString(16)).join();
 
-    return SubsonicCredentials(
-      username: username,
-      token: md5.convert(utf8.encode(password + salt)).toString(),
-      salt: salt,
-    );
+    return SubsonicToken(username: username, token: md5.convert(utf8.encode(password + salt)).toString(), salt: salt);
   }
+}
+
+/// Subsonic token authentication: the password never leaves the device, only md5(password + salt).
+class SubsonicToken implements SubsonicCredentials {
+  const SubsonicToken({required this.username, required this.token, required this.salt});
 
   @override
   final String username;
   final String token;
   final String salt;
+}
+
+/// An API key (OpenSubsonic's apiKeyAuthentication), and whose it is, as the server says (tokenInfo).
+class SubsonicApiKey implements SubsonicCredentials {
+  const SubsonicApiKey({required this.username, required this.apiKey});
+
+  @override
+  final String username;
+  final String apiKey;
 }
 
 /// The parts of the Subsonic API the app uses.
@@ -67,7 +80,21 @@ class SubsonicApi implements MediaServer {
   };
 
   @override
-  Auth get auth => Auth.subsonic(username: credentials.username, token: credentials.token, salt: credentials.salt);
+  Auth get auth => switch (credentials) {
+    SubsonicToken(:final username, :final token, :final salt) => Auth.subsonic(
+      username: username,
+      token: token,
+      salt: salt,
+    ),
+    SubsonicApiKey(:final apiKey) => Auth.apiKey(apiKey: apiKey),
+  };
+
+  /// Whether the server takes API keys (OpenSubsonic's apiKeyAuthentication).
+  Future<bool> takesApiKeys() => _has('apiKeyAuthentication');
+
+  /// Whose the API key the app asks with is (tokenInfo), which it doesn't say itself.
+  Future<String> keyUsername() async =>
+      ((await _get('tokenInfo'))['tokenInfo'] as Map<String, dynamic>)['username'] as String;
 
   @override
   Future<void> ping() => _get('ping');
@@ -562,9 +589,11 @@ class SubsonicApi implements MediaServer {
       .resolve('rest/$endpoint.view')
       .replace(
         queryParameters: {
-          'u': credentials.username,
-          't': credentials.token,
-          's': credentials.salt,
+          ...switch (credentials) {
+            SubsonicToken(:final username, :final token, :final salt) => {'u': username, 't': token, 's': salt},
+            // The key alone: with the user's name too, the server refuses (OpenSubsonic's error 43).
+            SubsonicApiKey(:final apiKey) => {'apiKey': apiKey},
+          },
           'v': '1.16.1',
           'c': clientName,
           'f': 'json',
@@ -603,6 +632,10 @@ class SubsonicApi implements MediaServer {
     return _decode(response);
   }
 
+  /// The errors that refuse the credentials: a wrong user or password (40), a server that takes no token of a password
+  /// (41), or not what the app sent at all (42), only an API key, say; a wrong API key (44).
+  static const _authCodes = {40, 41, 42, 44};
+
   Map<String, dynamic> _decode(http.Response response) {
     if (response.statusCode != 200) {
       throw ServerError('${server.host}: HTTP ${response.statusCode}');
@@ -617,8 +650,12 @@ class SubsonicApi implements MediaServer {
     if (body['status'] != 'ok') {
       final error = body['error'] as Map<String, dynamic>?;
       final code = (error?['code'] as num?)?.toInt();
-      // Code 40 is a wrong username or password.
-      throw ServerError(error?['message'] as String? ?? 'request failed', isAuth: code == 40 || code == 41);
+
+      throw ServerError(
+        error?['message'] as String? ?? 'request failed',
+        isAuth: _authCodes.contains(code),
+        code: code,
+      );
     }
 
     return body;

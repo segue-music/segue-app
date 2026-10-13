@@ -12,10 +12,10 @@ http.Response subsonic(Map<String, Object?> body) =>
     http.Response(jsonEncode({'subsonic-response': body}), 200, headers: {'content-type': 'application/json'});
 
 void main() {
-  const credentials = SubsonicCredentials(username: 'alice', token: '26719a1196d2a940705a59634eb18eab', salt: 'c19b2d');
+  const credentials = SubsonicToken(username: 'alice', token: '26719a1196d2a940705a59634eb18eab', salt: 'c19b2d');
 
   test('the token is md5(password + salt), as in the Subsonic docs', () {
-    final fresh = SubsonicCredentials.fromPassword('alice', 'sesame');
+    final fresh = SubsonicCredentials.fromPassword('alice', 'sesame') as SubsonicToken;
     expect(fresh.token, md5.convert(utf8.encode('sesame${fresh.salt}')).toString());
     expect(md5.convert(utf8.encode('sesamec19b2d')).toString(), credentials.token);
   });
@@ -78,6 +78,56 @@ void main() {
       '0000000000000000000048',
     ], reason: 'one it has now, as it is');
   });
+
+  test(
+    'with an API key, requests carry it alone, without the user\'s name or a token; the hub\'s hello, the key',
+    () async {
+      late Uri asked;
+      final api = SubsonicApi(
+        Uri.parse('https://music.test'),
+        const SubsonicApiKey(username: 'alice', apiKey: 'k3y'),
+        client: MockClient((request) async {
+          asked = request.url;
+
+          return subsonic({
+            'status': 'ok',
+            'tokenInfo': {'username': 'alice'},
+          });
+        }),
+      );
+      await api.ping();
+      expect(asked.queryParameters, containsPair('apiKey', 'k3y'));
+      expect(asked.queryParameters.keys, isNot(anyOf(contains('u'), contains('t'), contains('s'), contains('p'))));
+      expect(api.streamUrl('s1').queryParameters, containsPair('apiKey', 'k3y'));
+      expect(api.auth.toJson(), {'scheme': 'apiKey', 'apiKey': 'k3y'});
+      expect(await api.keyUsername(), 'alice');
+      expect(asked.path, '/rest/tokenInfo.view');
+    },
+  );
+
+  test(
+    'a server that takes no password, but API keys, refuses it so (41, 42), as it refuses a key it doesn\'t know (44) '
+    'and a wrong password (40)',
+    () async {
+      for (final (code, wantsApiKey) in [(41, true), (42, true), (44, false), (40, false)]) {
+        final api = SubsonicApi(
+          Uri.parse('https://music.test'),
+          credentials,
+          client: MockClient(
+            (_) async => subsonic({
+              'status': 'failed',
+              'error': {'code': code, 'message': 'refused'},
+            }),
+          ),
+        );
+        await expectLater(
+          api.ping(),
+          throwsA(isA<ServerError>().having((e) => (e.isAuth, e.wantsApiKey), 'refusal', (true, wantsApiKey))),
+          reason: '$code',
+        );
+      }
+    },
+  );
 
   test('a server under a path keeps it', () {
     final api = SubsonicApi(Uri.parse('https://example.test/music'), credentials);

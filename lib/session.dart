@@ -11,9 +11,8 @@ import 'segue/protocol.dart';
 import 'server/server.dart';
 import 'subsonic/api.dart';
 
-/// Who is signed in, where, and as which device. The token (and Subsonic's salt) is as good as the
-/// password on that server, so it goes to the system's secure storage; the rest to plain
-/// preferences.
+/// Who is signed in, where, and as which device. The token (and Subsonic's salt), or an API key, is as good as the
+/// password on that server, so it goes to the system's secure storage; the rest to plain preferences.
 class Session {
   const Session({
     required this.server,
@@ -46,26 +45,29 @@ class Session {
     // Sessions saved before the app spoke Jellyfin say no API: they are Subsonic's.
     final api = await _prefs.getString('api') ?? Api.subsonic.name;
     final userId = await _prefs.getString('userId');
-    final String? token, salt;
+    final String? token, salt, apiKey;
 
     try {
       token = await _secure.read(key: 'token');
       salt = await _secure.read(key: 'salt');
+      apiKey = await _secure.read(key: 'apiKey');
     } on Exception catch (e) {
       debugPrint('secure storage unavailable: $e');
       return null;
     }
 
-    if (server == null || username == null || token == null) {
+    if (server == null || username == null) {
       return null;
     }
 
     final Credentials credentials;
 
-    if (api == Api.jellyfin.name && userId != null) {
+    if (api == Api.jellyfin.name && userId != null && token != null) {
       credentials = JellyfinCredentials(username: username, userId: userId, token: token);
-    } else if (api == Api.subsonic.name && salt != null) {
-      credentials = SubsonicCredentials(username: username, token: token, salt: salt);
+    } else if (api == Api.subsonic.name && apiKey != null) {
+      credentials = SubsonicApiKey(username: username, apiKey: apiKey);
+    } else if (api == Api.subsonic.name && token != null && salt != null) {
+      credentials = SubsonicToken(username: username, token: token, salt: salt);
     } else {
       return null;
     }
@@ -92,16 +94,24 @@ class Session {
     }
 
     switch (credentials) {
-      case SubsonicCredentials(:final token, :final salt):
+      case SubsonicToken(:final token, :final salt):
         await _prefs.setString('api', Api.subsonic.name);
         await _prefs.remove('userId');
         await _secure.write(key: 'token', value: token);
         await _secure.write(key: 'salt', value: salt);
+        await _secure.delete(key: 'apiKey');
+      case SubsonicApiKey(:final apiKey):
+        await _prefs.setString('api', Api.subsonic.name);
+        await _prefs.remove('userId');
+        await _secure.write(key: 'apiKey', value: apiKey);
+        await _secure.delete(key: 'token');
+        await _secure.delete(key: 'salt');
       case JellyfinCredentials(:final userId, :final token):
         await _prefs.setString('api', Api.jellyfin.name);
         await _prefs.setString('userId', userId);
         await _secure.write(key: 'token', value: token);
         await _secure.delete(key: 'salt');
+        await _secure.delete(key: 'apiKey');
     }
   }
 
@@ -123,6 +133,7 @@ class Session {
   static Future<void> clear() async {
     await _secure.delete(key: 'token');
     await _secure.delete(key: 'salt');
+    await _secure.delete(key: 'apiKey');
     await _prefs.remove('username');
     await _prefs.remove('userId');
   }

@@ -55,6 +55,9 @@ class Auth {
   /// A Jellyfin access token, which the hub checks with /Users/Me.
   const Auth.jellyfin({required String this.token}) : scheme = 'jellyfin', username = null, salt = null, apiKey = null;
 
+  /// An OpenSubsonic API key, whose user the hub learns from tokenInfo (SPEC.md, section 2).
+  const Auth.apiKey({required String this.apiKey}) : scheme = 'apiKey', username = null, token = null, salt = null;
+
   final String scheme;
   final String? username;
   final String? token;

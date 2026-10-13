@@ -32,16 +32,38 @@ void main() {
 
   test('a Subsonic sign-in comes back as it was saved', () async {
     await session(const SubsonicCredentials(username: 'alice', token: 't', salt: 's')).save();
-    final credentials = (await Session.load())?.credentials as SubsonicCredentials;
+    final credentials = (await Session.load())?.credentials as SubsonicToken;
     expect((credentials.username, credentials.token, credentials.salt), ('alice', 't', 's'));
   });
+
+  test(
+    'a sign-in with an API key comes back as it was saved, the key in the secure storage and no token beside it',
+    () async {
+      await session(const SubsonicCredentials(username: 'alice', token: 't', salt: 's')).save();
+      await session(const SubsonicApiKey(username: 'alice', apiKey: 'k3y')).save();
+      expect(await const FlutterSecureStorage().read(key: 'apiKey'), 'k3y');
+      expect(await const FlutterSecureStorage().read(key: 'token'), isNull, reason: 'the password\'s token gone');
+      expect(
+        (await Session.load())?.credentials,
+        isA<SubsonicApiKey>().having((c) => (c.username, c.apiKey), 'credentials', ('alice', 'k3y')),
+      );
+
+      await session(const SubsonicCredentials(username: 'alice', token: 't', salt: 's')).save();
+      expect(await const FlutterSecureStorage().read(key: 'apiKey'), isNull, reason: 'the key gone');
+      expect((await Session.load())?.credentials, isA<SubsonicToken>());
+
+      await session(const SubsonicApiKey(username: 'alice', apiKey: 'k3y')).save();
+      await Session.clear();
+      expect(await Session.load(), isNull, reason: 'signed out, the key too');
+    },
+  );
 
   test('a sign-in saved before Jellyfin came is a Subsonic one', () async {
     await SharedPreferencesAsync().setString('server', 'https://music.test');
     await SharedPreferencesAsync().setString('username', 'alice');
     FlutterSecureStorage.setMockInitialValues({'token': 't', 'salt': 's'});
     final credentials = (await Session.load())?.credentials;
-    expect(credentials, isA<SubsonicCredentials>().having((c) => c.token, 'token', 't'));
+    expect(credentials, isA<SubsonicToken>().having((c) => c.token, 'token', 't'));
   });
 
   test('signing out forgets the sign-in, not the device', () async {

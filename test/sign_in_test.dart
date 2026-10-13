@@ -177,6 +177,66 @@ void main() {
     });
   });
 
+  group('signInWithApiKey', () {
+    /// A Subsonic server that takes API keys, where it has OpenSubsonic's [extension], and knows Alice's, `k3y`.
+    MockClient keyServer({bool extension = true}) => server({
+      '/rest/ping.view': (_) => missingCredentials,
+      '/rest/getOpenSubsonicExtensions.view': (_) => json({
+        'subsonic-response': {
+          'status': 'ok',
+          'openSubsonicExtensions': [
+            if (extension)
+              {
+                'name': 'apiKeyAuthentication',
+                'versions': [1],
+              },
+          ],
+        },
+      }),
+      '/rest/tokenInfo.view': (request) => json({
+        'subsonic-response': request.url.queryParameters['apiKey'] == 'k3y'
+            ? {
+                'status': 'ok',
+                'tokenInfo': {'username': 'alice'},
+              }
+            : {
+                'status': 'failed',
+                'error': {'code': 44, 'message': 'Invalid API key'},
+              },
+      }),
+    });
+
+    test('on a Subsonic server that takes them, a key signs in as whose the server says it is', () async {
+      final api = await signInWithApiKey(Uri.parse('https://music.test'), 'k3y', client: keyServer());
+      expect(
+        api.credentials,
+        isA<SubsonicApiKey>().having((c) => (c.username, c.apiKey), 'credentials', ('alice', 'k3y')),
+      );
+    });
+
+    test('a key the server doesn\'t know is an auth error', () async {
+      await expectLater(
+        signInWithApiKey(Uri.parse('https://music.test'), 'nope', client: keyServer()),
+        throwsA(isA<ServerError>().having((e) => (e.isAuth, e.code), 'refusal', (true, 44))),
+      );
+    });
+
+    test('a Subsonic server without them, or a Jellyfin one, takes none', () async {
+      await expectLater(
+        signInWithApiKey(Uri.parse('https://music.test'), 'k3y', client: keyServer(extension: false)),
+        throwsA(isA<NoApiKeys>()),
+      );
+      await expectLater(
+        signInWithApiKey(
+          Uri.parse('https://music.test'),
+          'k3y',
+          client: server({'/System/Info/Public': (_) => jellyfinInfo}),
+        ),
+        throwsA(isA<NoApiKeys>()),
+      );
+    });
+  });
+
   test('a saved sign-in opens in its API', () {
     const jellyfin = JellyfinCredentials(username: 'alice', userId: 'u1', token: 't1');
     const subsonic = SubsonicCredentials(username: 'alice', token: 't', salt: 's');

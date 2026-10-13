@@ -867,6 +867,34 @@
   "@wrongCredentials": {
     "description": "A sign-in the media server refused for its username or password."
   },
+  "apiKey": "Chave de API",
+  "@apiKey": {
+    "description": "The sign-in's field for an API key the user made on their media server, in place of their username and password."
+  },
+  "apiKeyHelp": "Crie uma no seu servidor de música.",
+  "@apiKeyHelp": {
+    "description": "Under the API key's field: where the user gets one."
+  },
+  "signInWithApiKey": "Entrar com uma chave de API",
+  "@signInWithApiKey": {
+    "description": "The sign-in's button that takes an API key in place of the username and password."
+  },
+  "signInWithPassword": "Entrar com usuário e senha",
+  "@signInWithPassword": {
+    "description": "The sign-in's button that takes the username and password again, in place of an API key."
+  },
+  "wrongApiKey": "O servidor não conhece essa chave de API.",
+  "@wrongApiKey": {
+    "description": "A sign-in the media server refused for its API key."
+  },
+  "serverWantsApiKey": "Esse servidor pede uma chave de API em vez da senha.",
+  "@serverWantsApiKey": {
+    "description": "A sign-in with a password that the media server refused, as it takes only API keys."
+  },
+  "serverTakesNoApiKeys": "Esse servidor não aceita chave de API: entre com usuário e senha.",
+  "@serverTakesNoApiKeys": {
+    "description": "A sign-in with an API key at a media server that takes none (a Jellyfin one, or a Subsonic one without them)."
+  },
   "serverRefused": "O servidor recusou: {error}",
   "@serverRefused": {
     "description": "A sign-in the media server refused for another reason, with the error.",

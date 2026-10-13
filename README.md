@@ -34,8 +34,13 @@ screen, and the Windows build on Windows 11. macOS has no package yet.
 - Only the media server's address, user and password (`https://` is added if left out). The app finds out whether
   the server speaks Subsonic (Navidrome, other OpenSubsonic servers) or Jellyfin: a Jellyfin server, or Navidrome's
   Jellyfin API at `/jellyfin`, experimental since Navidrome 0.64 and turned on with `ND_JELLYFIN_ENABLED=true`.
-- The password isn't kept: the system's secure storage gets a Subsonic token, or Jellyfin's access token. Signing
-  out, at the end of the settings, ends a Jellyfin server's token; Navidrome's lasts until the password changes.
+- Or, on an OpenSubsonic server that takes them (LMS, which takes nothing else; Navidrome from the release after
+  0.64.2), an API key made there, in place of the user and password ("Entrar com uma chave de API"): the server says
+  whose it is, and it can be taken back there without changing the password. A server that takes keys alone refuses
+  the password, and the sign-in asks for a key.
+- The password isn't kept: the system's secure storage gets a Subsonic token, an API key, or Jellyfin's access
+  token. Signing out, at the end of the settings, ends a Jellyfin server's token; Navidrome's lasts until the
+  password changes, and an API key until it is taken back on the server.
 
 ### Library
 

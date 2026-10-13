@@ -111,7 +111,7 @@ void main() {
     expect(device, 'laptop', reason: 'the TV\'s name');
     await tester.pump();
     expect(signedIn?.server, phone.server);
-    expect(signedIn?.credentials, isA<SubsonicCredentials>().having((c) => c.token, 'token', 't0k3n'));
+    expect(signedIn?.credentials, isA<SubsonicToken>().having((c) => c.token, 'token', 't0k3n'));
     expect((await Session.load())?.server, phone.server, reason: 'kept, as a sign-in with the form is');
     await tester.pumpWidget(const SizedBox());
   });
@@ -275,6 +275,83 @@ void main() {
     await fillIn(tester, server: 'music.test');
     expect(signedIn?.server, Uri.parse('https://music.test'));
     expect(signedIn?.credentials, isA<JellyfinCredentials>().having((c) => c.token, 'token', 't1'));
+  });
+
+  testWidgets('a server that takes API keys alone refuses the password, and the sign-in asks for a key, which signs in '
+      'as the server says whose it is', (tester) async {
+    Session? signedIn;
+    final client = MockClient((request) async {
+      final query = request.url.queryParameters;
+      final body = switch (request.url.pathSegments.last) {
+        'ping.view' when query['apiKey'] == 'k3y' => {'status': 'ok'},
+        'ping.view' => {
+          'status': 'failed',
+          'error': {'code': 42, 'message': 'Provided authentication mechanism not supported'},
+        },
+        'getOpenSubsonicExtensions.view' => {
+          'status': 'ok',
+          'openSubsonicExtensions': [
+            {
+              'name': 'apiKeyAuthentication',
+              'versions': [1],
+            },
+          ],
+        },
+        'tokenInfo.view' when query['apiKey'] == 'k3y' => {
+          'status': 'ok',
+          'tokenInfo': {'username': 'alice'},
+        },
+        _ => {
+          'status': 'failed',
+          'error': {'code': 44, 'message': 'Invalid API key'},
+        },
+      };
+
+      return http.Response(jsonEncode({'subsonic-response': body}), 200);
+    });
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: const [Locale('pt')],
+        home: LoginPage(onSignedIn: (session) => signedIn = session, client: client),
+      ),
+    );
+    await fillIn(tester, server: 'music.test');
+    expect(find.text('Esse servidor pede uma chave de API em vez da senha.'), findsOneWidget);
+    expect(find.widgetWithText(TextFormField, 'Senha'), findsNothing, reason: 'the key\'s field in its place');
+
+    await tester.enterText(find.widgetWithText(TextFormField, 'Chave de API'), 'nope');
+    await tester.tap(find.text('Entrar'));
+    await tester.pumpAndSettle();
+    expect(find.text('O servidor não conhece essa chave de API.'), findsOneWidget);
+
+    await tester.enterText(find.widgetWithText(TextFormField, 'Chave de API'), 'k3y');
+    await tester.tap(find.text('Entrar'));
+    await tester.pumpAndSettle();
+    expect(
+      signedIn?.credentials,
+      isA<SubsonicApiKey>().having((c) => (c.username, c.apiKey), 'credentials', ('alice', 'k3y')),
+    );
+  });
+
+  testWidgets('the sign-in goes from the username and password to an API key, and back', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: const [Locale('pt')],
+        home: LoginPage(onSignedIn: (_) {}),
+      ),
+    );
+    await tester.tap(find.text('Entrar com uma chave de API'));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(TextFormField, 'Chave de API'), findsOneWidget);
+    expect(find.widgetWithText(TextFormField, 'Usuário'), findsNothing);
+    expect(find.text('Crie uma no seu servidor de música.'), findsOneWidget);
+
+    await tester.tap(find.text('Entrar com usuário e senha'));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(TextFormField, 'Senha'), findsOneWidget);
+    expect(find.widgetWithText(TextFormField, 'Chave de API'), findsNothing);
   });
 
   testWidgets('an address with no media server says so', (tester) async {

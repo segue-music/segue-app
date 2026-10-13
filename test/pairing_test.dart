@@ -168,6 +168,23 @@ void main() {
     }
   });
 
+  test('a phone signed in with an API key offers the key, which the TV signs in with', () async {
+    final offer = PairingOffer.of(
+      Session(
+        server: Uri.parse('https://music.example'),
+        credentials: const SubsonicApiKey(username: 'alice', apiKey: 'k3y'),
+        deviceId: 'phone',
+        deviceName: 'Phone',
+      ),
+    );
+    final json = offer.toJson();
+    expect(json, {'server': 'https://music.example', 'api': 'subsonic', 'username': 'alice', 'apiKey': 'k3y'});
+    expect(
+      PairingOffer.fromJson(json).credentials,
+      isA<SubsonicApiKey>().having((c) => (c.username, c.apiKey), 'credentials', ('alice', 'k3y')),
+    );
+  });
+
   test('a sign-in sealed with the code\'s key opens only with it, and only at the invite\'s id', () async {
     final invite = PairingInvite.random('192.168.1.6:1', 'TV');
     final sealed = await PairingOffer.of(phone).seal(invite);
@@ -200,11 +217,7 @@ void main() {
     expect((session.server, session.hub, session.deviceId), (phone.server, phone.hub, 'tv'));
     expect(
       session.credentials,
-      isA<SubsonicCredentials>().having((c) => (c.username, c.token, c.salt), 'credentials', (
-        'alice',
-        't0k3n',
-        's4lt',
-      )),
+      isA<SubsonicToken>().having((c) => (c.username, c.token, c.salt), 'credentials', ('alice', 't0k3n', 's4lt')),
     );
   });
 
