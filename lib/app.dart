@@ -216,9 +216,11 @@ class _SegueAppState extends State<SegueApp> {
       builder: (context, child) {
         final page = TelevisionScreen(
           enabled: widget.television,
-          child: TextFieldArrowShortcuts(
-            // Esc goes back from a page before it takes the focus off what has it there.
-            child: UnfocusShortcut(child: BackShortcut(child: child!)),
+          child: ListShortcuts(
+            child: TextFieldArrowShortcuts(
+              // Esc goes back from a page before it takes the focus off what has it there.
+              child: UnfocusShortcut(child: BackShortcut(child: child!)),
+            ),
           ),
         );
 

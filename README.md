@@ -173,10 +173,13 @@ knows nothing of them, and another device plays as it has them.
 
 - **Computer and tablet**: the top bar, the side rail (albums, artists, genres, playlists, favorites) and the player
   bar stay, and pages open between them. Arrows beside the app's icon, and the keyboard's left and right, go back and
-  forward through them, as a browser's do. `/` goes to the search bar, and Esc takes the focus off what has it. On a
-  computer the window opens maximized and gets no narrower than 960.
+  forward through them, as a browser's do. `/` goes to the search bar, and Esc takes the focus off what has it. A
+  section's button in the side rail, picked again, takes it back to its start. On a computer the window opens maximized
+  and gets no narrower than 960, and the albums and the artists by name have their letters beside them, which scroll
+  to where each starts.
 - **Phone**: the player bar and a bar with the home, the search and the library stay at the bottom, and a swipe goes
-  from section to section. Pages open over the rest, and a swipe to the right from anywhere goes back.
+  from section to section; the home or the library picked again there goes back to its start. Pages open over the
+  rest, and a swipe to the right from anywhere goes back.
 - **Sign-in on a TV with a phone**: the TV's sign-in shows a QR code, which the app on a phone signed in reads
   (Settings, "Entrar numa TV"), signing the TV in with no typing on the remote. Over the local network, sealed with
   a key the code carries (AES-GCM): on Subsonic the phone's credentials; on Jellyfin the TV signs in by Quick Connect,
@@ -186,13 +189,15 @@ knows nothing of them, and another device plays as it has them.
 - **TV**: the remote drives the app, a white ring showing where it is, and an album, an artist or a mix it is on a
   little bigger. The text is a bit bigger than on a phone, and everything keeps out of the screen's edges, which some
   TVs cut off, but for the rows of albums, which run on to the side as they scroll, as Google TV's do. No player bar
-  under the pages: the side rail's first button, while something plays, opens the full-screen player, as a video
-  player: the controls showing as a key is pressed and going after a few seconds,
-  back hiding them first. The screen stays on while the music plays. The keyboard opens on the search bar with the
-  center button, and with it open the remote's microphone, held, types what is said. OK held opens a menu, and a song
-  of the queue or of a playlist moves by the remote ("Mover" in its menu, then the arrows and OK). The remote's
-  play/pause, next and previous buttons drive playback. Google TV's Assistant doesn't reach the app: music asked for by
-  name ("toca Aerosmith no Segue" too) it plays on YouTube, and away from the keyboard the microphone is its own.
+  under the pages: the side rail's first button, while something plays, opens the full-screen player, as a video player:
+  the controls showing as a key is pressed and going after a few seconds, back hiding them first. The screen stays on
+  while the music plays. The keyboard opens on the search bar with the center button, and with it open the remote's
+  microphone, held, types what is said. OK held opens a menu, and a song of the queue or of a playlist moves by the
+  remote ("Mover" in its menu, then the arrows and OK). The remote's play/pause, next and previous buttons drive
+  playback. Through a long list, its channel buttons go a page down or up, the albums and the artists by name have their
+  letters beside them, which scroll to where each starts, and back, far down a list, goes back to its top before it
+  leaves the page. Google TV's Assistant doesn't reach the app: music asked for by name ("toca Aerosmith no Segue" too)
+  it plays on YouTube, and away from the keyboard the microphone is its own.
 - **The system's media controls** show and command what the player bar shows, the device it follows included: on
   Linux (MPRIS) the media keys, the desktop's player widget and KDE Connect; on iOS the lock screen, Control Center,
   the headphones' buttons and CarPlay's Now Playing; on Android the notification, the lock screen and the

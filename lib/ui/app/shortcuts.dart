@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../services.dart';
 import '../player/player_controls.dart';
 import '../widgets/directional_navigation.dart';
+import '../widgets/scroll_focus.dart';
 import 'page_area.dart';
 
 /// Keyboard shortcuts for playback, on every page: space plays or pauses what the now-playing bar
@@ -116,6 +117,49 @@ class TextFieldArrowShortcuts extends StatelessWidget {
     },
     child: child,
   );
+}
+
+/// On a TV, the remote's ways through a long list, the focus in it: its channel buttons (a keyboard's Page Up and Page
+/// Down) move the focus a page up or down it ([focusNextPage]), and its back, far down it, takes it back to its start
+/// ([focusListStart]), the second one leaving the page as ever. What the focus is in takes the keys first: a song the
+/// remote moves takes back to put it back, the full-screen player to hide its controls.
+class ListShortcuts extends StatefulWidget {
+  const ListShortcuts({required this.child, super.key});
+
+  final Widget child;
+
+  @override
+  State<ListShortcuts> createState() => _ListShortcutsState();
+}
+
+class _ListShortcutsState extends State<ListShortcuts> {
+  /// Whether the key down last took the list somewhere: its going up is that too, rather than the system's, which would
+  /// leave the page on back's.
+  bool _taken = false;
+
+  KeyEventResult _key(FocusNode node, KeyEvent event) {
+    final key = event.logicalKey;
+    final down = switch (key) {
+      LogicalKeyboardKey.channelDown || LogicalKeyboardKey.pageDown => true,
+      LogicalKeyboardKey.channelUp || LogicalKeyboardKey.pageUp => false,
+      _ => null,
+    };
+
+    if ((down == null && key != LogicalKeyboardKey.goBack) || !DirectionalNavigation.of(context)) {
+      return KeyEventResult.ignored;
+    }
+
+    // Held, a channel button goes on a page at a time; back, not again.
+    if (event is KeyDownEvent || (event is KeyRepeatEvent && down != null)) {
+      _taken = down == null ? focusListStart() : focusNextPage(down: down);
+    }
+
+    return _taken ? KeyEventResult.handled : KeyEventResult.ignored;
+  }
+
+  @override
+  Widget build(BuildContext context) =>
+      Focus(canRequestFocus: false, skipTraversal: true, onKeyEvent: _key, child: widget.child);
 }
 
 /// Whether [focused], the focused widget's context, is in a text field, which takes the keys typed.

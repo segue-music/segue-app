@@ -956,7 +956,8 @@ void main() {
       expect(picture(artist).top - tester.getRect(tile(artist)).top, 8);
       expect(tester.getRect(tile(artist)).right - picture(artist).right, 8);
       expect(picture(next).left - picture(artist).right, moreOrLessEquals(16));
-      expect(picture(artist).left - tester.getRect(find.byType(GridView)).left, moreOrLessEquals(16));
+      final grid = find.descendant(of: find.byType(ArtistsView), matching: find.byType(CustomScrollView));
+      expect(picture(artist).left - tester.getRect(grid).left, moreOrLessEquals(16));
       await tester.pumpWidget(const SizedBox());
     },
   );

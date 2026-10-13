@@ -31,6 +31,7 @@ import 'shortcuts.dart';
 import '../widgets/bar_traversal.dart';
 import '../widgets/directional_navigation.dart';
 import '../widgets/equalizer.dart';
+import '../widgets/scroll_focus.dart';
 import '../widgets/themed_icon.dart';
 
 class HomePage extends StatefulWidget {
@@ -227,6 +228,36 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     }
   }
 
+  /// Shows [section], picked from the side rail, the app's icon, the bar at the bottom or the library's tabs; shown
+  /// already, with nothing over it (a page; on a wide screen, the search's results), back to its start.
+  void _pick(_Section section) {
+    if (section == _section && !_history.canGoBack && (_narrow || _results == null)) {
+      _toStart(section);
+      return;
+    }
+
+    _select(section);
+  }
+
+  /// Scrolls [section]'s view, where it is built ([build]'s `view`), back to its start.
+  void _toStart(_Section section) {
+    Element? found;
+
+    void visit(Element element) {
+      if (element.widget.key case ValueKey<(_Section, bool)>(value: (final shown, _)) when shown == section) {
+        found = element;
+      } else if (found == null) {
+        element.visitChildren(visit);
+      }
+    }
+
+    context.visitChildElements(visit);
+
+    if (found case final view?) {
+      scrollToStart(view);
+    }
+  }
+
   /// On a phone, shows [destination]: the library on the tab picked last. The search picked again, shown with no page
   /// over it, goes to its bar, ready to type; with a page over it, it shows again, as another destination would.
   void _open(_Destination destination) {
@@ -235,7 +266,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       return;
     }
 
-    _select(switch (destination) {
+    _pick(switch (destination) {
       _Destination.home => _Section.home,
       _Destination.search => _Section.search,
       _Destination.library => _Destination.libraryTabs[_libraryTabs.index],
@@ -289,9 +320,13 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   bool get _favoritesShown => _history.current?.settings.name == _favorites.name;
 
   /// The favorites from the side rail, as a section of it: over the section, the pages open closed and the search
-  /// cleared; on top already, nothing.
+  /// cleared; on top already, back to their start.
   void _goToFavorites() {
     if (_favoritesShown) {
+      if (_history.current case ModalRoute(:final subtreeContext?)) {
+        scrollToStart(subtreeContext);
+      }
+
       return;
     }
 
@@ -457,7 +492,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     final logo = IconButton(
       tooltip: _Section.home.label(strings),
       icon: Image.asset('assets/logo.png', width: 32, height: 32),
-      onPressed: () => _select(_Section.home),
+      onPressed: () => _pick(_Section.home),
     );
     // The theme, the language, the quality, the volume's normalization, the equalizer and signing out are in the
     // settings, a page of their own, whose button comes after the hub's status, which stays in sight: signing out, which
@@ -566,7 +601,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                               labelPadding: const EdgeInsets.symmetric(horizontal: _libraryTabPadding),
                               dividerHeight: 0,
                               tabs: [for (final section in _Destination.libraryTabs) Tab(text: section.label(strings))],
-                              onTap: (index) => _select(_Destination.libraryTabs[index]),
+                              onTap: (index) => _pick(_Destination.libraryTabs[index]),
                             ),
                           ),
                         },
@@ -724,7 +759,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                       listenable: _history,
                       builder: (context, _) => _SideRail(
                         selected: _favoritesShown ? null : shown,
-                        onSelected: _select,
+                        onSelected: _pick,
                         favorites: _favoritesShown,
                         onFavorites: _goToFavorites,
                         opensPlayer: television,

@@ -6,7 +6,9 @@ import '../../server/models.dart';
 import '../../services.dart';
 import '../widgets/cover.dart';
 import '../widgets/focus_ring.dart';
+import '../widgets/letter_bar.dart';
 import '../widgets/order_chips.dart';
+import '../widgets/scroll_focus.dart';
 import '../widgets/spinner.dart';
 import 'artist_page.dart';
 
@@ -34,7 +36,8 @@ enum ArtistOrder {
 }
 
 /// The library's artists, by name or the most played first, or the user's favorite ones alone, as they change, as
-/// picked in chips above them ([OrderChips]), as the albums' orders are.
+/// picked in chips above them ([OrderChips]), as the albums' orders are. On a TV and on a computer, by name, their
+/// letters beside them ([LetterBar]).
 class ArtistsView extends StatefulWidget {
   const ArtistsView({required this.order, required this.onOrder, super.key});
 
@@ -53,6 +56,9 @@ class _ArtistsViewState extends State<ArtistsView> {
 
   /// The user's favorites, which [ArtistOrder.favorites] lists as they change.
   Favorites? _favorites;
+
+  /// The grid's sliver, which a jump to a letter scrolls to the artist it starts at.
+  final _grid = GlobalKey();
 
   @override
   void didChangeDependencies() {
@@ -119,6 +125,13 @@ class _ArtistsViewState extends State<ArtistsView> {
     return favorites.artists;
   }
 
+  /// Scrolls to [artists]' listed under [letter], or, where there are none, the next letter's; past the last letter
+  /// there is, to the last artist. The focus stays on the letter.
+  void _jumpTo(List<Artist> artists, String letter) {
+    final start = letterStart([for (final artist in artists) letterOf(artist.name)], letter);
+    scrollToGridChild(_grid, start ?? artists.length - 1);
+  }
+
   /// Another order lists them again, from the start ([didUpdateWidget]); the one picked, as they are.
   void _reorder(ArtistOrder order) {
     if (order != widget.order) {
@@ -152,7 +165,7 @@ class _ArtistsViewState extends State<ArtistsView> {
                 return const Center(child: Spinner());
               }
 
-              return RefreshIndicator(
+              final list = RefreshIndicator(
                 onRefresh: () async {
                   final reload = _load();
                   setState(() => _artists = reload);
@@ -164,7 +177,19 @@ class _ArtistsViewState extends State<ArtistsView> {
                         padding: const EdgeInsets.all(16),
                         children: [Center(child: Text(widget.order.emptyMessage(strings)))],
                       )
-                    : _ArtistGrid(artists),
+                    : _ArtistGrid(artists, gridKey: _grid),
+              );
+
+              if (artists.isEmpty || widget.order != ArtistOrder.name || !LetterBar.shownIn(context)) {
+                return list;
+              }
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(child: list),
+                  LetterBar(onLetter: (letter) => _jumpTo(artists, letter)),
+                ],
               );
             },
           ),
@@ -176,25 +201,36 @@ class _ArtistsViewState extends State<ArtistsView> {
 
 /// Artists as a grid of pictures, each of which opens their page.
 class _ArtistGrid extends StatelessWidget {
-  const _ArtistGrid(this.artists);
+  const _ArtistGrid(this.artists, {required this.gridKey});
 
   final List<Artist> artists;
+
+  /// The key of the grid's sliver, which a jump to a letter scrolls ([scrollToGridChild]).
+  final GlobalKey gridKey;
 
   // Pictures of up to 180 pixels, 16 from the edges and from one another, of which the tiles' room inside
   // (ArtistTile.padding) is part, as the albums' are; the rows as far apart as with no room inside. At the end, clear
   // of the bars a phone's home has over them.
   @override
-  Widget build(BuildContext context) => GridView.builder(
-    padding:
-        const EdgeInsets.all(16 - ArtistTile.padding) + EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom),
-    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-      maxCrossAxisExtent: 180 + 2 * ArtistTile.padding,
-      mainAxisSpacing: 16 - 2 * ArtistTile.padding,
-      crossAxisSpacing: 16 - 2 * ArtistTile.padding,
-      childAspectRatio: ArtistTile.aspectRatio,
-    ),
-    itemCount: artists.length,
-    itemBuilder: (context, i) => ArtistTile(artists[i]),
+  Widget build(BuildContext context) => CustomScrollView(
+    slivers: [
+      SliverPadding(
+        padding:
+            const EdgeInsets.all(16 - ArtistTile.padding) +
+            EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom),
+        sliver: SliverGrid.builder(
+          key: gridKey,
+          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 180 + 2 * ArtistTile.padding,
+            mainAxisSpacing: 16 - 2 * ArtistTile.padding,
+            crossAxisSpacing: 16 - 2 * ArtistTile.padding,
+            childAspectRatio: ArtistTile.aspectRatio,
+          ),
+          itemCount: artists.length,
+          itemBuilder: (context, i) => ArtistTile(artists[i]),
+        ),
+      ),
+    ],
   );
 }
 

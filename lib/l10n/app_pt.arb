@@ -1664,5 +1664,14 @@
   "sleepTimerPausesAtSongEnd": "A música pausa quando a atual acabar",
   "@sleepTimerPausesAtSongEnd": {
     "description": "The sleep timer's button's tooltip, and its sheet under its title, while it waits for the song that plays to end."
+  },
+  "jumpToLetter": "Pular para {letter}",
+  "@jumpToLetter": {
+    "description": "On a TV, what a screen reader says of a letter beside a long list by name (the albums, the artists), which jumps to where the names under it start. The letter is one of A to Z, or # for numbers and signs.",
+    "placeholders": {
+      "letter": {
+        "type": "String"
+      }
+    }
   }
 }

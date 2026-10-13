@@ -13,7 +13,9 @@ import '../../services.dart';
 import '../artist/artist_link.dart';
 import '../widgets/cover.dart';
 import '../widgets/focus_ring.dart';
+import '../widgets/letter_bar.dart';
 import '../widgets/order_chips.dart';
+import '../widgets/scroll_focus.dart';
 import '../widgets/spinner.dart';
 import 'album_page.dart';
 import 'album_play_button.dart';
@@ -36,7 +38,8 @@ enum AlbumsShown { library, downloaded, favorites }
 
 /// The library's albums in [order], or a genre's by name, a page at a time: the next as the grid nears
 /// its end; or the albums downloaded, or the user's favorite ones ([shown]). Above the library's, chips pick the order,
-/// and after them "Favoritos", the favorites alone, and, where the app downloads, "Baixados", the downloaded alone.
+/// and after them "Favoritos", the favorites alone, and, where the app downloads, "Baixados", the downloaded alone. On a
+/// TV and on a computer, the albums by name have their letters beside them ([LetterBar]).
 class AlbumsView extends StatefulWidget {
   const AlbumsView({
     this.genre,
@@ -74,6 +77,9 @@ class AlbumsView extends StatefulWidget {
 class _AlbumsViewState extends State<AlbumsView> {
   static const _pageSize = 200;
 
+  /// The pages asked for on the way to a letter, as many albums as Navidrome gives at once.
+  static const _jumpPageSize = 500;
+
   /// The orders the chips pick from.
   static const _orders = [AlbumOrder.name, AlbumOrder.released, AlbumOrder.mostPlayed, AlbumOrder.latest];
 
@@ -92,6 +98,15 @@ class _AlbumsViewState extends State<AlbumsView> {
 
   /// Counts the starts over, so that a page asked for before one is dropped.
   int _generation = 0;
+
+  /// The page on its way, which a jump to a letter waits for.
+  Future<void>? _page;
+
+  /// The grid's sliver, which a jump to a letter scrolls to the album it starts at.
+  final _grid = GlobalKey();
+
+  /// Counts the jumps to a letter, so that one picked before another, waiting for its pages, is dropped.
+  int _jumps = 0;
 
   /// What was downloaded, which [AlbumsShown.downloaded] lists as it changes.
   Downloads? _downloads;
@@ -174,9 +189,18 @@ class _AlbumsViewState extends State<AlbumsView> {
     }
   }
 
-  /// Asks for the next page; [over], for the first again, which replaces the albums when it comes.
-  Future<void> _load({bool over = false}) async {
-    if (!mounted || (!over && (_loading || _done || _error != null))) {
+  /// Asks for the next page, of [size] albums; [over], for the first again, which replaces the albums when it comes. With
+  /// one on its way already, that one.
+  Future<void> _load({bool over = false, int size = _pageSize}) {
+    if (!over && _loading) {
+      return _page ?? Future.value();
+    }
+
+    return _page = _loadPage(over: over, size: size);
+  }
+
+  Future<void> _loadPage({required bool over, required int size}) async {
+    if (!mounted || (!over && (_done || _error != null))) {
       return;
     }
 
@@ -210,8 +234,8 @@ class _AlbumsViewState extends State<AlbumsView> {
     try {
       final offset = over ? 0 : _albums.length;
       final page = await switch (widget.genre) {
-        null => api.albums(order: widget.order, size: _pageSize, offset: offset),
-        final genre => api.genreAlbums(genre.id, size: _pageSize, offset: offset),
+        null => api.albums(order: widget.order, size: size, offset: offset),
+        final genre => api.genreAlbums(genre.id, size: size, offset: offset),
       };
 
       if (!mounted || generation != _generation) {
@@ -224,7 +248,7 @@ class _AlbumsViewState extends State<AlbumsView> {
         }
 
         _albums.addAll(page);
-        _done = page.length < _pageSize;
+        _done = page.length < size;
         _loading = false;
       });
     } on Object catch (error) {
@@ -275,6 +299,36 @@ class _AlbumsViewState extends State<AlbumsView> {
   void _retry() {
     _error = null; // which keeps _load from asking by itself
     _load();
+  }
+
+  /// Whether the albums are by name, which a letter jumps through: the library's in that order, or a genre's.
+  bool get _byName => widget.genre != null || (widget.shown == AlbumsShown.library && widget.order == AlbumOrder.name);
+
+  /// Scrolls to the albums listed under [letter], or, where there are none, the next letter's, once the pages up to them
+  /// have come, asked for in turn; past the last letter there is, to the last album. The focus stays on the letter.
+  Future<void> _jumpTo(String letter) async {
+    final jump = ++_jumps;
+    int? start;
+
+    while (mounted && jump == _jumps) {
+      start = letterStart([for (final album in _albums) letterOf(album.name)], letter);
+
+      if (start != null || _done || _error != null) {
+        break;
+      }
+
+      await _load(size: _jumpPageSize);
+    }
+
+    // A page that didn't come leaves the grid where it is, its end saying so.
+    if (!mounted || jump != _jumps || _albums.isEmpty || (start == null && !_done)) {
+      return;
+    }
+
+    final index = start ?? _albums.length - 1;
+    // Once the grid has the albums that came.
+    WidgetsBinding.instance.addPostFrameCallback((_) => scrollToGridChild(_grid, index));
+    WidgetsBinding.instance.scheduleFrame();
   }
 
   /// Asks for the next page when the grid nears its end: as it scrolls, and when it changes size.
@@ -345,12 +399,13 @@ class _AlbumsViewState extends State<AlbumsView> {
       }
     }
 
-    return NotificationListener<Notification>(
+    final grid = NotificationListener<Notification>(
       onNotification: _scrolled,
       child: RefreshIndicator(
         onRefresh: () => _load(over: true),
         child: AlbumGrid(
           _albums,
+          gridKey: _grid,
           header: widget.header,
           footer: error != null
               ? _Retry(strings.couldNotListMoreAlbums('$error'), onRetry: _retry)
@@ -373,6 +428,18 @@ class _AlbumsViewState extends State<AlbumsView> {
               : null,
         ),
       ),
+    );
+
+    if (!_byName || !LetterBar.shownIn(context)) {
+      return grid;
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(child: grid),
+        LetterBar(onLetter: _jumpTo),
+      ],
     );
   }
 }
@@ -401,7 +468,16 @@ class _Retry extends StatelessWidget {
 /// Albums as a grid of covers, under an optional [heading], between an optional [header] and [footer], under an optional
 /// [bar]. Each opens its page.
 class AlbumGrid extends StatelessWidget {
-  const AlbumGrid(this.albums, {this.heading, this.header, this.footer, this.subtitle, this.bar, super.key});
+  const AlbumGrid(
+    this.albums, {
+    this.heading,
+    this.header,
+    this.footer,
+    this.subtitle,
+    this.bar,
+    this.gridKey,
+    super.key,
+  });
 
   final List<Album> albums;
 
@@ -416,6 +492,9 @@ class AlbumGrid extends StatelessWidget {
 
   /// The line under each name; the artist, by default.
   final String Function(Album album)? subtitle;
+
+  /// The key of the grid's sliver, which a jump to a letter scrolls ([scrollToGridChild]).
+  final GlobalKey? gridKey;
 
   /// How far a row's lines are from the next row's covers. About as far as a list's last song is from a title under
   /// it, as the most played songs on an artist's page are from their albums.
@@ -442,6 +521,7 @@ class AlbumGrid extends StatelessWidget {
         SliverPadding(
           padding: const EdgeInsets.all(16 - AlbumTile.padding),
           sliver: SliverGrid.builder(
+            key: gridKey,
             gridDelegate: _AlbumGridDelegate(
               lines: lines,
               maxCrossAxisExtent: 180 + 2 * AlbumTile.padding,

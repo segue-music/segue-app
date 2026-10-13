@@ -285,5 +285,6 @@
   "sleepTimerSongEnd": "End of this song",
   "sleepTimerOff": "Turn off the timer",
   "sleepTimerPausesIn": "{minutes, plural, =1{The music pauses in 1 minute} other{The music pauses in {minutes} minutes}}",
-  "sleepTimerPausesAtSongEnd": "The music pauses when this song ends"
+  "sleepTimerPausesAtSongEnd": "The music pauses when this song ends",
+  "jumpToLetter": "Jump to {letter}"
 }
