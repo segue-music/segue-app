@@ -15,6 +15,8 @@ Future<void> main() async {
   MediaKit.ensureInitialized();
   addLibmpvLicenses();
   final television = await adaptToTelevision();
+  // The system's media service before the session and the settings are read: as the app starts for Android Auto,
+  // audio_service drops, unanswered, what the car asks before there is a handler.
   final controls = await MediaControls.start();
   final interruptions = await AudioInterruptions.start();
   runApp(
