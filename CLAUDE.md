@@ -439,7 +439,9 @@ Running two app instances on one machine as different devices:
   the navigation mode): the full-screen player opens with them, in three fifths of the screen, keeping the screen on,
   and the line that plays is bigger, in the middle (its style animated, `TweenAnimationBuilder`, on the `Text` itself,
   and the scroll going, along with it, straight to where the line ends up once grown and the one before shrunk:
-  `_growth` lays their text out in the style they go to). As they come and go, the player makes them once for all
+  `_growth` lays their text out in the style they go to). Each line shows broken where it breaks as the line that
+  plays (`_brokenAsPlaying`, its text laid out in that style): as it grew, a word went to the next line at some size
+  on the way, or the line became two. As they come and go, the player makes them once for all
   the steps, which then neither build them nor, on a layer of their own (`RepaintBoundary`), paint them again; on a
   TV they stay, hidden, between showings (`Visibility`, `maintainState`): built anew as they came, their lines held
   up the first step. A song without lyrics shows the cover alone, the lyrics still on for the next: the player asks

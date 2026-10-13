@@ -253,17 +253,23 @@ const verse = [
   (15, 'That nobody wears'),
 ];
 
+/// The lyrics' [line], as the line it shows on: on a TV, broken where it breaks as it plays.
+Finder lyric(String line) => find.byWidgetPredicate(
+  (widget) => widget is Text && widget.data?.replaceAll('\n', ' ') == line,
+  description: 'the line "$line"',
+);
+
 /// The size of the lyrics' [line], and the theme's [size] of text, to compare it to.
 (double?, double?) lyricsSize(WidgetTester tester, String line, TextStyle? Function(TextTheme text) size) => (
-  tester.widget<Text>(onPage(find.text(line))).style?.fontSize,
+  tester.widget<Text>(onPage(lyric(line))).style?.fontSize,
   size(Theme.of(tester.element(onPage(find.byType(LyricsView)))).textTheme)?.fontSize,
 );
 
-double? opacity(WidgetTester tester, String line) => tester.widget<Text>(onPage(find.text(line))).style?.color?.a;
+double? opacity(WidgetTester tester, String line) => tester.widget<Text>(onPage(lyric(line))).style?.color?.a;
 
 /// Whether the lyrics mark [line] as the one that plays.
 bool marked(WidgetTester tester, String line) =>
-    tester.widget<Text>(onPage(find.text(line))).style?.fontWeight == FontWeight.bold;
+    tester.widget<Text>(onPage(lyric(line))).style?.fontWeight == FontWeight.bold;
 
 /// Opens the full-screen player: from the bar's song, or on a TV, which has no bar, from the side rail.
 Future<void> openPlayer(WidgetTester tester) async {
@@ -889,6 +895,42 @@ void main() {
     },
   );
 
+  testWidgets('on a TV, a line that takes two lines as it plays, bigger, takes them before too, broken where it will '
+      'be: as it grows, no word goes to another line', (tester) async {
+    final player = await pumpBar(
+      tester,
+      // On one line as it is, on two as it plays.
+      server: withLyrics([for (var i = 0; i < 60; i++) (i * 4, 'Line $i, sung on')]),
+      size: const Size(960, 540),
+      television: true,
+    );
+    await openPlayer(tester);
+    await player.seek(const Duration(seconds: 120));
+    await tester.pumpAndSettle();
+    final next = onPage(find.textContaining('Line 31,'));
+    final broken = tester.widget<Text>(next).data!;
+    expect(broken, contains('\n'), reason: 'broken before it plays, as it will be');
+
+    int rows() => {
+      for (final box
+          in tester
+              .renderObject<RenderParagraph>(next)
+              .getBoxesForSelection(TextSelection(baseOffset: 0, extentOffset: broken.length)))
+        box.top,
+    }.length;
+
+    expect(rows(), 2);
+    await player.seek(const Duration(seconds: 124));
+
+    for (var i = 0; i < 25; i++) {
+      await tester.pump(const Duration(milliseconds: 16));
+      expect(tester.widget<Text>(next).data, broken, reason: 'frame $i');
+      expect(rows(), 2, reason: 'frame $i');
+    }
+
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('on a TV, hidden, the lyrics stay, laid out, for them to show at once as they come back, their lines '
       'there from the first step', (tester) async {
     await pumpBar(tester, server: withLyrics(verse), size: const Size(960, 540), television: true);
@@ -904,7 +946,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 20));
     expect(tester.state(onPage(find.byType(LyricsView))), same(shown));
-    expect(onPage(find.text('That nobody cares')), findsOneWidget);
+    expect(onPage(lyric('That nobody cares')), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -921,7 +963,7 @@ void main() {
     await tester.pumpAndSettle();
     final side = TelevisionScreen.margins.left;
     expect(tester.getRect(onPage(find.byType(LyricsView))).left, moreOrLessEquals(side + (960 - 2 * side) * 2 / 5));
-    expect(onPage(find.text('That nobody cares')), findsOneWidget);
+    expect(onPage(lyric('That nobody cares')), findsOneWidget);
 
     await player.previous();
     await player.previous();

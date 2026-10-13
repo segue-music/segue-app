@@ -155,6 +155,11 @@ class _LyricsViewState extends State<LyricsView> {
   /// As karaoke, the style each line goes to, growing or shrinking, as the last build gave it ([_growth]).
   TextStyle? Function(int line)? _endStyleOf;
 
+  /// As karaoke, the lines' texts broken as they break playing ([_brokenAsPlaying]), and the width, the style and the
+  /// text's scale they were broken for.
+  final _broken = <String, String>{};
+  Object? _brokenFor;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -370,6 +375,47 @@ class _LyricsViewState extends State<LyricsView> {
   /// From how wide the lyrics take their biggest size.
   static const _bigFrom = 480.0;
 
+  /// The room at the sides of the lyrics, under the scrollbar, and of each line, within its ink.
+  static const _side = 12.0;
+  static const _lineSide = 8.0;
+
+  /// As karaoke, [text] broken into the lines it takes as the line that plays, in [style], [width] wide, the way the
+  /// [Text] would break it: shown so before it plays too, and as it grows and shrinks, no word goes to another line,
+  /// as one would at some size on the way, nor does the line become two. Where it takes one line, as it is.
+  String _brokenAsPlaying(String text, TextStyle style, double width) {
+    final scale = MediaQuery.textScalerOf(context);
+
+    if ((width, style, scale) != _brokenFor) {
+      _broken.clear();
+      _brokenFor = (width, style, scale);
+    }
+
+    return _broken[text] ??= _breakAsPlaying(text, style, width, scale);
+  }
+
+  String _breakAsPlaying(String text, TextStyle style, double width, TextScaler scale) {
+    final defaults = DefaultTextStyle.of(context);
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: defaults.style.merge(style)),
+      textAlign: TextAlign.center,
+      textDirection: Directionality.of(context),
+      textScaler: scale,
+      locale: Localizations.maybeLocaleOf(context),
+      textWidthBasis: defaults.textWidthBasis,
+      textHeightBehavior: defaults.textHeightBehavior ?? DefaultTextHeightBehavior.maybeOf(context),
+    )..layout(maxWidth: width);
+    // Each line's part of the text, by a point in its middle.
+    final lines = [
+      for (final line in painter.computeLineMetrics())
+        painter.getLineBoundary(
+          painter.getPositionForOffset(Offset(line.left + line.width / 2, line.baseline - line.ascent / 2)),
+        ),
+    ];
+    painter.dispose();
+
+    return lines.length < 2 ? text : [for (final line in lines) line.textInside(text).trim()].join('\n');
+  }
+
   /// The lines in [style], the one that plays ([playing]) bold, in [playingStyle] where it has one of its own.
   Widget _lineList(Lyrics lyrics, int? playing, {required TextStyle? style, TextStyle? playingStyle}) {
     final ink = Theme.of(context).colorScheme.onSurface;
@@ -409,58 +455,65 @@ class _LyricsViewState extends State<LyricsView> {
           child: ScrollConfiguration(
             // The scrollbar above in place of the one the platform adds, which shows for any scroll.
             behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
-            child: SingleChildScrollView(
-              controller: _scroll,
-              // Room under the fades, for the first and the last lines to show whole.
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: LyricsView.edgeFade),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (final (i, line) in lyrics.lines.indexed)
-                    InkWell(
-                      key: _keys[i],
-                      // With a tap of their own, the lyrics' hand, over the lines too.
-                      mouseCursor: widget.onTap == null ? WidgetStateMouseCursor.clickable : MouseCursor.defer,
-                      borderRadius: BorderRadius.circular(8),
-                      onTap: switch (line.start) {
-                        final start? when widget.onTap == null => () => runCommand(
-                          context,
-                          () => ServicesScope.of(context).connect.seek(start),
+            child: LayoutBuilder(
+              builder: (context, box) => SingleChildScrollView(
+                controller: _scroll,
+                // Room under the fades, for the first and the last lines to show whole.
+                padding: const EdgeInsets.symmetric(horizontal: _side, vertical: LyricsView.edgeFade),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (final (i, line) in lyrics.lines.indexed)
+                      InkWell(
+                        key: _keys[i],
+                        // With a tap of their own, the lyrics' hand, over the lines too.
+                        mouseCursor: widget.onTap == null ? WidgetStateMouseCursor.clickable : MouseCursor.defer,
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: switch (line.start) {
+                          final start? when widget.onTap == null => () => runCommand(
+                            context,
+                            () => ServicesScope.of(context).connect.seek(start),
+                          ),
+                          _ => null,
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: _lineSide, vertical: 6),
+                          // A blank line of synced lyrics is a part with no singing; of others, a gap between
+                          // verses.
+                          child: lyrics.synced && line.text.trim().isEmpty
+                              ? ThemedIcon(
+                                  LyricsView.instrumentalIcon,
+                                  size: styleOf(i)?.fontSize,
+                                  color: styleOf(i)?.color,
+                                )
+                              // As karaoke, growing as it comes to play, and shrinking as it goes, broken as it is playing.
+                              : karaoke
+                              ? TweenAnimationBuilder(
+                                  tween: TextStyleTween(end: styleOf(i)),
+                                  duration: LyricsView._grow,
+                                  curve: Curves.easeOut,
+                                  builder: (context, style, _) => Text(
+                                    current == null
+                                        ? line.text
+                                        : _brokenAsPlaying(line.text, current, box.maxWidth - 2 * (_side + _lineSide)),
+                                    textAlign: TextAlign.center,
+                                    style: style,
+                                  ),
+                                )
+                              : Text(line.text, textAlign: TextAlign.center, style: styleOf(i)),
                         ),
-                        _ => null,
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                        // A blank line of synced lyrics is a part with no singing; of others, a gap between
-                        // verses.
-                        child: lyrics.synced && line.text.trim().isEmpty
-                            ? ThemedIcon(
-                                LyricsView.instrumentalIcon,
-                                size: styleOf(i)?.fontSize,
-                                color: styleOf(i)?.color,
-                              )
-                            // As karaoke, growing as it comes to play, and shrinking as it goes.
-                            : karaoke
-                            ? TweenAnimationBuilder(
-                                tween: TextStyleTween(end: styleOf(i)),
-                                duration: LyricsView._grow,
-                                curve: Curves.easeOut,
-                                builder: (context, style, _) =>
-                                    Text(line.text, textAlign: TextAlign.center, style: style),
-                              )
-                            : Text(line.text, textAlign: TextAlign.center, style: styleOf(i)),
                       ),
-                    ),
-                  if (lyrics.provider case final provider?)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(8, 24, 8, 8),
-                      child: Text(
-                        AppLocalizations.of(context).lyricsProvidedBy(provider),
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: faded),
+                    if (lyrics.provider case final provider?)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(8, 24, 8, 8),
+                        child: Text(
+                          AppLocalizations.of(context).lyricsProvidedBy(provider),
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: faded),
+                        ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
