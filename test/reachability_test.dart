@@ -52,6 +52,35 @@ void main() {
     });
   });
 
+  test('as the first ping goes, whether the server is in reach is known once it answers; out of reach, at once', () {
+    fakeAsync((time) {
+      var pings = 0;
+      final reachability = Reachability(() async {
+        pings++;
+        await Future<void>.delayed(const Duration(seconds: 1));
+      }, retry: const Duration(seconds: 30));
+      bool? settled;
+      unawaited(reachability.check());
+      unawaited(reachability.check());
+      unawaited(reachability.settled.then((value) => settled = value));
+      time.elapse(const Duration(milliseconds: 500));
+      expect(pings, 1, reason: 'one ping at a time');
+      expect(settled, isNull);
+      time.elapse(const Duration(milliseconds: 500));
+      expect(settled, isTrue);
+
+      // Out of reach, not after the ping that goes every 30 s.
+      reachability.lost();
+      time.elapse(const Duration(seconds: 30));
+      settled = null;
+      unawaited(reachability.settled.then((value) => settled = value));
+      time.flushMicrotasks();
+      expect(pings, 2);
+      expect(settled, isFalse);
+      reachability.dispose();
+    });
+  });
+
   test('a server that doesn\'t answer in time is out of reach', () {
     fakeAsync((time) {
       final reachability = Reachability(() => Completer<void>().future, timeout: const Duration(seconds: 5));

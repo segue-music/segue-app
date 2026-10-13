@@ -48,8 +48,8 @@ class SegueClient extends ChangeNotifier {
     WebSocketChannel Function(Uri url)? channelFactory,
   }) : _channelFactory = channelFactory ?? WebSocketChannel.connect;
 
-  /// The hub's WebSocket URL.
-  final Uri url;
+  /// The hub's WebSocket URL; a new one is where the next connection goes.
+  Uri url;
   final Auth auth;
   final DeviceInfo device;
   CommandHandler? onCommand;

@@ -299,7 +299,8 @@ class Downloads extends ChangeNotifier {
     _fetching = true;
 
     try {
-      while (!_disposed && (_reachability?.value ?? true) && !held) {
+      // As the app opens, once the server is known to be in reach.
+      while (await (_reachability?.settled ?? Future.value(true)) && !_disposed && !held) {
         final missing = _missingSong() ?? _missingCover() ?? _missingLyrics() ?? _missingArtist();
 
         if (missing == null) {

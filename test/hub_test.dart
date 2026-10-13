@@ -640,4 +640,54 @@ void main() {
     expect(tv.reachability?.value, isTrue, reason: 'the server in reach');
     await until(() => laptop.connect.devices.any((d) => d.id == 'tv'), 'the tv');
   });
+
+  test(
+    'the app opens without waiting for a media server that doesn\'t answer, on the hub found next to it before',
+    () async {
+      SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
+      // A media server that takes requests and leaves them waiting, as one out of reach may for minutes.
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(() => server.close(force: true));
+      server.listen((_) {});
+      final url = Uri.parse('http://127.0.0.1:${server.port}/');
+      await Session.rememberFoundHub(url, hubUrl);
+
+      final user = newUser();
+      final laptop = await App(user, 'laptop').start();
+      final tv = await Services.start(
+        Session(
+          server: url,
+          credentials: SubsonicCredentials(username: user, token: '-', salt: '-'),
+          deviceId: 'tv',
+          deviceName: 'tv',
+        ),
+        engine: FakeEngine(),
+      ).timeout(const Duration(seconds: 1));
+      addTearDown(tv.dispose);
+      await until(() => laptop.connect.devices.any((d) => d.id == 'tv'), 'the tv');
+    },
+  );
+
+  test('a hub found elsewhere than the one found before is where the app connects, and is kept', () async {
+    SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
+    final server = Uri.parse('https://music.test/');
+    // Where nothing answers any more.
+    await Session.rememberFoundHub(server, Uri.parse('ws://127.0.0.1:1/connect/v1/ws'));
+
+    final user = newUser();
+    final laptop = await App(user, 'laptop').start();
+    final tv = await Services.start(
+      Session(
+        server: server,
+        credentials: SubsonicCredentials(username: user, token: '-', salt: '-'),
+        deviceId: 'tv',
+        deviceName: 'tv',
+        hub: hubUrl.replace(scheme: 'http', path: ''),
+      ),
+      engine: FakeEngine(),
+    );
+    addTearDown(tv.dispose);
+    await until(() => laptop.connect.devices.any((d) => d.id == 'tv'), 'the tv');
+    expect(await Session.foundHub(server), tv.connect.client!.url);
+  });
 }

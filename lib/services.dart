@@ -52,9 +52,10 @@ class Services {
 
   /// Starts a session: the API, with what the user downloaded, this device's player, which plays as [settings] say (its
   /// quality, loudness, equalizer, autoplay, crossfade and volume; with none, the songs as they are, one after the other
-  /// to the queue's end, as loud as the system's volume), and, if a hub is found, the connection to it.
-  /// Where none is found, the media server out of reach or the network blinking as the app opens, the hub is the one last
-  /// found next to it, which the connection reaches once it can.
+  /// to the queue's end, as loud as the system's volume), and the connection to the hub last found next to the media
+  /// server, which reaches it once it can. It waits for nothing from the network, which out of reach took a few seconds:
+  /// the media server is pinged meanwhile, what asks it waiting for the answer ([Reachability.settled]), and the hub is
+  /// looked for ([_discoverHub]).
   static Future<Services> start(Session session, {AudioEngine? engine, Settings? settings}) async {
     final server = openServer(
       session.server,
@@ -63,8 +64,7 @@ class Services {
       deviceName: session.deviceName,
     );
     final reachability = Reachability(server.ping);
-    // At once, rather than one after the other: out of reach, each waits for nothing to answer.
-    final (_, foundHub) = await (reachability.check(), discoverHub(session.server, hub: session.hub)).wait;
+    unawaited(reachability.check());
     final mobileData = await MobileData.watch();
     final lrclib = Lrclib();
     final fanartTv = fanartTvKey.isEmpty ? null : FanartTv(apiKey: fanartTvKey);
@@ -103,34 +103,12 @@ class Services {
       crossfadeEngine: settings == null ? null : () => CrossfadeEngine(() => settings.crossfade.value),
       volume: settings?.volume,
     );
-    // Not found, the hub last found there, also with the server in reach: a request that failed as the app opened (the
-    // network blinking, a VPN coming up) left the app without one until it was opened again.
-    final hubUrl = foundHub ?? await _rememberedHub(session.server);
-
-    if (foundHub != null) {
-      await _rememberHub(session.server, foundHub);
-    }
-
-    final client = hubUrl == null
-        ? null
-        : SegueClient(
-            url: hubUrl,
-            auth: api.auth,
-            device: DeviceInfo(
-              id: session.deviceId,
-              name: session.deviceName,
-              client: clientName,
-              version: appVersion,
-              api: api.api,
-              roles: Role.values,
-              capabilities: CommandAction.values,
-            ),
-          );
+    final rememberedHub = await _rememberedHub(session.server);
     final services = Services(
       session,
       api,
       player,
-      ConnectController(player: player, client: client),
+      ConnectController(player: player),
       lrclib: lrclib,
       musicBrainz: MusicBrainz(remembersCountries: true),
       fanartTv: fanartTv,
@@ -141,7 +119,12 @@ class Services {
       downloadHold: downloadHold,
       sleepTimer: SleepTimer(player),
     );
-    unawaited(client?.start());
+
+    if (rememberedHub != null) {
+      services._join(rememberedHub);
+    }
+
+    unawaited(services._discoverHub());
     unawaited(services._loadFavorites());
     reachability.addListener(() {
       if (reachability.value) {
@@ -220,6 +203,51 @@ class Services {
   /// What pauses [player] after a while, or as the song ends; null, nothing does, nor shows a way to.
   final SleepTimer? sleepTimer;
 
+  bool _disposed = false;
+
+  /// Connects to the hub at [url], [connect] going through it.
+  void _join(Uri url) {
+    final client = SegueClient(
+      url: url,
+      auth: api.auth,
+      device: DeviceInfo(
+        id: session.deviceId,
+        name: session.deviceName,
+        client: clientName,
+        version: appVersion,
+        api: api.api,
+        roles: Role.values,
+        capabilities: CommandAction.values,
+      ),
+    );
+    connect.attach(client);
+    unawaited(client.start());
+  }
+
+  /// Looks for the hub next to the media server, which is kept for the next time ([Session.foundHub]): the connection
+  /// goes to it, as it starts where none was known (the first time, or a hub new there), and where the one known has
+  /// moved, as it connects again. Not found, the one known stays, the server in reach too: a request that failed as the
+  /// app opened (the network blinking, a VPN coming up) left the app without one until it was opened again.
+  Future<void> _discoverHub() async {
+    final found = await discoverHub(session.server, hub: session.hub);
+
+    if (found == null || _disposed) {
+      return;
+    }
+
+    await _rememberHub(session.server, found);
+
+    if (_disposed) {
+      return;
+    }
+
+    if (connect.client case final client?) {
+      client.url = found;
+    } else {
+      _join(found);
+    }
+  }
+
   /// Loads the favorites, where the media server gives them.
   Future<void> _loadFavorites() async {
     try {
@@ -258,6 +286,7 @@ class Services {
   }
 
   Future<void> dispose() async {
+    _disposed = true;
     connect.dispose();
     playlistEditor.dispose();
     favorites.dispose();

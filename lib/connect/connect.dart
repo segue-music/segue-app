@@ -84,24 +84,30 @@ class NowPlaying {
 /// press (play an album, pause, skip) goes to it. Picking another device moves the music there, and
 /// when any device starts playing, every app follows it.
 class ConnectController extends ChangeNotifier {
-  ConnectController({required this.player, this.client}) {
+  ConnectController({required this.player, SegueClient? client}) {
     player.addListener(_update);
-    final hub = client;
 
-    if (hub == null) {
-      return;
+    if (client != null) {
+      attach(client);
     }
-
-    hub.addListener(_update);
-    hub.onCommand = (command, from) => player.obey(command);
-    hub.onConnected = () => unawaited(_connected());
-    player.onReport = hub.sendState;
   }
 
   final PlayerController player;
 
-  /// Null when no hub was found: the app then only plays here.
-  final SegueClient? client;
+  /// The connection to the hub; null while no hub is known, the app then only playing here.
+  SegueClient? get client => _client;
+  SegueClient? _client;
+
+  /// Goes through [hub] from now on, as a hub is found after the app opened: once, as there is one hub.
+  void attach(SegueClient hub) {
+    assert(_client == null, 'a hub already');
+    _client = hub;
+    hub.addListener(_update);
+    hub.onCommand = (command, from) => player.obey(command);
+    hub.onConnected = () => unawaited(_connected());
+    player.onReport = hub.sendState;
+    notifyListeners();
+  }
 
   String? _active;
 

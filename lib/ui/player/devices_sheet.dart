@@ -27,7 +27,6 @@ class _DevicesSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final services = ServicesScope.of(context);
     final connect = services.connect;
-    final client = connect.client;
     final strings = AppLocalizations.of(context);
 
     Future<void> act(Future<Result> Function() action) async {
@@ -59,7 +58,7 @@ class _DevicesSheet extends StatelessWidget {
             trailing: _marks(playing: connect.player.playing, active: connect.activeId == null),
             onTap: () => act(() => connect.switchTo(null)),
           ),
-          if (client == null)
+          if (connect.client == null)
             ListTile(
               leading: const ThemedIcon(HugeIcons.strokeRoundedInformationCircle),
               title: Text(strings.noHubFound),

@@ -23,8 +23,18 @@ class Reachability extends ValueNotifier<bool> {
   Timer? _again;
   bool _disposed = false;
 
-  /// Asks the server now; whether it answered.
-  Future<bool> check() async {
+  /// The ping under way; null, none.
+  Future<bool>? _checking;
+
+  /// [value] once the ping under way, if any, has answered: until the first one does, as the app opens, that the server
+  /// is in reach is only a guess, and a request to a server out of reach may wait for minutes. Out of reach, at once,
+  /// rather than after the ping every [retry].
+  Future<bool> get settled async => value ? await (_checking ?? Future.value(true)) : false;
+
+  /// Asks the server now, unless a ping is under way already; whether it answered.
+  Future<bool> check() => _checking ??= _check().whenComplete(() => _checking = null);
+
+  Future<bool> _check() async {
     _again?.cancel();
 
     try {

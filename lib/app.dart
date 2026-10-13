@@ -20,7 +20,6 @@ import 'ui/app/theme.dart';
 import 'ui/app/theme_fade.dart';
 import 'ui/app/title_bar.dart';
 import 'ui/player/failed_song_message.dart';
-import 'ui/widgets/spinner.dart';
 
 class SegueApp extends StatefulWidget {
   const SegueApp({
@@ -240,8 +239,10 @@ class _SegueAppState extends State<SegueApp> {
       },
       home: services != null
           ? HomePage(onSignOut: _signOut, packageInfo: widget.packageInfo)
+          // Starting, a moment, as nothing there waits for the network (Services.start), or closed, out of sight: the
+          // theme's background alone, rather than a spinner that would flash.
           : _starting || _closed != null
-          ? const Scaffold(body: Center(child: Spinner()))
+          ? const Scaffold()
           : _error != null
           ? Builder(
               builder: (context) {

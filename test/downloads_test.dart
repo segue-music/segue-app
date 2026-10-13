@@ -328,9 +328,11 @@ void main() {
 
       server.reachable = true;
       await reachability.check();
+      Future<bool> counted() async =>
+          pendingPlays.plays.isEmpty && (await PendingPlays.open(pendingPlays.file)).plays.isEmpty;
 
       // Written on the device as each goes.
-      for (var i = 0; i < 100 && pendingPlays.plays.isNotEmpty; i++) {
+      for (var i = 0; i < 100 && !await counted(); i++) {
         await Future<void>.delayed(const Duration(milliseconds: 10));
       }
 
@@ -438,6 +440,23 @@ void main() {
         expect(reachability.value, isFalse);
       },
     );
+
+    test('as the app opens, a request waits for the first ping to answer: out of reach, it takes the downloads, the '
+        'server not asked', () async {
+      final ping = Completer<void>();
+      final opening = Reachability(() => ping.future, retry: const Duration(hours: 1));
+      addTearDown(opening.dispose);
+      final api = ServerWithDownloads(server.api, downloads, opening);
+      unawaited(opening.check());
+      final asked = server.requests.length;
+      final playlists = api.playlists();
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      expect(server.requests, hasLength(asked));
+
+      ping.completeError(const SocketException('no route to host'));
+      expect((await playlists).single.name, 'Road trip');
+      expect(server.requests, hasLength(asked));
+    });
 
     test('a refusal is the server answering: it fails as it is', () async {
       final refusing = SubsonicApi(

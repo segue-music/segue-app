@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../../connect/connect.dart';
 import '../../l10n/app_localizations.dart';
 import '../../segue/client.dart';
 import '../../segue/protocol.dart';
@@ -412,7 +413,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     // settings, a page of their own, whose button comes after the hub's status, which stays in sight: signing out, which
     // forgets the token, two clicks away rather than one in the corner.
     final actions = [
-      _HubStatus(client: services.connect.client, reachability: services.reachability),
+      _HubStatus(connect: services.connect, reachability: services.reachability),
       IconButton(
         tooltip: strings.settings,
         icon: const ThemedIcon(HugeIcons.strokeRoundedSettings01),
@@ -871,14 +872,15 @@ class _SideRail extends StatelessWidget {
 /// Whether Connect works, the hub's connection, at a glance; and, while the media server is out of reach
 /// ([reachability]), that the app shows only what was downloaded.
 class _HubStatus extends StatelessWidget {
-  const _HubStatus({required this.client, this.reachability});
+  const _HubStatus({required this.connect, this.reachability});
 
-  final SegueClient? client;
+  /// What has the hub's connection ([ConnectController.client]), which may come only as the hub is found, after the app
+  /// opened, and tells of its changes.
+  final ConnectController connect;
   final Reachability? reachability;
 
   @override
   Widget build(BuildContext context) {
-    final client = this.client;
     final reachability = this.reachability;
     final strings = AppLocalizations.of(context);
     // As big as the icon buttons beside it, so that the icons in the bar are evenly spaced.
@@ -893,8 +895,10 @@ class _HubStatus extends StatelessWidget {
     );
 
     return ListenableBuilder(
-      listenable: Listenable.merge([?client, ?reachability]),
+      listenable: Listenable.merge([connect, ?reachability]),
       builder: (context, _) {
+        final client = connect.client;
+
         if (reachability != null && !reachability.value) {
           return status(strings.serverUnreachable, HugeIcons.strokeRoundedWifiDisconnected02);
         }

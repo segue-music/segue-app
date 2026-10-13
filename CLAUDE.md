@@ -114,8 +114,8 @@ Running two app instances on one machine as different devices:
 ## Architecture
 
 - `services.dart`: `Services.start` wires one signed-in session: `MediaServer` →
-  `PlayerController` → `ConnectController`, plus a `SegueClient` if a hub was discovered (otherwise
-  the app only plays locally). `ServicesScope` hands this down the tree. It sits in
+  `PlayerController` → `ConnectController`, plus a `SegueClient` for the hub last found next to the server, or, where
+  none was, the one discovered after (`ConnectController.attach`; with none, the app only plays locally). `ServicesScope` hands this down the tree. It sits in
   `MaterialApp.builder` (`app.dart`), above the navigator, so pages, sheets and the keyboard
   shortcuts all see it. A window closed on a computer disposes them before Flutter ends the app (`_exit`, through
   `AppLifecycleListener.onExitRequested`), the player before the hub's connection, whose close can wait on the network:
@@ -291,12 +291,14 @@ Running two app instances on one machine as different devices:
   (`PendingPlays`, `plays.json` in the same folder) and counted as the server is back, by `scrobbleMissed`: Subsonic's
   scrobble at their time, and on Jellyfin, whose `scrobble` counts nothing since the hub reports the plays, the song
   marked played then (`UserPlayedItems`). `Reachability` (`lib/server/reachability.dart`) says whether the server is in
-  reach: `Services.start` pings it (`MediaServer.ping`) as it discovers the hub, both waiting a few seconds at most,
-  since a request to a server out of reach can wait for minutes, and a request that fails for the network
-  (`isNetworkFailure`) sets it out of reach, from when it pings every 30 s. `HomePage` builds its sections anew as it
-  changes. Where discovery finds none as the app opens (the server out of reach, or the network blinking with the
-  server in reach), the hub is the one last found next to the server (`Session.foundHub`), which `SegueClient` reaches
-  once it can. Tests leave `Services.downloads` null, and `Services.start` too where it can't
+  reach: `Services.start` pings it (`MediaServer.ping`), waiting a few seconds at most, since a request to a server out
+  of reach can wait for minutes, and a request that fails for the network (`isNetworkFailure`) sets it out of reach,
+  from when it pings every 30 s. Only what asks the server waits for that first ping (`Reachability.settled`:
+  `ServerWithDownloads`, the downloads), so that the app opens at once, out of reach too; `HomePage` builds its sections
+  anew as it changes. The hub is the one last found next to the server (`Session.foundHub`), which `SegueClient`
+  reaches once it can, as the app looks for it (`Services._discoverHub`): one found where none was known joins then
+  (`ConnectController.attach`), and one found elsewhere is where the client connects next. Not found (the server out of
+  reach, or the network blinking with the server in reach), the one known stays. Tests leave `Services.downloads` null, and `Services.start` too where it can't
   have a folder.
 - `PlaylistEditor` (`lib/server/playlist_editor.dart`, `Services.playlistEditor`) makes the changes to the user's
   playlists (create, rename, delete, add, remove, move), one after another in the order they come, since removing and

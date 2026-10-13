@@ -41,6 +41,11 @@ class ServerWithDownloads implements MediaServer {
   }
 
   Future<void> _sendPendingPlays(PendingPlays pendingPlays) async {
+    // As the app opens, once the server is known to be in reach.
+    if (!await reachability.settled) {
+      return;
+    }
+
     if (!await pendingPlays.send((play) => server.scrobbleMissed(play.songId, time: play.time))) {
       // Out of reach again, unless another send had them.
       if (pendingPlays.plays.isNotEmpty) {
@@ -54,7 +59,7 @@ class ServerWithDownloads implements MediaServer {
 
   /// [request] of the server, in reach; out of reach, or as a request fails for the network, [downloaded].
   Future<T> _either<T>(Future<T> Function() request, FutureOr<T> Function() downloaded) async {
-    if (!reachability.value) {
+    if (!await reachability.settled) {
       return downloaded();
     }
 
