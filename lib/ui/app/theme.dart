@@ -14,10 +14,11 @@ const iconDeepPink = Color(0xFFDD0365);
 /// The light pink of the right half of the ring.
 const iconLightPink = Color(0xFFFD73AD);
 
-/// The black around the icon's rounded square.
+/// The black around the icon's rounded square, in its artwork; the icons themselves are pure black there
+/// (tool/icons.dart).
 const iconBlack = Color(0xFF090909);
 
-/// The wine inside the icon's rounded square, around the ring.
+/// The wine inside the icon's rounded square, around the ring, in its artwork; the icons are black there too.
 const iconWine = Color(0xFF1A020E);
 
 /// The back arrow that Flutter puts in a page's top bar by itself.

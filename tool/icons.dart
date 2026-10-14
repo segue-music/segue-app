@@ -1,6 +1,7 @@
 // Makes the app's icons from tool/icon.png, the artwork: a pink rounded square, with a ring around the note, on a
 // near-black background. The square's pink edge says nothing, so no icon has it: where the system gives the icon no
-// shape of its own, it is the ring and what is in it, round, in the room the square took. Run it after changing the
+// shape of its own, it is the ring and what is in it, round, in the room the square took. The artwork's dark, the wine
+// inside the square and the near-black around it, is black in every icon. Run it after changing the
 // artwork: DART=1 tool/flutter.sh run tool/icons.dart
 //
 // - Android: the launcher icon, adaptive (Android 8 and later, mipmap-anydpi-v26/ic_launcher.xml) and as a plain image
@@ -45,7 +46,7 @@ void main() {
     _write('$_res/drawable-$density/ic_notification.png', art.silhouette((24 * scale).round(), 20 / 24));
   }
 
-  // The Android TV banner, 320 × 180 dp: the ring, on the artwork's background.
+  // The Android TV banner, 320 × 180 dp: the ring, on black.
   _write('$_res/drawable-xhdpi/banner.png', art.banner(640, 360, 0.8));
   // A round icon looks smaller than a square one as wide, so the ring takes a little more than the square took (0.84).
   _write('linux/runner/resources/app_icon.png', art.round(256, 0.88));
@@ -122,7 +123,7 @@ class _Artwork {
 
     return _render(size, size, scale, (x, y) {
       final (px, py) = _nearestInside(x, y, inset);
-      final (r, g, b) = _sample(px, py);
+      final (r, g, b) = _onBlack(px, py);
 
       return (r, g, b, 1);
     });
@@ -138,7 +139,7 @@ class _Artwork {
 
     return _render(size, size, side / (size * fill), (x, y) {
       final (px, py) = _nearestInside(x, y, inset);
-      final (r, g, b) = _sample(px, py);
+      final (r, g, b) = _onBlack(px, py);
       final dx = max((x - _cx).abs() - k, 0.0), dy = max((y - _cy).abs() - k, 0.0);
 
       return (r, g, b, dx * dx + dy * dy <= corner * corner ? 1 : 0);
@@ -165,19 +166,16 @@ class _Artwork {
     });
   }
 
-  /// The ring and what is in it, [fill] of the image's height, on the colour of the artwork's borders.
-  Image banner(int width, int height, double fill) {
-    final (br, bg, bb) = _borderColour();
+  /// The ring and what is in it, [fill] of the image's height, on black.
+  Image banner(int width, int height, double fill) =>
+      _render(width, height, _ringWidth / (height * fill), centre: (_ringX, _ringY), (x, y) {
+        final (r, g, b, a) = _ring(x, y);
 
-    return _render(width, height, _ringWidth / (height * fill), centre: (_ringX, _ringY), (x, y) {
-      final (r, g, b, a) = _ring(x, y);
+        return (r * a, g * a, b * a, 1);
+      });
 
-      return (r * a + br * (1 - a), g * a + bg * (1 - a), b * a + bb * (1 - a), 1);
-    });
-  }
-
-  /// The colour at (x, y) of the ring and what is in it, transparent around it: within the ring's band, the artwork as
-  /// it is; past it, the ring's pink alone, as opaque as it is pink, so that the cut follows the ring's edge, which
+  /// The colour at (x, y) of the ring and what is in it, transparent around it: within the ring's band, the artwork on
+  /// black; past it, the ring's pink alone, as opaque as it is pink, so that the cut follows the ring's edge, which
   /// isn't quite round. Where the ring has its gaps, the cut goes into them.
   _Rgba _ring(double x, double y) {
     final dx = x - _ringX, dy = y - _ringY;
@@ -187,9 +185,15 @@ class _Artwork {
       return (0, 0, 0, 0);
     }
 
+    if (distance <= _ringBand) {
+      final (r, g, b) = _onBlack(x, y);
+
+      return (r, g, b, 1);
+    }
+
     final (r, g, b) = _sample(x, y);
 
-    return (r, g, b, distance <= _ringBand ? 1 : _pinkness(r));
+    return (r, g, b, _pinkness(r));
   }
 
   /// A width × height image centred on [centre], or else on the rounded square, each pixel [scale] artwork pixels wide.
@@ -250,29 +254,14 @@ class _Artwork {
     return (channel(0), channel(1), channel(2));
   }
 
-  /// The mean colour of the artwork's outermost pixels.
-  (double, double, double) _borderColour() {
-    var r = 0.0, g = 0.0, b = 0.0, n = 0;
+  /// The artwork's colour at (x, y) with its dark made black: the wine inside the square and the near-black around it,
+  /// and the dark outline of each shape. The pinks stay as they are, and their edges, a blend of pink and dark, go dark
+  /// as much as they are.
+  (double, double, double) _onBlack(double x, double y) {
+    final (r, g, b) = _sample(x, y);
+    final pink = _pinkness(r);
 
-    void add(int x, int y) {
-      final i = (y * width + x) * 3;
-      r += _rgb[i];
-      g += _rgb[i + 1];
-      b += _rgb[i + 2];
-      n++;
-    }
-
-    for (var x = 0; x < width; x++) {
-      add(x, 0);
-      add(x, height - 1);
-    }
-
-    for (var y = 1; y < height - 1; y++) {
-      add(0, y);
-      add(width - 1, y);
-    }
-
-    return (r / n / 255, g / n / 255, b / n / 255);
+    return (r * pink, g * pink, b * pink);
   }
 
   /// How pink a colour of the artwork is, by its red, from 0 (the dark of the square's inside) to 1: the dark is
