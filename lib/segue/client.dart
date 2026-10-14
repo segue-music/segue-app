@@ -3,9 +3,12 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
+import 'package:logging/logging.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import 'protocol.dart';
+
+final _log = Logger('SegueClient');
 
 /// Obeys a command from another device. Throwing [CommandFailed] reports it as failed.
 typedef CommandHandler = Future<void> Function(Command command, String from);
@@ -89,8 +92,10 @@ class SegueClient extends ChangeNotifier {
 
       try {
         await connect();
+        _log.info('connected to $url');
         backoff = const Duration(seconds: 1);
         await closed;
+        _log.info('disconnected from $url', lastClose);
 
         // Closed by the hub after accepting us: the same device connected elsewhere (4003)
         // must not reconnect, or the two would take turns kicking each other out.
@@ -101,14 +106,19 @@ class SegueClient extends ChangeNotifier {
         }
       } on HubClosed catch (e) {
         lastClose = e;
+        _log.warning('refused by $url', e);
 
         if (e.isFinal) {
           _running = false;
           _setStatus(HubStatus.rejected);
           return;
         }
-      } catch (_) {
-        // network error: retry below
+      } catch (e) {
+        // A network error: retry below. Out of reach, the hub fails again and again, which the log says once, until it
+        // connects again.
+        if (backoff == const Duration(seconds: 1)) {
+          _log.warning('no connection to $url', e);
+        }
       }
 
       if (!_running) {
@@ -164,7 +174,7 @@ class SegueClient extends ChangeNotifier {
 
         ended.complete();
       },
-      onError: (_) {}, // onDone follows
+      onError: (Object e) => _log.warning('connection to $url failed', e), // onDone follows
     );
     _send({'type': 'hello', 'protocol': protocolVersion, 'auth': auth.toJson(), 'device': device.toJson()});
     await welcomed.future;

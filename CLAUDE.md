@@ -439,6 +439,16 @@ Running two app instances on one machine as different devices:
   On Android it also asks for the audio focus as the local player starts playing (audio_session's
   `setActive`), which tells the app that had it to stop: without it, another app's music played on
   alongside. Refused (during a call), the music pauses.
+- The log (`lib/log_file.dart`, README.md, "Logs"): each part of the app says what goes wrong through a `Logger` of
+  its own (package:logging). `startLogging`, the first thing `main` does, prints each record on the console and
+  writes it to `segue.log` (`LogFile`: in the app's support folder, or on Android its folder in the shared storage,
+  which `adb pull` reaches in a release build), a line as it comes, with no buffer, so that one written just before
+  the app aborts is there; past 1 MB the file becomes `segue.1.log`. The errors no code caught
+  (`FlutterError.onError`, `PlatformDispatcher.onError`) go to the file only, Flutter printing them itself. Neither
+  has the credentials the media server's addresses (a stream's, a cover's, which an error or mpv may quote) and the
+  requests carry (`redacted`). `SegueClient` says as the hub's connection comes and goes, or is refused, and
+  `MediaKitEngine` passes mpv's warnings and errors on, not its info, which would bury them under each track's
+  address. Tests print what is logged (`test/flutter_test_config.dart`), but write no file.
 - The app's words are in `lib/l10n/`'s ARB files, one per language (Portuguese, English, Spanish),
   from which gen-l10n makes `AppLocalizations` (`l10n.yaml`). `LanguageChoice`
   (`lib/language_choice.dart`) is the language shown: the system's, of those the app has the first
@@ -632,6 +642,9 @@ Running two app instances on one machine as different devices:
   theme (`segueTheme`) gives it to buttons, list tiles and menus' items, and an `InkWell`, which no
   theme reaches, takes `mouseCursor: WidgetStateMouseCursor.clickable`. `test/cursor_test.dart` goes
   over them.
+- What fails, with the app going on without it, says so in the log: through the file's `Logger`, named for its class
+  (`final _log = Logger('Downloads');`), as `_log.warning('downloads unavailable', e)`, never `debugPrint` or
+  `print`, which the log file doesn't see.
 - No name ends in `_`: when the obvious one is taken, as by an import prefix (`http`), pick a fuller
   one (`httpClient`). A leading `_` is Dart's privacy, not style, and stays.
 - Docs, comments and tests stay generic: no names from a particular setup (machine or device names,

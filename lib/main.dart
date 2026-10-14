@@ -9,9 +9,15 @@ import 'player/media_controls.dart';
 import 'session.dart';
 import 'settings.dart';
 import 'device.dart';
+import 'log_file.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  final packageInfo = await PackageInfo.fromPlatform();
+
+  // Before anything else, so that the log has what goes wrong as the app starts.
+  await startLogging(packageInfo);
   MediaKit.ensureInitialized();
   addLibmpvLicenses();
 
@@ -28,7 +34,7 @@ Future<void> main() async {
       mediaControls: controls,
       interruptions: interruptions,
       television: television,
-      packageInfo: await PackageInfo.fromPlatform(),
+      packageInfo: packageInfo,
     ),
   );
 }

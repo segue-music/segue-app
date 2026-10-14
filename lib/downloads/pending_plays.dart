@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
+import 'package:logging/logging.dart';
 
 import '../server/reachability.dart';
+
+final _log = Logger('PendingPlays');
 
 /// A play this device made with the media server out of reach: of the song whose id is [songId], which started at
 /// [time].
@@ -30,7 +32,7 @@ class PendingPlays {
         }
       }
     } on Object catch (e) {
-      debugPrint('pending plays unreadable: $e');
+      _log.warning('pending plays unreadable', e);
     }
 
     return PendingPlays._(file, plays);
@@ -67,7 +69,7 @@ class PendingPlays {
             return false;
           }
 
-          debugPrint('a play not counted: $error');
+          _log.warning('a play not counted', error);
         }
 
         _plays.removeAt(0);

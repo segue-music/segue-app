@@ -2,9 +2,12 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
+import 'package:logging/logging.dart';
 import 'package:media_kit/media_kit.dart';
 
 import '../segue/protocol.dart';
+
+final _log = Logger('MediaKitEngine');
 
 /// Where a track's stream is, for [AudioEngine.open], and how loud it plays: the engine asks for them as the track
 /// loads.
@@ -766,7 +769,7 @@ class MediaKitEngine implements Deck {
     try {
       return track.address();
     } on Object catch (e) {
-      debugPrint('no stream: $e');
+      _log.warning('no stream', e);
       return null;
     }
   }
@@ -1005,8 +1008,15 @@ class MediaKitEngine implements Deck {
   }
 
   /// Follows mpv's loads, and their failures: a stream that fails to open is the loading track's where it is the track's
-  /// name or the stream the on_load hook gave it; another is one mpv opened ahead.
+  /// name or the stream the on_load hook gave it; another is one mpv opened ahead. Its warnings and errors go to the
+  /// app's log, not its info, which every track's address would bury them in.
   void _logged(PlayerLog log) {
+    if (log.level == 'warn') {
+      _log.warning('mpv ${log.prefix}: ${log.text}');
+    } else if (log.level == 'error' || log.level == 'fatal') {
+      _log.severe('mpv ${log.prefix}: ${log.text}');
+    }
+
     if (log.prefix == 'cplayer' && log.text.startsWith('Playing: ')) {
       final track = _loading = log.text.substring('Playing: '.length);
       _loadingStream = null;
@@ -1158,7 +1168,7 @@ class MediaKitEngine implements Deck {
     try {
       address = from == Duration.zero ? _tracks[i].address() : await _tracks[i].addressFrom(from);
     } on Object catch (e) {
-      debugPrint('no stream for $track from $from: $e');
+      _log.warning('no stream for $track from $from', e);
       return false;
     }
 

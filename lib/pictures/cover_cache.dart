@@ -8,8 +8,11 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 import 'package:http/http.dart' as http;
+import 'package:logging/logging.dart';
 
 import '../server/server.dart';
+
+final _log = Logger('CoverCache');
 
 /// The covers the app shows, and the pictures from elsewhere (an artist's from fanart.tv), kept on the device as they
 /// come, so that they show at once the next time, the media server out of reach too: in a folder of the app's cache for
@@ -71,7 +74,7 @@ class CoverCache {
       }
     } on Object catch (e) {
       // One that can't be read, or isn't an image: from where it comes, again.
-      debugPrint('kept picture unreadable: $e');
+      _log.warning('kept picture unreadable', e);
     }
 
     final bytes = await fetch();
@@ -91,7 +94,7 @@ class CoverCache {
       await part.writeAsBytes(bytes, flush: true);
       await part.rename(file.path);
     } on Object catch (e) {
-      debugPrint('picture not kept: $e');
+      _log.warning('picture not kept', e);
     }
   }
 
@@ -128,7 +131,7 @@ class CoverCache {
         size -= stat.size;
       }
     } on Object catch (e) {
-      debugPrint('pictures not trimmed: $e');
+      _log.warning('pictures not trimmed', e);
     }
   }
 

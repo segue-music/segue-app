@@ -2,9 +2,11 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:audio_session/audio_session.dart';
-import 'package:flutter/foundation.dart';
+import 'package:logging/logging.dart';
 
 import 'player.dart';
+
+final _log = Logger('AudioInterruptions');
 
 /// What the system does to this device's playback, on iOS and Android: a call or another app's audio interrupts it,
 /// and the car or the headphones going away stops it. libmpv knows of neither: without this the player would go on
@@ -37,7 +39,7 @@ class AudioInterruptions {
         activate: Platform.isAndroid ? session.setActive : null,
       );
     } on Object catch (e) {
-      debugPrint('audio session unavailable: $e');
+      _log.warning('audio session unavailable', e);
       return null;
     }
   }
@@ -109,7 +111,7 @@ class AudioInterruptions {
     try {
       return await activate(active);
     } on Object catch (e) {
-      debugPrint('audio session not ${active ? 'activated' : 'deactivated'}: $e');
+      _log.warning('audio session not ${active ? 'activated' : 'deactivated'}', e);
       return null;
     }
   }

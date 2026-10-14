@@ -3,12 +3,15 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:logging/logging.dart';
 
 import 'mixes.dart';
 import 'pictures/fanart_tv.dart';
 import 'server/models.dart';
 import 'server/reachability.dart';
 import 'server/server.dart';
+
+final _log = Logger('HomeCache');
 
 /// What the home showed, kept on the device, for it to show at once as the app opens, while it comes anew from the
 /// media server: its rows of albums, as the server last listed them, and its mixes, picked the time before, the next
@@ -40,7 +43,7 @@ class HomeCache {
         };
       }
     } on Object catch (e) {
-      debugPrint('home cache unreadable: $e');
+      _log.warning('home cache unreadable', e);
       albums.clear();
       mixes = null;
     }
@@ -124,7 +127,7 @@ class HomeCache {
         return;
       }
     } on Object catch (e) {
-      debugPrint('next mixes not picked: $e');
+      _log.warning('next mixes not picked', e);
     }
 
     _picking = false;
@@ -164,7 +167,7 @@ class HomeCache {
       );
       await part.rename(file.path);
     } on Object catch (e) {
-      debugPrint('home not kept: $e');
+      _log.warning('home not kept', e);
     }
   }
 

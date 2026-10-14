@@ -5,10 +5,13 @@ import 'dart:io';
 import 'package:clock/clock.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:logging/logging.dart';
 
 import '../server/models.dart';
 import '../server/reachability.dart';
 import '../server/server.dart';
+
+final _log = Logger('Downloads');
 
 /// An album or a playlist downloaded, or downloading, to play without the media server: as the server gave it, with its
 /// songs, when it was asked for.
@@ -113,7 +116,7 @@ class Downloads extends ChangeNotifier {
         }
       } on Object catch (e) {
         // Its files stay, rather than go as no download's.
-        debugPrint('downloads index unreadable: $e');
+        _log.warning('downloads index unreadable', e);
         readable = false;
       }
     }
@@ -252,7 +255,7 @@ class Downloads extends ChangeNotifier {
     try {
       return _lyrics(jsonDecode(await file.readAsString()) as Map<String, dynamic>);
     } on Object catch (e) {
-      debugPrint('lyrics unreadable: $e');
+      _log.warning('lyrics unreadable', e);
       return null;
     }
   }
@@ -327,7 +330,7 @@ class Downloads extends ChangeNotifier {
         try {
           await missing.fetch();
         } on Object catch (error) {
-          debugPrint('download of ${missing.key}: $error');
+          _log.warning('download of ${missing.key}', error);
           _failed.add(missing.key);
 
           if (isNetworkFailure(error)) {
@@ -467,7 +470,7 @@ class Downloads extends ChangeNotifier {
         }
       }
     } on ServerError catch (e) {
-      debugPrint('no picture of ${artist.name}: $e');
+      _log.warning('no picture of ${artist.name}', e);
       picture = null;
     }
 
@@ -570,7 +573,7 @@ class Downloads extends ChangeNotifier {
         }
       } on FileSystemException catch (e) {
         // To come again, if it is gone.
-        debugPrint('download not renamed: $e');
+        _log.warning('download not renamed', e);
       }
     }
 

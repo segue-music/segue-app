@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/widgets.dart';
+import 'package:logging/logging.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'connect/connect.dart';
@@ -33,6 +34,8 @@ import 'server/server.dart';
 import 'server/sign_in.dart';
 import 'session.dart';
 import 'settings.dart';
+
+final _log = Logger('Services');
 
 /// Everything a signed-in session runs on.
 class Services {
@@ -93,7 +96,7 @@ class Services {
       );
       pendingPlays = await PendingPlays.open(File('${directory.path}/plays.json'));
     } on Object catch (e) {
-      debugPrint('downloads unavailable: $e');
+      _log.warning('downloads unavailable', e);
     }
 
     final api = downloads == null
@@ -110,7 +113,7 @@ class Services {
       covers = CoverCache(Directory('${directory.path}/covers'));
       unawaited(covers.trim());
     } on Object catch (e) {
-      debugPrint('cache unavailable: $e');
+      _log.warning('cache unavailable', e);
     }
 
     final player = PlayerController(
@@ -283,7 +286,7 @@ class Services {
     try {
       await favorites.load();
     } on Object catch (e) {
-      debugPrint('favorites unknown: $e');
+      _log.warning('favorites unknown', e);
     }
   }
 
@@ -292,7 +295,7 @@ class Services {
     try {
       return await Session.foundHub(server);
     } on Object catch (e) {
-      debugPrint('found hub unknown: $e');
+      _log.warning('found hub unknown', e);
       return null;
     }
   }
@@ -302,7 +305,7 @@ class Services {
     try {
       await Session.rememberFoundHub(server, hub);
     } on Object catch (e) {
-      debugPrint('found hub not kept: $e');
+      _log.warning('found hub not kept', e);
     }
   }
 
@@ -324,7 +327,7 @@ class Services {
         await directory.delete(recursive: true);
       }
     } on Object catch (e) {
-      debugPrint('cache not cleared: $e');
+      _log.warning('cache not cleared', e);
     }
   }
 

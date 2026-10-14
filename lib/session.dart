@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:logging/logging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
@@ -10,6 +10,8 @@ import 'jellyfin/api.dart';
 import 'segue/protocol.dart';
 import 'server/server.dart';
 import 'subsonic/api.dart';
+
+final _log = Logger('Session');
 
 /// Who is signed in, where, and as which device. The token (and Subsonic's salt), or an API key, is as good as the
 /// password on that server, so it goes to the system's secure storage; the rest to plain preferences.
@@ -54,7 +56,7 @@ class Session {
       salt = await _secure.read(key: 'salt');
       apiKey = await _secure.read(key: 'apiKey');
     } on Exception catch (e) {
-      debugPrint('secure storage unavailable: $e');
+      _log.warning('secure storage unavailable', e);
       return null;
     }
 

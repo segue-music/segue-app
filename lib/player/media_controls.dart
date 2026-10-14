@@ -8,6 +8,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:audio_service_platform_interface/audio_service_platform_interface.dart';
 import 'package:clock/clock.dart';
 import 'package:flutter/foundation.dart';
+import 'package:logging/logging.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:rxdart/rxdart.dart';
 
@@ -19,6 +20,8 @@ import '../server/models.dart';
 import '../server/server.dart';
 import '../ui/widgets/errors.dart';
 import 'browse_tree.dart';
+
+final _log = Logger('MediaControls');
 
 /// The system's media controls (MPRIS on Linux: media keys, the desktop's player widget, KDE
 /// Connect...; Now Playing on iOS: the lock screen, Control Center, CarPlay, headphone buttons; the
@@ -115,7 +118,7 @@ class MediaControls extends BaseAudioHandler with SeekHandler {
         ),
       );
     } on Object catch (e) {
-      debugPrint('media controls unavailable: $e');
+      _log.warning('media controls unavailable', e);
       return null;
     }
   }
@@ -179,7 +182,7 @@ class MediaControls extends BaseAudioHandler with SeekHandler {
                 .notifyChildrenChanged(
                   const NotifyChildrenChangedRequest(parentMediaId: AudioService.browsableRootId, options: {}),
                 )
-                .catchError((Object e) => debugPrint('telling the car the root changed: $e')),
+                .catchError((Object e) => _log.warning('telling the car the root changed', e)),
           );
         }
       }
@@ -339,7 +342,7 @@ class MediaControls extends BaseAudioHandler with SeekHandler {
 
       return file;
     } on Object catch (e) {
-      debugPrint('cover for the media controls: $e'); // the controls just go without it
+      _log.warning('cover for the media controls', e); // the controls just go without it
       _covers.remove(coverId); // tried again next time
       return null;
     }
@@ -374,7 +377,7 @@ class MediaControls extends BaseAudioHandler with SeekHandler {
       return await tree?.children(parentMediaId) ?? const [];
     } on Object catch (e) {
       // The car says it failed.
-      debugPrint('browsing $parentMediaId: $e');
+      _log.warning('browsing $parentMediaId', e);
       rethrow;
     }
   }

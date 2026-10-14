@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:logging/logging.dart';
 
 import '../equalizer_choice.dart';
 import '../quality_choice.dart';
@@ -12,6 +13,8 @@ import '../server/server.dart';
 import '../volume_choice.dart';
 import 'crossfade_engine.dart';
 import 'engine.dart';
+
+final _log = Logger('PlayerController');
 
 /// This device's player: the queue, playback, and the commands other devices send it.
 class PlayerController extends ChangeNotifier {
@@ -701,7 +704,7 @@ class PlayerController extends ChangeNotifier {
     try {
       similar = await _api.similarSongs(song);
     } on Object catch (e) {
-      debugPrint('no songs like ${song.id}: $e');
+      _log.warning('no songs like ${song.id}', e);
       return;
     }
 

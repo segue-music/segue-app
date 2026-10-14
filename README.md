@@ -351,6 +351,18 @@ What iOS does differently:
   16 an app reads that name only with an entitlement Apple grants on request
   (`com.apple.developer.device-information.user-assigned-device-name`), which the app doesn't have yet.
 
+## Logs
+
+The app writes down what goes wrong, a release build too, in `segue.log`: what it couldn't do, the hub's connection
+coming and going, mpv's warnings and errors, and the errors no code caught, each line as it comes. Past 1 MB the file
+becomes `segue.1.log` and a new one starts, so the two hold the latest. Neither has a password, token or API key: the
+addresses and requests that carry one are written without it. They are in a `logs` folder:
+
+- Linux: `~/.local/share/io.github.mateusguilherme.segue/logs/`
+- Windows: `%APPDATA%\io.github.mateusguilherme\Segue\logs\`
+- Android, a TV too: `/sdcard/Android/data/io.github.mateusguilherme.segue/files/logs/`, which `adb pull` takes
+- iOS: the app's Application Support, which nothing reaches yet from a TestFlight build
+
 ## Releases
 
 `.github/workflows/release.yml` builds the Linux, Android and Windows packages on GitHub's machines, with the scripts

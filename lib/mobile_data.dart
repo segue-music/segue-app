@@ -3,6 +3,9 @@ import 'dart:io';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
+import 'package:logging/logging.dart';
+
+final _log = Logger('MobileData');
 
 /// Whether the device is online through mobile data, which a data plan counts, rather than Wi-Fi or a cable: as the
 /// system says (connectivity_plus), and as that changes. Only Android and iOS are asked, the systems with mobile data:
@@ -29,13 +32,13 @@ class MobileData extends ValueNotifier<bool> {
       // Services.start waits for it, as the app opens.
       mobileData.value = inUse(await connectivity.checkConnectivity().timeout(const Duration(seconds: 2)));
     } on Object catch (e) {
-      debugPrint('no news of the connection: $e');
+      _log.warning('no news of the connection', e);
       return mobileData;
     }
 
     mobileData._changes = connectivity.onConnectivityChanged.listen(
       (connections) => mobileData.value = inUse(connections),
-      onError: (Object e) => debugPrint('no news of the connection: $e'),
+      onError: (Object e) => _log.warning('no news of the connection', e),
     );
 
     return mobileData;
