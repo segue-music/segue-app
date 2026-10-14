@@ -20,6 +20,7 @@ import 'package:segue/connect/connect.dart';
 import 'package:segue/l10n/app_localizations.dart';
 import 'package:segue/mixes.dart';
 import 'package:segue/player/player.dart';
+import 'package:segue/player/sleep_timer.dart';
 import 'package:segue/segue/client.dart';
 import 'package:segue/segue/protocol.dart';
 import 'package:segue/services.dart';
@@ -58,11 +59,15 @@ void main() {
     HttpOverrides.global = _PictureOverrides();
   });
 
-  testWidgets('a phone: the full-screen player', (tester) async {
-    await _pumpApp(tester, _Device.phone, album: 'coastline');
+  testWidgets('a phone: the full-screen player, the sleep timer on', (tester) async {
+    final timer = (await _pumpApp(tester, _Device.phone, album: 'coastline')).sleepTimer!;
+
+    // Its button then shows it on: in the theme's color, with the minutes left.
+    timer.start(const Duration(minutes: 30));
     await tester.tap(find.descendant(of: find.byTooltip(_strings.openPlayer), matching: find.byType(Cover)));
     await _settle(tester);
     await _save(tester, _Device.phone);
+    timer.cancel();
     await tester.pumpWidget(const SizedBox());
   }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
@@ -125,8 +130,8 @@ enum _Device {
 }
 
 /// The app signed in to the made-up library, its hub connected, on [device]'s screen, playing here the first song of
-/// [album] (its id), a minute in, its pictures loaded.
-Future<void> _pumpApp(WidgetTester tester, _Device device, {required String album}) async {
+/// [album] (its id), a minute in, its pictures loaded; its services, for a picture to set up further.
+Future<Services> _pumpApp(WidgetTester tester, _Device device, {required String album}) async {
   final api = SubsonicApi(_server, _credentials, client: MockClient((request) async => _answer(request)));
   final player = PlayerController(FakeEngine(), api);
   final (_, songs) = await api.album(album);
@@ -138,6 +143,8 @@ Future<void> _pumpApp(WidgetTester tester, _Device device, {required String albu
     api,
     player,
     ConnectController(player: player, client: _hub()),
+    // As Services.start gives one: without it, the player shows no button for the timer.
+    sleepTimer: SleepTimer(player),
   );
 
   await services.favorites.load();
@@ -180,6 +187,8 @@ Future<void> _pumpApp(WidgetTester tester, _Device device, {required String albu
   await _settle(tester);
   await player.play();
   await _settle(tester);
+
+  return services;
 }
 
 /// A hub that sees the user's other devices, which play nothing; never connected, but said to be, so that the top bar

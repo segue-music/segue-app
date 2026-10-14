@@ -218,7 +218,8 @@ Running two app instances on one machine as different devices:
   the engine's `ended`: the next track starting by itself, or its crossfade, the track starting over where it repeats
   by itself, or the last one ending, repeat off; media_kit tells `completed` at the end of every track, so only the last one's counts),
   the next one then paused at its start. A stopped player turns it off. It is each device's own, like autoplay: the
-  protocol has no timer, so its button shows only while this device plays. Only `Services.start` makes one.
+  protocol has no timer, so its button shows only while this device plays. Only `Services.start` makes one: `Services`
+  built by hand has none, and no button, unless given one, as the README's pictures (`tool/screenshots.dart`) are.
 - The volume (`VolumeControl`, `lib/ui/player/volume_control.dart`, at the end of the wide player bar) shows only on a
   computer: a phone's and a TV's own buttons set the system's volume, and mpv's is a second one under it. A button, to
   save the bar's room, over which the slider, upright, opens in the overlay (`OverlayPortal`, growing up out of the

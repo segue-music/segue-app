@@ -14,7 +14,7 @@ Segue's protocol and its hub, which runs next to the media server, are in
   <a href="docs/screenshots/tv.png"><img src="docs/screenshots/tv.webp" width="47%" alt="The full-screen player on a TV, the lyrics as karaoke beside the cover and the controls under them"></a>
 </p>
 <p align="center">
-  <a href="docs/screenshots/phone.png"><img src="docs/screenshots/phone.webp" width="26.4%" alt="The full-screen player on a phone: the cover, the song, the time played and the controls"></a>
+  <a href="docs/screenshots/phone.png"><img src="docs/screenshots/phone.webp" width="26.4%" alt="The full-screen player on a phone: the cover, the song, the time played and the controls, and at the top the sleep timer on, 30 minutes left"></a>
   <a href="docs/screenshots/tablet.png"><img src="docs/screenshots/tablet.webp" width="71.6%" alt="The full-screen player on a tablet, in the light theme, with the synced lyrics beside the cover"></a>
 </p>
 
