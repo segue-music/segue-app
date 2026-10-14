@@ -22,6 +22,7 @@ bool focusNextPage({required bool down}) {
 
   if (target == position.pixels) {
     final viewport = _rectOf(scrollable.context);
+
     focusNearest(scrollable, Offset(point.dx, down ? viewport.bottom : viewport.top), scope: scope);
   } else {
     position.jumpTo(target);
@@ -81,6 +82,7 @@ void scrollToGridChild(GlobalKey grid, int index) {
     final child = sliver.gridDelegate.getLayout(sliver.constraints).getGeometryForChildIndex(index);
     // Past what comes before the grid.
     final start = sliver.constraints.precedingScrollExtent + child.scrollOffset;
+
     position.jumpTo(start.clamp(position.minScrollExtent, position.maxScrollExtent));
   });
 }
@@ -106,6 +108,7 @@ void scrollToStart(BuildContext context) {
   }
 
   context.visitChildElements(visit);
+
   final position = found?.position;
 
   if (position == null) {
@@ -155,6 +158,7 @@ void _focusFirst(ScrollableState scrollable, FocusScopeNode scope) {
     for (final node in inView)
       if (node.rect.top < top.rect.center.dy) node,
   ];
+
   row.reduce((a, b) => b.rect.left < a.rect.left ? b : a).requestFocus();
 }
 

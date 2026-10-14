@@ -26,6 +26,7 @@ Future<void> openSection(WidgetTester tester, String section, {AppLocalizations?
 /// the tests' font, whose letters are all as wide as tall.
 Future<void> tapLibraryTab(WidgetTester tester, String name) async {
   final tab = find.descendant(of: find.byType(TabBar), matching: find.text(name));
+
   await tester.ensureVisible(tab);
   await tester.pumpAndSettle();
   await tester.tap(tab);

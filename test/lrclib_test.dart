@@ -60,12 +60,15 @@ void main() {
       get: record(synced: '[00:01.50] Sweet emotion\n[00:03.00]\n[01:02.25] Talk about things'),
       asked: asked,
     );
+
     expect(await lines(found), [
       (const Duration(milliseconds: 1500), 'Sweet emotion'),
       (const Duration(seconds: 3), ''),
       (const Duration(milliseconds: 62250), 'Talk about things'),
     ]);
+
     final get = asked.single;
+
     expect(get.url.host, 'lrclib.net');
     expect(get.url.queryParameters, {
       'track_name': 'Sweet Emotion',
@@ -90,6 +93,7 @@ void main() {
       ],
       asked: asked,
     );
+
     expect(await lines(found), [(null, 'Sweet emotion'), (null, 'Talk about things')], reason: 'not synced');
     expect(asked.last.url.path, '/api/search');
     expect(asked.last.url.queryParameters, {'track_name': 'Sweet Emotion', 'artist_name': 'Aerosmith'});
@@ -107,6 +111,7 @@ void main() {
         record(duration: 277, synced: '[00:01.00] Synced'),
       ],
     );
+
     expect(await lines(found), [(const Duration(seconds: 1), 'Synced')]);
   });
 
@@ -118,6 +123,7 @@ void main() {
         record(title: 'Sweet Emotion (Live)', synced: '[00:01.00] Live'),
       ],
     );
+
     expect(await lines(found), [(null, 'Plain')]);
   });
 
@@ -128,11 +134,13 @@ void main() {
 
   test('a server that fails says so', () async {
     final failing = Lrclib(client: MockClient((_) async => http.Response('', 500)));
+
     await expectLater(failing.find(title: 'Sweet Emotion', artist: 'Aerosmith'), throwsA(anything));
   });
 
   test('LRC: a line at several times comes at each, and the offset shifts them all, sooner', () {
     final lines = parseLrc('[ar:Aerosmith]\n[offset:+500]\n[00:10.00][00:20.00] Chorus\n[00:15.00] Verse\nNo time');
+
     expect(
       [for (final line in lines) (line.start, line.text)],
       [

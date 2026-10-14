@@ -63,6 +63,7 @@ Future<void> openSheet(WidgetTester tester, List<Device> devices, {Size? size, b
     player,
     ConnectController(player: player, client: client),
   );
+
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,

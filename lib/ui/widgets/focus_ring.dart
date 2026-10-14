@@ -61,6 +61,7 @@ class _FocusRingState extends State<FocusRing> {
       }
 
       final grown = box.size.height * (FocusRing.grownScale - 1) / 2;
+
       box.showOnScreen(
         rect: EdgeInsets.symmetric(vertical: grown + _roomAround).inflateRect(Offset.zero & box.size),
         duration: const Duration(milliseconds: 150),

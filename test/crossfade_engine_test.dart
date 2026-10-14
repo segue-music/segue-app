@@ -25,6 +25,7 @@ void main() {
       final engine = crossfading(decks);
       final tracks = [track(0), track(1), track(2)];
       final ended = <int>[];
+
       engine.ended.listen((_) => ended.add(engine.index));
       unawaited(engine.open(tracks, index: 0, position: Duration.zero, play: true));
       async.flushMicrotasks();
@@ -66,11 +67,13 @@ void main() {
       final decks = [FakeEngine(), FakeEngine()];
       final engine = crossfading(decks);
       final tracks = [track(0), track(1)];
+
       unawaited(engine.open(tracks, index: 0, position: Duration.zero, play: true));
       async.elapse(const Duration(seconds: 50));
       expect(decks[1].opened, [tracks[1]]);
 
       final next = track(2);
+
       unawaited(engine.add([next], next: true));
       async.elapse(const Duration(milliseconds: 100));
       expect(decks[1].opened, [next]);
@@ -86,6 +89,7 @@ void main() {
     fakeAsync((async) {
       final decks = [FakeEngine(), FakeEngine()];
       final engine = crossfading(decks);
+
       unawaited(engine.open([track(0), track(1, seconds: 4), track(2)], index: 0, position: Duration.zero, play: true));
       async.elapse(const Duration(seconds: 57, milliseconds: 900));
       expect(engine.index, 0);
@@ -105,6 +109,7 @@ void main() {
     fakeAsync((async) {
       final decks = [FakeEngine()..duration = const Duration(seconds: 30), FakeEngine()];
       final engine = crossfading(decks);
+
       unawaited(engine.open([track(0), track(1)], index: 0, position: Duration.zero, play: true));
       async.elapse(const Duration(seconds: 24));
       expect(engine.index, 1);
@@ -117,6 +122,7 @@ void main() {
       final engine = crossfading(decks);
       final tracks = [track(0, seconds: null), track(1, seconds: null)];
       final ended = <int>[];
+
       engine.ended.listen((_) => ended.add(engine.index));
       unawaited(engine.open(tracks, index: 0, position: Duration.zero, play: true));
       async.elapse(const Duration(minutes: 5));
@@ -158,6 +164,7 @@ void main() {
     fakeAsync((async) {
       final decks = [FakeEngine(), FakeEngine()];
       final engine = crossfading(decks);
+
       unawaited(engine.open([track(0), track(1)], index: 1, position: Duration.zero, play: true));
       unawaited(engine.setRepeat(Repeat.all));
       async.elapse(const Duration(seconds: 55));
@@ -195,6 +202,7 @@ void main() {
     fakeAsync((async) {
       final decks = [FakeEngine(), FakeEngine()];
       final engine = crossfading(decks);
+
       unawaited(engine.open([track(0), track(1)], index: 0, position: Duration.zero, play: true));
       async.elapse(const Duration(seconds: 56));
       unawaited(engine.pause());
@@ -215,6 +223,7 @@ void main() {
     fakeAsync((async) {
       final decks = [FakeEngine(), FakeEngine()];
       final engine = crossfading(decks);
+
       unawaited(engine.open([track(0), track(1)], index: 0, position: Duration.zero, play: true));
       async.elapse(const Duration(seconds: 56));
       unawaited(engine.seek(const Duration(seconds: 30)));
@@ -231,6 +240,7 @@ void main() {
       final decks = [FakeEngine(), FakeEngine()];
       final engine = crossfading(decks);
       final tracks = [track(0), track(1), track(2)];
+
       unawaited(engine.open(tracks, index: 0, position: Duration.zero, play: true));
       async.elapse(const Duration(seconds: 56));
       unawaited(engine.jump(2));
@@ -247,6 +257,7 @@ void main() {
       final decks = [FakeEngine(), FakeEngine()];
       final engine = crossfading(decks);
       final tracks = [track(0), track(1)];
+
       unawaited(engine.open(tracks, index: 0, position: Duration.zero, play: true));
       async.elapse(const Duration(seconds: 50));
       unawaited(engine.jump(1));
@@ -263,6 +274,7 @@ void main() {
     fakeAsync((async) {
       final decks = [FakeEngine(), FakeEngine()];
       final engine = crossfading(decks);
+
       unawaited(engine.open([track(0), track(1)], index: 0, position: const Duration(seconds: 20), play: false));
       unawaited(engine.jump(0));
       async.elapse(const Duration(seconds: 1));
@@ -275,6 +287,7 @@ void main() {
     fakeAsync((async) {
       final decks = [FakeEngine(), FakeEngine()];
       final engine = crossfading(decks);
+
       unawaited(engine.open([track(0), track(1)], index: 0, position: Duration.zero, play: true));
       async.elapse(const Duration(seconds: 40));
       var changes = 0;
@@ -294,6 +307,7 @@ void main() {
     fakeAsync((async) {
       final decks = [FakeEngine(), FakeEngine()];
       final engine = crossfading(decks);
+
       unawaited(engine.setVolume(40));
       unawaited(engine.open([track(0), track(1)], index: 0, position: Duration.zero, play: true));
       async.elapse(const Duration(seconds: 57));
@@ -311,6 +325,7 @@ void main() {
     test('shuffled, the current track first, the others after it; off, back to their order', () {
       fakeAsync((async) {
         final engine = crossfading([FakeEngine(), FakeEngine()]);
+
         unawaited(engine.open(tracks, index: 2, position: Duration.zero, play: true));
         unawaited(engine.setShuffle(true));
         async.flushMicrotasks();
@@ -328,6 +343,7 @@ void main() {
     test('opened shuffled, in the order given; otherwise shuffled anew', () {
       fakeAsync((async) {
         final engine = crossfading([FakeEngine(), FakeEngine()]);
+
         unawaited(engine.setShuffle(true));
         unawaited(engine.open(tracks, index: 1, position: Duration.zero, play: true, order: [3, 1, 0, 2]));
         async.flushMicrotasks();
@@ -344,9 +360,13 @@ void main() {
     test('tracks added play next, or after the last, in the play order and in their order alike', () {
       fakeAsync((async) {
         final engine = crossfading([FakeEngine(), FakeEngine()]);
+
         unawaited(engine.open(tracks, index: 1, position: Duration.zero, play: true));
+
         final (next, last) = (track(4), track(5));
+
         late int at;
+
         unawaited(engine.add([next], next: true).then((place) => at = place));
         async.flushMicrotasks();
         expect(at, 2);
@@ -362,8 +382,11 @@ void main() {
     test('a move takes a track to its new place, the current one playing on; shuffled, in the play order alone', () {
       fakeAsync((async) {
         final engine = crossfading([FakeEngine(), FakeEngine()]);
+
         unawaited(engine.open(tracks, index: 1, position: Duration.zero, play: true));
+
         ({int from, int to})? unshuffled;
+
         unawaited(engine.move(0, 3).then((moved) => unshuffled = moved));
         async.flushMicrotasks();
         expect(unshuffled, (from: 0, to: 3));
@@ -371,7 +394,9 @@ void main() {
 
         unawaited(engine.setShuffle(true));
         async.flushMicrotasks();
+
         final order = engine.order;
+
         unawaited(engine.move(1, 3).then((moved) => unshuffled = moved));
         async.flushMicrotasks();
         expect(unshuffled, isNull);
@@ -382,8 +407,11 @@ void main() {
     test('a removal takes a track out, but never the current one', () {
       fakeAsync((async) {
         final engine = crossfading([FakeEngine(), FakeEngine()]);
+
         unawaited(engine.open(tracks, index: 2, position: Duration.zero, play: true));
+
         final removed = <int>[];
+
         unawaited(engine.remove(0).then(removed.add));
         async.flushMicrotasks();
         unawaited(engine.remove(1).then(removed.add));

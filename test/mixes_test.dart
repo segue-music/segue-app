@@ -111,6 +111,7 @@ http.Response server(
 
   if (path.endsWith('getArtist.view')) {
     final id = query['id']!;
+
     askedArtists?.add(id);
     return subsonic({
       'artist': {
@@ -175,6 +176,7 @@ FanartTv fanartTv(Set<String> pictured, {List<String>? asked}) => FanartTv(
   apiKey: 'key',
   client: MockClient((request) async {
     final id = request.url.pathSegments.last.replaceFirst('mb-', '');
+
     asked?.add(id);
 
     if (!pictured.contains(id)) {
@@ -246,6 +248,7 @@ Finder mixTile(String name) => find.ancestor(of: find.text(name), matching: find
 /// Picks the mix that has [name], wherever in the row it came: past the screen's edge, the row scrolled to it.
 Future<void> pick(WidgetTester tester, String name) async {
   final row = find.descendant(of: find.byType(MixRow), matching: find.byType(Scrollable));
+
   await tester.scrollUntilVisible(find.text(name), 100, scrollable: row);
   await tester.pumpAndSettle();
   await tester.tap(mixTile(name));
@@ -284,6 +287,7 @@ SubsonicApi manyGenres(int genres, int decades) => SubsonicApi(
 void main() {
   test('the mixes are of the genres the user plays most, two, then of a decade they play most, and so on', () async {
     final mixes = about(await SuggestedMixes(api()).mixes);
+
     expect([for (final mix in mixes) mix is int], [false, false, true, false, false, true, true]);
     expect(mixes, unorderedEquals(['Rock', 'hard rock', 'Jazz', 'Pop', 1970, 1980, 1950]));
   });
@@ -307,6 +311,7 @@ void main() {
 
     for (var seed = 0; seed < 100; seed++) {
       final mixes = about(await SuggestedMixes(manyGenres(14, 8), random: Random(seed)).mixes);
+
       expect(mixes.whereType<String>(), hasLength(6));
       expect(mixes.whereType<int>(), hasLength(3));
 
@@ -337,6 +342,7 @@ void main() {
     final rock = genre(suggested, 'Rock');
     final seventies = suggested.whereType<DecadeMix>().firstWhere((mix) => mix.decade == 1970);
     final first = await mixes.firstSongs(rock);
+
     expect(identical(await mixes.firstSongs(rock), first), isTrue);
     expect(asked.single, allOf(containsPair('size', '12'), containsPair('genre', 'Rock')));
 
@@ -354,11 +360,13 @@ void main() {
       final mixes = SuggestedMixes(api());
       final rock = genre(await mixes.mixes, 'Rock');
       final found = await mixes.picture(rock);
+
       expect(found?.artist.name, 'Aerosmith');
       expect(found?.artist.coverArt, 'ar-r1');
       expect(identical(await mixes.picture(rock), found), isTrue);
 
       final empty = SuggestedMixes(api(songs: false));
+
       expect(await empty.picture((await empty.mixes).first), isNull);
     },
   );
@@ -389,12 +397,14 @@ void main() {
       api(askedArtists: askedArtists, pictured: {}),
       fanartTv: fanartTv({}),
     );
+
     expect(await mixes.picture(genre(await mixes.mixes, 'Rock')), isNull);
     expect(askedArtists, ['r1', 'r2', 'r3', 'r4'], reason: 'every one');
   });
 
   test('the library\'s mix is songs of the whole library at random, of no genre nor decade', () async {
     final asked = <Map<String, String>>[];
+
     expect([for (final song in await const LibraryMix().songs(api(asked: asked))) song.id], ['s5', 's7', 's8']);
     expect(asked.single, containsPair('size', '100'));
     expect(asked.single.keys, isNot(anyOf(contains('genre'), contains('fromYear'), contains('toYear'))));
@@ -404,6 +414,7 @@ void main() {
     final portuguese = lookupAppLocalizations(const Locale('pt'));
     final english = lookupAppLocalizations(const Locale('en'));
     final spanish = lookupAppLocalizations(const Locale('es'));
+
     expect(mixName(portuguese, const DecadeMix(1980)), 'Anos 80');
     expect(mixName(portuguese, const DecadeMix(2010)), 'Anos 2010');
     expect(mixName(portuguese, const DecadeMix(1910)), 'Anos 1910', reason: 'not the 2010s\'');
@@ -437,6 +448,7 @@ void main() {
       artists: [Artist(id: 'ar1', name: 'Aerosmith')],
     );
     final radio = await const SongRadio(walk).queue(server);
+
     expect([for (final song in radio.take(3)) song.id], ['s1', 'x0', 'x1']);
     expect(radio, hasLength(Mix.size));
     expect(asked.single, allOf(containsPair('id', 's1'), containsPair('count', '100')));
@@ -463,28 +475,36 @@ void main() {
   testWidgets('the home starts with its mixes, each the picture of its first artist with its name over it, and under '
       'it the artists of its first songs', (tester) async {
     await pumpHome(tester);
+
     final mixes = tester.getRect(find.text('Mixes'));
     final rock = tester.getRect(find.text('Rock'));
     final hardRock = tester.getRect(find.text('hard rock'));
+
     expect(rock.top, greaterThan(mixes.bottom));
     // In whatever order, side by side: genres, which come before the last decade, where the screen shows them.
     expect(hardRock.bottom, rock.bottom, reason: 'at the bottom of their pictures');
     expect(tester.getRect(find.text('Lançamentos')).top, greaterThan(rock.bottom), reason: 'the albums\' rows after');
 
     final picture = find.descendant(of: mixTile('Rock'), matching: find.byType(Cover));
+
     expect(tester.widget<Cover>(picture).id, 'ar-r1', reason: 'Aerosmith\'s, the first song\'s artist');
+
     final over = tester.getRect(picture);
+
     expect(over.contains(rock.center), isTrue, reason: 'the name over the picture');
     expect(rock.bottom, greaterThan(over.center.dy), reason: 'at its bottom');
 
     final artists = find.descendant(of: mixTile('Rock'), matching: find.text('Aerosmith, Cheap Trick, Boston e mais'));
+
     expect(artists, findsOneWidget);
     expect(tester.getRect(artists).top, greaterThan(over.bottom));
   });
 
   testWidgets('a mix whose first artist has no picture shows the next one\'s', (tester) async {
     await pumpHome(tester, pictured: {'r2'});
+
     final picture = find.descendant(of: mixTile('Rock'), matching: find.byType(Cover));
+
     expect(tester.widget<Cover>(picture).id, 'ar-r2', reason: 'Cheap Trick\'s');
   });
 
@@ -493,12 +513,18 @@ void main() {
   ) async {
     await pumpHome(tester, pictured: {});
     expect(find.descendant(of: mixTile('Rock'), matching: find.byType(Cover)), findsNothing);
+
     final icon = find.descendant(of: mixTile('Rock'), matching: themedIcon(HugeIcons.strokeRoundedTag01));
+
     expect(icon, findsOneWidget);
+
     final tile = tester.getRect(find.descendant(of: mixTile('Rock'), matching: find.byType(ClipRRect)).first);
+
     expect(tester.getSize(icon).width, greaterThan(tile.width / 4), reason: 'big');
+
     final colors = Theme.of(tester.element(icon)).colorScheme;
     final art = tester.widget<DecoratedBox>(find.ancestor(of: icon, matching: find.byType(DecoratedBox)).first);
+
     expect((art.decoration as BoxDecoration).gradient?.colors, [colors.primaryContainer, colors.tertiaryContainer]);
   });
 
@@ -507,6 +533,7 @@ void main() {
   ) async {
     final asked = <Map<String, String>>[];
     final player = await pumpHome(tester, asked: asked);
+
     asked.clear();
     await pick(tester, 'Anos 70');
     expect([for (final song in player.queue) song.id], ['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8']);
@@ -517,6 +544,7 @@ void main() {
 
   testWidgets('a mix with no songs says so, and plays nothing', (tester) async {
     final player = await pumpHome(tester, songs: false);
+
     await pick(tester, 'Rock');
     expect(find.text('Esse mix não tem músicas.'), findsOneWidget);
     expect(player.queue, isEmpty);
@@ -529,10 +557,14 @@ void main() {
       // So short that, past the end, the mixes are far out of sight.
       tester.view.physicalSize = const Size(400, 300);
       await tester.pumpAndSettle();
+
       final home = find.descendant(of: find.byType(HomeView), matching: find.byType(Scrollable)).first;
+
       await tester.drag(home, const Offset(0, -900));
       await tester.pumpAndSettle();
+
       final position = tester.state<ScrollableState>(home).position;
+
       expect(position.pixels, position.maxScrollExtent);
       expect(tester.getRect(find.text('Adicionados recentemente')).top, lessThan(300), reason: 'the last row');
     },
@@ -543,12 +575,15 @@ void main() {
     tester,
   ) async {
     final asked = <Map<String, String>>[];
+
     await pumpHome(tester, asked: asked);
     // Shorter than the home, which then scrolls.
     tester.view.physicalSize = const Size(400, 500);
     await tester.pumpAndSettle();
     asked.clear();
+
     final home = find.descendant(of: find.byType(HomeView), matching: find.byType(Scrollable)).first;
+
     await tester.timedDrag(home, const Offset(0, 500), const Duration(milliseconds: 300));
     await tester.pumpAndSettle();
     expect(asked, isNotEmpty, reason: 'the mixes\' first songs, asked for again');

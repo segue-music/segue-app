@@ -20,8 +20,11 @@ void main() {
   test('each of Portuguese\'s messages says what it is, and declares the placeholders it uses', () {
     for (final name in names) {
       final about = template['@$name'] as Map<String, Object?>?;
+
       expect(about?['description'], isA<String>(), reason: name);
+
       final declared = (about?['placeholders'] as Map<String, Object?>?)?.keys.toSet() ?? {};
+
       expect(placeholders(template[name]! as String), declared, reason: name);
     }
   });
@@ -29,11 +32,13 @@ void main() {
   for (final language in ['en', 'es']) {
     test('$language has every message, and none other, with the same placeholders', () {
       final translation = arb(language);
+
       expect(translation['@@locale'], language);
       expect(translation.keys.where((name) => !name.startsWith('@')).toList(), names);
 
       for (final name in names) {
         final message = translation[name]! as String;
+
         expect(message.trim(), isNotEmpty, reason: name);
         expect(placeholders(message), placeholders(template[name]! as String), reason: name);
       }

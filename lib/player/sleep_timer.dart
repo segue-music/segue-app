@@ -127,6 +127,7 @@ class SleepTimer extends ChangeNotifier {
   /// The while is up: the music pauses, then gets its volume back, for when it plays again.
   Future<void> _end() async {
     final before = _fadedFrom;
+
     _stop();
     notifyListeners();
 
@@ -153,6 +154,7 @@ class SleepTimer extends ChangeNotifier {
   /// Stops, the music as loud as before, should it have faded.
   void _reset() {
     final before = _fadedFrom;
+
     _stop();
 
     if (before != null) {

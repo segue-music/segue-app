@@ -120,6 +120,7 @@ Future<bool> addToQueue(BuildContext context, List<Song> songs, {required bool n
     _ when next => strings.playingNext(songs.length),
     _ => strings.addedToQueue(songs.length),
   };
+
   messenger?.showSnackBar(SnackBar(content: Text(said)));
 
   return result.ok;

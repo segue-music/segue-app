@@ -60,8 +60,10 @@ Future<PlayerController> pumpBar(
   }
 
   final connect = ConnectController(player: player, client: client);
+
   // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
   client?.notifyListeners(); // as when another device's state arrives
+
   final services = Services(
     Session(server: Uri.parse('https://music.test'), credentials: credentials, deviceId: 'me', deviceName: 'me'),
     api,
@@ -95,6 +97,7 @@ Future<PlayerController> pumpBar(
 /// Opens the full-screen player, from the bar's song or, on a TV, the side rail, and the queue from it.
 Future<void> openQueue(WidgetTester tester) async {
   final rail = find.byTooltip('Tocando agora');
+
   await tester.tap(
     rail.evaluate().isNotEmpty
         ? rail
@@ -192,6 +195,7 @@ Future<void> dragTrack(WidgetTester tester, String title, int rows) async {
   final from = tester.getCenter(line);
   final height = tester.getSize(line).height;
   final gesture = await tester.startGesture(from);
+
   await tester.pump(kLongPressTimeout + const Duration(milliseconds: 100));
 
   for (var i = 1; i <= 10; i++) {
@@ -239,7 +243,9 @@ void main() {
     expect(tile(tester, 'Three').selected, isFalse);
     expect(inQueue(find.byType(Equalizer)), findsOneWidget, reason: 'it plays');
     expect(inQueue(find.text('3:20')), findsOneWidget, reason: 'how long it lasts');
+
     final top = tester.getTopLeft(find.byType(CustomScrollView)).dy;
+
     expect(tester.getTopLeft(find.ancestor(of: inQueue(find.text('Two')), matching: find.byType(ListTile))).dy, top);
 
     // What played before is above it.
@@ -261,12 +267,15 @@ void main() {
   ) async {
     await pumpBar(tester);
     await openQueue(tester);
+
     final title = inQueue(find.text('Título'));
+
     expect(tester.getRect(title).left, tester.getRect(inQueue(find.text('Two'))).left);
     expect(
       tester.getRect(inQueue(find.byTooltip('Duração'))).right,
       moreOrLessEquals(tester.getRect(inQueue(find.text('3:20'))).right, epsilon: 1),
     );
+
     final top = tester.getRect(title).top;
 
     // Down, to what played before, above the current track.
@@ -282,6 +291,7 @@ void main() {
 
   testWidgets('a tap on a track in the queue plays it, from its start', (tester) async {
     final player = await pumpBar(tester);
+
     await player.pause();
     await openQueue(tester);
     await tester.tap(inQueue(find.text('Four')));
@@ -296,6 +306,7 @@ void main() {
 
   testWidgets('the queue is that of the device the app controls, wherever it plays', (tester) async {
     final player = await pumpBar(tester, client: clientWithTv(capabilities: CommandAction.values));
+
     await openQueue(tester);
     expect(inQueue(find.text('Fila em Sala de estar')), findsOneWidget);
     expect(inQueue(find.text('Walk This Way')), findsOneWidget);
@@ -310,11 +321,16 @@ void main() {
       'another device\'s, which goes on or not as that device has it, has none', (tester) async {
     SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
     final settings = Settings();
+
     addTearDown(settings.dispose);
+
     final autoplay = settings.autoplay;
+
     await pumpBar(tester, settings: settings);
     await openQueue(tester);
+
     final toggle = find.widgetWithText(SwitchListTile, 'Reprodução automática');
+
     await tester.scrollUntilVisible(
       toggle,
       100,
@@ -377,6 +393,7 @@ void main() {
   group('editing the queue', () {
     testWidgets('a track dragged in the queue goes there, the current one playing on', (tester) async {
       final player = await pumpBar(tester);
+
       await openQueue(tester);
       await dragTrack(tester, 'Four', -1);
       expect(player.queue.map((song) => song.title), ['One', 'Two', 'Four', 'Three']);
@@ -397,6 +414,7 @@ void main() {
       tester,
     ) async {
       final client = clientWithTv(capabilities: CommandAction.values, client: WaitingClient()) as WaitingClient;
+
       await pumpBar(tester, client: client);
       await openQueue(tester);
       await dragTrack(tester, 'Untranslatable', -1);
@@ -438,6 +456,7 @@ void main() {
 
     testWidgets("a track's menu takes it out of the queue; the current one stays", (tester) async {
       final player = await pumpBar(tester);
+
       await openQueue(tester);
       await tester.tap(menuOf('Four'));
       await tester.pumpAndSettle();
@@ -457,6 +476,7 @@ void main() {
     testWidgets('on a TV, whose remote seldom has a menu key, OK held on a track opens its menu, nothing in it picked '
         'as OK is let go, and pressed, plays the track as it is let go', (tester) async {
       final player = await pumpBar(tester, size: const Size(1000, 600), television: true);
+
       await openQueue(tester);
       await pressOnRemote(tester, LogicalKeyboardKey.arrowDown);
       await tester.sendKeyDownEvent(LogicalKeyboardKey.select);
@@ -492,6 +512,7 @@ void main() {
     testWidgets('on a TV, which has no drag, a track moves by the remote: from its menu, up and down take it along, '
         'the focus on it, and OK leaves it there, the device moving it only then', (tester) async {
       final player = await pumpBar(tester, size: const Size(1000, 600), television: true);
+
       await openQueue(tester);
       expect(find.byType(SliverReorderableList), findsNothing);
       expect(focusedOn(tester, 'Two'), isTrue);
@@ -528,6 +549,7 @@ void main() {
 
     testWidgets('on a TV, Back, or Esc, puts the track moving back where it was, and the page stays', (tester) async {
       final player = await pumpBar(tester, size: const Size(1000, 600), television: true);
+
       await openQueue(tester);
 
       for (final back in [LogicalKeyboardKey.goBack, LogicalKeyboardKey.escape]) {

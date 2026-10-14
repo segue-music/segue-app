@@ -45,10 +45,12 @@ void main() {
       'bar\'s background going on to them, and the rows of tiles running on to the side as they scroll, their last '
       'tile in', (tester) async {
     await pumpFullHdHome(tester);
+
     final screen = TelevisionScreen.margins.deflateRect(Offset.zero & const Size(960, 540));
 
     for (final tooltip in ['Início', 'Tocando agora', 'Álbuns', 'Artistas', 'Configurações']) {
       final rect = tester.getRect(find.byTooltip(tooltip).first);
+
       expect(screen.contains(rect.topLeft) && screen.contains(rect.bottomRight), isTrue, reason: '$tooltip: $rect');
     }
 
@@ -57,6 +59,7 @@ void main() {
       find.descendant(of: find.byType(HomeView), matching: find.byType(Scrollable)),
     )) {
       final rect = tester.getRect(find.byWidget(scrollable));
+
       expect(rect.left, greaterThanOrEqualTo(screen.left), reason: '$rect');
       expect(rect.right, 960, reason: '$rect');
     }
@@ -64,11 +67,13 @@ void main() {
     final row = find.byType(TileRow).first;
     final strip = find.descendant(of: row, matching: find.byType(Scrollable));
     final scroll = tester.state<ScrollableState>(strip).position;
+
     scroll.jumpTo(scroll.maxScrollExtent);
     await tester.pumpAndSettle();
     expect(tester.getRect(find.text('Album 29').first).right, lessThanOrEqualTo(screen.right), reason: 'the last tile');
 
     final bar = tester.getRect(find.byType(AppBar));
+
     expect((bar.left, bar.right, bar.top), (0, 960, 0), reason: 'to the edges');
 
     // The full-screen player, which has the controls, a TV having no player bar.
@@ -77,6 +82,7 @@ void main() {
 
     for (final tooltip in ['Tocar', 'Próxima', 'Repetir a lista', 'Fila', 'Aparelhos']) {
       final rect = tester.getRect(find.byTooltip(tooltip).first);
+
       expect(screen.contains(rect.topLeft) && screen.contains(rect.bottomRight), isTrue, reason: '$tooltip: $rect');
     }
 
@@ -92,15 +98,20 @@ void main() {
         FocusManager.instance.highlightStrategy = FocusHighlightStrategy.alwaysTraditional;
         addTearDown(() => FocusManager.instance.highlightStrategy = FocusHighlightStrategy.automatic);
         await pumpHome(tester, pictured: {}, television: television);
+
         final tile = mixTile('Rock');
         final before = tester.getRect(tile);
+
         Focus.of(tester.element(find.descendant(of: tile, matching: find.byType(Padding)).first)).requestFocus();
         await tester.pumpAndSettle();
+
         final scale = tester.widget<AnimatedScale>(find.ancestor(of: tile, matching: find.byType(AnimatedScale)).first);
+
         expect(scale.scale, television ? FocusRing.grownScale : 1);
 
         final grown = tester.getRect(tile);
         final row = tester.getRect(find.descendant(of: find.byType(MixRow), matching: find.byType(Scrollable)).first);
+
         expect(grown.top, greaterThanOrEqualTo(row.top), reason: 'not cut off at the top');
         expect(grown.bottom, lessThanOrEqualTo(row.bottom), reason: 'nor at the bottom');
         expect(grown.height, moreOrLessEquals(before.height * (television ? FocusRing.grownScale : 1), epsilon: 0.5));

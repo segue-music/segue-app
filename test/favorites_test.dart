@@ -131,6 +131,7 @@ Favorites favoritesOf(Starred server) => Favorites(
 void main() {
   test('none until they come; then the server\'s', () async {
     final favorites = favoritesOf(Starred());
+
     expect(favorites.loaded, isFalse);
     expect(favorites.contains(FavoriteKind.song, 's1'), isFalse);
     await favorites.load();
@@ -144,11 +145,14 @@ void main() {
   test('a change shows at once, goes to the server, and they load again once none is left', () async {
     final server = Starred()..held = Completer();
     final favorites = favoritesOf(server);
+
     await favorites.load();
     var told = 0;
     favorites.addListener(() => told++);
+
     final starring = favorites.set(FavoriteKind.song, 's2', favorite: true);
     final unstarring = favorites.set(FavoriteKind.song, 's1', favorite: false);
+
     expect(favorites.contains(FavoriteKind.song, 's2'), isTrue);
     expect(favorites.contains(FavoriteKind.song, 's1'), isFalse);
     expect(favorites.songs, isEmpty, reason: 'the one no longer a favorite gone, the new one not come yet');
@@ -164,8 +168,11 @@ void main() {
   test('a change the server refuses is undone, and its failure the caller\'s', () async {
     final server = Starred()..refuses = true;
     final favorites = favoritesOf(server);
+
     await favorites.load();
+
     final unstarring = favorites.set(FavoriteKind.album, 'a1', favorite: false);
+
     expect(favorites.contains(FavoriteKind.album, 'a1'), isFalse);
     await expectLater(unstarring, throwsA(anything));
     expect(favorites.contains(FavoriteKind.album, 'a1'), isTrue);
@@ -175,6 +182,7 @@ void main() {
   test('a load that fails leaves them as they were', () async {
     final server = Starred();
     final favorites = favoritesOf(server);
+
     await favorites.load();
     server.down = true;
     await expectLater(favorites.load(), throwsA(anything));
@@ -201,6 +209,7 @@ void main() {
         player,
         ConnectController(player: player),
       );
+
       await services.favorites.load();
       tester.view.physicalSize = size;
       tester.view.devicePixelRatio = 1;
@@ -237,7 +246,9 @@ void main() {
         'makes it one, or no longer one', (tester) async {
       await pump(tester, const AlbumPage(Album(id: 'a1', name: 'Album a1')));
       expect(albumHeart(filled: true), findsOneWidget);
+
       final play = tester.getRect(find.byTooltip('Tocar o álbum'));
+
       expect(tester.getRect(albumHeart(filled: true)).center.dy, moreOrLessEquals(play.center.dy, epsilon: 1));
 
       await tester.tap(albumHeart(filled: true));
@@ -279,12 +290,16 @@ void main() {
             const AlbumPage(Album(id: 'a1', name: 'Album a1')),
             size: size,
           );
+
           final (s1, s2) = (find.widgetWithText(ListTile, 'Song s1'), find.widgetWithText(ListTile, 'Song s2'));
+
           await tester.ensureVisible(s2);
           await tester.pumpAndSettle();
           expect(songHeart('Song s1'), findsOneWidget);
           expect(songHeart('Song s2'), findsNothing);
+
           final duration = tester.getRect(find.descendant(of: s1, matching: find.text('3:35')));
+
           expect(tester.getRect(songHeart('Song s1')).right, lessThanOrEqualTo(duration.left));
           expect(
             tester.getRect(find.descendant(of: s2, matching: find.text('3:35'))).right,
@@ -323,7 +338,9 @@ void main() {
       (tester) async {
         server.songs.add('s2');
         await pump(tester, const Scaffold(body: PlaylistsView()));
+
         final favorites = find.widgetWithText(ListTile, 'Favoritos');
+
         expect(tester.getRect(favorites).top, greaterThan(tester.getRect(find.text('Nova playlist')).top));
         expect(find.descendant(of: favorites, matching: find.text('2 faixas')), findsOneWidget);
 
@@ -355,16 +372,22 @@ void main() {
       (tester) async {
         server.songs.add('s2');
         await pump(tester, const FavoritesPage());
+
         final titles = [
           for (final title in ['Músicas', 'Álbuns', 'Artistas']) tester.getRect(find.text(title)).top,
         ];
+
         expect([...titles]..sort(), titles, reason: 'in this order, top to bottom');
+
         final picture = tester.getRect(find.byType(FavoritesPicture));
         final cover = tester.getRect(find.descendant(of: find.byType(AlbumTile), matching: find.byType(Cover)));
+
         expect(picture.size, cover.size);
         expect(picture.left, cover.left);
+
         final count = tester.getRect(find.text('2 faixas'));
         final play = tester.getRect(find.byTooltip('Tocar'));
+
         expect(count.center.dy, moreOrLessEquals(play.center.dy, epsilon: 1), reason: 'on the same line');
         expect(play.left, greaterThan(count.right), reason: 'after it');
         expect(find.text('Album a1'), findsOneWidget);
@@ -407,10 +430,12 @@ void main() {
       await tester.tap(find.text('Álbuns'));
       await tester.pumpAndSettle();
       expect(find.byType(FavoritesPage), findsNothing, reason: 'closed, as a section does');
+
       final albumsChip = find.descendant(
         of: find.byType(AlbumsView),
         matching: find.widgetWithText(ChoiceChip, 'Favoritos'),
       );
+
       expect(tester.widget<ChoiceChip>(albumsChip).selected, isTrue);
       expect(find.text('Album a1'), findsOneWidget);
       expect(find.text('Album a2'), findsNothing);
@@ -420,10 +445,12 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Artistas'));
       await tester.pumpAndSettle();
+
       final artistsChip = find.descendant(
         of: find.byType(ArtistsView),
         matching: find.widgetWithText(ChoiceChip, 'Favoritos'),
       );
+
       expect(tester.widget<ChoiceChip>(artistsChip).selected, isTrue);
       expect(find.text('Artist ar1'), findsOneWidget);
     });
@@ -434,7 +461,9 @@ void main() {
       (tester) async {
         await pump(tester, HomePage(onSignOut: () {}));
         await openSection(tester, 'Playlists');
+
         final heart = find.byTooltip('Favoritos');
+
         expect(tester.getRect(heart).top, greaterThan(tester.getRect(find.byTooltip('Playlists')).top));
         bool marked(Finder button) =>
             tester.widget<IconButton>(find.descendant(of: button, matching: find.byType(IconButton))).isSelected!;
@@ -523,8 +552,10 @@ void main() {
       await tester.tap(find.byType(NowPlayingBar));
       await tester.pumpAndSettle();
       expect(find.byType(PlayerPage), findsOneWidget);
+
       final title = tester.getRect(find.descendant(of: find.byType(PlayerPage), matching: find.text('Song s2')).first);
       final button = tester.getRect(heart(filled: false));
+
       expect(button.center.dy, moreOrLessEquals(title.center.dy, epsilon: 1), reason: 'on the title\'s line');
       expect(button.left, greaterThanOrEqualTo(title.right - 1), reason: 'after the title');
       expect(title.center.dx, moreOrLessEquals(180, epsilon: 1), reason: 'the title in the middle');

@@ -23,6 +23,7 @@ Future<PlayerController> pumpChips(WidgetTester tester, {List<Map<String, String
     player,
     ConnectController(player: player),
   );
+
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -41,6 +42,7 @@ void main() {
   testWidgets('"Aleatório" plays songs of the whole library at random', (tester) async {
     final asked = <Map<String, String>>[];
     final player = await pumpChips(tester, asked: asked);
+
     await tester.tap(find.text('Aleatório'));
     await tester.pumpAndSettle();
     expect([for (final song in player.queue) song.id], ['s5', 's7', 's8']);
@@ -67,7 +69,9 @@ void main() {
       'hub\'s status, from any page', (tester) async {
     await pumpHome(tester, const Size(1200, 700));
     expect(find.byType(HomeChips), findsNothing);
+
     final chip = find.descendant(of: find.byType(AppBar), matching: find.byType(ShuffleLibraryChip));
+
     expect(chip, findsOneWidget);
     expect(
       tester.getRect(chip).right,

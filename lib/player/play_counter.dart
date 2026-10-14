@@ -70,6 +70,7 @@ class PlayCounter {
     }
 
     listen.play(now);
+
     final left = enough - listen.played;
     _timer = Timer(left.isNegative ? Duration.zero : left, _count);
   }

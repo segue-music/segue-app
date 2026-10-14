@@ -145,6 +145,7 @@ class Downloads extends ChangeNotifier {
       lyricsOf,
       artistPicture,
     );
+
     reachability?.addListener(opened._resume);
     hold?.addListener(opened._resume);
 
@@ -444,6 +445,7 @@ class Downloads extends ChangeNotifier {
   /// none, the one [_artistPicture] finds. Without one, where neither has one, or it can't be had.
   Future<void> _fetchArtist(String id) async {
     final (artist, _) = await _server.artist(id).timeout(_wait);
+
     String? picture;
 
     try {
@@ -579,6 +581,7 @@ class Downloads extends ChangeNotifier {
   Future<void> _write(String file, Future<List<int>> Function() bytes) async {
     final content = await bytes().timeout(_wait);
     final part = File('${directory.path}/$file.part');
+
     await part.writeAsBytes(content, flush: true);
     await part.rename('${directory.path}/$file');
     _files.add(file);
@@ -610,6 +613,7 @@ class Downloads extends ChangeNotifier {
   Future<void> _forget() async {
     final artists = _wantedArtists();
     final before = _artists.length;
+
     _artists.removeWhere((id, _) => !artists.contains(id));
 
     if (_artists.length != before) {
@@ -638,6 +642,7 @@ class Downloads extends ChangeNotifier {
   /// Writes the index beside where it goes, and moves it there, so that one cut short never leaves half an index.
   Future<void> _save() async {
     final part = File('${directory.path}/$_indexFile.part');
+
     await part.writeAsString(
       jsonEncode({
         'downloads': [for (final download in _downloads.values) _downloadJson(download)],

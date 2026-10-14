@@ -31,10 +31,12 @@ void main() {
 
   testWidgets('it starts as a dot at the top, and moves', (tester) async {
     await pumpSpinner(tester);
+
     final dotAtTheTop = paints
       ..circle(x: 10, y: 10, radius: 8.75)
       ..circle(x: 10, y: 1.25)
       ..circle(x: 10, y: 1.25);
+
     expect(find.byType(Spinner), dotAtTheTop);
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.byType(Spinner), isNot(dotAtTheTop));
@@ -45,6 +47,7 @@ void main() {
       for (final file in Directory('lib').listSync(recursive: true).whereType<File>())
         if (file.path.endsWith('.dart') && file.readAsStringSync().contains('CircularProgressIndicator(')) file.path,
     ];
+
     expect(drawn, isEmpty);
   });
 }

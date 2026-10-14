@@ -156,6 +156,7 @@ class Session {
     }
 
     final id = const Uuid().v4();
+
     await _prefs.setString('deviceId', id);
 
     return id;

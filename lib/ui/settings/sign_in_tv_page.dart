@@ -69,6 +69,7 @@ class _SignInTvPageState extends State<SignInTvPage> {
 
     try {
       final device = await offerSignIn(invite, session, services.api);
+
       messenger.showSnackBar(SnackBar(content: Text(strings.signedInTv(device))));
       navigator.pop();
     } on PairingRefused catch (e) {

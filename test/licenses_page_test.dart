@@ -49,8 +49,10 @@ void main() {
     ]);
     await pumpPage(tester, const LicensesPage());
     expect(find.descendant(of: find.byType(AppBar), matching: find.text('Licenças')), findsOneWidget);
+
     final names = ['async', 'collection', 'Mbed TLS', 'segue'];
     final tops = [for (final name in names) tester.getTopLeft(find.text(name)).dy];
+
     expect([...tops]..sort(), tops, reason: 'in this order, top to bottom');
     expect(find.descendant(of: find.widgetWithText(ListTile, 'async'), matching: find.text('2 licenças')), findsOne);
     expect(find.descendant(of: find.widgetWithText(ListTile, 'segue'), matching: find.text('1 licença')), findsOne);
@@ -67,7 +69,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Mbed TLS'));
     await tester.pumpAndSettle();
+
     final title = tester.widget<Text>(find.text('Apache License'));
+
     expect(title.textAlign, TextAlign.center);
     expect(title.style?.fontWeight, FontWeight.bold);
     expect(tester.widget<Text>(find.text('Licensed under the Apache License')).textAlign, isNot(TextAlign.center));
@@ -76,12 +80,14 @@ void main() {
   testWidgets('up and down scroll a package\'s licenses, which have nothing to focus, and at their ends go on, to what '
       'is around the page', (tester) async {
     final long = [for (var i = 0; i < 200; i++) 'Paragraph $i'].join('\n\n');
+
     await pumpPage(
       tester,
       PackageLicensesPage('long', [
         LicenseEntryWithLineBreaks(const ['long'], long),
       ]),
     );
+
     final position = tester.state<ScrollableState>(find.byType(Scrollable)).position;
     bool aboveFocused() => Focus.of(tester.element(find.text('above'))).hasPrimaryFocus;
 
@@ -119,7 +125,9 @@ void main() {
       tester,
     ) async {
       addLibmpvLicenses();
+
       final licenses = (await tester.runAsync(gathered))!;
+
       expect(
         [for (final (packages, _) in licenses) packages],
         [
@@ -128,7 +136,9 @@ void main() {
           ['Mbed TLS'],
         ],
       );
+
       final [(_, mpv), (_, ffmpeg), (_, mbedtls)] = licenses;
+
       expect(mpv.first, 'mpv (libmpv), which plays the music: https://mpv.io');
       expect(mpv.where((text) => text == 'GNU LESSER GENERAL PUBLIC LICENSE'), hasLength(1), reason: 'version 2.1');
       expect(mpv, contains('Version 2.1, February 1999'));

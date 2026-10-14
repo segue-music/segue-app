@@ -189,6 +189,7 @@ http.Response server(http.Request request) {
 Future<void> pumpHome(WidgetTester tester, Locale language, Size size) async {
   final api = SubsonicApi(Uri.parse('https://music.test'), credentials, client: MockClient((r) async => server(r)));
   final player = PlayerController(FakeEngine(), api);
+
   await player.playQueue([
     for (final song in songs)
       Song(
@@ -201,6 +202,7 @@ Future<void> pumpHome(WidgetTester tester, Locale language, Size size) async {
         duration: Duration(seconds: song['duration']! as int),
       ),
   ], play: false);
+
   final services = Services(
     Session(server: Uri.parse('https://music.test'), credentials: credentials, deviceId: 'me', deviceName: 'laptop'),
     api,
@@ -220,6 +222,7 @@ Future<void> pumpHome(WidgetTester tester, Locale language, Size size) async {
       ),
     ),
   );
+
   addTearDown(settings.dispose);
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -259,6 +262,7 @@ void main() {
         tester,
       ) async {
         final narrow = size.width < 600;
+
         await pumpHome(tester, language, size);
         expect(find.text(strings.mixes), findsOneWidget, reason: 'the home\'s first row');
         expect(find.text(strings.decade('1970')), findsOneWidget, reason: 'the album\'s, played');
@@ -268,6 +272,7 @@ void main() {
         expect(find.text(strings.appearance), findsOneWidget, reason: 'the settings');
         expect(find.text(strings.highContrastDetail), findsOneWidget);
         expect(find.text(strings.playback), findsOneWidget);
+
         final list = find.descendant(of: find.byType(SettingsPage), matching: find.byType(Scrollable));
         // Each choice's sheet, with all its options and what they do, down the settings, clear of a phone's bars at the
         // bottom.
@@ -282,6 +287,7 @@ void main() {
           ),
         ]) {
           final line = find.widgetWithText(ListTile, choice).hitTestable();
+
           await tester.scrollUntilVisible(line, 100, scrollable: list);
           await tap(tester, line);
 
@@ -363,9 +369,11 @@ void main() {
         // Its credits, from the button after how many songs it has.
         await tap(tester, find.byTooltip(strings.showCredits));
         expect(find.text(strings.creditSection('performance')), findsOneWidget);
+
         // All on the first of its two songs.
         final voice = strings.creditOnTracks(strings.creditPart('leadVocals', 'lead vocals'), 1, '1');
         final harmonica = strings.creditOnTracks(strings.creditPart('harmonica', 'harmonica'), 1, '1');
+
         expect(find.text('$voice, $harmonica'), findsOneWidget);
         expect(find.text(strings.creditOnTracks(strings.creditRole('producer'), 1, '1')), findsOneWidget);
         await tap(tester, find.descendant(of: find.byType(CreditsPage), matching: find.byTooltip(strings.close)));
@@ -381,8 +389,10 @@ void main() {
         await tap(tester, find.byTooltip(strings.showBiography));
         expect(find.text(strings.biographyProvidedBy('Last.fm')), findsOneWidget);
         await tap(tester, find.descendant(of: find.byType(BiographyPage), matching: find.byTooltip(strings.close)));
+
         // Under the songs, the page scrolls to them.
         final page = find.descendant(of: find.byType(ArtistPage), matching: find.byType(Scrollable)).first;
+
         await tester.scrollUntilVisible(find.text(strings.singlesAndEps), 100, scrollable: page);
         // Then the artists like them.
         await tester.scrollUntilVisible(find.text(strings.similarArtists), 100, scrollable: page);
@@ -411,6 +421,7 @@ void main() {
 
     testWidgets('in ${strings.languageName}, the sign-in has room for its words, its errors too', (tester) async {
       final settings = Settings(language: LanguageChoice(language));
+
       addTearDown(settings.dispose);
       tester.view.physicalSize = const Size(360, 640);
       tester.view.devicePixelRatio = 1;

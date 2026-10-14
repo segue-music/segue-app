@@ -79,8 +79,10 @@ void main() {
   testWidgets('each option is as wide as it asks, side by side, and the thumb, as tall as the button, is under the one '
       'picked, which the button says', (tester) async {
     await pumpChoice(tester, []);
+
     final mine = option(tester, 'Suas mais tocadas');
     final popular = option(tester, 'Populares');
+
     expect(popular.width, lessThan(mine.width), reason: 'its words fewer');
     expect(popular.left, mine.right, reason: 'side by side');
     expect(choice(tester), mine.expandToInclude(popular), reason: 'no room around them');
@@ -93,7 +95,9 @@ void main() {
 
   testWidgets('a tap anywhere on it picks the other, and the thumb slides to it, taking its width', (tester) async {
     final picks = <String>[];
+
     await pumpChoice(tester, picks);
+
     final mine = option(tester, 'Suas mais tocadas');
     final popular = option(tester, 'Populares');
 
@@ -116,6 +120,7 @@ void main() {
 
   testWidgets('with three, a tap picks the next, and the first after the last', (tester) async {
     final picks = <String>[];
+
     await pumpChoice(tester, picks, options: ['Nome', 'Mais tocados', 'Recentes']);
 
     for (var i = 0; i < 3; i++) {
@@ -131,8 +136,10 @@ void main() {
     tester,
   ) async {
     await pumpChoice(tester, []);
+
     final popular = option(tester, 'Populares').width;
     final width = 2 * popular + 10;
+
     expect(width, lessThan(choice(tester).width), reason: 'less than they ask');
 
     await pumpChoice(tester, [], width: width);
@@ -166,6 +173,7 @@ void main() {
 
   testWidgets('the keyboard and the remote reach it, with a ring around it, and pick the other', (tester) async {
     final picks = <String>[];
+
     await pumpChoice(tester, picks);
     await tester.sendKeyEvent(LogicalKeyboardKey.tab);
     await tester.pumpAndSettle();

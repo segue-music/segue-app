@@ -35,11 +35,13 @@ Future<PlayerController> pumpBarOnSlider(WidgetTester tester, {Widget body = con
     client: MockClient((_) async => http.Response('', 404)),
   );
   final player = PlayerController(FakeEngine(), api);
+
   await player.playQueue(
     const [Song(id: 's1', title: 'Dream On', duration: Duration(minutes: 4))],
     position: const Duration(minutes: 1),
     play: false,
   );
+
   final services = Services(
     Session(server: Uri.parse('https://music.test'), credentials: credentials, deviceId: 'me', deviceName: 'me'),
     api,
@@ -106,11 +108,15 @@ Future<PlayerController> pumpFullHdHome(
     }),
   );
   final player = PlayerController(FakeEngine(), api);
+
   await player.playQueue(const [Song(id: 's1', title: 'Dream On', duration: Duration(minutes: 4))], play: false);
+
   final client = followingAnotherDevice ? _anotherDevicePlaying() : null;
   final connect = ConnectController(player: player, client: client);
+
   // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
   client?.notifyListeners(); // as when the other device's state arrives
+
   final services = Services(
     Session(server: Uri.parse('https://music.test'), credentials: credentials, deviceId: 'me', deviceName: 'me'),
     api,
@@ -233,13 +239,16 @@ void main() {
     tester,
   ) async {
     final player = await pumpFullHdHome(tester);
+
     await tester.tap(find.byTooltip('Tocando agora'));
     await tester.pumpAndSettle();
     expect(focusedTip(), 'Tocar');
     await press(tester, LogicalKeyboardKey.arrowDown);
     expect(sliderFocused(), isTrue);
     await press(tester, LogicalKeyboardKey.arrowRight);
+
     final moved = player.position;
+
     expect(moved, greaterThan(Duration.zero));
 
     await press(tester, LogicalKeyboardKey.arrowDown);
@@ -265,6 +274,7 @@ void main() {
 
   testWidgets('elsewhere, the arrows keep moving a focused slider, as they do on a computer', (tester) async {
     final player = await pumpBarOnSlider(tester);
+
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
     await tester.pump();
     expect(player.position, lessThan(const Duration(minutes: 1)));
@@ -437,13 +447,17 @@ void main() {
     tester,
   ) async {
     await pumpFullHdHome(tester);
+
     final search = tester.widget<TextField>(find.descendant(of: find.byType(AppBar), matching: find.byType(TextField)));
+
     search.focusNode!.requestFocus();
     await tester.pumpAndSettle();
+
     final page = tester.state<ScrollableState>(
       find.descendant(of: find.byType(HomeView), matching: find.byType(Scrollable)).first,
     );
     final band = FocusManager.instance.primaryFocus!.rect;
+
     // The first row of albums level with the search, scrolled under the bar.
     page.position.jumpTo(tester.getRect(find.byType(AlbumTile).first).center.dy - band.center.dy);
     await tester.pumpAndSettle();
@@ -453,6 +467,7 @@ void main() {
         if (tester.getRect(find.byWidget(tile)) case final rect when rect.top < band.bottom && rect.bottom > band.top)
           rect,
     ];
+
     expect(under, isNotEmpty, reason: 'a card under the bar, level with the search');
 
     await press(tester, LogicalKeyboardKey.arrowLeft);

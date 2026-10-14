@@ -94,6 +94,7 @@ class _PointerTileRowState extends State<_PointerTileRow> {
     // A bit of slack, so that a tile a hair off the edge still counts as at it.
     final at = position.pixels / stride;
     final tile = direction > 0 ? (at + 0.01).floor() + perScreen : (at - 0.01).ceil() - perScreen;
+
     _scroll.animateTo(
       (tile * stride).clamp(position.minScrollExtent, position.maxScrollExtent),
       duration: const Duration(milliseconds: 300),
@@ -257,6 +258,7 @@ class _TelevisionTileRowState extends State<_TelevisionTileRow> {
     }
 
     final position = _scroll.position;
+
     _scroll.animateTo(
       (index * (size.width + TileRow._gap)).clamp(position.minScrollExtent, position.maxScrollExtent),
       duration: const Duration(milliseconds: 200),

@@ -73,6 +73,7 @@ class _AlbumPageState extends State<AlbumPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+
     final services = ServicesScope.of(context);
     final album = _album ??= services.api.album(widget.album.id);
     final artist = _artistAlbums ??= _artistOf(services.api, widget.album.artistId, album);
@@ -165,6 +166,7 @@ class _AlbumPageState extends State<AlbumPage> {
 
     if (!result.ok && mounted) {
       final message = describeError(AppLocalizations.of(context), result.error);
+
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     }
   }

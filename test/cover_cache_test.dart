@@ -42,7 +42,9 @@ Future<ImageInfo> load(ImageProvider image) async {
   PaintingBinding.instance.imageCache
     ..clear()
     ..clearLiveImages();
+
   final loaded = Completer<ImageInfo>();
+
   image
       .resolve(ImageConfiguration.empty)
       .addListener(
@@ -79,6 +81,7 @@ void main() {
     await tester.runAsync(() async {
       final asked = <String>[];
       final server = coverServer(asked);
+
       expect((await load(CoverCache(directory).cover(server, 'al1', size: 300))).image.width, 2);
       expect(asked, ['al1']);
       expect(await kept(), hasLength(1));
@@ -95,11 +98,15 @@ void main() {
   testWidgets('a cover kept for long shows, and comes again for the next time', (tester) async {
     await tester.runAsync(() async {
       final asked = <String>[];
+
       await load(CoverCache(directory).cover(coverServer(asked), 'al1', size: 300));
+
       final file = (await kept()).single;
+
       file.setLastModifiedSync(DateTime.now().subtract(const Duration(days: 31)));
 
       final info = await load(CoverCache(directory).cover(coverServer(asked, width: 4), 'al1', size: 300));
+
       expect(info.image.width, 2, reason: 'the one kept');
       await kept(
         until: (files) => files.single.lastModifiedSync().isAfter(DateTime.now().subtract(const Duration(days: 1))),
@@ -113,6 +120,7 @@ void main() {
   testWidgets('a kept cover that isn\'t an image comes from the server again', (tester) async {
     await tester.runAsync(() async {
       final asked = <String>[];
+
       await load(CoverCache(directory).cover(coverServer(asked), 'al1', size: 300));
       (await kept()).single.writeAsStringSync('not an image');
 
@@ -131,6 +139,7 @@ void main() {
         return http.Response.bytes(png(), 200, headers: {'content-type': 'image/jpeg'});
       });
       final url = Uri.parse('https://fanart.test/r1.jpg');
+
       await load(CoverCache(directory, client: client).picture(url));
       await kept();
       await load(CoverCache(directory, client: client).picture(url));
@@ -163,6 +172,7 @@ void main() {
       ConnectController(player: player),
       covers: CoverCache(directory),
     );
+
     await tester.pumpWidget(
       ServicesScope(
         services: services,

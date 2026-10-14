@@ -323,6 +323,7 @@ class FileServer {
 
     final id = request.url.queryParameters['id'] ?? '';
     final endpoint = request.url.pathSegments.last;
+
     requests.add('$endpoint $id');
     await held[id]?.future;
 

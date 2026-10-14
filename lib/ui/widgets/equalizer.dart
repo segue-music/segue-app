@@ -87,10 +87,12 @@ class _EqualizerPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final scale = size.shortestSide / 24;
+
     canvas
       ..translate(size.width / 2, size.height / 2)
       ..scale(scale)
       ..translate(-12, -12);
+
     final paint = Paint()
       ..color = color
       ..strokeWidth = 1.5
@@ -99,6 +101,7 @@ class _EqualizerPainter extends CustomPainter {
 
     for (final bar in _bars) {
       final half = time == null ? bar.still : 1 + (bar.reach - 1) * _level(bar.waves, bar.phases, time);
+
       canvas.drawLine(Offset(bar.x, 12 - half), Offset(bar.x, 12 + half), paint);
     }
   }

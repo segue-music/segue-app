@@ -194,6 +194,7 @@ class _VolumeControlState extends State<VolumeControl> with SingleTickerProvider
     }
 
     final muted = _volume == 0;
+
     _letGo?.cancel();
     setState(() => _held = _from = null);
     unawaited(runCommand(context, muted ? _connect.unmute : () => _connect.setVolume(0)));

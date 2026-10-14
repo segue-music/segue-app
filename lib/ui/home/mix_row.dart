@@ -71,6 +71,7 @@ class _MixTileState extends State<_MixTile> {
     }
 
     setState(() => _loading = true);
+
     final first = await widget.mixes.firstSongs(widget.mix).catchError((_) => const <Song>[]);
 
     if (mounted) {

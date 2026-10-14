@@ -60,6 +60,7 @@ void main() {
 
     quality = StreamQuality.original;
     final next = engine.opened.last.address();
+
     expect(next.queryParameters['id'], 's2');
     expect(next.queryParameters.containsKey('maxBitRate'), isFalse);
   });
@@ -90,6 +91,7 @@ void main() {
     await player.playQueue(songs);
 
     final later = await engine.opened.first.addressFrom(const Duration(seconds: 42));
+
     expect(later?.queryParameters, containsPair('maxBitRate', '96'));
     expect(later?.queryParameters, containsPair('timeOffset', '42'));
 
@@ -113,6 +115,7 @@ void main() {
     test('the automatic way levels a song by its album\'s gain where it plays among its album\'s, in their order, and '
         'by its own otherwise; a song the server gave no gain for, by its file\'s tags', () async {
       final choice = ReplayGainChoice(ReplayGainMode.automatic);
+
       addTearDown(choice.dispose);
       player = PlayerController(engine, api, replayGain: choice);
       await player.playQueue(queue);
@@ -136,6 +139,7 @@ void main() {
 
     test('a song added plays among the songs around it where it went, and so do they', () async {
       final choice = ReplayGainChoice(ReplayGainMode.automatic);
+
       addTearDown(choice.dispose);
       player = PlayerController(engine, api, replayGain: choice);
       await player.playQueue([queue[0], queue[2]]);
@@ -151,6 +155,7 @@ void main() {
 
     test('by song, by album, or not at all, as picked; a pick holds at once for the song that plays', () async {
       final choice = ReplayGainChoice(ReplayGainMode.track);
+
       addTearDown(choice.dispose);
       player = PlayerController(engine, api, replayGain: choice);
       await player.playQueue(queue, index: 1);
@@ -181,6 +186,7 @@ void main() {
 
     test('songs another device sent, which have no album ids, play among their album\'s by its name', () async {
       final choice = ReplayGainChoice(ReplayGainMode.automatic);
+
       addTearDown(choice.dispose);
       player = PlayerController(engine, api, replayGain: choice);
       await player.obey(
@@ -213,6 +219,7 @@ void main() {
 
     test('a player gone no longer follows the way picked', () async {
       final choice = ReplayGainChoice(ReplayGainMode.automatic);
+
       addTearDown(choice.dispose);
       player = PlayerController(engine, api, replayGain: choice);
       await player.playQueue(queue);
@@ -226,6 +233,7 @@ void main() {
   group('equalizer', () {
     test('the songs play through the equalizer as set, from the start, and as it changes', () async {
       final choice = EqualizerChoice(const EqualizerSettings(on: true, preset: EqualizerPreset.rock));
+
       addTearDown(choice.dispose);
       player = PlayerController(engine, api, equalizer: choice);
       await pumpEventQueue();
@@ -248,6 +256,7 @@ void main() {
 
     test('a player gone no longer follows the equalizer', () async {
       final choice = EqualizerChoice();
+
       addTearDown(choice.dispose);
       player = PlayerController(engine, api, equalizer: choice);
       await pumpEventQueue();
@@ -351,6 +360,7 @@ void main() {
         ),
       ),
     );
+
     await navidrome.ping();
     player = PlayerController(engine, navidrome)..onReport = reports.add;
     // Hex, as in a library older than Navidrome 0.55.
@@ -918,13 +928,17 @@ void main() {
       await player.setVolume(40);
       await player.setRepeat(Repeat.all);
       await player.seek(const Duration(seconds: 30));
+
       final queue = player.queue;
+
       reports.clear();
 
       crossfade.value = const Duration(seconds: 6);
       await pumpEventQueue();
       expect(made, hasLength(1));
+
       final crossfading = made.single;
+
       expect(crossfading.tracks.map((track) => track.queryParameters['id']), ['s1', 's2', 's3']);
       expect(crossfading.orderOpened, [1, 2, 0]);
       expect(crossfading.index, 0);
@@ -972,6 +986,7 @@ void main() {
 
     test('the songs ended are the engine\'s that plays them', () async {
       final ended = <String?>[];
+
       player.songEnded.listen((_) => ended.add(player.current?.id));
       await player.playQueue(three);
       engine.endTrack();

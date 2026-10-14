@@ -134,6 +134,7 @@ double fade(WidgetTester tester, Finder finder) =>
 /// A mouse, over nothing yet.
 Future<TestGesture> mouse(WidgetTester tester) async {
   final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+
   await gesture.addPointer(location: const Offset(999, 699));
   addTearDown(() async {
     try {
@@ -156,12 +157,15 @@ void main() {
       expect(playButton, findsNothing, reason: 'no pointer yet');
 
       final gesture = await mouse(tester);
+
       expect(playButton, findsNothing);
 
       await gesture.moveTo(tester.getCenter(find.text('Toys in the Attic')));
       await tester.pumpAndSettle();
       expect(playButton, findsOneWidget);
+
       final cover = tester.getCenter(find.descendant(of: tile('Toys in the Attic'), matching: find.byType(Cover)));
+
       expect(tester.getCenter(playButton), offsetMoreOrLessEquals(cover));
 
       await gesture.moveTo(tester.getCenter(find.text('Pump')));
@@ -187,7 +191,9 @@ void main() {
     variant: TargetPlatformVariant.desktop(),
     (tester) async {
       await pumpAlbums(tester);
+
       final gesture = await mouse(tester);
+
       expect(shade('Toys in the Attic'), findsNothing);
 
       await gesture.moveTo(tester.getCenter(find.text('Toys in the Attic')));
@@ -197,7 +203,9 @@ void main() {
       expect(fade(tester, shade('Toys in the Attic')), inExclusiveRange(0, 1));
       expect(fade(tester, shade('Toys in the Attic')), fade(tester, playButton));
       await tester.pumpAndSettle();
+
       final cover = find.descendant(of: tile('Toys in the Attic'), matching: find.byType(Cover));
+
       expect(tester.getRect(shade('Toys in the Attic')), tester.getRect(cover), reason: 'all of the cover');
       expect(shade('Pump'), findsNothing);
 
@@ -214,6 +222,7 @@ void main() {
     (tester) async {
       final player = await pumpAlbums(tester);
       final gesture = await mouse(tester);
+
       await gesture.moveTo(tester.getCenter(find.text('Toys in the Attic')));
       await tester.pumpAndSettle();
       await tester.tap(playButton);
@@ -231,6 +240,7 @@ void main() {
     variant: TargetPlatformVariant.mobile(),
     (tester) async {
       final player = await pumpAlbums(tester);
+
       expect(playButton, findsNWidgets(2));
       expect(shade('Toys in the Attic'), findsNothing, reason: 'with nothing to hover with, the covers stay');
       await tester.tap(find.descendant(of: tile('Toys in the Attic'), matching: playButton));
@@ -270,11 +280,14 @@ void main() {
 
   testWidgets('the albums a search finds have it too', (tester) async {
     final player = await pumpAlbums(tester);
+
     await tester.enterText(find.byType(TextField), 'toys');
     await tester.pump(HomePage.searchTypingPause);
     await tester.pumpAndSettle();
     expect(playButton, findsOneWidget);
+
     final icon = tester.element(find.descendant(of: playButton, matching: find.byType(ThemedIcon)));
+
     expect(
       IconTheme.of(icon).color,
       Theme.of(icon).colorScheme.onPrimary,
@@ -289,6 +302,7 @@ void main() {
 
   testWidgets('an album the server fails to give says so, and nothing plays', (tester) async {
     final player = await pumpAlbums(tester);
+
     await tester.tap(find.descendant(of: tile('Pump'), matching: playButton));
     await tester.pumpAndSettle();
     expect(find.textContaining('Não consegui tocar o álbum'), findsOneWidget);
@@ -298,7 +312,9 @@ void main() {
 
   testWidgets('the play button, and its failure, name the album\'s type, where the server says it', (tester) async {
     await pumpAlbums(tester, releaseTypes: ['EP']);
+
     final play = find.descendant(of: tile('Pump'), matching: find.byTooltip('Tocar o EP'));
+
     expect(play, findsOneWidget);
     await tester.tap(play);
     await tester.pumpAndSettle();

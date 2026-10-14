@@ -9,6 +9,7 @@ const channel = MethodChannel('segue/device');
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
   final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
 
   tearDown(() {
@@ -49,6 +50,7 @@ void main() {
 
   testWidgets('the screen stays on while one keeps it so, though another that did goes as it comes', (tester) async {
     final keptOn = <Object?>[];
+
     messenger.setMockMethodCallHandler(channel, (call) async {
       keptOn.add(call.arguments);
 

@@ -23,16 +23,19 @@ void main() {
     );
     final engine = FakeEngine();
     final player = PlayerController(engine, api);
+
     await player.playQueue(const [
       Song(id: 's1', title: 'Walk This Way', artist: 'Aerosmith'),
       Song(id: 's2', title: 'Sweet Emotion', artist: 'Aerosmith'),
     ]);
+
     final services = Services(
       Session(server: Uri.parse('https://music.test'), credentials: credentials, deviceId: 'me', deviceName: 'me'),
       api,
       player,
       ConnectController(player: player),
     );
+
     await tester.pumpWidget(
       MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,

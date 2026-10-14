@@ -36,6 +36,7 @@ void main() {
       expect((await ThemeChoice.load()).value, const ThemeSettings());
 
       final choice = await ThemeChoice.load();
+
       await choice.pickMode(ThemeMode.dark);
       await choice.pickPalette(Palette.wine);
       await choice.turnHighContrast(true);
@@ -62,8 +63,11 @@ void main() {
   testWidgets('the app shows the theme picked, whatever the system\'s, as soon as it is picked', (tester) async {
     tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
     addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+
     final settings = Settings(theme: ThemeChoice(const ThemeSettings(mode: ThemeMode.dark)));
+
     addTearDown(settings.dispose);
+
     final choice = settings.theme;
     ThemeData shown() => Theme.of(tester.element(find.byType(LoginPage)));
 

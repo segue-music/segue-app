@@ -45,6 +45,7 @@ class _AlbumPlayButtonState extends State<AlbumPlayButton> {
     final messenger = ScaffoldMessenger.of(context);
     final strings = AppLocalizations.of(context);
     final type = releaseSelector(widget.album.releaseType);
+
     setState(() => _loading = true);
 
     try {

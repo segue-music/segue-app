@@ -162,7 +162,9 @@ class PlayerController extends ChangeNotifier {
     await changes.cancel();
     await ended.cancel();
     await before.pause();
+
     final position = before.position;
+
     await engine.setVolume(before.volume);
     await engine.setRepeat(before.repeat);
     await engine.setShuffle(before.shuffle);
@@ -580,6 +582,7 @@ class PlayerController extends ChangeNotifier {
     ];
     final skippedBefore = items.take(command.index!).where((item) => item.id == null).length;
     final current = order[(command.index! - skippedBefore).clamp(0, order.length - 1)];
+
     await playQueue(
       songs,
       index: current,
@@ -625,6 +628,7 @@ class PlayerController extends ChangeNotifier {
     _changeHeld = false;
     _followOrder();
     notifyListeners();
+
     final state = report();
     _queueChanged = false;
     onReport?.call(state);
@@ -712,6 +716,7 @@ class PlayerController extends ChangeNotifier {
           if (queued.add(other.id)) other,
       ];
       final songs = added.take(autoplaySize).toList();
+
       _autoplayed.addAll(songs);
       await _add(songs, next: false);
     });

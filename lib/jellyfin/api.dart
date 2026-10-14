@@ -417,6 +417,7 @@ class JellyfinApi implements MediaServer {
   @override
   Future<void> removeFromPlaylist(String id, List<int> indexes) async {
     final entries = await _playlistItems(id);
+
     await _send(
       'DELETE',
       'Playlists/${Uri.encodeComponent(id)}/Items',
@@ -430,6 +431,7 @@ class JellyfinApi implements MediaServer {
   @override
   Future<void> moveInPlaylist(String id, {required int from, required int to}) async {
     final entry = _entryId((await _playlistItems(id))[from]);
+
     await _send('POST', 'Playlists/${Uri.encodeComponent(id)}/Items/${Uri.encodeComponent(entry)}/Move/$to');
   }
 

@@ -222,6 +222,7 @@ class _RenderOptions extends RenderBox
     final position = thumbPosition.clamp(0.0, places.length - 1.0);
     final from = position.floor();
     final place = Rect.lerp(places[from], places[min(from + 1, places.length - 1)], position - from)!;
+
     _thumb.layout(BoxConstraints.tight(place.size));
     (_thumb.parentData! as _OptionParentData).offset = place.topLeft;
   }

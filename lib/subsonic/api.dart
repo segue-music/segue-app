@@ -322,6 +322,7 @@ class SubsonicApi implements MediaServer {
   Future<void> moveInPlaylist(String id, {required int from, required int to}) async {
     final (_, songs) = await playlist(id);
     final ids = [for (final song in songs) song.id];
+
     ids.insert(to, ids.removeAt(from));
     await _post('createPlaylist', {'playlistId': id, 'songId': ids});
   }

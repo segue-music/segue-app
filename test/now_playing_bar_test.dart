@@ -24,10 +24,12 @@ void main() {
       tester,
     ) async {
       await pumpBar(tester, size: size);
+
       final bar = find.byType(NowPlayingBar);
       final cover = tester.getRect(find.descendant(of: bar, matching: find.byType(Cover)));
       final title = tester.getRect(find.descendant(of: bar, matching: find.text('Sweet Emotion')));
       final artist = tester.getRect(find.descendant(of: bar, matching: find.text('Aerosmith')));
+
       expect(cover.height, moreOrLessEquals(artist.bottom - title.top, epsilon: 1));
       expect(cover.center.dy, moreOrLessEquals((title.top + artist.bottom) / 2, epsilon: 1));
 
@@ -48,17 +50,20 @@ void main() {
     tester,
   ) async {
     await pumpBar(tester, size: const Size(1280, 700));
+
     final bar = find.byType(NowPlayingBar);
     Rect rect(Finder finder) => tester.getRect(find.descendant(of: bar, matching: finder));
     final play = rect(find.byTooltip('Tocar'));
 
     // In the middle, but for the bar's edges: the song's own room inside takes some from its side.
     expect(play.center.dx, moreOrLessEquals(640, epsilon: 2));
+
     // Its button's, around the icon and the tooltip.
     final playButton = find.ancestor(
       of: find.descendant(of: bar, matching: find.byTooltip('Tocar')),
       matching: find.byType(Material),
     );
+
     expect(
       tester.widget<Material>(playButton.first).color,
       Theme.of(tester.element(bar)).colorScheme.primary,
@@ -76,8 +81,11 @@ void main() {
       ])
         rect(find.byTooltip(tooltip)),
     ];
+
     expect(play.center.dx - buttons.first.center.dx, moreOrLessEquals(buttons.last.center.dx - play.center.dx));
+
     final slider = rect(find.byType(Slider));
+
     expect(slider.center.dx, moreOrLessEquals(640, epsilon: 2));
 
     for (final button in [play, ...buttons]) {
@@ -102,6 +110,7 @@ void main() {
     // The runners keep the window no narrower (linux/runner/my_application.cc, macos/Runner/MainFlutterWindow.swift,
     // windows/runner/win32_window.cpp): with another layout, another width there.
     await pumpBar(tester, size: const Size(960, 700));
+
     final bar = find.byType(NowPlayingBar);
     Rect icon(String tooltip) => tester.getRect(
       find.descendant(
@@ -111,6 +120,7 @@ void main() {
     );
     // Where its track goes, inside the slider's room around it.
     final track = tester.getRect(find.descendant(of: bar, matching: find.byType(Slider))).deflate(14);
+
     expect(icon('Adicionar aos favoritos').left, greaterThanOrEqualTo(track.left - 1));
     expect(icon('Mostrar a letra').right, lessThanOrEqualTo(track.right + 1));
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
@@ -134,9 +144,11 @@ void main() {
     tester,
   ) async {
     await pumpBar(tester);
+
     final bar = find.byType(NowPlayingBar);
     final cover = tester.getRect(find.descendant(of: bar, matching: find.byType(Cover)));
     final song = tester.getRect(find.descendant(of: bar, matching: find.byTooltip('Abrir o player')));
+
     expect(cover.left - song.left, moreOrLessEquals(4));
     expect(cover.top - song.top, moreOrLessEquals(4));
     expect(song.bottom - cover.bottom, moreOrLessEquals(4));
@@ -149,8 +161,10 @@ void main() {
     tester,
   ) async {
     await pumpBar(tester, size: const Size(960, 540));
+
     final bar = find.byType(NowPlayingBar);
     final cover = tester.getRect(find.descendant(of: bar, matching: find.byType(Cover)));
+
     expect(tester.getRect(find.descendant(of: bar, matching: find.byTooltip('Abrir o player'))), cover);
     expect(cover.left, moreOrLessEquals(8));
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
@@ -190,8 +204,10 @@ void main() {
       ),
     );
     final connect = ConnectController(player: player, client: client);
+
     // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
     client.notifyListeners(); // as when the TV's state arrives
+
     final services = Services(
       Session(server: Uri.parse('https://music.test'), credentials: credentials, deviceId: 'me', deviceName: 'me'),
       api,
@@ -250,9 +266,11 @@ void main() {
       client: MockClient((_) async => http.Response('', 404)),
     );
     final player = PlayerController(FakeEngine(), api);
+
     await player.playQueue(const [
       Song(id: 's1', title: 'Dream On', artist: 'Aerosmith', duration: Duration(seconds: 268)),
     ], play: false);
+
     final services = Services(
       Session(server: Uri.parse('https://music.test'), credentials: credentials, deviceId: 'me', deviceName: 'me'),
       api,
@@ -282,6 +300,7 @@ void main() {
     // While dragging, the time shows where it would go, and nothing moves until it lets go.
     final slider = tester.getRect(find.byType(Slider));
     final drag = await tester.startGesture(Offset(slider.left + 14 + 4, slider.center.dy));
+
     await tester.pump();
     await drag.moveTo(Offset(slider.left + 14 + (slider.width - 28) * 0.75, slider.center.dy));
     await tester.pump();
@@ -303,10 +322,12 @@ void main() {
       client: MockClient((_) async => http.Response('', 404)),
     );
     final player = PlayerController(FakeEngine(), api);
+
     await player.playQueue(const [
       Song(id: 's1', title: 'Dream On', duration: Duration(seconds: 268)),
       Song(id: 's2', title: 'Other', duration: Duration(seconds: 200)),
     ], play: false);
+
     final services = Services(
       Session(server: Uri.parse('https://music.test'), credentials: credentials, deviceId: 'me', deviceName: 'me'),
       api,

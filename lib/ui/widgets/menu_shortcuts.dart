@@ -37,6 +37,7 @@ class _MenuShortcutsState extends State<MenuShortcuts> {
     }
 
     final pressed = _hold != null;
+
     _hold?.cancel();
     _hold = null;
 

@@ -370,6 +370,7 @@ class PairingServer {
       // Spent: the next sign-in takes the next code.
       _invite.value = PairingInvite.random(invite.address, invite.name);
       final answer = await _answer(request, invite);
+
       response
         ..statusCode = answer.statusCode
         ..headers.contentType = ContentType.binary
@@ -465,6 +466,7 @@ Future<PairingAnswer> takeOffer(
       deviceName: deviceName,
       client: client,
     );
+
     unawaited(
       _awaitQuickConnect(
         offer.server,

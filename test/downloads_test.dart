@@ -77,6 +77,7 @@ void main() {
 
   /// The downloads opened, which the test closes ([close]), or else its end.
   final opened = <Downloads>[];
+
   tearDown(() {
     for (final downloads in opened) {
       downloads.dispose();
@@ -102,6 +103,7 @@ void main() {
       lyricsOf: lyricsOf,
       artistPicture: artistPicture,
     );
+
     opened.add(downloads);
 
     return downloads;
@@ -114,9 +116,12 @@ void main() {
 
   test('an album downloaded has its songs as their files are and its covers on the device', () async {
     final downloads = await open();
+
     await downloads.addAlbum(album, songs);
     await settled(downloads);
+
     final download = downloads.ofAlbum('al1')!;
+
     expect(downloads.progressOf(download), (done: 2, failed: 0, total: 2));
     expect(downloads.songFile('s1')!.readAsStringSync(), 'audio of s1');
     expect(downloads.coverFile('al1')!.readAsStringSync(), 'image of al1');
@@ -137,15 +142,19 @@ void main() {
 
   test('downloads stay as the app opens again, with all they say of the album and its songs', () async {
     final first = await open();
+
     await first.addAlbum(album, songs);
     await settled(first);
     close(first);
     server.requests.clear();
 
     final again = await open();
+
     await settled(again);
     expect(server.requests, isEmpty, reason: 'nothing to fetch again');
+
     final download = again.ofAlbum('al1')!;
+
     expect(download.album!.releaseDate?.day, 8);
     expect(download.album!.genres.single.name, 'Rock');
     expect(download.album!.releaseType, ReleaseType.album);
@@ -179,6 +188,7 @@ void main() {
         server.version = '0.63.2 (1a2b3c4)';
         final lyrics = Lyrics([LyricLine('Backstroke lover')]);
         final first = await open(lyricsOf: (song) async => lyrics);
+
         await first.addAlbum(
           const Album(
             id: oldAlbum,
@@ -198,20 +208,27 @@ void main() {
 
         server.version = '0.64.2 (1a2b3c4)';
         final reachability = Reachability(server.api.ping, retry: const Duration(hours: 1));
+
         addTearDown(reachability.dispose);
         unawaited(reachability.check());
+
         final again = await open(reachability: reachability, lyricsOf: (song) async => fail('lyrics asked again'));
+
         await settled(again);
         expect(server.requests, ['ping.view '], reason: 'nothing downloaded again');
         expect(again.ofAlbum(oldAlbum), isNull);
+
         final album = again.ofAlbum(newAlbum)!;
+
         expect(album.album!.coverArt, 'al-${newAlbum}_0');
         expect(album.album!.genres.single.id, 'Rock', reason: 'a genre is named by its name');
         expect(album.songs.single.id, newSong);
         expect(album.songs.single.albumId, newAlbum);
         expect(album.songs.single.coverArt, 'mf-${newSong}_0');
         expect(album.songs.single.artistId, 'ar1', reason: 'an artist\'s id was a hash already');
+
         final playlist = again.ofPlaylist(newPlaylist)!;
+
         expect(playlist.playlist!.coverArt, 'pl-${newPlaylist}_0');
         expect(again.progressOf(playlist), (done: 1, failed: 0, total: 1));
         expect(again.songFile(newSong)!.readAsStringSync(), 'audio of $oldSong');
@@ -223,6 +240,7 @@ void main() {
         close(again);
 
         final third = await open();
+
         await settled(third);
         expect(third.ofAlbum(newAlbum), isNotNull, reason: 'the index keeps them');
         expect(third.songFile(newSong), isNotNull);
@@ -248,6 +266,7 @@ void main() {
       );
 
       final downloads = await open();
+
       await settled(downloads);
       expect(downloads.songFile(newSong)!.readAsStringSync(), 'audio of $oldSong');
       expect(server.requests, isNot(contains('stream.view $newSong')));
@@ -258,6 +277,7 @@ void main() {
 
   test('a song in two downloads is on the device once, until both go', () async {
     final downloads = await open();
+
     await downloads.addAlbum(album, songs);
     await downloads.addPlaylist(playlist, [songs[1]]);
     await settled(downloads);
@@ -278,6 +298,7 @@ void main() {
 
   test('a song that fails to come is tried again, as asked', () async {
     final downloads = await open();
+
     server.failing.add('s2');
     await downloads.addAlbum(album, songs);
     await settled(downloads);
@@ -295,10 +316,13 @@ void main() {
         throw const SocketException('no route to host');
       }
     }, retry: const Duration(hours: 1));
+
     addTearDown(reachability.dispose);
     server.reachable = false;
     await reachability.check();
+
     final downloads = await open(reachability: reachability);
+
     await downloads.addAlbum(album, songs);
     await settled(downloads);
     expect(server.requests, isEmpty);
@@ -312,7 +336,9 @@ void main() {
 
   test('a download that fails for the network tells that the server is out of reach', () async {
     final reachability = Reachability(() async {}, retry: const Duration(hours: 1));
+
     addTearDown(reachability.dispose);
+
     final downloads = await open(reachability: reachability);
     server.reachable = false;
     await downloads.addAlbum(album, songs);
@@ -323,12 +349,14 @@ void main() {
 
   test('an index that can\'t be read leaves the files there', () async {
     final first = await open();
+
     await first.addAlbum(album, songs);
     await settled(first);
     close(first);
     File('${directory.path}/index.json').writeAsStringSync('{not json');
 
     final again = await open();
+
     expect(again.all, isEmpty);
     expect(Directory('${directory.path}/songs').listSync(), hasLength(2));
   });
@@ -342,7 +370,9 @@ void main() {
     bitRate = 96;
     server.held.remove('s2')!.complete();
     await settled(downloads);
+
     final streams = server.urls.where((url) => url.path.endsWith('stream.view'));
+
     expect([for (final url in streams) url.queryParameters['maxBitRate']], ['160', '160']);
 
     await downloads.addPlaylist(playlist, [const Song(id: 's3', title: 'Other')]);
@@ -353,6 +383,7 @@ void main() {
   test('held, as on mobile data, nothing comes until they are let go', () async {
     final hold = ValueNotifier(true);
     final downloads = await open(hold: hold);
+
     await downloads.addAlbum(album, songs);
     await settled(downloads);
     expect(downloads.held, isTrue);
@@ -375,9 +406,12 @@ void main() {
     }
 
     final downloads = await open(lyricsOf: lyricsOf);
+
     await downloads.addAlbum(album, songs);
     await settled(downloads);
+
     final lyrics = await downloads.lyrics('s1');
+
     expect(lyrics?.lines.single.text, 'Backstroke lover');
     expect(lyrics?.lines.single.start, const Duration(seconds: 12));
     expect(lyrics?.provider, 'LRCLIB');
@@ -386,6 +420,7 @@ void main() {
     close(downloads);
 
     final again = await open(lyricsOf: lyricsOf);
+
     await settled(again);
     expect(asked, 2);
     expect((await again.lyrics('s1'))?.lines, hasLength(1));
@@ -396,6 +431,7 @@ void main() {
     final downloads = await open(
       artistPicture: (artist) async => Uri.parse('https://fanart.test/${artist.musicBrainzId}.jpg'),
     );
+
     await downloads.addPlaylist(playlist, [
       const Song(
         id: 's9',
@@ -419,13 +455,17 @@ void main() {
           throw const SocketException('no route to host');
         }
       }, retry: const Duration(hours: 1));
+
       addTearDown(reachability.dispose);
+
       final downloads = await open(reachability: reachability);
       final pendingPlays = await PendingPlays.open(File('${directory.path}/plays.json'));
       final api = ServerWithDownloads(server.api, downloads, reachability, pendingPlays: pendingPlays);
       server.reachable = false;
       await reachability.check();
+
       final time = DateTime.utc(2026, 10, 10, 12);
+
       await api.scrobble('s1', time: time);
       expect(pendingPlays.plays.single.songId, 's1');
       expect((await PendingPlays.open(pendingPlays.file)).plays, hasLength(1), reason: 'kept on the device');
@@ -441,6 +481,7 @@ void main() {
       }
 
       final scrobble = server.urls.lastWhere((url) => url.path.endsWith('scrobble.view'));
+
       expect(scrobble.queryParameters['id'], 's1');
       expect(scrobble.queryParameters['time'], '${time.millisecondsSinceEpoch}');
       expect(pendingPlays.plays, isEmpty);
@@ -450,10 +491,12 @@ void main() {
 
     test('stop at a play that fails for the network, the rest kept; one the server refuses goes', () async {
       final pendingPlays = await PendingPlays.open(File('${directory.path}/plays.json'));
+
       await pendingPlays.add('s1', DateTime.utc(2026));
       await pendingPlays.add('gone', DateTime.utc(2026));
       await pendingPlays.add('s2', DateTime.utc(2026));
       await pendingPlays.add('s3', DateTime.utc(2026));
+
       final counted = <String>[];
       final sent = await pendingPlays.send((play) async {
         switch (play.songId) {
@@ -465,6 +508,7 @@ void main() {
 
         counted.add(play.songId);
       });
+
       expect(sent, isFalse);
       expect(counted, ['s1', 's2']);
       expect([for (final play in pendingPlays.plays) play.songId], ['s3']);
@@ -556,11 +600,16 @@ void main() {
         'server not asked', () async {
       final ping = Completer<void>();
       final opening = Reachability(() => ping.future, retry: const Duration(hours: 1));
+
       addTearDown(opening.dispose);
+
       final api = ServerWithDownloads(server.api, downloads, opening);
+
       unawaited(opening.check());
+
       final asked = server.requests.length;
       final playlists = api.playlists();
+
       await Future<void>.delayed(const Duration(milliseconds: 10));
       expect(server.requests, hasLength(asked));
 
@@ -576,6 +625,7 @@ void main() {
         client: MockClient((_) async => http.Response('', 503)),
       );
       final api = ServerWithDownloads(refusing, downloads, reachability);
+
       await expectLater(api.playlists(), throwsA(isA<ServerError>()));
       expect(reachability.value, isTrue);
     });

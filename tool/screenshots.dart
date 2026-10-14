@@ -130,14 +130,18 @@ Future<void> _pumpApp(WidgetTester tester, _Device device, {required String albu
   final api = SubsonicApi(_server, _credentials, client: MockClient((request) async => _answer(request)));
   final player = PlayerController(FakeEngine(), api);
   final (_, songs) = await api.album(album);
+
   await player.playQueue(songs, position: const Duration(seconds: 64), play: false);
+
   final services = Services(
     Session(server: _server, credentials: _credentials, deviceId: 'this', deviceName: 'This device'),
     api,
     player,
     ConnectController(player: player, client: _hub()),
   );
+
   await services.favorites.load();
+
   final television = device == _Device.tv;
   final systemBars = FakeViewPadding(
     top: device.statusBar * device.pixelRatio,
@@ -225,16 +229,21 @@ Future<void> _settle(WidgetTester tester) async {
 /// point.
 Future<void> _save(WidgetTester tester, _Device device) async {
   final screen = _screen.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+
   await tester.runAsync(() async {
     final image = await screen.toImage(pixelRatio: device.pixelRatio);
     final framed = await _frame(image, device);
     final png = await framed.toByteData(format: ui.ImageByteFormat.png);
     final width = framed.width;
+
     image.dispose();
     framed.dispose();
+
     final file = File('$_folder/${device.name}.png');
+
     await file.parent.create(recursive: true);
     await file.writeAsBytes(png!.buffer.asUint8List());
+
     // cwebp is in the dev image (tool/dev.Dockerfile).
     final webp = await Process.run('cwebp', [
       '-quiet',
@@ -1032,6 +1041,7 @@ Future<Map<String, Uint8List>> _paintPictures() async {
       for (final (index, album) in albums.indexed) {
         final image = covers[album]!;
         final place = Rect.fromLTWH(index % 2 * _side / 2, index ~/ 2 * _side / 2, _side / 2, _side / 2);
+
         canvas.drawImageRect(image, Offset.zero & const Size(_side, _side), place, Paint());
       }
     });
@@ -1046,6 +1056,7 @@ Future<Map<String, Uint8List>> _paintPictures() async {
 Future<ui.Image> _paint(void Function(Canvas canvas) draw) {
   final recorder = ui.PictureRecorder();
   final canvas = Canvas(recorder)..clipRect(const Rect.fromLTWH(0, 0, _side, _side));
+
   draw(canvas);
 
   return recorder.endRecording().toImage(_side.toInt(), _side.toInt());
@@ -1098,12 +1109,14 @@ void _drawArt(Canvas canvas, _Art art, Random random, {String? title}) {
         )
         ..restore()
         ..drawRect(const Rect.fromLTRB(0, horizon, _side, _side), Paint()..color = colors[4]);
+
       final grid = Paint()
         ..color = colors[5].withValues(alpha: 0.8)
         ..strokeWidth = 3;
 
       for (var line = 0; line <= 8; line++) {
         final y = horizon + pow(line / 8, 2) * (_side - horizon);
+
         canvas.drawLine(Offset(0, y), Offset(_side, y), grid);
       }
 
@@ -1142,6 +1155,7 @@ void _drawArt(Canvas canvas, _Art art, Random random, {String? title}) {
         final color = colors[1 + blob % (colors.length - 1)];
         final center = Offset(random.nextDouble() * _side, random.nextDouble() * _side);
         final radius = _side * (0.3 + random.nextDouble() * 0.35);
+
         canvas.drawCircle(
           center,
           radius,
@@ -1175,6 +1189,7 @@ void _drawArt(Canvas canvas, _Art art, Random random, {String? title}) {
         for (var column = 0; column * step < _side + step; column++) {
           final at = Offset(column * step + (row.isOdd ? step / 2 : 0), row * step);
           final distance = (at - focus).distance / _side;
+
           canvas.drawCircle(at, (1 - distance * 1.3).clamp(0.08, 1.0) * step * 0.5, dot);
         }
       }
@@ -1193,6 +1208,7 @@ void _drawArt(Canvas canvas, _Art art, Random random, {String? title}) {
           }
 
           final paint = Paint()..color = shape;
+
           canvas
             ..save()
             ..clipRect(place)
@@ -1255,6 +1271,7 @@ void _drawText(Canvas canvas, String text, Offset at, TextStyle style) {
     ),
     textDirection: TextDirection.ltr,
   )..layout(maxWidth: _side - at.dx * 2);
+
   painter
     ..paint(canvas, at)
     ..dispose();
@@ -1266,6 +1283,7 @@ void _drawPortrait(Canvas canvas, List<Color> colors, Random random) {
 
   for (var light = 0; light < 18; light++) {
     final color = Color.lerp(colors[1 + light % (colors.length - 1)], const Color(0xffffffff), 0.5)!;
+
     canvas.drawCircle(
       Offset(random.nextDouble() * _side, random.nextDouble() * _side * 0.7),
       18 + random.nextDouble() * 50,
@@ -1364,6 +1382,7 @@ Future<ui.Image> _frame(ui.Image screen, _Device device) {
     case _Device.desktop:
       // The base, under the lid: a slab, lit from above, with a notch to open it by.
       final base = Rect.fromLTWH(body.left - overhang, body.bottom, body.width + 2 * overhang, under);
+
       canvas
         ..drawOval(Rect.fromCenter(center: base.bottomCenter, width: base.width * 0.9, height: 12), shadow)
         ..drawRRect(
@@ -1395,6 +1414,7 @@ Future<ui.Image> _frame(ui.Image screen, _Device device) {
       // The stand: a neck, and a foot under it.
       final neck = Rect.fromCenter(center: Offset(body.center.dx, body.bottom + 17), width: 56, height: 34);
       final foot = Rect.fromCenter(center: Offset(body.center.dx, neck.bottom + 6), width: 280, height: 12);
+
       canvas
         ..drawOval(Rect.fromCenter(center: foot.bottomCenter, width: foot.width * 1.1, height: 10), shadow)
         ..drawRect(
@@ -1435,6 +1455,7 @@ Future<ui.Image> _frame(ui.Image screen, _Device device) {
   }
 
   canvas.restore();
+
   final lens = Paint()..color = const Color(0xff050506);
   final ring = Paint()
     ..color = const Color(0xff26262c)
@@ -1445,6 +1466,7 @@ Future<ui.Image> _frame(ui.Image screen, _Device device) {
     case _Device.phone:
       // The camera, through the screen, in the middle of the status bar.
       final camera = Offset(screenPlace.center.dx, screenPlace.top + device.statusBar / 2);
+
       canvas
         ..drawCircle(camera, 6, lens)
         ..drawCircle(camera, 6, ring);
@@ -1452,6 +1474,7 @@ Future<ui.Image> _frame(ui.Image screen, _Device device) {
     case _Device.tablet || _Device.desktop:
       // The camera, in the bezel above the screen.
       final camera = Offset(body.center.dx, body.top + bezel.top / 2);
+
       canvas
         ..drawCircle(camera, 3, lens)
         ..drawCircle(camera, 3, ring);
@@ -1481,12 +1504,15 @@ void _drawSystemBars(Canvas canvas, Rect screen, _Device device) {
     ),
     textDirection: TextDirection.ltr,
   )..layout();
+
   time
     ..paint(canvas, Offset(bar.left + side, bar.center.dy - time.height / 2))
     ..dispose();
+
   final battery = Rect.fromLTWH(bar.right - side - 22, bar.center.dy - 5.5, 20, 11);
   final wifi = Offset(battery.left - 16, bar.center.dy + 6);
   final network = Offset(wifi.dx - 26, bar.center.dy + 6);
+
   canvas
     ..drawRRect(
       RRect.fromRectAndRadius(battery, const Radius.circular(3)),

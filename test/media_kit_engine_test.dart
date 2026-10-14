@@ -61,6 +61,7 @@ Uint8List wav(int n, {double seconds = 4, Map<String, String> tags = const {}, d
   }
 
   final samplesAt = 36 + id3Chunk;
+
   text(samplesAt, 'data');
   data.setUint32(samplesAt + 4, samples * 2, Endian.little);
 
@@ -79,6 +80,7 @@ Uint8List _id3(Map<String, String> tags) {
 
   for (final MapEntry(:key, :value) in tags.entries) {
     final content = [0, ...latin1.encode(key), 0, ...latin1.encode(value)];
+
     frames
       ..add(ascii.encode('TXXX'))
       ..add((ByteData(4)..setUint32(0, content.length)).buffer.asUint8List())
@@ -173,6 +175,7 @@ class TrackServer {
     final response = request.response;
     final n = int.parse(path.replaceAll(RegExp('[^0-9]'), ''));
     final offset = int.parse(request.uri.queryParameters['timeOffset'] ?? '0');
+
     requests.add(path);
     offsets.add(offset);
 
@@ -212,6 +215,7 @@ void main() {
 
   test('opening at another track says that track, right away and later', () async {
     final tracks = [for (var i = 0; i < 3; i++) tone(dir, i)];
+
     await engine.open(tracks, index: 0, position: Duration.zero, play: true);
     await Future<void>.delayed(const Duration(milliseconds: 500));
     // What the app does when another song of the album is picked while one plays:
@@ -226,6 +230,7 @@ void main() {
     'the equalizer changes as a track plays, which goes on from where it was, though its stream can\'t seek',
     () async {
       final server = await TrackServer.start();
+
       addTearDown(server.close);
       await engine.open([server.track('ok0')], index: 0, position: Duration.zero, play: true);
       await Future<void>.delayed(const Duration(milliseconds: 500));
@@ -237,6 +242,7 @@ void main() {
         const <int, double>{},
       ]) {
         final before = engine.position;
+
         await engine.setEqualizer(gains);
         await Future<void>.delayed(const Duration(milliseconds: 600));
         expect(engine.playing, isTrue);
@@ -252,6 +258,7 @@ void main() {
     final tracks = [tone(dir, 0, seconds: 1), tone(dir, 1), tone(dir, 2)];
     final changes = <int>[];
     final subscription = engine.changes.listen((_) => changes.add(engine.index));
+
     await engine.open(tracks, index: 0, position: Duration.zero, play: true);
     await Future<void>.delayed(const Duration(milliseconds: 1800)); // the first track ends
     expect(engine.index, 1);
@@ -267,6 +274,7 @@ void main() {
 
   test('a jump plays, even from paused', () async {
     final tracks = [for (var i = 0; i < 3; i++) tone(dir, i)];
+
     await engine.open(tracks, index: 0, position: Duration.zero, play: false);
     await engine.jump(2);
     await Future<void>.delayed(const Duration(milliseconds: 300));
@@ -276,6 +284,7 @@ void main() {
 
   test('a jump to the current track starts it over', () async {
     final tracks = [for (var i = 0; i < 2; i++) tone(dir, i, seconds: 20)];
+
     await engine.open(tracks, index: 0, position: const Duration(seconds: 15), play: true);
     await Future<void>.delayed(const Duration(milliseconds: 300));
     await engine.jump(0);
@@ -288,6 +297,7 @@ void main() {
 
   test('after the last track ends, a jump plays the track picked', () async {
     final tracks = [for (var i = 0; i < 3; i++) tone(dir, i, seconds: 1)];
+
     await engine.open(tracks, index: 2, position: Duration.zero, play: true);
     await Future<void>.delayed(const Duration(milliseconds: 1500)); // the queue ends
     await engine.jump(1);
@@ -298,6 +308,7 @@ void main() {
 
   test('after the last track ends, a jump to it plays it again', () async {
     final tracks = [for (var i = 0; i < 3; i++) tone(dir, i, seconds: 1)];
+
     await engine.open(tracks, index: 2, position: Duration.zero, play: true);
     await Future<void>.delayed(const Duration(milliseconds: 1500)); // the queue ends
     await engine.jump(2);
@@ -344,6 +355,7 @@ void main() {
           track(6, gain: const TrackGain(-3), tags: tags),
           track(7, seconds: 2, gain: const TrackGain(3), tags: tags),
         ];
+
         await listened.open(tracks, index: 0, position: Duration.zero, play: true);
         await Future<void>.delayed(const Duration(seconds: 1));
         expect(loudestBySecond(heard).take(8), [
@@ -366,6 +378,7 @@ void main() {
         track(1, gain: gain, tags: {'REPLAYGAIN_TRACK_GAIN': '-2.00 dB', 'REPLAYGAIN_TRACK_PEAK': '0.500000'}),
         track(2, seconds: 2, gain: gain, tags: {'REPLAYGAIN_TRACK_GAIN': '-2.00 dB'}),
       ];
+
       await listened.open(tracks, index: 0, position: Duration.zero, play: true);
       await Future<void>.delayed(const Duration(seconds: 1));
       expect(loudestBySecond(heard).take(3), [
@@ -385,6 +398,7 @@ void main() {
       expect(listened.volume, 100);
 
       final before = changes;
+
       await listened.setLevel(0.2);
       await Future<void>.delayed(const Duration(milliseconds: 100));
       expect(changes, before, reason: 'nothing to tell');
@@ -394,6 +408,7 @@ void main() {
       var gain = TrackGain.none;
       final file = File('${dir.path}/t0.wav')..writeAsBytesSync(wav(0, seconds: 2));
       final source = TrackSource.resolved(() => file.uri, gain: () => gain);
+
       await listened.open([source], index: 0, position: Duration.zero, play: false);
       await Future<void>.delayed(const Duration(milliseconds: 300));
       gain = const TrackGain(-12);
@@ -527,6 +542,7 @@ void main() {
 
   test('a file says how long it is, once loaded; a stream the server transcodes as it goes doesn\'t', () async {
     final server = await TrackServer.start();
+
     addTearDown(server.close);
     await engine.open([tone(dir, 0)], index: 0, position: Duration.zero, play: true);
     await Future<void>.delayed(const Duration(milliseconds: 500));
@@ -540,6 +556,7 @@ void main() {
 
   test('opened shuffled in an order given, it plays in that order, which shuffle off takes back to theirs', () async {
     final tracks = [for (var i = 0; i < 4; i++) tone(dir, i)];
+
     await engine.setShuffle(true);
     await engine.open(tracks, index: 1, position: Duration.zero, play: true, order: [3, 1, 0, 2]);
     await Future<void>.delayed(const Duration(milliseconds: 500));
@@ -588,10 +605,13 @@ void main() {
 
     test('from the media server, as it transcodes, the next track starts as long as it says', () async {
       final server = await TrackServer.start();
+
       addTearDown(server.close);
+
       final tracks = [
         for (var i = 0; i < 2; i++) TrackSource(server.url('ok$i'), duration: const Duration(seconds: 4)),
       ];
+
       await crossfading.open(tracks, index: 0, position: Duration.zero, play: true);
       await Future<void>.delayed(const Duration(milliseconds: 3400));
       expect(crossfading.index, 1);
@@ -608,6 +628,7 @@ void main() {
 
     test('it is asked of the server at once, and play starts it from its place without asking again', () async {
       final tracks = [server.track('ok0'), server.track('ok1')];
+
       await engine.open(tracks, index: 1, position: const Duration(seconds: 2), play: false);
       expect(server.requests, contains('/ok1'));
       expect((engine.index, engine.playing), (1, false));
@@ -623,6 +644,7 @@ void main() {
 
     test('while it loads, a seek moves where it plays from, and play plays it from there once loaded', () async {
       final opening = engine.open([server.track('slow0')], index: 0, position: Duration.zero, play: false);
+
       await Future<void>.delayed(const Duration(milliseconds: 100));
       await engine.seek(const Duration(seconds: 2));
       expect(engine.position.inMilliseconds, closeTo(2000, 200));
@@ -637,6 +659,7 @@ void main() {
     test('while it loads, a jump plays the track picked from its start', () async {
       final tracks = [server.track('ok0'), server.track('slow1'), server.track('ok2')];
       final opening = engine.open(tracks, index: 1, position: const Duration(seconds: 2), play: false);
+
       await Future<void>.delayed(const Duration(milliseconds: 100));
       await engine.jump(2);
       await opening;
@@ -777,6 +800,7 @@ void main() {
         play: true,
       );
       await Future<void>.delayed(const Duration(milliseconds: 300));
+
       final order = engine.order;
       // Another track than the current one, which a jump would only start over, and not the last.
       final target = engine.index == 1 ? 2 : 1;
@@ -804,9 +828,12 @@ void main() {
 
   test('after a jump, a seek while the track loads goes there once it has', () async {
     final server = await TrackServer.start();
+
     addTearDown(server.close);
+
     // Not the next track, which would be there already, opened ahead.
     final tracks = [server.track('ok0'), server.track('ok1'), server.track('slow2')];
+
     await engine.open(tracks, index: 0, position: Duration.zero, play: true);
     await Future<void>.delayed(const Duration(milliseconds: 800));
     await engine.jump(2);
@@ -824,6 +851,7 @@ void main() {
     final tracks = [tone(dir, 0, seconds: 1), tone(dir, 1), tone(dir, 2)];
     final announced = <int, Duration>{}; // track → the position when it was first announced
     final subscription = engine.changes.listen((_) => announced.putIfAbsent(engine.index, () => engine.position));
+
     await engine.open(tracks, index: 0, position: Duration.zero, play: true);
     await Future<void>.delayed(const Duration(milliseconds: 2200)); // moves on to track 1 at 1 s
     await engine.jump(2);
@@ -837,6 +865,7 @@ void main() {
 
   test('shuffle keeps the current track playing, and off brings back the order it had', () async {
     final tracks = [for (var i = 0; i < 5; i++) tone(dir, i)];
+
     await engine.open(tracks, index: 2, position: Duration.zero, play: true);
     await Future<void>.delayed(const Duration(milliseconds: 500));
     expect(engine.order, [0, 1, 2, 3, 4]);
@@ -856,6 +885,7 @@ void main() {
   group('tracks added', () {
     test('play next, right after the current one, or after the last, the current one playing on', () async {
       final server = await TrackServer.start();
+
       addTearDown(server.close);
       await engine.open(
         [server.track('short0'), server.track('short1')],
@@ -878,6 +908,7 @@ void main() {
 
     test('after the last one, as it plays, play once it ends, as autoplay adds them', () async {
       final server = await TrackServer.start();
+
       addTearDown(server.close);
       await engine.open([server.track('short0')], index: 0, position: Duration.zero, play: true);
       await Future<void>.delayed(const Duration(milliseconds: 300));
@@ -890,10 +921,13 @@ void main() {
 
     test('never take the current track elsewhere, or back to its start, even for a moment', () async {
       final tracks = [for (var i = 0; i < 3; i++) tone(dir, i, seconds: 20)];
+
       await engine.open(tracks, index: 1, position: const Duration(seconds: 10), play: true);
       await Future<void>.delayed(const Duration(milliseconds: 500));
+
       final told = <(int, Duration)>[];
       final subscription = engine.changes.listen((_) => told.add((engine.order[engine.index], engine.position)));
+
       await engine.add([tone(dir, 3), tone(dir, 4)], next: true);
       await engine.add([tone(dir, 5)], next: false);
       await Future<void>.delayed(const Duration(milliseconds: 300));
@@ -908,10 +942,13 @@ void main() {
     test('shuffled, play next all the same, and go where they would have unshuffled as shuffle goes off', () async {
       for (var round = 0; round < 3; round++) {
         final tracks = [for (var i = 0; i < 6; i++) tone(dir, i, seconds: 20)];
+
         await engine.setShuffle(true);
         await engine.open(tracks, index: 2, position: const Duration(seconds: 3), play: true);
         await Future<void>.delayed(const Duration(milliseconds: 300));
+
         final current = engine.index;
+
         expect(await engine.add([tone(dir, 6), tone(dir, 7)], next: true), 3);
         expect(await engine.add([tone(dir, 8)], next: false), 8);
         expect(engine.index, current);
@@ -920,6 +957,7 @@ void main() {
 
         final told = <(int, Duration)>[];
         final subscription = engine.changes.listen((_) => told.add((engine.order[engine.index], engine.position)));
+
         await engine.setShuffle(false);
         await Future<void>.delayed(const Duration(milliseconds: 300));
         expect(engine.order, [0, 1, 2, 3, 4, 5, 6, 7, 8]);
@@ -937,6 +975,7 @@ void main() {
   group('tracks moved and removed', () {
     test('the queue plays in its new order, the current track playing on', () async {
       final server = await TrackServer.start();
+
       addTearDown(server.close);
       await engine.open(
         [for (var i = 0; i < 4; i++) server.track('short$i')],
@@ -959,8 +998,10 @@ void main() {
 
     test('never take the current track elsewhere, or back to its start, even for a moment', () async {
       final tracks = [for (var i = 0; i < 5; i++) tone(dir, i, seconds: 20)];
+
       await engine.open(tracks, index: 2, position: const Duration(seconds: 10), play: true);
       await Future<void>.delayed(const Duration(milliseconds: 500));
+
       // The current track's place after each change: a track before it to the end, then the first out, then the current
       // track itself moved down. Unshuffled, that is its place in the order unshuffled too, by which the engine tells the
       // current track while it moves tracks: in mpv's playlist it may be in between for a moment.
@@ -989,17 +1030,21 @@ void main() {
 
     test('shuffled, a move changes the play order alone, which shuffle going off forgets', () async {
       final tracks = [for (var i = 0; i < 6; i++) tone(dir, i, seconds: 20)];
+
       await engine.setShuffle(true);
       await engine.open(tracks, index: 2, position: const Duration(seconds: 3), play: true);
       await Future<void>.delayed(const Duration(milliseconds: 300));
+
       final other = engine.index == 5 ? 4 : 5;
       final moved = engine.order[other];
+
       expect(await engine.move(other, 0), isNull);
       expect(engine.order.first, moved);
       expect(engine.order[engine.index], 2, reason: 'the same track, still current');
 
       // A removal takes the track out of the order unshuffled too.
       final removed = engine.order[engine.index == 1 ? 2 : 1];
+
       expect(await engine.remove(engine.index == 1 ? 2 : 1), removed);
       expect([...engine.order]..sort(), [0, 1, 2, 3, 4]);
       await engine.setShuffle(false);
@@ -1012,6 +1057,7 @@ void main() {
 
     test('the current track stays, and a place past the queue changes nothing', () async {
       final tracks = [for (var i = 0; i < 3; i++) tone(dir, i, seconds: 20)];
+
       await engine.open(tracks, index: 1, position: Duration.zero, play: true);
       await Future<void>.delayed(const Duration(milliseconds: 300));
       expect(await engine.remove(1), -1);
@@ -1025,6 +1071,7 @@ void main() {
 
   test('shuffle stays on for the tracks opened next', () async {
     final tracks = [for (var i = 0; i < 8; i++) tone(dir, i)];
+
     await engine.setShuffle(true);
     await engine.open(tracks, index: 3, position: Duration.zero, play: true);
     await Future<void>.delayed(const Duration(milliseconds: 500));
@@ -1037,8 +1084,10 @@ void main() {
     // With the audio sent nowhere, mpv goes through a track faster than it lasts: this one, of 2 s,
     // starts over after about 1.3 s.
     final tracks = [tone(dir, 0, seconds: 2), tone(dir, 1)];
+
     await engine.setRepeat(Repeat.one);
     expect(engine.repeat, Repeat.one);
+
     final opened = DateTime.now();
     final restarts = <Duration>[];
     final subscription = engine.changes.listen((_) {
@@ -1046,6 +1095,7 @@ void main() {
         restarts.add(engine.position);
       }
     });
+
     await engine.open(tracks, index: 0, position: Duration.zero, play: true);
     await Future<void>.delayed(const Duration(milliseconds: 2500));
     expect(engine.index, 0);
@@ -1057,6 +1107,7 @@ void main() {
     final tracks = [tone(dir, 0, seconds: 1), tone(dir, 1, seconds: 20), tone(dir, 2, seconds: 20)];
     var ended = 0;
     final subscription = engine.ended.listen((_) => ended++);
+
     await engine.open(tracks, index: 0, position: Duration.zero, play: true);
     await Future<void>.delayed(const Duration(milliseconds: 1500)); // the first track ends
     expect(engine.index, 1);
@@ -1073,6 +1124,7 @@ void main() {
     final tracks = [tone(dir, 0, seconds: 2), tone(dir, 1)];
     var ended = 0;
     final subscription = engine.ended.listen((_) => ended++);
+
     await engine.setRepeat(Repeat.one);
     await engine.open(tracks, index: 0, position: Duration.zero, play: true);
     await Future<void>.delayed(const Duration(milliseconds: 2500));
@@ -1085,6 +1137,7 @@ void main() {
     final tracks = [tone(dir, 0, seconds: 20), tone(dir, 1, seconds: 1)];
     var ended = 0;
     final subscription = engine.ended.listen((_) => ended++);
+
     await engine.open(tracks, index: 1, position: Duration.zero, play: true);
     await Future<void>.delayed(const Duration(milliseconds: 1500));
     expect(engine.index, 1);
@@ -1095,6 +1148,7 @@ void main() {
 
   test('repeat all goes back to the first track after the last', () async {
     final tracks = [tone(dir, 0, seconds: 1), tone(dir, 1, seconds: 1)];
+
     await engine.setRepeat(Repeat.all);
     await engine.open(tracks, index: 1, position: Duration.zero, play: true);
     await Future<void>.delayed(const Duration(milliseconds: 1500));
@@ -1114,6 +1168,7 @@ void main() {
       final tracks = [server.track('ok0'), server.track('fail1'), server.track('ok2')];
       final changes = <(int, bool)>[];
       final subscription = engine.changes.listen((_) => changes.add((engine.index, engine.failed)));
+
       await engine.open(tracks, index: 1, position: Duration.zero, play: true);
       await Future<void>.delayed(const Duration(seconds: 1));
       expect(engine.index, 1);
@@ -1142,6 +1197,7 @@ void main() {
 
     test('play tries it again, and a jump plays another', () async {
       final tracks = [server.track('ok0'), server.track('fail1'), server.track('ok2')];
+
       await engine.open(tracks, index: 1, position: Duration.zero, play: true);
       await Future<void>.delayed(const Duration(seconds: 1));
       server.requests.clear();
@@ -1160,6 +1216,7 @@ void main() {
 
     test('opening at a position on it returns at once, without playing', () async {
       final tracks = [server.track('ok0'), server.track('fail1'), server.track('ok2')];
+
       // The engine waits for the track to load before it seeks: for 10 s, if nothing told it of the
       // failure.
       await engine
@@ -1176,6 +1233,7 @@ void main() {
       final tracks = [server.track('ok0'), server.track('fail1'), server.track('ok2')];
       final told = <bool>[];
       final subscription = engine.changes.listen((_) => told.add(engine.failed));
+
       await engine.open(tracks, index: 1, position: const Duration(seconds: 30), play: false);
       await Future<void>.delayed(const Duration(milliseconds: 500));
       expect(server.requests, contains('/fail1'));
@@ -1196,6 +1254,7 @@ void main() {
       final tracks = [server.track('ok0'), server.track('fail1'), server.track('ok2')];
       final told = <bool>[];
       final subscription = engine.changes.listen((_) => told.add(engine.failed));
+
       await engine.open(tracks, index: 1, position: Duration.zero, play: false);
       await Future<void>.delayed(const Duration(milliseconds: 500));
       await engine.jump(2);
@@ -1207,6 +1266,7 @@ void main() {
 
     test('once the server gives it, play goes on from its place', () async {
       final tracks = [server.track('ok0'), server.track('flaky1'), server.track('ok2')];
+
       await engine.open(tracks, index: 1, position: const Duration(seconds: 2), play: false);
       await engine.play();
       await Future<void>.delayed(const Duration(seconds: 1));

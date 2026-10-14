@@ -180,8 +180,10 @@ Future<PlayerController> pumpBar(
   }
 
   final connect = ConnectController(player: player, client: client);
+
   // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
   client?.notifyListeners(); // as when another device's state arrives
+
   final services = Services(
     Session(server: Uri.parse('https://music.test'), credentials: credentials, deviceId: 'me', deviceName: 'me'),
     api,
@@ -358,6 +360,7 @@ void main() {
     tester,
   ) async {
     final player = await pumpBar(tester);
+
     expect(find.text('4:34'), findsOneWidget, reason: 'the bar shows how long the song is');
     await openPlayer(tester);
     expect(find.byType(PlayerPage), findsOneWidget);
@@ -382,6 +385,7 @@ void main() {
     }
 
     final devices = tester.getRect(onPage(find.byTooltip('Aparelhos')));
+
     expect(tester.getRect(onPage(find.byTooltip('Fila'))).right, lessThan(devices.left));
     expect(tester.getRect(onPage(find.byTooltip('Adicionar à playlist'))).left, greaterThan(devices.right));
     expect(devices.center.dx, 180);
@@ -403,9 +407,12 @@ void main() {
 
   testWidgets('the lyrics show beside the player, the line that plays marked as the song goes on', (tester) async {
     final player = await pumpBar(tester, server: withLyrics(verse), size: const Size(1280, 800));
+
     await player.seek(const Duration(seconds: 6));
     await openPlayer(tester);
+
     final cover = tester.getRect(playerCover);
+
     expect(onPage(find.text('That nobody cares')), findsNothing);
 
     await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
@@ -413,7 +420,9 @@ void main() {
     // Half the screen each: the player in the middle of the left half, the lyrics all of the right.
     expect(tester.getRect(playerCover).size, cover.size, reason: 'the cover stays as it was');
     expect(tester.getCenter(playerCover).dx, 320);
+
     final lyrics = tester.getRect(onPage(find.byType(LyricsView)));
+
     expect((lyrics.left, lyrics.right), (640, 1280));
     expect(lyrics.top, lessThan(cover.bottom), reason: 'level with it');
     // On the player's background, each line in the middle.
@@ -425,7 +434,9 @@ void main() {
       findsNothing,
     );
     expect(tester.widget<Text>(onPage(find.text('That nobody cares'))).textAlign, TextAlign.center);
+
     final (size, headline) = lyricsSize(tester, 'You talk about things', (text) => text.headlineMedium);
+
     expect(size, headline, reason: 'big, with half the screen for them');
     expect(marked(tester, 'That nobody cares'), isTrue);
     expect(opacity(tester, 'That nobody cares'), 1, reason: 'the line that plays, whole');
@@ -450,17 +461,23 @@ void main() {
     await pumpBar(tester, server: withLyrics(verse));
     expect(find.byTooltip('Mostrar a letra'), findsNothing, reason: 'in the bar');
     await openPlayer(tester);
+
     final cover = tester.getSize(playerCover);
     final slider = tester.getSize(onPage(find.byType(Slider)));
+
     await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
     await tester.pumpAndSettle();
     expect(tester.getSize(playerCover).width, lessThan(cover.width));
     expect(tester.getSize(onPage(find.byType(Slider))), slider, reason: 'the rest as wide as before');
+
     final lyrics = tester.getRect(onPage(find.byType(LyricsView)));
+
     expect(lyrics.top, greaterThan(tester.getRect(onPage(find.byTooltip('Tocar'))).bottom));
     // On a phone this small, the cover goes out at the top rather than the lyrics under the buttons at the bottom.
     expect(lyrics.bottom, lessThanOrEqualTo(tester.getRect(onPage(find.byTooltip('Esconder a letra'))).top));
+
     final (size, headline) = lyricsSize(tester, 'You talk about things', (text) => text.headlineSmall);
+
     expect(size, headline, reason: 'a bit smaller, in a phone\'s width');
     await tester.pumpWidget(const SizedBox());
   });
@@ -470,15 +487,18 @@ void main() {
     await pumpBar(tester, server: withLyrics(verse), size: const Size(412, 915));
     tester.view.padding = const FakeViewPadding(bottom: 48);
     await openPlayer(tester);
+
     final room = tester.getRect(onPage(find.byType(SingleChildScrollView)));
     final above = tester.getRect(playerCover).top - room.top;
     final below = room.bottom - tester.getRect(onPage(find.byTooltip('Tocar'))).bottom;
+
     expect(room.top, tester.getRect(onPage(find.byType(AppBar))).bottom);
     expect(above, greaterThan(8), reason: 'with room to spare');
     expect(above, moreOrLessEquals(below, epsilon: 1));
 
     for (final tooltip in ['Mostrar a letra', 'Fila', 'Aparelhos', 'Adicionar à playlist']) {
       final button = tester.getRect(onPage(find.byTooltip(tooltip)));
+
       expect(button.top, greaterThanOrEqualTo(room.bottom), reason: tooltip);
       expect(button.bottom, lessThanOrEqualTo(915 - 48), reason: tooltip);
     }
@@ -493,6 +513,7 @@ void main() {
   testWidgets('the lyrics come in gracefully, the player making room for them, and go the same way', (tester) async {
     await pumpBar(tester, server: withLyrics(verse), size: const Size(1280, 800));
     await openPlayer(tester);
+
     final lyrics = onPage(find.byType(LyricsView));
     double shown() => tester.widget<Opacity>(find.ancestor(of: lyrics, matching: find.byType(Opacity)).first).opacity;
 
@@ -526,6 +547,7 @@ void main() {
   ) async {
     await pumpBar(tester, server: withLyrics(verse));
     await openPlayer(tester);
+
     final lyrics = onPage(find.byType(LyricsView));
     double room() => tester.getSize(find.ancestor(of: lyrics, matching: find.byType(ClipRect)).first).height;
     double shown() => tester.widget<Opacity>(find.ancestor(of: lyrics, matching: find.byType(Opacity)).first).opacity;
@@ -535,7 +557,9 @@ void main() {
     await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
     await tester.pump();
     await tester.pump(PlayerPage.lyricsTransition ~/ 2);
+
     final (halfway, coverHalfway) = (room(), cover());
+
     expect(shown(), inExclusiveRange(0, 1));
     await tester.pumpAndSettle();
     expect(halfway, inExclusiveRange(0, room()));
@@ -547,6 +571,7 @@ void main() {
   testWidgets('on a phone, a tap on the lyrics under the player opens them full screen, with the song, the slider and '
       'the buttons, where a line tapped goes where it starts', (tester) async {
     final player = await pumpBar(tester, server: withLyrics(verse));
+
     await openPlayer(tester);
     await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
     await tester.pumpAndSettle();
@@ -585,13 +610,16 @@ void main() {
     await openPlayer(tester);
     await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
     await tester.pumpAndSettle();
+
     final lyrics = tester.getRect(onPage(find.byType(LyricsView)));
     final corner = tester.getRect(onPage(find.byTooltip('Maximizar a letra')));
+
     expect(lyrics.intersect(corner), corner);
     expect(corner.center.dx, greaterThan(lyrics.center.dx));
     expect(corner.center.dy, lessThan(lyrics.center.dy));
 
     final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+
     await mouse.addPointer(location: tester.getCenter(onPage(find.text('That nobody cares'))));
     addTearDown(mouse.removePointer);
     await tester.pump();
@@ -613,6 +641,7 @@ void main() {
     const channel = MethodChannel('segue/device');
     final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
     final keptOn = <Object?>[];
+
     messenger.setMockMethodCallHandler(channel, (call) async {
       if (call.method == 'keepScreenOn') {
         keptOn.add(call.arguments);
@@ -642,9 +671,11 @@ void main() {
       'the player, which is back as it opened, without them', (tester) async {
     await pumpBar(tester, server: withLyrics(verse));
     await openLyricsPage(tester);
+
     final page = find.byType(LyricsPage);
     Finder onLyrics(Finder finder) => find.descendant(of: page, matching: finder);
     final hide = tester.getRect(onLyrics(find.byTooltip('Esconder a letra')));
+
     expect(hide.right, lessThan(tester.getRect(onLyrics(find.byTooltip('Minimizar a letra'))).left));
     expect(hide.top, lessThan(tester.getRect(onLyrics(find.byType(LyricsView))).top));
 
@@ -669,6 +700,7 @@ void main() {
       'third of the way, or flung, back under it, as minimized; the lyrics scroll as they do', (tester) async {
     await pumpBar(tester, server: withLyrics([for (var line = 0; line < 30; line++) (line * 5, 'Line $line')]));
     await openLyricsPage(tester);
+
     final page = find.byType(LyricsPage);
     Finder onLyrics(Finder finder) => find.descendant(of: page, matching: finder);
     final top = onLyrics(find.byType(AppBar));
@@ -679,6 +711,7 @@ void main() {
 
     // Where nothing else takes a drag, it starts with the finger.
     final finger = await tester.startGesture(tester.getCenter(onLyrics(find.text('Sweet Emotion'))));
+
     await finger.moveBy(const Offset(0, 150));
     await tester.pump();
     expect(tester.getRect(top).top, 150, reason: 'with the finger');
@@ -720,15 +753,18 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.byType(LyricsPage), findsOneWidget);
+
     final top = onPage(find.byType(AppBar));
 
     final finger = await tester.startGesture(tester.getCenter(onPage(find.byTooltip('Fila'))));
+
     await finger.moveBy(const Offset(0, 20)); // past the slop, where the drag starts
     await finger.moveBy(const Offset(0, 50));
     await tester.pump();
     expect(tester.getRect(top).top, 0);
     await tester.pumpAndSettle();
     expect(find.byType(LyricsPage), findsNothing);
+
     // Back under the player, they go out with the finger, rather than the player down.
     final lyrics = onPage(find.byType(LyricsView));
     double shown() => tester.widget<Opacity>(find.ancestor(of: lyrics, matching: find.byType(Opacity)).first).opacity;
@@ -751,7 +787,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(onPage(find.byTooltip('Maximizar a letra')));
     await tester.pumpAndSettle();
+
     final page = find.byType(LyricsPage);
+
     await tester.fling(find.descendant(of: page, matching: find.byType(AppBar)), const Offset(0, 300), 1000);
     await tester.pumpAndSettle();
     expect(page, findsOneWidget);
@@ -770,6 +808,7 @@ void main() {
     const channel = MethodChannel('segue/device');
     final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
     final keptOn = <Object?>[];
+
     messenger.setMockMethodCallHandler(channel, (call) async {
       if (call.method == 'keepScreenOn') {
         keptOn.add(call.arguments);
@@ -781,10 +820,12 @@ void main() {
     // A TV's screen, as Android gives it to the app: 1920 × 1080 pixels, two to each of its own.
     await pumpBar(tester, server: withLyrics(verse), size: const Size(960, 540), television: true);
     await openPlayer(tester);
+
     // Of the screen but the room at its sides, and the controls'.
     final side = TelevisionScreen.margins.left + TelevisionControls.side;
     final width = 960 - 2 * side;
     final lyrics = tester.getRect(onPage(find.byType(LyricsView)));
+
     expect(lyrics.left, moreOrLessEquals(side + width * 2 / 5));
     expect(lyrics.right, 960 - side);
     expect(tester.getRect(playerCover).left, side, reason: 'at the start of the rest');
@@ -802,13 +843,18 @@ void main() {
     'come faint, and those gone by fainter',
     (tester) async {
       final player = await pumpBar(tester, server: withLyrics(verse), size: const Size(960, 540), television: true);
+
       await player.seek(const Duration(seconds: 6));
       await openPlayer(tester);
+
       final (playing, display) = lyricsSize(tester, 'That nobody cares', (text) => text.displaySmall);
+
       expect(playing, display);
       expect(marked(tester, 'That nobody cares'), isTrue);
       expect(opacity(tester, 'That nobody cares'), 1);
+
       final (other, headline) = lyricsSize(tester, 'That nobody wears', (text) => text.headlineSmall);
+
       expect(other, headline);
       expect(opacity(tester, 'That nobody wears'), closeTo(0.5, 0.01), reason: 'to come');
       expect(opacity(tester, 'You talk about things'), closeTo(0.25, 0.01), reason: 'gone by');
@@ -838,13 +884,17 @@ void main() {
       size: const Size(960, 540),
       television: true,
     );
+
     await openPlayer(tester);
+
     final lyrics = tester.getRect(onPage(find.byType(LyricsView)));
 
     for (final second in [120, 124, 160]) {
       await player.seek(Duration(seconds: second));
       await tester.pumpAndSettle();
+
       final line = tester.getRect(onPage(find.text('Line ${second ~/ 4}')));
+
       expect(line.center.dy, moreOrLessEquals(lyrics.center.dy, epsilon: 2), reason: 'Line ${second ~/ 4}');
     }
 
@@ -862,9 +912,11 @@ void main() {
         size: const Size(960, 540),
         television: true,
       );
+
       await openPlayer(tester);
       await player.seek(const Duration(seconds: 120));
       await tester.pumpAndSettle();
+
       final scroll = tester
           .state<ScrollableState>(
             find.descendant(of: onPage(find.byType(LyricsView)), matching: find.byType(Scrollable)).first,
@@ -880,7 +932,9 @@ void main() {
       }
 
       await tester.pumpAndSettle();
+
       final settled = scroll.pixels;
+
       expect(settled, greaterThan(offsets.first));
 
       for (final (i, offset) in offsets.indexed) {
@@ -901,11 +955,14 @@ void main() {
       size: const Size(960, 540),
       television: true,
     );
+
     await openPlayer(tester);
     await player.seek(const Duration(seconds: 120));
     await tester.pumpAndSettle();
+
     final next = onPage(find.textContaining('Line 31,'));
     final broken = tester.widget<Text>(next).data!;
+
     expect(broken, contains('\n'), reason: 'broken before it plays, as it will be');
 
     int rows() => {
@@ -932,6 +989,7 @@ void main() {
       'there from the first step', (tester) async {
     await pumpBar(tester, server: withLyrics(verse), size: const Size(960, 540), television: true);
     await openPlayer(tester);
+
     final shown = tester.state(onPage(find.byType(LyricsView)));
 
     await tester.tap(onPage(find.byTooltip('Esconder a letra')));
@@ -950,6 +1008,7 @@ void main() {
   testWidgets('on a TV, a song without lyrics shows the cover alone, the lyrics still on, back with a song that has '
       'some', (tester) async {
     final player = await pumpBar(tester, server: withLyricsFor('s2'), size: const Size(960, 540), television: true);
+
     await player.playQueue([sweetEmotion, dreamOn], play: false);
     await openPlayer(tester);
     expect(onPage(find.byType(LyricsView)), findsNothing);
@@ -958,7 +1017,9 @@ void main() {
 
     await player.next();
     await tester.pumpAndSettle();
+
     final side = TelevisionScreen.margins.left + TelevisionControls.side;
+
     expect(tester.getRect(onPage(find.byType(LyricsView))).left, moreOrLessEquals(side + (960 - 2 * side) * 2 / 5));
     expect(onPage(lyric('That nobody cares')), findsOneWidget);
 
@@ -985,6 +1046,7 @@ void main() {
   testWidgets('on a TV, the player opened again on a song without lyrics shows the cover alone at once; a song\'s '
       'lyrics are asked for once', (tester) async {
     final asked = <String>[];
+
     await pumpBar(
       tester,
       server: withLyricsFor('s2', asked: asked),
@@ -1013,7 +1075,9 @@ void main() {
     // The page's first frame is offstage, for the bar's hero to measure it; the next is the first that shows.
     await tester.pump();
     await tester.pump();
+
     final lyrics = onPage(find.byType(LyricsView));
+
     expect(tester.getRect(lyrics).left, 640);
     expect(tester.widget<Opacity>(find.ancestor(of: lyrics, matching: find.byType(Opacity)).first).opacity, 1);
     await tester.pumpWidget(const SizedBox());
@@ -1039,9 +1103,11 @@ void main() {
       server: withLyrics([for (var i = 0; i < 60; i++) (i * 4, 'Line $i')]),
       size: const Size(412, 915),
     );
+
     await openPlayer(tester);
     await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
     await tester.pumpAndSettle();
+
     final title = tester.getRect(onPage(find.text('Sweet Emotion')));
     final lyrics = tester.getRect(onPage(find.byType(LyricsView)));
 
@@ -1055,6 +1121,7 @@ void main() {
     var line = tester.getRect(onPage(find.text('Line 40')));
     expect(line.top, greaterThan(lyrics.top), reason: 'in view');
     expect(line.bottom, lessThan(lyrics.center.dy), reason: 'not past the middle');
+
     final held = line.top;
 
     // With no more to scroll, the last lines go on down.
@@ -1078,10 +1145,13 @@ void main() {
       server: withLyrics([for (var i = 0; i < 60; i++) (i * 4, 'Line $i')]),
       size: const Size(1280, 800),
     );
+
     await openPlayer(tester);
     await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
     await tester.pumpAndSettle();
+
     final scrollbar = find.descendant(of: onPage(find.byType(LyricsView)), matching: find.byType(Scrollbar));
+
     expect(scrollbar, findsOneWidget);
 
     await player.seek(const Duration(seconds: 160));
@@ -1103,7 +1173,9 @@ void main() {
     await openPlayer(tester);
     await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
     await tester.pumpAndSettle();
+
     final credit = onPage(find.text('Letras providas por Navidrome'));
+
     expect(credit, findsOneWidget);
     expect(tester.getRect(credit).top, greaterThan(tester.getRect(onPage(find.text('That nobody wears'))).bottom));
     await tester.pumpWidget(const SizedBox());
@@ -1115,6 +1187,7 @@ void main() {
       server: withLyrics([for (var i = 0; i < 60; i++) (i * 4, 'Line $i')]),
       size: const Size(1280, 800),
     );
+
     await openPlayer(tester);
     await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
     await tester.pumpAndSettle();
@@ -1128,6 +1201,7 @@ void main() {
     }
 
     final background = Theme.of(tester.element(onPage(find.byType(LyricsView)))).colorScheme.surface;
+
     expect(bar(), (background, 0));
     await player.seek(const Duration(seconds: 160)); // they scroll by themselves
     await tester.pumpAndSettle();
@@ -1143,10 +1217,14 @@ void main() {
     await openPlayer(tester);
     await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
     await tester.pumpAndSettle();
+
     final fade = find.descendant(of: onPage(find.byType(LyricsView)), matching: find.byType(ShaderMask));
+
     expect(fade, findsOneWidget);
     expect(tester.widget<ShaderMask>(fade).blendMode, BlendMode.dstIn, reason: 'it keeps the lines where it is opaque');
+
     final first = find.descendant(of: fade, matching: find.text('You talk about things'));
+
     expect(first, findsOneWidget);
     expect(tester.getRect(first).top - tester.getRect(fade).top, greaterThanOrEqualTo(LyricsView.edgeFade));
     await tester.pumpWidget(const SizedBox());
@@ -1160,14 +1238,17 @@ void main() {
       server: withLyrics([(0, 'Sweet emotion'), (5, ''), (10, 'Talk about things')]),
       size: const Size(1280, 800),
     );
+
     await player.seek(const Duration(seconds: 6));
     await openPlayer(tester);
     await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
     await tester.pumpAndSettle();
+
     final note = find.descendant(
       of: onPage(find.byType(LyricsView)),
       matching: themedIcon(LyricsView.instrumentalIcon),
     );
+
     expect(note, findsOneWidget);
     expect(tester.getCenter(note).dy, greaterThan(tester.getRect(onPage(find.text('Sweet emotion'))).bottom));
     expect(tester.getCenter(note).dy, lessThan(tester.getRect(onPage(find.text('Talk about things'))).top));
@@ -1186,14 +1267,17 @@ void main() {
       server: withLyrics([(8, 'Sweet emotion'), (12, 'Talk about things')]),
       size: const Size(1280, 800),
     );
+
     await player.seek(const Duration(seconds: 2));
     await openPlayer(tester);
     await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
     await tester.pumpAndSettle();
+
     final note = find.descendant(
       of: onPage(find.byType(LyricsView)),
       matching: themedIcon(LyricsView.instrumentalIcon),
     );
+
     expect(note, findsOneWidget);
     expect(tester.getCenter(note).dy, lessThan(tester.getRect(onPage(find.text('Sweet emotion'))).top));
     expect(tester.widget<ThemedIcon>(note).color?.a, 1);
@@ -1207,6 +1291,7 @@ void main() {
 
   testWidgets('a line of synced lyrics, tapped, goes there', (tester) async {
     final player = await pumpBar(tester, server: withLyrics(verse), size: const Size(1280, 800));
+
     await openPlayer(tester);
     await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
     await tester.pumpAndSettle();
@@ -1222,6 +1307,7 @@ void main() {
       server: withLyrics([for (final (_, text) in verse) (null, text)]),
       size: const Size(1280, 800),
     );
+
     await player.seek(const Duration(seconds: 6));
     await openPlayer(tester);
     await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
@@ -1259,6 +1345,7 @@ void main() {
             : http.Response('', 404);
       }),
     );
+
     await pumpBar(tester, server: withLyrics([]), lrclib: lrclib, size: const Size(1280, 800));
     await openPlayer(tester);
     await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
@@ -1271,6 +1358,7 @@ void main() {
 
   testWidgets('LRCLIB failing, with the media server having no lyrics, says so, but not how', (tester) async {
     final lrclib = Lrclib(client: MockClient((_) async => http.Response('', 503)));
+
     await pumpBar(tester, server: withLyrics([]), lrclib: lrclib, size: const Size(1280, 800));
     await openPlayer(tester);
     await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
@@ -1314,6 +1402,7 @@ void main() {
   testWidgets('the song\'s title, artist and album show in the middle, big, the title in bold', (tester) async {
     await pumpBar(tester, size: const Size(1280, 800));
     await openPlayer(tester);
+
     final cover = tester.getRect(playerCover);
     final text = Theme.of(tester.element(playerCover)).textTheme;
 
@@ -1324,6 +1413,7 @@ void main() {
     ]) {
       final shown = inPlayer((widget) => widget is Text && widget.data == line);
       final style = tester.widget<Text>(shown).style;
+
       expect(style?.fontSize, size?.fontSize, reason: line);
       expect(style?.fontWeight == FontWeight.bold, bold, reason: line);
       // The artists are pieces in a line, which is centered as a whole; the title and the album, each one text, center it.
@@ -1341,7 +1431,9 @@ void main() {
       'the devices, which leave its top bar', (tester) async {
     await pumpBar(tester, server: withLyrics(verse), size: const Size(1280, 800));
     await openPlayer(tester);
+
     final bar = onPage(find.byType(NowPlayingBar));
+
     expect(bar, findsOneWidget);
 
     for (final tooltip in ['Mostrar a letra', 'Fila', 'Aparelhos']) {
@@ -1395,7 +1487,9 @@ void main() {
 
   testWidgets('on a wide screen the bar stays put as the full-screen player slides up over the page', (tester) async {
     await pumpBar(tester, size: const Size(1280, 800));
+
     final devices = tester.getRect(find.byTooltip('Aparelhos')); // in the bar alone
+
     await tester.tap(find.descendant(of: find.byTooltip('Abrir o player'), matching: find.byType(Cover)));
     await tester.pump();
 
@@ -1412,7 +1506,9 @@ void main() {
 
   testWidgets('the bar stays put from page to page: the queue has it too', (tester) async {
     await pumpBar(tester, size: const Size(1280, 800));
+
     final next = tester.getRect(find.byTooltip('Próxima'));
+
     await tester.tap(find.byTooltip('Fila'));
     await tester.pump();
 
@@ -1439,6 +1535,7 @@ void main() {
   testWidgets('as nothing plays any more, the full-screen player closes, rather than say so: after a moment, with the '
       'song meanwhile', (tester) async {
     final player = await pumpBar(tester);
+
     await openPlayer(tester);
     await player.stop();
     await tester.pump();
@@ -1455,6 +1552,7 @@ void main() {
   testWidgets('the full-screen player stays where something plays again within a moment, as the music moves from this '
       'device to another, which stops it first', (tester) async {
     final player = await pumpBar(tester);
+
     await openPlayer(tester);
     await player.stop();
     await tester.pump();
@@ -1471,6 +1569,7 @@ void main() {
     tester,
   ) async {
     final player = await pumpBar(tester, server: withLyrics(verse));
+
     await openLyricsPage(tester);
     await player.stop();
     await tester.pump();
@@ -1485,6 +1584,7 @@ void main() {
     tester,
   ) async {
     final client = tvPlaying(const QueueItem(id: 's1', title: 'Dream On', artist: 'Aerosmith', album: 'Aerosmith'));
+
     await pumpBar(tester, client: client);
     await openPlayer(tester);
     client.devices['tv']!.state = StampedState(
@@ -1507,6 +1607,7 @@ void main() {
   ) async {
     const song = QueueItem(id: 's1', title: 'Dream On', artist: 'Aerosmith', album: 'Aerosmith');
     final client = tvPlaying(song);
+
     await pumpBar(tester, client: client);
     expect(find.text('Dream On'), findsOneWidget);
 
@@ -1528,11 +1629,13 @@ void main() {
   testWidgets('a swipe on the cover to the left goes to the next song, and to the right to the previous one, wherever '
       'the song is; a short one, back to its place', (tester) async {
     final player = await pumpBar(tester);
+
     await player.playQueue(const [
       Song(id: 's1', title: 'Sweet Emotion', artist: 'Aerosmith', duration: Duration(seconds: 274)),
       Song(id: 's2', title: 'Walk This Way', artist: 'Run-DMC', duration: Duration(seconds: 311)),
     ], play: false);
     await openPlayer(tester);
+
     final place = tester.getRect(playerCover);
 
     await tester.drag(playerCover, const Offset(-40, 0));
@@ -1565,6 +1668,7 @@ void main() {
   testWidgets('on the last song, a swipe to the left goes nowhere, as one to the right on the first; unless the queue '
       'repeats, when it goes to the first', (tester) async {
     final player = await pumpBar(tester);
+
     await player.playQueue(
       const [
         Song(id: 's1', title: 'Sweet Emotion', artist: 'Aerosmith', duration: Duration(seconds: 274)),
@@ -1574,6 +1678,7 @@ void main() {
       play: false,
     );
     await openPlayer(tester);
+
     final place = tester.getRect(playerCover);
 
     await tester.fling(playerCover, const Offset(-60, 0), 1000);
@@ -1594,11 +1699,13 @@ void main() {
     tester,
   ) async {
     final player = await pumpBar(tester);
+
     await player.playQueue(const [
       Song(id: 's1', title: 'Sweet Emotion', artist: 'Aerosmith', coverArt: 'c1', duration: Duration(seconds: 274)),
       Song(id: 's2', title: 'Walk This Way', artist: 'Run-DMC', coverArt: 'c2', duration: Duration(seconds: 311)),
     ], play: false);
     await openPlayer(tester);
+
     final place = tester.getRect(playerCover);
     String? cover() => tester.widget<Cover>(playerCover).id;
 
@@ -1628,6 +1735,7 @@ void main() {
 
     try {
       final player = await pumpBar(tester);
+
       await player.playQueue(
         const [
           Song(id: 's1', title: 'Sweet Emotion', artist: 'Aerosmith', coverArt: 'c1', duration: Duration(seconds: 274)),
@@ -1661,9 +1769,11 @@ void main() {
       'the way down, or flung, it closes, and otherwise goes back up', (tester) async {
     await pumpBar(tester);
     await openPlayer(tester);
+
     final top = onPage(find.byType(AppBar));
 
     final finger = await tester.startGesture(tester.getCenter(playerCover));
+
     await finger.moveBy(const Offset(0, 20)); // past the slop, where the drag starts
     await finger.moveBy(const Offset(0, 150));
     await tester.pump();
@@ -1704,6 +1814,7 @@ void main() {
       'same', (tester) async {
     await pumpBar(tester, server: withLyrics(verse));
     await openPlayer(tester);
+
     final lyrics = onPage(find.byType(LyricsView));
     final handle = onPage(find.ancestor(of: find.text('Letra'), matching: find.byType(TextButton)));
     double turns() => tester
@@ -1716,6 +1827,7 @@ void main() {
     expect(turns(), 0, reason: 'up');
 
     final finger = await tester.startGesture(tester.getCenter(playerCover));
+
     await finger.moveBy(const Offset(0, -20)); // past the slop, where the drag starts
     await finger.moveBy(const Offset(0, -40));
     await tester.pump();
@@ -1741,16 +1853,20 @@ void main() {
       'of the way, or flung, they stay, and otherwise go back out', (tester) async {
     await pumpBar(tester, server: withLyrics(verse));
     await openPlayer(tester);
+
     final top = onPage(find.byType(AppBar));
     final lyrics = onPage(find.byType(LyricsView));
     double shown() => tester.widget<Opacity>(find.ancestor(of: lyrics, matching: find.byType(Opacity)).first).opacity;
     final cover = tester.getSize(playerCover).width;
 
     final finger = await tester.startGesture(tester.getCenter(playerCover));
+
     await finger.moveBy(const Offset(0, -20)); // past the slop, where the drag starts
     await finger.moveBy(const Offset(0, -40));
     await tester.pump();
+
     final some = shown();
+
     expect(some, inExclusiveRange(0, 1), reason: 'with the finger');
     expect(tester.getSize(playerCover).width, lessThan(cover), reason: 'the cover making room for them');
     await finger.moveBy(const Offset(0, -40));
@@ -1786,11 +1902,13 @@ void main() {
     await openPlayer(tester);
     await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
     await tester.pumpAndSettle();
+
     final top = onPage(find.byType(AppBar));
     final lyrics = onPage(find.byType(LyricsView));
     double shown() => tester.widget<Opacity>(find.ancestor(of: lyrics, matching: find.byType(Opacity)).first).opacity;
 
     final finger = await tester.startGesture(tester.getCenter(playerCover));
+
     await finger.moveBy(const Offset(0, 20)); // past the slop, where the drag starts
     await finger.moveBy(const Offset(0, 40));
     await tester.pump();
@@ -1826,9 +1944,11 @@ void main() {
     await openPlayer(tester);
     await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
     await tester.pumpAndSettle();
+
     final title = onPage(find.text('Sweet Emotion'));
 
     final finger = await tester.startGesture(tester.getCenter(title));
+
     await finger.moveBy(const Offset(0, -20)); // past the slop, where the drag starts
     await finger.moveBy(const Offset(0, -30));
     await finger.up();
@@ -1853,7 +1973,9 @@ void main() {
   testWidgets('a drag up cut short, as the screen turns wide, leaves the lyrics hidden', (tester) async {
     await pumpBar(tester, server: withLyrics(verse));
     await openPlayer(tester);
+
     final finger = await tester.startGesture(tester.getCenter(playerCover));
+
     await finger.moveBy(const Offset(0, -20));
     await finger.moveBy(const Offset(0, -120));
     await tester.pump();
@@ -1873,12 +1995,14 @@ void main() {
     await openPlayer(tester);
     await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
     await tester.pumpAndSettle();
+
     final top = onPage(find.byType(AppBar));
     final lyrics = onPage(find.byType(LyricsView));
     double shown() => tester.widget<Opacity>(find.ancestor(of: lyrics, matching: find.byType(Opacity)).first).opacity;
     // Where the cover is at the page's top, under its padding.
     final room = tester.getRect(onPage(find.byType(SingleChildScrollView)).first).top + 8;
     final hidden = room - tester.getRect(playerCover).top;
+
     expect(hidden, greaterThan(8), reason: 'the cover goes out at the top');
 
     await tester.drag(lyrics, const Offset(0, 300));
@@ -1887,6 +2011,7 @@ void main() {
     expect(room - tester.getRect(playerCover).top, hidden);
 
     final finger = await tester.startGesture(tester.getCenter(onPage(find.text('Sweet Emotion'))));
+
     await finger.moveBy(const Offset(0, 20)); // past the slop, where the drag starts
     await finger.moveBy(Offset(0, hidden + 60));
     await tester.pump();
@@ -1913,14 +2038,17 @@ void main() {
       'from there on takes it down; a drag up, from its bottom, brings in the lyrics', (tester) async {
     await pumpBar(tester, server: withLyrics(verse), size: const Size(360, 420));
     await openPlayer(tester);
+
     final top = onPage(find.byType(AppBar));
     final title = onPage(find.text('Sweet Emotion'));
     // Where the cover is at the page's top, under its padding.
     final room = tester.getRect(onPage(find.byType(SingleChildScrollView)).first).top + 8;
     final hidden = room - tester.getRect(playerCover).top;
+
     expect(hidden, greaterThan(8), reason: 'the cover goes out at the top');
 
     final finger = await tester.startGesture(tester.getCenter(title));
+
     await finger.moveBy(const Offset(0, 20)); // past the slop, where the drag starts
     await finger.moveBy(Offset(0, hidden + 100));
     await tester.pump();
@@ -1950,7 +2078,9 @@ void main() {
   ) async {
     await pumpBar(tester);
     await openPlayer(tester);
+
     final finger = await tester.startGesture(tester.getCenter(playerCover));
+
     await finger.moveBy(const Offset(0, 20));
     await finger.moveBy(const Offset(0, 150));
     await tester.pump();
@@ -1980,6 +2110,7 @@ void main() {
 
   testWidgets('its slider jumps to where it is tapped', (tester) async {
     final player = await pumpBar(tester);
+
     await openPlayer(tester);
     await tester.tap(onPage(find.byType(Slider)));
     await tester.pump();
@@ -2048,7 +2179,9 @@ void main() {
     'under them, in the home\'s page area',
     (tester) async {
       await pumpBar(tester, server: library, inHome: true);
+
       final sections = find.byType(NavigationBar);
+
       await openPlayer(tester);
       expect(sections.hitTestable(), findsNothing);
 
@@ -2111,6 +2244,7 @@ void main() {
     tester,
   ) async {
     final asked = <http.Request>[];
+
     await pumpBar(
       tester,
       song: const Song(
@@ -2152,6 +2286,7 @@ void main() {
 
   testWidgets('a song the hub couldn\'t give in this device\'s API links nowhere', (tester) async {
     final asked = <http.Request>[];
+
     await pumpBar(
       tester,
       client: tvPlaying(const QueueItem(title: 'Dream On', artist: 'Aerosmith')),
@@ -2227,7 +2362,9 @@ void main() {
     TextDecoration? decoration() => tester.widget<Text>(find.text('Aerosmith')).style?.decoration;
 
     expect(decoration(), isNot(TextDecoration.underline));
+
     final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+
     await mouse.addPointer(location: Offset.zero);
     addTearDown(mouse.removePointer);
     await mouse.moveTo(tester.getCenter(find.text('Aerosmith')));

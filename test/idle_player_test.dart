@@ -42,7 +42,9 @@ void main() {
   testWidgets('on a TV playing, the full-screen player comes as the remote is left alone a while, a key starting the '
       'wait over, and the screen stays on meanwhile', (tester) async {
     watchScreen();
+
     final player = await pumpFullHdHome(tester);
+
     await player.play();
     await tester.pump();
     expect(keptOn, isTrue, reason: 'for the player to come before the screen saver');
@@ -89,7 +91,9 @@ void main() {
 
   testWidgets('on a computer, nothing comes', (tester) async {
     watchScreen();
+
     final player = await pumpFullHdHome(tester, television: false);
+
     await player.play();
     await tester.pump(IdlePlayer.after * 2);
     await settle(tester);
@@ -102,6 +106,7 @@ void main() {
     tester,
   ) async {
     final player = await pumpFullHdHome(tester);
+
     await player.play();
     await tester.tap(find.byTooltip('Tocando agora'));
     await settle(tester);
@@ -118,6 +123,7 @@ void main() {
 
   testWidgets('on a TV, with the keyboard up, as someone types on it, the player waits for it to go', (tester) async {
     final player = await pumpFullHdHome(tester);
+
     await player.play();
     tester.view.viewInsets = const FakeViewPadding(bottom: 200);
     await tester.pump();

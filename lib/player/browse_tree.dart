@@ -285,6 +285,7 @@ class BrowseTree {
   /// The favorite songs, where the user has any, then the playlists, by name.
   Future<List<MediaItem>> _playlists() async {
     final (found, favorite) = await (_server.playlists(), _favoriteSongs()).wait;
+
     found.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
 
     return [

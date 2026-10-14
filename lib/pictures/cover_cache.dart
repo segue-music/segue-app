@@ -75,6 +75,7 @@ class CoverCache {
     }
 
     final bytes = await fetch();
+
     unawaited(_keep(file, bytes));
 
     return decode(await ui.ImmutableBuffer.fromUint8List(bytes));
@@ -84,7 +85,9 @@ class CoverCache {
   Future<void> _keep(File file, Uint8List bytes) async {
     try {
       await directory.create(recursive: true);
+
       final part = File('${file.path}.${_written++}.part');
+
       await part.writeAsBytes(bytes, flush: true);
       await part.rename(file.path);
     } on Object catch (e) {

@@ -52,6 +52,7 @@ void main() {
     tester,
   ) async {
     final light = segueTheme(Brightness.light).colorScheme;
+
     await pumpBar(tester, under: Colors.black);
     expect(barColors(tester), (light.surface, light.onSurface, light.surface, Brightness.light));
 
@@ -60,6 +61,7 @@ void main() {
 
     // In the dark theme, its page's color is the dark one, its text's the light one.
     final dark = segueTheme(Brightness.dark).colorScheme;
+
     await pumpBar(tester, under: Colors.white, brightness: Brightness.dark);
     expect(barColors(tester), (dark.surface, dark.onSurface, dark.surface, Brightness.dark));
 
@@ -69,6 +71,7 @@ void main() {
 
   testWidgets('as the bar fills with the page\'s color, the page\'s own text color comes back', (tester) async {
     final light = segueTheme(Brightness.light).colorScheme;
+
     await pumpBar(tester, under: Colors.black, shade: 0.3);
     expect(barColors(tester).$1, light.surface, reason: 'the picture still shows, dark');
 
@@ -85,6 +88,7 @@ void main() {
 
   testWidgets('over the page itself, the theme\'s colors', (tester) async {
     final light = segueTheme(Brightness.light).colorScheme;
+
     await pumpBar(tester);
     expect(barColors(tester).$1, light.onSurface);
   });
@@ -92,10 +96,13 @@ void main() {
   testWidgets('a picture\'s color on average, over the part of it asked for', (tester) async {
     // Ten pixels square: white over its top half, black under it, and its bottom row see-through.
     final recorder = ui.PictureRecorder();
+
     Canvas(recorder)
       ..drawRect(const Rect.fromLTWH(0, 0, 10, 5), Paint()..color = Colors.white)
       ..drawRect(const Rect.fromLTWH(0, 5, 10, 4), Paint()..color = Colors.black);
+
     final image = await tester.runAsync(() => recorder.endRecording().toImage(10, 10));
+
     addTearDown(image!.dispose);
 
     Future<Color?> over(Rect region) => tester.runAsync<Color?>(() => averageColorOf(image, region));

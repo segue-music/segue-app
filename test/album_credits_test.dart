@@ -44,11 +44,13 @@ void main() {
     );
 
     final own = AlbumCredits.of(songs);
+
     expect(own.sections.keys, [CreditSection.writing]);
     expect(people(own, CreditSection.writing), ['Steven Tyler: composer [1]']);
     expect(own.fromMusicBrainz, isFalse);
 
     final both = AlbumCredits.of(songs, musicBrainz: musicBrainz);
+
     expect(both.sections.keys, [CreditSection.performance, CreditSection.writing, CreditSection.production]);
     expect(people(both, CreditSection.writing), people(own, CreditSection.writing), reason: 'the server\'s');
     expect(people(both, CreditSection.performance), ['Joe Perry: guitar']);
@@ -88,6 +90,7 @@ void main() {
       ),
       song('s4', credits: [plays('Joe Perry', 'guitar'), plays('Steven Tyler', 'lead vocals')]),
     ]);
+
     expect(people(credits, CreditSection.performance), [
       'Joe Perry: guitar',
       'Steven Tyler: lead vocals [2, 3, 4], piano [1, 3], harmonica [2]',
@@ -111,6 +114,7 @@ void main() {
       ),
     ]);
     final [tyler, perry, hamilton] = credits.sections[CreditSection.writing]!;
+
     expect((tyler.name, tyler.musicBrainzId, tyler.artistId), ('Steven Tyler', 'mb1', 'ar1'));
     expect((perry.name, perry.artistId), ('Joe Perry', 'ar2'));
     expect(hamilton.name, 'Tom Hamilton');
@@ -191,6 +195,7 @@ void main() {
         ],
       ),
     );
+
     expect(
       [
         for (final (:place, :stage, :begin, :end, :tracks) in credits.venues)

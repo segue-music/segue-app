@@ -17,6 +17,7 @@ Future<EqualizerChoice> pumpPage(
   bool television = false,
 }) async {
   final choice = EqualizerChoice(settings);
+
   addTearDown(choice.dispose);
   tester.view.physicalSize = const Size(360, 800);
   tester.view.devicePixelRatio = 1;
@@ -59,6 +60,7 @@ void main() {
 
   testWidgets('off, the curve shows and nothing in it can be picked, until the switch turns it on', (tester) async {
     final choice = await pumpPage(tester, settings: const EqualizerSettings(preset: EqualizerPreset.rock));
+
     expect(
       [for (final frequency in equalizerFrequencies) shown(tester, frequency)],
       ['+5', '+5', '+4', '+3', '+1', '−1', '+1', '+3', '+4', '+5'],
@@ -83,6 +85,7 @@ void main() {
 
   testWidgets('a tap on a band moves it there, in whole dB, and makes the curve shown the user\'s own', (tester) async {
     final choice = await pumpPage(tester, settings: const EqualizerSettings(on: true, preset: EqualizerPreset.rock));
+
     await tester.tapAt(at(tester, 1000, 12));
     await tester.pump();
     expect(choice.value.preset, EqualizerPreset.custom);
@@ -103,6 +106,7 @@ void main() {
     tester,
   ) async {
     final choice = await pumpPage(tester, settings: const EqualizerSettings(on: true, preset: EqualizerPreset.rock));
+
     await tester.tapAt(at(tester, 31, 6));
     await tester.pump(const Duration(milliseconds: 150));
     await tester.tapAt(at(tester, 31, 6) + const Offset(3, 4));
@@ -126,6 +130,7 @@ void main() {
   testWidgets('a drag moves a band, up and down', (tester) async {
     final choice = await pumpPage(tester, settings: const EqualizerSettings(on: true));
     final drag = await tester.startGesture(at(tester, 250, 0));
+
     await drag.moveBy(const Offset(0, 30));
     await drag.moveBy(const Offset(0, 15));
     await tester.pump();
@@ -191,6 +196,7 @@ void main() {
   testWidgets('a screen reader says each band\'s frequency and gain, and moves it', (tester) async {
     final semantics = tester.ensureSemantics();
     final choice = await pumpPage(tester, settings: const EqualizerSettings(on: true, preset: EqualizerPreset.vocal));
+
     expect(
       tester.getSemantics(band(1000)),
       matchesSemantics(

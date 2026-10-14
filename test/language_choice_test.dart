@@ -38,6 +38,7 @@ Future<void> pumpHome(WidgetTester tester, Settings settings) async {
     player,
     ConnectController(player: player),
   );
+
   await tester.pumpWidget(
     ListenableBuilder(
       listenable: settings.language,
@@ -127,8 +128,11 @@ void main() {
     (tester) async {
       tester.platformDispatcher.localesTestValue = const [Locale('es', 'ES')];
       addTearDown(tester.platformDispatcher.clearLocalesTestValue);
+
       final settings = Settings();
+
       addTearDown(settings.dispose);
+
       final choice = settings.language;
       String materialBack() => MaterialLocalizations.of(tester.element(find.byType(LoginPage))).backButtonTooltip;
 
@@ -158,16 +162,22 @@ void main() {
   ) async {
     tester.platformDispatcher.localesTestValue = const [Locale('pt', 'BR')];
     addTearDown(tester.platformDispatcher.clearLocalesTestValue);
+
     final settings = Settings();
+
     addTearDown(settings.dispose);
+
     final choice = settings.language;
+
     await tester.pumpWidget(SegueApp(session: null, settings: settings));
     expect(find.text('Entrar'), findsOneWidget, reason: 'the system\'s');
 
     await tester.tap(find.byTooltip('Idioma'));
     await tester.pumpAndSettle();
+
     final names = ['Idioma do sistema', 'English', 'Español', 'Português'];
     final tops = [for (final name in names) tester.getTopLeft(item(name)).dy];
+
     expect([...tops]..sort(), tops, reason: 'in this order, top to bottom');
     expect([for (final name in names) checked(tester, name)], [true, false, false, false]);
 
@@ -197,9 +207,13 @@ void main() {
     tester.view.physicalSize = const Size(360, 640);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
+
     final settings = Settings();
+
     addTearDown(settings.dispose);
+
     final choice = settings.language;
+
     await pumpHome(tester, settings);
     expect(find.byTooltip('Idioma'), findsNothing, reason: 'no menu of its own in the top bar');
     // In the sheet of the languages, which the settings' choice of them opens.
@@ -242,11 +256,17 @@ void main() {
   ) async {
     tester.platformDispatcher.localesTestValue = const [Locale('pt', 'BR')];
     addTearDown(tester.platformDispatcher.clearLocalesTestValue);
+
     final settings = Settings();
+
     addTearDown(settings.dispose);
+
     final choice = settings.language;
+
     await tester.pumpWidget(SegueApp(session: null, settings: settings));
+
     final corner = tester.getRect(find.byTooltip('Idioma'));
+
     expect(corner.right, greaterThan(tester.view.physicalSize.width / tester.view.devicePixelRatio - 64));
     expect(corner.top, lessThan(64));
 
@@ -264,9 +284,12 @@ void main() {
   ) async {
     tester.platformDispatcher.localesTestValue = const [Locale('pt', 'BR')];
     addTearDown(tester.platformDispatcher.clearLocalesTestValue);
+
     final settings = Settings();
+
     addTearDown(settings.dispose);
     await tester.pumpWidget(SegueApp(session: null, settings: settings));
+
     final order = <String?>[];
 
     for (var i = 0; i < 7; i++) {

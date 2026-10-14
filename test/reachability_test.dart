@@ -14,6 +14,7 @@ void main() {
         throw const ServerError('wrong password', isAuth: true);
       }
     });
+
     addTearDown(reachability.dispose);
     expect(await reachability.check(), isTrue);
     refuse = true;
@@ -31,6 +32,7 @@ void main() {
           throw const SocketException('no route to host');
         }
       }, retry: const Duration(seconds: 30));
+
       unawaited(reachability.check());
       time.flushMicrotasks();
       expect(reachability.value, isFalse);
@@ -59,7 +61,9 @@ void main() {
         pings++;
         await Future<void>.delayed(const Duration(seconds: 1));
       }, retry: const Duration(seconds: 30));
+
       bool? settled;
+
       unawaited(reachability.check());
       unawaited(reachability.check());
       unawaited(reachability.settled.then((value) => settled = value));
@@ -84,6 +88,7 @@ void main() {
   test('a server that doesn\'t answer in time is out of reach', () {
     fakeAsync((time) {
       final reachability = Reachability(() => Completer<void>().future, timeout: const Duration(seconds: 5));
+
       unawaited(reachability.check());
       time.elapse(const Duration(seconds: 5));
       expect(reachability.value, isFalse);

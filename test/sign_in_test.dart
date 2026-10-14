@@ -38,28 +38,35 @@ void main() {
   group('detectApi', () {
     test('a Subsonic server answers a ping, even without credentials', () async {
       final client = server({'/rest/ping.view': (_) => missingCredentials});
+
       expect(await detectApi(Uri.parse('https://music.test'), client: client), Api.subsonic);
     });
 
     test('a Jellyfin server answers with its public info, under its path', () async {
       final client = server({'/jellyfin/System/Info/Public': (_) => jellyfinInfo});
+
       expect(await detectApi(Uri.parse('https://music.test/jellyfin'), client: client), Api.jellyfin);
     });
 
     test('a server with both APIs at the same address is taken as Subsonic', () async {
       final client = server({'/rest/ping.view': (_) => missingCredentials, '/System/Info/Public': (_) => jellyfinInfo});
+
       expect(await detectApi(Uri.parse('https://music.test'), client: client), Api.subsonic);
     });
 
     test('a website is no media server', () async {
       final client = MockClient((_) async => http.Response('<!doctype html><title>Hi</title>', 200));
+
       await expectLater(detectApi(Uri.parse('https://example.test'), client: client), throwsA(isA<NotAMediaServer>()));
     });
 
     test('a server that can\'t be reached is not "no media server"', () async {
       final down = MockClient((_) async => throw http.ClientException('Connection refused'));
+
       await expectLater(detectApi(Uri.parse('https://music.test'), client: down), throwsA(isA<http.ClientException>()));
+
       final starting = MockClient((_) async => http.Response('Bad Gateway', 502));
+
       await expectLater(
         detectApi(Uri.parse('https://music.test'), client: starting),
         throwsA(isA<ServerError>().having((e) => e.isAuth, 'isAuth', isFalse)),
@@ -73,6 +80,7 @@ void main() {
         asked.add(request.url.path);
         throw http.ClientException('Connection timed out');
       });
+
       await expectLater(detectApi(Uri.parse('https://music.test'), client: down), throwsA(isA<http.ClientException>()));
       expect(asked, ['/rest/ping.view']);
     });
@@ -81,6 +89,7 @@ void main() {
   group('signIn', () {
     test('on a Subsonic server, checks the password as a token', () async {
       late Uri pinged;
+
       final client = server({
         '/rest/ping.view': (request) {
           if (!request.url.queryParameters.containsKey('t')) {
@@ -102,6 +111,7 @@ void main() {
         deviceName: 'laptop',
         client: client,
       );
+
       expect(api, isA<SubsonicApi>());
       expect(api.credentials.username, 'alice');
       expect(pinged.queryParameters, containsPair('u', 'alice'));
@@ -110,6 +120,7 @@ void main() {
 
     test('on a Jellyfin server, signs in by name as this device', () async {
       late http.Request asked;
+
       final client = server({
         '/System/Info/Public': (_) => jellyfinInfo,
         '/Users/AuthenticateByName': (request) {
@@ -130,6 +141,7 @@ void main() {
         deviceName: 'Living room',
         client: client,
       );
+
       expect(asked.method, 'POST');
       expect(jsonDecode(asked.body), {'Username': 'alice', 'Pw': 'sesame'});
       expect(
@@ -137,7 +149,9 @@ void main() {
         'MediaBrowser Client="Segue", Device="Living%20room", DeviceId="d1", Version="$appVersion"',
       );
       expect(api, isA<JellyfinApi>());
+
       final credentials = api.credentials as JellyfinCredentials;
+
       expect(credentials.username, 'Alice'); // as the server spells it
       expect(credentials.userId, '5f1c0e2a9b8d4c7e8f6a5b4c3d2e1f00');
       expect(credentials.token, 'f0e1d2c3b4a5968778695a4b3c2d1e0f');
@@ -208,6 +222,7 @@ void main() {
 
     test('on a Subsonic server that takes them, a key signs in as whose the server says it is', () async {
       final api = await signInWithApiKey(Uri.parse('https://music.test'), 'k3y', client: keyServer());
+
       expect(
         api.credentials,
         isA<SubsonicApiKey>().having((c) => (c.username, c.apiKey), 'credentials', ('alice', 'k3y')),
@@ -241,6 +256,7 @@ void main() {
     const jellyfin = JellyfinCredentials(username: 'alice', userId: 'u1', token: 't1');
     const subsonic = SubsonicCredentials(username: 'alice', token: 't', salt: 's');
     final server = Uri.parse('https://music.test');
+
     expect(openServer(server, jellyfin, deviceId: 'd1', deviceName: 'laptop').api, Api.jellyfin);
     expect(openServer(server, subsonic, deviceId: 'd1', deviceName: 'laptop').api, Api.subsonic);
   });

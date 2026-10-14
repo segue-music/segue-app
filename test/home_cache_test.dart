@@ -41,6 +41,7 @@ SubsonicApi library({List<String> albums = const ['Toys in the Attic'], List<Str
       credentials,
       client: MockClient((request) async {
         final endpoint = request.url.pathSegments.last;
+
         asked?.add(endpoint);
         await answer;
 
@@ -104,18 +105,23 @@ void main() {
 
   test('a row\'s albums are kept for the next time; listed again the same, those shown stay', () async {
     final first = await HomeCache.open(file);
+
     expect(first.albums(AlbumOrder.latest), isNull);
+
     final albums = [toys, pump];
+
     expect(await first.keepAlbums(AlbumOrder.latest, Future.value(albums)), same(albums));
     await first.idle;
 
     final second = await HomeCache.open(file);
     final kept = second.albums(AlbumOrder.latest);
+
     expect(names(kept), ['Toys in the Attic', 'Pump']);
     expect(kept!.first.year, 1975);
     expect(await second.keepAlbums(AlbumOrder.latest, Future.value([toys, pump]), shown: kept), same(kept));
 
     final other = [pump];
+
     expect(await second.keepAlbums(AlbumOrder.latest, Future.value(other), shown: kept), same(other));
     await second.idle;
     expect(names((await HomeCache.open(file)).albums(AlbumOrder.latest)), ['Pump']);
@@ -126,9 +132,12 @@ void main() {
       () async => throw const SocketException('no route to host'),
       retry: const Duration(hours: 1),
     );
+
     addTearDown(reachability.dispose);
     await reachability.check();
+
     final cache = await HomeCache.open(file, reachability: reachability);
+
     await cache.keepAlbums(AlbumOrder.latest, Future.value([toys]));
     await cache.idle;
     expect((await HomeCache.open(file)).albums(AlbumOrder.latest), isNull);
@@ -145,15 +154,20 @@ void main() {
     () async {
       final first = await HomeCache.open(file);
       final shown = first.mixes(library());
+
       expect(shown.keptMixes, isNull);
+
       final mixes = about(await shown.mixes);
       await first.idle;
 
       final asked = <String>[];
       final second = await HomeCache.open(file);
       final kept = second.mixes(library(asked: asked));
+
       expect(about(kept.keptMixes!), mixes);
+
       final mix = kept.keptMixes!.first;
+
       expect([for (final song in kept.keptFirstSongs(mix)!) song.title], ['Sweet Emotion', 'Walk This Way']);
       expect(kept.keptPicture(mix)?.artist.coverArt, 'ar-r1');
       expect(about(second.mixes(library()).keptMixes!), mixes, reason: 'the same all the session');
@@ -169,10 +183,13 @@ void main() {
       () async => throw const SocketException('no route to host'),
       retry: const Duration(hours: 1),
     );
+
     addTearDown(reachability.dispose);
     await reachability.check();
+
     final asked = <String>[];
     final cache = await HomeCache.open(file, reachability: reachability);
+
     cache.mixes(library(asked: asked));
     await cache.idle;
     expect(file.existsSync(), isFalse);

@@ -140,6 +140,7 @@ class ConnectController extends ChangeNotifier {
   /// out, though the hub still lists them.
   List<Device> get devices {
     final list = [...?client?.devices.values.where((d) => d.info.isPlayer && d.online)];
+
     list.sort((a, b) => a.info.name.compareTo(b.info.name));
 
     return list;

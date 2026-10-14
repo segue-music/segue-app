@@ -182,6 +182,7 @@ Future<bool> _press(WidgetTester tester, LogicalKeyboardKey key) async {
   final taken = key == LogicalKeyboardKey.goBack
       ? await tester.sendKeyEvent(key, platform: 'web', physicalKey: PhysicalKeyboardKey.browserBack)
       : await tester.sendKeyEvent(key);
+
   await tester.pumpAndSettle();
 
   return taken;
@@ -189,6 +190,7 @@ Future<bool> _press(WidgetTester tester, LogicalKeyboardKey key) async {
 
 void _expectUnderSettings(WidgetTester tester) {
   final letter = find.descendant(of: find.byType(LetterBar), matching: find.text('M'));
+
   expect(tester.getCenter(letter).dx, moreOrLessEquals(tester.getCenter(find.byTooltip('Configurações')).dx));
 }
 
@@ -228,11 +230,15 @@ void main() {
     await _focus(tester, 'A01');
 
     expect(await _press(tester, LogicalKeyboardKey.channelDown), isTrue);
+
     final down = _albums.indexOf(_focused()!);
+
     expect(down, greaterThan(_albums.indexOf('A01')));
     expect(down % 5, _albums.indexOf('A01') % 5, reason: 'in the same column');
     expect(_scrolled(), greaterThan(0));
+
     final rect = tester.getRect(find.text(_focused()!));
+
     expect(rect.top, greaterThan(0));
     expect(rect.bottom, lessThan(540));
 
@@ -248,6 +254,7 @@ void main() {
   testWidgets('on a TV, a letter beside the albums by name scrolls them to the first under it, the pages up to it '
       'asked for first, and to the next letter\'s where it has none, the focus staying on the letter', (tester) async {
     final asked = await _pumpHome(tester);
+
     await openSection(tester, 'Álbuns');
     expect(find.byType(LetterBar), findsOneWidget);
     expect(asked, ['0 200']);
@@ -324,6 +331,7 @@ void main() {
       expect(find.byType(LetterBar), findsOneWidget);
 
       final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+
       await mouse.addPointer(location: tester.getCenter(find.text('K')));
       await tester.pumpAndSettle();
       expect(find.text('K'), findsNWidgets(2), reason: 'in the bar and beside it');
@@ -377,6 +385,7 @@ void main() {
     expect(tester.getRect(letter('Z')).bottom, lessThan(tester.getRect(find.byType(NavigationBar)).top));
 
     final finger = await tester.startGesture(tester.getCenter(letter('A')));
+
     await finger.moveTo(tester.getCenter(letter('F')));
     await tester.pumpAndSettle();
     expect(find.text('F'), findsNWidgets(2), reason: 'in the bar and beside it');

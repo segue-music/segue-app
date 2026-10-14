@@ -188,6 +188,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
 
     if (!result.ok && mounted) {
       final message = describeError(AppLocalizations.of(context), result.error);
+
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     }
   }

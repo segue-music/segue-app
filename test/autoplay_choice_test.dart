@@ -73,10 +73,15 @@ void main() {
 
   testWidgets('the settings turn autoplay off and on, under the playback, with what it does', (tester) async {
     final settings = Settings();
+
     addTearDown(settings.dispose);
+
     final autoplay = settings.autoplay;
+
     await pumpSettings(tester, settings);
+
     final toggle = find.widgetWithText(SwitchListTile, 'Reprodução automática');
+
     expect(find.text('Reprodução'), findsOneWidget);
     expect(tester.getRect(toggle).top, greaterThan(tester.getRect(find.text('Reprodução')).bottom));
     expect(find.text('Quando a fila acaba, músicas parecidas continuam tocando.'), findsOneWidget);

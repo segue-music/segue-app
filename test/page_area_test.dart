@@ -14,6 +14,7 @@ import 'home_search_test.dart' show pumpHome;
 /// The home on a wide screen, with Dream On playing.
 Future<PlayerController> pumpWide(WidgetTester tester) async {
   final (player, _) = await pumpHome(tester, const Size(1200, 700));
+
   await player.playQueue(const [Song(id: 's1', title: 'Dream On', artist: 'Aerosmith')]);
   await tester.pumpAndSettle();
 
@@ -51,7 +52,9 @@ void main() {
     expect(find.byType(SearchBar), findsOneWidget);
     expect(find.byTooltip('Álbuns'), findsOneWidget, reason: 'the side rail');
     expect(find.byTooltip('Próxima'), findsOneWidget, reason: 'one player bar, the home\'s');
+
     final page = tester.getRect(find.byType(AlbumPage));
+
     expect(page.left, greaterThan(tester.getRect(find.byTooltip('Álbuns')).right));
     expect(page.top, greaterThanOrEqualTo(tester.getRect(find.byType(SearchBar)).bottom));
     expect(page.bottom, lessThanOrEqualTo(tester.getRect(find.byTooltip('Próxima')).top));
@@ -61,7 +64,9 @@ void main() {
   testWidgets('the top bar has no section name, but arrows beside the app\'s icon', (tester) async {
     await pumpWide(tester);
     expect(find.descendant(of: find.byType(AppBar), matching: find.text('Início')), findsNothing);
+
     final icon = tester.getRect(find.byTooltip('Início'));
+
     expect(tester.getRect(back).left, greaterThanOrEqualTo(icon.right));
     expect(tester.getRect(forward).left, greaterThanOrEqualTo(tester.getRect(back).right));
     expect(tester.getRect(back).center.dy, moreOrLessEquals(icon.center.dy, epsilon: 1));
@@ -120,6 +125,7 @@ void main() {
     'its bar, with the back arrow and its name',
     (tester) async {
       final (player, _) = await pumpHome(tester, const Size(360, 800));
+
       await player.playQueue(const [Song(id: 's1', title: 'Dream On', artist: 'Aerosmith')]);
       await tester.pumpAndSettle();
       await tapAndSettle(tester, album);
@@ -154,9 +160,13 @@ void main() {
     'up with its rows, their titles and their covers',
     (tester) async {
       await pumpHome(tester, const Size(360, 800));
+
       final bar = find.byType(AppBar);
+
       expect(find.descendant(of: bar, matching: find.byType(Image)), findsNothing);
+
       final chip = tester.getRect(find.descendant(of: bar, matching: find.byType(ActionChip)).first);
+
       expect(chip.left, 16);
       expect(tester.getRect(find.text('Adicionados recentemente')).left, chip.left);
       expect(tester.getRect(find.byType(Cover).first).left, chip.left);
@@ -215,6 +225,7 @@ void main() {
 
     // On the app's icon, in the top bar.
     final icon = Focus.of(tester.element(find.descendant(of: find.byTooltip('Início'), matching: find.byType(Image))));
+
     icon.requestFocus();
     await tester.pump();
     expect(icon.hasPrimaryFocus, isTrue);
@@ -252,6 +263,7 @@ void main() {
 
   testWidgets('the player bar\'s queue button goes back from the queue rather than opening it again', (tester) async {
     await pumpWide(tester);
+
     // The pages under the one on top too.
     final queue = find.byType(QueuePage, skipOffstage: false);
     final button = find.byTooltip('Fila');

@@ -103,6 +103,7 @@ Finder playingIcon(String title) => find.descendant(of: tile(title), matching: f
 void main() {
   testWidgets('on the album page, the song that plays stands out, with the equalizer for its number', (tester) async {
     final services = fakeServices();
+
     await pump(tester, services, const AlbumPage(album));
     expect(colorOf(tester, 'Dream On'), isNot(primary(tester)));
     expect(find.byType(Equalizer), findsNothing);
@@ -136,6 +137,7 @@ void main() {
   ) async {
     final services = fakeServices();
     final player = services.connect.player;
+
     await services.connect.playSongs(songs, 1);
     await services.connect.setRepeat(Repeat.one);
     await pump(tester, services, const AlbumPage(album));
@@ -177,6 +179,7 @@ void main() {
       ),
     );
     final services = fakeServices(client: client);
+
     // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
     client.notifyListeners(); // as when the TV's state arrives
     await pump(tester, services, const AlbumPage(album));
@@ -188,6 +191,7 @@ void main() {
 
   testWidgets('in search results, the song that plays stands out, with the equalizer over its cover', (tester) async {
     final services = fakeServices();
+
     await services.connect.playSongs(songs, 1);
     await pump(
       tester,

@@ -80,17 +80,24 @@ void main() {
     tester,
   ) async {
     final settings = Settings();
+
     addTearDown(settings.dispose);
+
     final crossfade = settings.crossfade;
+
     await pumpSettings(tester, settings);
+
     final line = find.widgetWithText(ListTile, 'Crossfade');
+
     expect(tester.getRect(line).top, greaterThan(tester.getRect(find.text('Reprodução')).bottom));
     expect(find.descendant(of: line, matching: find.text('Desligado')), findsOneWidget);
     expect(find.descendant(of: line, matching: themedIcon(HugeIcons.strokeRoundedBlend)), findsOneWidget);
 
     await tester.tap(line);
     await tester.pumpAndSettle();
+
     final sheet = find.byType(BottomSheet);
+
     expect(find.descendant(of: sheet, matching: find.text('Cada música logo depois da anterior, sem pausa')), findsOne);
 
     for (final length in ['2 segundos', '4 segundos', '6 segundos', '8 segundos', '10 segundos', '12 segundos']) {

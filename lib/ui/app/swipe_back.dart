@@ -87,6 +87,7 @@ class _SwipeBackState extends State<_SwipeBack> {
   void _moved(DragUpdateDetails details) {
     final route = widget.route;
     final progress = route.animation!.value - details.primaryDelta! / context.size!.width;
+
     route.handleUpdateBackGestureProgress(progress: clampDouble(progress, 0, 1));
   }
 
@@ -105,6 +106,7 @@ class _SwipeBackState extends State<_SwipeBack> {
     // Not with handleCommitBackGesture, which would take the page back where the swipe started first, for Android's
     // own back gesture: from where it is, as the finger left it.
     navigator.pop();
+
     final animation = route.animation!;
 
     if (!animation.isAnimating) {
@@ -132,6 +134,7 @@ class _SwipeBackState extends State<_SwipeBack> {
   @override
   void dispose() {
     _drag.dispose();
+
     final navigator = _swiping;
 
     // Gone in the middle of a swipe, as the page is closed some other way: the navigator's pages take a touch again.

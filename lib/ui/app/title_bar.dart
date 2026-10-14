@@ -25,7 +25,9 @@ class _ThemedTitleBarState extends State<ThemedTitleBar> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+
     final colors = Theme.of(context).colorScheme;
+
     _paint((background: colors.surface, foreground: colors.onSurface));
   }
 

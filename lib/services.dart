@@ -68,11 +68,14 @@ class Services {
       deviceName: session.deviceName,
     );
     final reachability = Reachability(server.ping);
+
     unawaited(reachability.check());
+
     final mobileData = await MobileData.watch();
     final lrclib = Lrclib();
     final fanartTv = fanartTvKey.isEmpty ? null : FanartTv(apiKey: fanartTvKey);
     final downloadHold = DownloadHold(settings?.download ?? ValueNotifier(const DownloadSettings()), mobileData);
+
     // Where there is nowhere to keep them, none: the app plays from the server alone.
     Downloads? downloads;
     PendingPlays? pendingPlays;
@@ -96,6 +99,7 @@ class Services {
     final api = downloads == null
         ? server
         : ServerWithDownloads(server, downloads, reachability, pendingPlays: pendingPlays);
+
     // Where there is nowhere to keep them, none: the home comes from the server alone, and the covers.
     HomeCache? homeCache;
     CoverCache? covers;
@@ -245,6 +249,7 @@ class Services {
         capabilities: CommandAction.values,
       ),
     );
+
     connect.attach(client);
     unawaited(client.start());
   }

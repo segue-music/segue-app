@@ -199,6 +199,7 @@ class MediaKitEngine implements Deck {
       if (audioFile != null) _writeAudioTo(native, audioFile) else if (silent) native.setProperty('ao', 'null'),
     ]);
     native.onLoadHooks.add(_pointAtStream);
+
     final stream = _player.stream;
     _subscriptions = [
       stream.playing.listen((_) => _changes.add(null)),
@@ -564,6 +565,7 @@ class MediaKitEngine implements Deck {
     _offset = Duration.zero;
     _restart = null;
     final playlist = Playlist([for (final track in _inOrder) Media(track)], index: _index);
+
     await _playFrom(position, () => _player.open(playlist, play: false), play: play);
 
     if (_shuffle && !shuffled) {
@@ -685,6 +687,7 @@ class MediaKitEngine implements Deck {
                   .firstWhere((playlist) => playlist.index == playing - 1)
                   .then<void>((_) {}, onError: (Object _) {})
             : null;
+
         await _player.remove(from);
         await told?.timeout(const Duration(seconds: 1), onTimeout: () {});
       }
@@ -709,6 +712,7 @@ class MediaKitEngine implements Deck {
 
     try {
       await append?.call();
+
       final playing = int.tryParse(await (_player.platform as NativePlayer).getProperty('playlist-playing-pos')) ?? -1;
       final inOrder = [for (final media in _player.state.playlist.medias) media.uri];
       final current = _at(inOrder, playing);
@@ -722,13 +726,16 @@ class MediaKitEngine implements Deck {
         }
 
         final before = current == null ? -1 : inOrder.indexOf(current);
+
         inOrder.insert(i, inOrder.removeAt(from));
+
         final after = current == null ? -1 : inOrder.indexOf(current);
         final told = before == after
             ? null
             : _player.stream.playlist
                   .firstWhere((playlist) => playlist.index == after)
                   .then<void>((_) {}, onError: (Object _) {});
+
         await _player.move(from, i);
         await told?.timeout(const Duration(seconds: 1), onTimeout: () {});
       }
@@ -780,6 +787,7 @@ class MediaKitEngine implements Deck {
     // As open got it: another open may come while it gives its stream.
     final source = _tracks[i];
     final restart = _restart;
+
     Uri? address;
 
     if (restart != null && restart.track == track) {
@@ -810,6 +818,7 @@ class MediaKitEngine implements Deck {
     final next = at < 0 ? null : _at(_inOrder, at + 1) ?? (repeat == Repeat.all ? _at(_inOrder, 0) : null);
     final i = next == null ? -1 : _opened.indexOf(next);
     final name = i < 0 ? null : _streamName(_idOf(next!), _addressOf(_tracks[i]));
+
     await _setPrefetch(name != null && name == next);
 
     if (name != null && name != next) {
@@ -848,6 +857,7 @@ class MediaKitEngine implements Deck {
 
       try {
         await _player.add(Media(name));
+
         final last = _player.state.playlist.medias.length - 1;
 
         if (last > from + 1) {
@@ -883,6 +893,7 @@ class MediaKitEngine implements Deck {
   /// which a seek may follow right away.
   Future<void> _playFrom(Duration position, Future<void> Function() load, {bool play = true, bool hold = false}) async {
     final loads = ++_loads;
+
     _moved(position);
     _seekOnLoad = null;
     final track = _starting = _at(_inOrder, _index);
@@ -896,6 +907,7 @@ class MediaKitEngine implements Deck {
     final loaded = _waiting
         ? _loadsDone.stream.firstWhere((load) => loads != _loads || (load.logged > logged && load.track == track))
         : null;
+
     await load();
 
     if (loaded != null) {
@@ -1101,6 +1113,7 @@ class MediaKitEngine implements Deck {
     }
 
     final seeks = ++_seeks;
+
     _moved(position);
 
     // mpv can't seek in a track still loading.
@@ -1210,6 +1223,7 @@ class MediaKitEngine implements Deck {
   /// [TrackGain.decibels]. It reckons the gain again as each track's audio starts, and right away as these change.
   Future<void> _playWith(TrackGain gain) async {
     final native = _player.platform as NativePlayer;
+
     await native.setProperty('replaygain-preamp', '${gain.preamp}');
     await native.setProperty('replaygain', gain.tagged ? (gain.album ? 'album' : 'track') : 'no');
     // mpv takes fallbacks from -200 dB to 60 dB.
@@ -1241,6 +1255,7 @@ class MediaKitEngine implements Deck {
       for (final MapEntry(key: frequency, value: gain) in gains.entries)
         'equalizer=f=$frequency:t=o:w=1:g=${gain.toStringAsFixed(2)}',
     ];
+
     await (_player.platform as NativePlayer).setProperty(
       'af',
       gains.isEmpty ? '' : 'format=format=floatp:srate=$_equalizerRate,lavfi=[${graph.join(',')}]',

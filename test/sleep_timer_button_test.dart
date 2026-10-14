@@ -29,7 +29,9 @@ void main() {
   testWidgets('on a wide screen, the bar\'s moon opens the sleep timer\'s sheet, whose while picked shows on it, until '
       'it\'s turned off', (tester) async {
     await pumpBar(tester, size: const Size(1000, 700), sleepTimer: true);
+
     final bar = find.byType(NowPlayingBar);
+
     expect(find.descendant(of: bar, matching: button('Timer de sono')), findsOneWidget);
 
     await tester.tap(button('Timer de sono'));
@@ -44,13 +46,16 @@ void main() {
     await tester.pumpAndSettle();
 
     final on = button('A música pausa em 15 minutos');
+
     expect(on, findsOneWidget);
     expect(
       find.descendant(of: on, matching: find.text('15')),
       findsOneWidget,
       reason: 'the minutes left, on it',
     );
+
     final moon = tester.widget<ThemedIcon>(find.descendant(of: on, matching: find.byType(ThemedIcon)));
+
     expect(moon.icon, HugeIcons.strokeRoundedMoon02);
     expect(moon.color, Theme.of(tester.element(bar)).colorScheme.primary, reason: 'tinted, on');
 
@@ -70,7 +75,9 @@ void main() {
   testWidgets('the song\'s end, picked, shows as picked, with no minutes', (tester) async {
     await pumpBar(tester, size: const Size(1000, 700), sleepTimer: true);
     await pick(tester, 'Timer de sono', 'Fim desta música');
+
     final on = button('A música pausa quando a atual acabar');
+
     expect(on, findsOneWidget);
     expect(find.descendant(of: on, matching: find.byType(Text)), findsNothing);
 
@@ -89,9 +96,13 @@ void main() {
     expect(button('Timer de sono'), findsNothing, reason: 'the bar has no room');
 
     await openPlayer(tester);
+
     final moon = onPage(button('Timer de sono'));
+
     expect(moon, findsOneWidget);
+
     final appBar = tester.getRect(onPage(find.byType(AppBar)));
+
     expect(tester.getRect(moon).right, moreOrLessEquals(appBar.right, epsilon: 8));
     expect(tester.getRect(moon).center.dy, moreOrLessEquals(appBar.center.dy, epsilon: 1));
 

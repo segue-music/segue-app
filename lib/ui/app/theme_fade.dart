@@ -60,6 +60,7 @@ class _ThemeFadeState extends State<ThemeFade> with SingleTickerProviderStateMix
     }
 
     final old = boundary.toImageSync(pixelRatio: MediaQuery.devicePixelRatioOf(context));
+
     _old?.dispose();
     setState(() => _old = old);
     _controller.forward(from: 0);
@@ -67,6 +68,7 @@ class _ThemeFadeState extends State<ThemeFade> with SingleTickerProviderStateMix
 
   void _clear() {
     final old = _old;
+
     setState(() => _old = null);
     old?.dispose();
   }

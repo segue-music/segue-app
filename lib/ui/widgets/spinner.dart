@@ -72,6 +72,7 @@ class _SpinnerPainter extends CustomPainter {
     final tail = _tail.transform(growth);
     final start = -pi / 2 + tail * 3 / 2 * pi + turn * 2 * pi + growth * pi / 2;
     final sweep = (head - tail) * 3 / 2 * pi;
+
     _paintArc(canvas, size, start: start, sweep: sweep, strokeWidth: strokeWidth, color: color);
   }
 
@@ -98,6 +99,7 @@ void _paintArc(
     stops: [0, along, along, 1],
     transform: GradientRotation(start),
   );
+
   canvas.drawCircle(
     center,
     radius,
@@ -106,7 +108,9 @@ void _paintArc(
       ..strokeWidth = strokeWidth
       ..shader = arc.createShader(Rect.fromCircle(center: center, radius: radius)),
   );
+
   final end = Paint()..color = color;
+
   canvas.drawCircle(center + Offset.fromDirection(start, radius), strokeWidth / 2, end);
   canvas.drawCircle(center + Offset.fromDirection(start + sweep, radius), strokeWidth / 2, end);
 }

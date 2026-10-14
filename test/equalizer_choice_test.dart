@@ -17,6 +17,7 @@ void main() {
     expect((await EqualizerChoice.load()).value, const EqualizerSettings());
 
     final choice = EqualizerChoice();
+
     await choice.setOn(true);
     await choice.pick(EqualizerPreset.jazz);
     await Session.clear();
@@ -28,6 +29,7 @@ void main() {
 
   test('moving a band makes the curve shown the user\'s own, which another picked keeps for later', () async {
     final choice = EqualizerChoice(const EqualizerSettings(on: true, preset: EqualizerPreset.rock));
+
     await choice.setGain(5, 6);
     expect(choice.value.preset, EqualizerPreset.custom);
     expect(choice.value.gains, [5, 5, 4, 3, 1, 6, 1, 3, 4, 5], reason: 'rock\'s, with 1 kHz moved');
@@ -40,6 +42,7 @@ void main() {
 
   test('a band goes no further than 12 dB, up or down', () async {
     final choice = EqualizerChoice();
+
     await choice.setGain(0, 20);
     await choice.setGain(1, -20);
     expect(choice.value.gains.take(2), [12, -12]);
@@ -54,6 +57,7 @@ void main() {
   test('every curve has a gain for each band, within reach of the sliders', () {
     for (final preset in EqualizerPreset.values) {
       final gains = preset.gains ?? const EqualizerSettings().custom;
+
       expect(gains, hasLength(equalizerFrequencies.length), reason: preset.name);
       expect(gains, everyElement(inInclusiveRange(-maxBandGain, maxBandGain)), reason: preset.name);
     }

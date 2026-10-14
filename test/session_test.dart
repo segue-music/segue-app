@@ -10,6 +10,7 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 
 void main() {
   final prefs = InMemorySharedPreferencesAsync.empty();
+
   setUpAll(() => SharedPreferencesAsyncPlatform.instance = prefs);
   setUp(() async {
     await SharedPreferencesAsync().clear();
@@ -24,15 +25,21 @@ void main() {
   test('a Jellyfin sign-in comes back as it was saved, its token in the secure storage', () async {
     await session(const JellyfinCredentials(username: 'alice', userId: 'u1', token: 't1')).save();
     expect(await const FlutterSecureStorage().read(key: 'token'), 't1');
+
     final loaded = await Session.load();
+
     expect(loaded?.server, Uri.parse('https://music.test'));
+
     final credentials = loaded?.credentials as JellyfinCredentials;
+
     expect((credentials.username, credentials.userId, credentials.token), ('alice', 'u1', 't1'));
   });
 
   test('a Subsonic sign-in comes back as it was saved', () async {
     await session(const SubsonicCredentials(username: 'alice', token: 't', salt: 's')).save();
+
     final credentials = (await Session.load())?.credentials as SubsonicToken;
+
     expect((credentials.username, credentials.token, credentials.salt), ('alice', 't', 's'));
   });
 
@@ -62,7 +69,9 @@ void main() {
     await SharedPreferencesAsync().setString('server', 'https://music.test');
     await SharedPreferencesAsync().setString('username', 'alice');
     FlutterSecureStorage.setMockInitialValues({'token': 't', 'salt': 's'});
+
     final credentials = (await Session.load())?.credentials;
+
     expect(credentials, isA<SubsonicToken>().having((c) => c.token, 'token', 't'));
   });
 

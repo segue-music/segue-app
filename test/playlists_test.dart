@@ -141,6 +141,7 @@ class Library {
       case 'createPlaylist.view':
         final id = param('playlistId') ?? 'p${playlists.length + 1}';
         final ids = params['songId'] ?? const [];
+
         playlists.update(
           id,
           (playlist) => playlist
@@ -277,6 +278,7 @@ void main() {
     final [chill, empty, roadTrip] = [
       for (final name in ['chill', 'Empty', 'Road trip']) tester.getRect(tile(name)),
     ];
+
     expect(empty.top, greaterThanOrEqualTo(chill.bottom), reason: 'by name, whatever the case');
     expect(roadTrip.top, greaterThanOrEqualTo(empty.bottom));
     expect(find.text('3 faixas'), findsOneWidget);
@@ -284,7 +286,9 @@ void main() {
 
     await tester.tap(tile('Road trip'));
     await tester.pumpAndSettle();
+
     final page = find.byType(PlaylistPage);
+
     expect(find.descendant(of: page, matching: find.text('Road trip')), findsOneWidget);
     expect(find.descendant(of: page, matching: find.text('Playlist')), findsOneWidget);
     expect(find.text('2 faixas, 8 min'), findsOneWidget);
@@ -292,6 +296,7 @@ void main() {
     final [sweetEmotion, dreamPolice] = [
       for (final title in ['Sweet Emotion', 'Dream Police']) tester.getRect(tile(title)),
     ];
+
     expect(dreamPolice.top, greaterThanOrEqualTo(sweetEmotion.bottom), reason: 'in the playlist\'s order');
     expect(find.descendant(of: tile('Dream Police'), matching: find.text('Cheap Trick')), findsOneWidget);
 
@@ -305,6 +310,7 @@ void main() {
     tester,
   ) async {
     final player = await pumpHome(tester, const Size(1000, 700));
+
     await tester.tap(find.byTooltip('Playlists'));
     await tester.pumpAndSettle();
     await tester.tap(tile('Road trip'));
@@ -330,7 +336,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Essa playlist está vazia.'), findsOneWidget);
     expect(find.textContaining('0 faixas'), findsNothing, reason: 'nor how long its songs last');
+
     final play = find.ancestor(of: find.byTooltip('Tocar a playlist'), matching: find.byType(IconButton));
+
     expect(tester.widget<IconButton>(play).onPressed, isNull);
     await tester.pumpWidget(const SizedBox());
   });
@@ -352,11 +360,13 @@ void main() {
     ) async {
       final library = Library();
       final asked = library.asked;
+
       await pumpHome(tester, size, library: library);
       await openPlaylists(tester);
       expect(asked.where((endpoint) => endpoint == 'getPlaylists.view'), hasLength(1));
 
       final list = find.descendant(of: find.byType(PlaylistsView), matching: find.byType(Scrollable));
+
       await tester.dragFrom(tester.getTopLeft(list) + const Offset(300, 20), const Offset(0, 300), kind: kind);
       await tester.pumpAndSettle();
       expect(asked.where((endpoint) => endpoint == 'getPlaylists.view'), hasLength(2));
@@ -376,7 +386,9 @@ void main() {
 
     await tester.tap(tile('Road trip'));
     await tester.pumpAndSettle();
+
     final page = find.byType(PlaylistPage);
+
     expect(find.descendant(of: find.byType(AppBar), matching: find.text('Road trip')), findsOneWidget);
     expect(find.text('Sweet Emotion'), findsOneWidget);
     expect(find.byType(NavigationBar).hitTestable(), findsOneWidget);
@@ -387,12 +399,15 @@ void main() {
 
   testWidgets('"Nova playlist", over the list, makes one named in a dialog, which then shows by name', (tester) async {
     final library = Library();
+
     await pumpHome(tester, const Size(1000, 700), library: library);
     await openPlaylists(tester);
     expect(tester.getRect(tile('Nova playlist')).bottom, lessThanOrEqualTo(tester.getRect(tile('chill')).top));
 
     await tap(tester, tile('Nova playlist'));
+
     final create = find.widgetWithText(TextButton, 'Criar');
+
     expect(tester.widget<TextButton>(create).onPressed, isNull, reason: 'not without a name');
     await tester.enterText(nameField, '  Bus  ');
     await tester.pump();
@@ -407,6 +422,7 @@ void main() {
     tester,
   ) async {
     final library = Library();
+
     await pumpHome(tester, const Size(1000, 700), library: library);
     await openPlaylist(tester, 'Road trip');
     // From an album's page, over the playlist's, which shows it once back.
@@ -434,6 +450,7 @@ void main() {
     testWidgets('$device adds the song that plays to a playlist', (tester) async {
       final library = Library();
       final controller = await pumpHome(tester, size, library: library);
+
       await controller.playQueue(const [Song(id: 's1', title: 'Walk This Way', artist: 'Aerosmith')], play: false);
       await tester.pumpAndSettle();
 
@@ -454,6 +471,7 @@ void main() {
       'playlist', (tester) async {
     final library = Library();
     final controller = await pumpHome(tester, const Size(1000, 700), library: library);
+
     await controller.playQueue(const [Song(id: 's1', title: 'Walk This Way', artist: 'Aerosmith')], play: false);
     await tester.pumpAndSettle();
 
@@ -481,6 +499,7 @@ void main() {
 
   testWidgets('the album\'s menu adds all its songs, also to a new playlist, named in a dialog', (tester) async {
     final library = Library();
+
     await pumpHome(tester, const Size(1000, 700), library: library);
     await tap(tester, find.text('Toys in the Attic').first);
     await tap(tester, find.byType(PopupMenuButton<Object>));
@@ -497,6 +516,7 @@ void main() {
   testWidgets('on a TV, which has no drag, a song moves by the remote: from its menu, up and down take it along, the '
       'focus on it, OK leaves it there, the server moving it only then, and Back puts it back', (tester) async {
     final library = Library();
+
     await pumpHome(tester, const Size(1280, 720), library: library, television: true);
     await openPlaylist(tester, 'Road trip');
     expect(find.byType(SliverReorderableList), findsNothing);
@@ -543,7 +563,9 @@ void main() {
   testWidgets('the menu key, or Shift+F10, on a song opens its menu, whose button takes no focus', (tester) async {
     await pumpHome(tester, const Size(1000, 700));
     await tap(tester, find.text('Toys in the Attic').first);
+
     final menu = find.ancestor(of: songMenu('Walk This Way'), matching: find.byType(IconButton));
+
     expect(
       Focus.of(tester.element(find.descendant(of: menu, matching: find.byType(ThemedIcon)))).canRequestFocus,
       isFalse,
@@ -569,6 +591,7 @@ void main() {
 
   testWidgets('on a playlist\'s page, a song\'s menu takes it out', (tester) async {
     final library = Library();
+
     await pumpHome(tester, const Size(1000, 700), library: library);
     await openPlaylist(tester, 'Road trip');
     await tap(tester, songMenu('Sweet Emotion'));
@@ -584,8 +607,10 @@ void main() {
 
   testWidgets('with the mouse, a song dragged up the playlist moves there', (tester) async {
     final library = Library();
+
     await pumpHome(tester, const Size(1000, 700), library: library);
     await openPlaylist(tester, 'Road trip');
+
     final height = tester.getSize(tile('Dream Police')).height;
     final gesture = await tester.startGesture(tester.getCenter(tile('Dream Police')), kind: PointerDeviceKind.mouse);
 
@@ -605,8 +630,10 @@ void main() {
     tester,
   ) async {
     final library = Library();
+
     await pumpHome(tester, const Size(360, 640), library: library);
     await openPlaylist(tester, 'Road trip');
+
     final height = tester.getSize(tile('Dream Police')).height;
 
     await tester.drag(tile('Dream Police'), Offset(0, -height * 1.5));
@@ -614,6 +641,7 @@ void main() {
     expect(titles(tester), ['Sweet Emotion', 'Dream Police'], reason: 'not held');
 
     final gesture = await tester.startGesture(tester.getCenter(tile('Dream Police')));
+
     await tester.pump(kLongPressTimeout + const Duration(milliseconds: 100));
 
     for (var i = 0; i < 6; i++) {
@@ -650,7 +678,9 @@ void main() {
     (tester) async {
       await pumpHome(tester, const Size(360, 640));
       await openPlaylist(tester, 'Road trip');
+
       final menus = find.byTooltip('Mais opções');
+
       expect(menus, findsNWidgets(3), reason: 'the playlist\'s and its two songs\'');
       expect(tester.getRect(find.byTooltip('Tocar a playlist')).right, 360 - 16);
       expect(
@@ -664,13 +694,16 @@ void main() {
 
   testWidgets('the playlist\'s menu renames it, in a dialog with its name', (tester) async {
     final library = Library();
+
     await pumpHome(tester, const Size(1000, 700), library: library);
     await openPlaylist(tester, 'Road trip');
     // The playlist's, above the songs'.
     await tap(tester, find.byTooltip('Mais opções').first);
     await tap(tester, item('Renomear a playlist'));
     expect(find.descendant(of: nameField, matching: find.text('Road trip')), findsOneWidget);
+
     final rename = find.widgetWithText(TextButton, 'Renomear');
+
     expect(tester.widget<TextButton>(rename).onPressed, isNull, reason: 'the same name');
 
     await tester.enterText(nameField, 'Night drive');
@@ -687,6 +720,7 @@ void main() {
 
   testWidgets('the playlist\'s menu deletes it, once asked, and its page closes', (tester) async {
     final library = Library();
+
     await pumpHome(tester, const Size(1000, 700), library: library);
     await openPlaylist(tester, 'Road trip');
     await tap(tester, find.byTooltip('Mais opções').first);
@@ -709,9 +743,12 @@ void main() {
   testWidgets('another user\'s playlist\'s menu only plays it next or adds it to the queue, and its songs neither come '
       'out nor move', (tester) async {
     final library = Library();
+
     await pumpHome(tester, const Size(1000, 700), library: library);
     await openPlaylist(tester, 'chill');
+
     final page = find.byType(PlaylistPage);
+
     expect(
       find.descendant(of: page, matching: find.byTooltip('Mais opções')),
       findsNWidgets(4),
@@ -737,6 +774,7 @@ void main() {
     tester,
   ) async {
     final library = Library();
+
     await pumpHome(tester, const Size(1000, 700), library: library);
     await openPlaylist(tester, 'Road trip');
     library.refuses = true;
@@ -749,13 +787,18 @@ void main() {
 
   testWidgets('held, a playlist in the list opens its menu where it was pressed, which renames it', (tester) async {
     final library = Library();
+
     await pumpHome(tester, const Size(1000, 700), library: library);
     await openPlaylists(tester);
+
     // Nearer the left edge, which the menu grows away from.
     final pressed = tester.getCenter(tile('Road trip')) - const Offset(200, 0);
+
     await tester.longPressAt(pressed);
     await tester.pumpAndSettle();
+
     final menu = tester.getRect(find.byType(PopupMenuItem<PlaylistAction>).first);
+
     expect(menu.left, moreOrLessEquals(pressed.dx, epsilon: 1), reason: 'from where it was pressed');
     expect(menu.top, inInclusiveRange(pressed.dy, pressed.dy + 16));
 
@@ -773,6 +816,7 @@ void main() {
     tester,
   ) async {
     final library = Library();
+
     await pumpHome(tester, const Size(1000, 700), library: library);
     await openPlaylists(tester);
     await tester.longPress(tile('Road trip'), kind: PointerDeviceKind.mouse);

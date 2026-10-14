@@ -150,6 +150,7 @@ class MediaControls extends BaseAudioHandler with SeekHandler {
     _covers.clear();
     connect?.addListener(_sync);
     reachability?.addListener(_homeChanged);
+
     final earlyPlayBy = _earlyPlayBy;
 
     if (connect != null && earlyPlayBy != null) {
@@ -197,8 +198,10 @@ class MediaControls extends BaseAudioHandler with SeekHandler {
 
   void _sync() {
     _tick?.cancel();
+
     final connect = _connect;
     final now = connect?.nowPlaying;
+
     _syncQueue(connect, now);
 
     if (now?.title == null) {
@@ -324,9 +327,12 @@ class MediaControls extends BaseAudioHandler with SeekHandler {
 
       if (!await file.exists()) {
         final bytes = await _downloads.run(() => api.coverArt(coverId, size: 512));
+
         await directory.create(recursive: true);
+
         // Whole under another name, then under its own, so that the car never reads half of one (CoverProvider.kt).
         final part = File('${file.path}.part');
+
         await part.writeAsBytes(bytes);
         await part.rename(file.path);
       }
@@ -411,6 +417,7 @@ class MediaControls extends BaseAudioHandler with SeekHandler {
     }
 
     final tree = await _browsable();
+
     await _playHere(() async => tree?.queueOf(mediaId));
   }
 
@@ -535,6 +542,7 @@ class _Throttle {
     } else {
       // The place of a task done, handed on.
       final turn = Completer<void>();
+
       _waiting.add(turn);
       await turn.future;
     }

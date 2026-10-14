@@ -21,6 +21,7 @@ class HomeCache {
   /// The cache kept in [file]; an empty one where there is none, or it can't be read.
   static Future<HomeCache> open(File file, {Reachability? reachability}) async {
     final albums = <AlbumOrder, List<Album>>{};
+
     List<KeptMix>? mixes;
 
     try {
@@ -148,7 +149,9 @@ class HomeCache {
 
     try {
       await file.parent.create(recursive: true);
+
       final part = File('${file.path}.part');
+
       await part.writeAsString(
         jsonEncode({
           'albums': {

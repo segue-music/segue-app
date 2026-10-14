@@ -110,6 +110,7 @@ class _ArtistPageState extends State<ArtistPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+
     final api = ServicesScope.of(context).api;
     _artist ??= api.artist(widget.artist.id);
     _mostPlayed ??= api.mostPlayedSongs(widget.artist.id, size: _ArtistSongs.count);
@@ -249,6 +250,7 @@ class _ArtistPageState extends State<ArtistPage> {
       url: otherPicture,
       region: (image) => _topOf(image, box, key.$3),
     );
+
     unawaited(
       average.then((color) {
         if (mounted && _underBar?.$1 == key) {
@@ -532,6 +534,7 @@ class _ArtistPageState extends State<ArtistPage> {
                 final services = ServicesScope.of(context);
                 final musicBrainz = services.musicBrainz;
                 final band = musicBrainz?.band(artist);
+
                 BiographyPage.open(
                   context,
                   biography,

@@ -70,6 +70,7 @@ void main() {
   // disappears on a dark taskbar, so with the margin the ring showed smaller than the other apps' icons. Each one is a
   // PNG inside the .ico, which Windows reads since Vista.
   final windowsSizes = [16, 20, 24, 32, 40, 48, 64, 256];
+
   _writeBytes(
     'windows/runner/resources/app_icon.ico',
     IcoEncoder().encodeImages([for (final size in windowsSizes) art.round(size, 1)]),
@@ -80,6 +81,7 @@ void main() {
   // of the app's name: the same, 96 logical pixels (logo_large.png).
   for (final density in [1, 2, 3, 4]) {
     final directory = density == 1 ? 'assets' : 'assets/$density.0x';
+
     _write('$directory/logo.png', art.round(32 * density, 1));
     _write('$directory/logo_large.png', art.round(96 * density, 1));
   }

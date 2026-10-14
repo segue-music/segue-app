@@ -75,6 +75,7 @@ Future<void> pumpApp(WidgetTester tester, Size size) async {
     client: MockClient((request) async => server(request)),
   );
   final player = PlayerController(FakeEngine(), api);
+
   await player.playQueue(const [
     Song(
       id: 's1',
@@ -84,6 +85,7 @@ Future<void> pumpApp(WidgetTester tester, Size size) async {
       duration: Duration(seconds: 274),
     ),
   ], play: false);
+
   final services = Services(
     Session(server: Uri.parse('https://music.test'), credentials: credentials, deviceId: 'me', deviceName: 'me'),
     api,
@@ -91,6 +93,7 @@ Future<void> pumpApp(WidgetTester tester, Size size) async {
     ConnectController(player: player),
   );
   final settings = Settings();
+
   addTearDown(settings.dispose);
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;

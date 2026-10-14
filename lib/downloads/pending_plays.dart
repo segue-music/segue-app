@@ -22,6 +22,7 @@ class PendingPlays {
       if (await file.exists()) {
         for (final play in jsonDecode(await file.readAsString()) as List) {
           final json = play as Map<String, dynamic>;
+
           plays.add((
             songId: json['songId'] as String,
             time: DateTime.fromMillisecondsSinceEpoch((json['time'] as num).toInt()),
@@ -82,6 +83,7 @@ class PendingPlays {
   /// Writes them beside [file], and moves them over it, so that it is never half written.
   Future<void> _save() async {
     final part = File('${file.path}.part');
+
     await part.writeAsString(
       jsonEncode([
         for (final play in _plays) {'songId': play.songId, 'time': play.time.millisecondsSinceEpoch},

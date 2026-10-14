@@ -247,6 +247,7 @@ void main() {
     final mostPlayed = tester.getRect(find.text('Mais tocados'));
     final pump = tester.getRect(find.text('Pump'));
     final toys = tester.getRect(find.text('Toys in the Attic'));
+
     expect(grip.top, greaterThan(recent.bottom));
     expect(latest.top, greaterThan(grip.bottom));
     expect(ruts.top, greaterThan(latest.bottom));
@@ -298,15 +299,20 @@ void main() {
     tester,
   ) async {
     await pumpHome(tester, const Size(1000, 700));
+
     final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+
     await mouse.addPointer(location: const Offset(999, 699));
     addTearDown(mouse.removePointer);
 
     for (final section in ['Álbuns', 'Artistas', 'Gêneros', 'Playlists']) {
       final icon = tester.getRect(railButton(section));
+
       await mouse.moveTo(icon.center);
       await tester.pumpAndSettle();
+
       final name = tester.getRect(find.text(section));
+
       expect(name.left, greaterThan(icon.right), reason: '$section: to the right of its icon');
       expect(name.center.dy, moreOrLessEquals(icon.center.dy, epsilon: 1), reason: '$section: level with it');
       await mouse.moveTo(const Offset(999, 699));
@@ -320,11 +326,15 @@ void main() {
     tester,
   ) async {
     await pumpHome(tester, const Size(1000, 700));
+
     final logo = find.byTooltip('Início');
+
     expect(logo, findsOneWidget, reason: 'the app\'s icon alone');
     expect(find.descendant(of: logo, matching: find.byType(Image)), findsOneWidget);
     expect(themedIcon(HugeIcons.strokeRoundedHome01), findsNothing);
+
     final corner = tester.getRect(logo);
+
     expect(corner.left, lessThan(16));
     expect(corner.top, lessThan(16));
     expect(corner.right, lessThanOrEqualTo(railWidth(tester)), reason: 'over the side rail');
@@ -344,9 +354,12 @@ void main() {
   testWidgets('the app in the old theme fades away over the new one', (tester) async {
     tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
     addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+
     final settings = Settings();
+
     addTearDown(settings.dispose);
     await pumpHome(tester, const Size(1000, 700), settings: settings);
+
     final old = find.byKey(ThemeFade.oldThemeKey);
     double opacity() => tester.widget<FadeTransition>(old).opacity.value;
 
@@ -360,7 +373,9 @@ void main() {
     expect(opacity(), 1);
 
     await tester.pump(ThemeFade.duration ~/ 4);
+
     final quarter = opacity();
+
     expect(quarter, lessThan(1));
     await tester.pump(ThemeFade.duration ~/ 4);
     expect(opacity(), moreOrLessEquals(0.5, epsilon: 0.01));
@@ -374,7 +389,9 @@ void main() {
   testWidgets('where the system asks for less motion, the new theme shows at once', (tester) async {
     tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(disableAnimations: true);
     addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+
     final settings = Settings();
+
     addTearDown(settings.dispose);
     await pumpHome(tester, const Size(1000, 700), settings: settings);
     await openSettings(tester);
@@ -391,6 +408,7 @@ void main() {
     'comes after the hub\'s status; each choice says the option picked, and opens a sheet of them all',
     (tester) async {
       final settings = Settings();
+
       addTearDown(settings.dispose);
       // A phone tall enough for every item of the settings, which their list builds only near the screen.
       await pumpHome(
@@ -415,6 +433,7 @@ void main() {
       expect(title('Configurações'), findsOneWidget);
       expect(find.byType(BackButton).hitTestable(), findsOneWidget, reason: 'a page of its own, which goes back');
       expect(find.byType(NavigationBar).hitTestable(), findsOneWidget, reason: 'in the page area, over the section');
+
       final texts = [
         'Aparência',
         'Tema',
@@ -432,9 +451,12 @@ void main() {
         'Sair',
       ];
       final tops = [for (final text in texts) tester.getTopLeft(find.text(text)).dy];
+
       expect([...tops]..sort(), tops, reason: 'in this order, top to bottom');
       expect(find.text('Tema claro'), findsNothing, reason: 'in the sheet of the themes alone');
+
       final lines = find.descendant(of: find.byType(SettingsPage), matching: find.byType(Divider));
+
       expect(lines, findsNWidgets(3), reason: 'a line after each group');
       expect(
         tester.getCenter(lines.at(0)).dy,
@@ -476,11 +498,15 @@ void main() {
 
       // The themes, in a sheet over the window, under the choice's name.
       await openChoice(tester, 'Tema');
+
       final sheet = find.byType(BottomSheet);
+
       expect(find.descendant(of: sheet, matching: find.text('Tema')), findsOneWidget);
       expect(tester.getRect(sheet).bottom, 1600, reason: 'over the bars at the bottom too');
+
       final themes = ['Tema do sistema', 'Tema claro', 'Tema escuro'];
       final themeTops = [for (final text in themes) tester.getTopLeft(option(text)).dy];
+
       expect([...themeTops]..sort(), themeTops, reason: 'in this order, top to bottom');
       expect([for (final text in themes) checked(text)], [true, false, false]);
       expect(tester.widget<ListTile>(option('Tema do sistema')).selected, isTrue, reason: 'in the theme\'s color');
@@ -488,8 +514,10 @@ void main() {
       await closeChoice(tester);
 
       await openChoice(tester, 'Idioma');
+
       final languages = ['Idioma do sistema', 'English', 'Español', 'Português'];
       final languageTops = [for (final text in languages) tester.getTopLeft(option(text)).dy];
+
       expect([...languageTops]..sort(), languageTops, reason: 'in this order, top to bottom');
       expect([for (final text in languages) checked(text)], [true, false, false, false]);
       await closeChoice(tester);
@@ -519,6 +547,7 @@ void main() {
     tester,
   ) async {
     final settings = Settings();
+
     addTearDown(settings.dispose);
     var signedOut = false;
     await pumpHome(tester, const Size(1000, 700), settings: settings, onSignOut: () => signedOut = true);
@@ -534,7 +563,9 @@ void main() {
     );
 
     await openSettings(tester);
+
     final page = tester.getRect(find.byType(SettingsPage));
+
     expect(page.top, greaterThanOrEqualTo(tester.getRect(settingsButton).bottom), reason: 'under the top bar');
     expect(page.left, greaterThanOrEqualTo(tester.getRect(find.byType(VerticalDivider)).right), reason: 'by the rail');
     expect(find.byType(BackButton), findsNothing, reason: 'the top bar\'s arrow goes back');
@@ -550,6 +581,7 @@ void main() {
     );
     await closeChoice(tester);
     expect(find.byType(SettingsPage), findsOneWidget, reason: 'Esc closes the sheet alone');
+
     final list = find.descendant(of: find.byType(SettingsPage), matching: find.byType(Scrollable));
 
     await tester.tap(find.byTooltip('Voltar'));
@@ -599,8 +631,10 @@ void main() {
   testWidgets('on a wide screen, Esc closes the settings, as the top bar\'s arrow does, also from a setting with the '
       'focus', (tester) async {
     final settings = Settings();
+
     addTearDown(settings.dispose);
     await pumpHome(tester, const Size(1000, 700), settings: settings);
+
     final page = find.byType(SettingsPage);
 
     await openSettings(tester);
@@ -613,7 +647,9 @@ void main() {
     expect(page, findsOneWidget, reason: 'and forward to them again');
     await tester.sendKeyEvent(LogicalKeyboardKey.tab);
     await tester.pump();
+
     final focused = FocusManager.instance.primaryFocus?.context;
+
     expect(focused?.findAncestorWidgetOfExactType<ListTile>(), isNotNull, reason: 'a setting has the focus');
     expect(focused?.findAncestorWidgetOfExactType<SettingsPage>(), isNotNull);
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
@@ -625,6 +661,7 @@ void main() {
   testWidgets('on a wide screen, where the top bar stays over the settings, its button goes back from them rather than '
       'opening them again', (tester) async {
     await pumpHome(tester, const Size(1000, 700));
+
     // The pages under the one on top too.
     final settings = find.byType(SettingsPage, skipOffstage: false);
 
@@ -655,7 +692,9 @@ void main() {
   ) async {
     tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
     addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+
     final settings = Settings();
+
     addTearDown(settings.dispose);
     await pumpHome(tester, const Size(360, 640), settings: settings);
     Brightness shown() => Theme.of(tester.element(find.byType(HomePage))).brightness;
@@ -686,17 +725,22 @@ void main() {
       'fading away each time', (tester) async {
     tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
     addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+
     final settings = Settings();
+
     addTearDown(settings.dispose);
     await pumpHome(tester, const Size(360, 640), settings: settings);
     ColorScheme shown() => Theme.of(tester.element(find.byType(HomePage))).colorScheme;
     final fading = find.byKey(ThemeFade.oldThemeKey);
+
     expect(shown().surface, iconBlack);
 
     await openSettings(tester);
     await openChoice(tester, 'Cores');
+
     final palettes = ['Segue', 'Vinho', 'Neutro'];
     final tops = [for (final text in palettes) tester.getTopLeft(option(text)).dy];
+
     expect([...tops]..sort(), tops, reason: 'in this order, top to bottom');
     expect([for (final text in palettes) checked(text)], [true, false, false]);
     expect(
@@ -722,6 +766,7 @@ void main() {
         tester.widget<Container>(circles.first).decoration! as BoxDecoration,
         tester.widget<Container>(circles.last).decoration! as BoxDecoration,
       );
+
       expect(swatch.gradient?.colors.first, colors.surface, reason: text);
       expect(dot.color, colors.primary, reason: text);
     }
@@ -737,6 +782,7 @@ void main() {
     expect((await ThemeChoice.load()).value.palette, Palette.wine, reason: 'kept for the next launch');
 
     final highContrast = find.widgetWithText(SwitchListTile, 'Alto contraste');
+
     await tester.tap(highContrast);
     await tester.pump();
     expect(shown(), segueColors(Brightness.dark, palette: Palette.wine, highContrast: true), reason: 'with the colors');
@@ -757,6 +803,7 @@ void main() {
     'original first, picked until another is, then the automatic one, which a phone has mobile data for',
     (tester) async {
       final settings = Settings(quality: QualityChoice(mobileData: true));
+
       addTearDown(settings.dispose);
       await pumpHome(tester, const Size(360, 640), settings: settings);
       expect(find.byTooltip('Qualidade do áudio'), findsNothing, reason: 'no button of its own');
@@ -776,6 +823,7 @@ void main() {
 
       // To its end, which stays clear of the bars at the bottom.
       final list = find.descendant(of: find.byType(SettingsPage), matching: find.byType(Scrollable));
+
       await tester.fling(list, const Offset(0, -1000), 3000);
       await tester.pumpAndSettle();
       expect(
@@ -786,6 +834,7 @@ void main() {
       // Back up to the quality, which the lines after it took above the top.
       await tester.scrollUntilVisible(settingsItem('Qualidade do áudio'), -100, scrollable: list);
       await openChoice(tester, 'Qualidade do áudio');
+
       final texts = [
         'Qualidade original',
         'Qualidade automática',
@@ -794,6 +843,7 @@ void main() {
         'Qualidade baixa · 96 kbps',
       ];
       final tops = [for (final text in texts) tester.getTopLeft(option(text)).dy];
+
       expect([...tops]..sort(), tops, reason: 'in this order, top to bottom, the original first');
       expect([for (final text in texts) checked(text)], [true, false, false, false, false]);
       expect(
@@ -818,6 +868,7 @@ void main() {
   testWidgets('on a phone, the volume\'s normalization is in the settings, after the quality, each way with what it '
       'does; a pick holds, and is kept', (tester) async {
     final settings = Settings();
+
     addTearDown(settings.dispose);
     await pumpHome(tester, const Size(360, 640), settings: settings);
 
@@ -837,6 +888,7 @@ void main() {
     expect(says('Normalização do volume', 'Desligada'), isTrue, reason: 'until a pick');
 
     await openChoice(tester, 'Normalização do volume');
+
     final ways = [
       ('Desligada', 'Cada música no volume do seu arquivo'),
       ('Automática', 'Por álbum quando um álbum toca em ordem, por música nas outras vezes'),
@@ -844,6 +896,7 @@ void main() {
       ('Por álbum', 'Todos os álbuns no mesmo volume, e as músicas de cada um como são entre si'),
     ];
     final tops = [for (final (name, _) in ways) tester.getTopLeft(option(name)).dy];
+
     expect([...tops]..sort(), tops, reason: 'in this order, top to bottom, off first');
     expect(checked('Desligada'), isTrue);
 
@@ -869,11 +922,14 @@ void main() {
     'with, and opens its page, whose changes it shows',
     (tester) async {
       final settings = Settings();
+
       addTearDown(settings.dispose);
       await pumpHome(tester, const Size(360, 640), settings: settings);
 
       await openSettings(tester);
+
       final list = find.descendant(of: find.byType(SettingsPage), matching: find.byType(Scrollable));
+
       // Down to the volume's normalization, at the top of the page, the equalizer under it clear of the bars at the
       // bottom.
       await tester.scrollUntilVisible(settingsItem('Normalização do volume'), 100, scrollable: list);
@@ -932,6 +988,7 @@ void main() {
       final button = tester.getSize(
         find.ancestor(of: themedIcon(HugeIcons.strokeRoundedSettings01), matching: find.byType(IconButton)),
       );
+
       expect(settings.left - hub.right, button.width - settings.width);
       expect(hub.center.dy, settings.center.dy);
       await tester.pumpWidget(const SizedBox());
@@ -947,9 +1004,11 @@ void main() {
     testWidgets('dragged down from its top by $device, the home asks the server for its rows again', (tester) async {
       final asked = await pumpHome(tester, size);
       final rows = [for (final query in asked) query['type']];
+
       expect(rows, unorderedEquals(['recent', 'byYear', 'frequent', 'newest']));
 
       final list = find.descendant(of: find.byType(HomeView), matching: find.byType(Scrollable)).first;
+
       await tester.dragFrom(tester.getTopLeft(list) + const Offset(300, 100), const Offset(0, 300), kind: kind);
       await tester.pumpAndSettle();
       expect([for (final query in asked.skip(rows.length)) query['type']], unorderedEquals(rows));
@@ -961,8 +1020,10 @@ void main() {
     tester,
   ) async {
     await pumpHome(tester, const Size(360, 640));
+
     final chips = find.descendant(of: find.byType(AppBar), matching: find.byType(HomeChips));
     final bar = find.byType(NavigationBar);
+
     expect(chips, findsOneWidget);
     expect(title('Início'), findsNothing);
     expect(find.descendant(of: bar, matching: find.text('Início')), findsOneWidget);
@@ -988,7 +1049,9 @@ void main() {
   testWidgets('on a phone, the bar at the bottom has the home, the search and the library, whose albums, artists and '
       'playlists are tabs at its top; it opens again on the one picked last', (tester) async {
     await pumpHome(tester, const Size(360, 640));
+
     final bar = find.byType(NavigationBar);
+
     expect(
       [
         for (final destination in tester.widgetList<NavigationDestination>(find.byType(NavigationDestination)))
@@ -999,7 +1062,9 @@ void main() {
 
     await tester.tap(find.descendant(of: bar, matching: find.text('Biblioteca')));
     await tester.pumpAndSettle();
+
     final tabs = find.byType(TabBar);
+
     expect(find.descendant(of: tabs, matching: find.byType(Tab)), findsNWidgets(3));
     expect(
       [for (final tab in tester.widgetList<Tab>(find.descendant(of: tabs, matching: find.byType(Tab)))) tab.text],
@@ -1026,6 +1091,7 @@ void main() {
     tester,
   ) async {
     await pumpHome(tester, const Size(360, 640));
+
     final bar = find.byType(NavigationBar);
     final tabs = find.byType(TabBar);
     int destination() => tester.widget<NavigationBar>(bar).selectedIndex;
@@ -1047,6 +1113,7 @@ void main() {
 
     // Between two tabs, the line under them follows the swipe.
     final gesture = await tester.startGesture(tester.getCenter(find.byType(AlbumsView)));
+
     await gesture.moveBy(const Offset(-20, 0));
     await gesture.moveBy(const Offset(-70, 0));
     await tester.pump();
@@ -1113,12 +1180,14 @@ void main() {
   testWidgets('the home pulled down, its rows start again from their first album', (tester) async {
     final asked = await pumpHome(tester, const Size(360, 640), latest: [for (var i = 0; i < 10; i++) 'Latest $i']);
     final rows = asked.length;
+
     await tester.drag(find.text('Latest 0'), const Offset(-2000, 0));
     await tester.pumpAndSettle();
     expect(find.text('Latest 0'), findsNothing);
     expect(find.text('Latest 9'), findsOneWidget);
 
     final list = find.descendant(of: find.byType(HomeView), matching: find.byType(Scrollable)).first;
+
     await tester.dragFrom(tester.getTopLeft(list) + const Offset(180, 20), const Offset(0, 300));
     await tester.pumpAndSettle();
     expect(asked.length, 2 * rows, reason: 'listed again');
@@ -1141,9 +1210,11 @@ void main() {
       findsNothing,
       reason: 'the arrows take the place of the scrollbar a computer gives',
     );
+
     final back = find.byTooltip('Anteriores').first;
     final forward = find.byTooltip('Próximos').first;
     final heading = tester.getRect(find.text('Adicionados recentemente'));
+
     expect(tester.getRect(back).left, greaterThan(heading.right));
     expect(tester.getRect(forward).left, greaterThan(tester.getRect(back).right - 1));
     expect(tester.getRect(forward).right, greaterThan(1000 - 64), reason: 'in the right corner');
@@ -1212,6 +1283,7 @@ void main() {
       'rather than fit whole with nothing to say that more follow', (tester) async {
     for (final width in [960.0, 1000.0, 1280.0]) {
       await pumpHome(tester, Size(width, 540), mostPlayed: [for (var i = 0; i < 20; i++) 'Most $i'], television: true);
+
       final strip = find.ancestor(of: find.text('Most 0'), matching: find.byType(Scrollable)).first;
       final side = tester.getRect(strip).right;
       final tiles = [
@@ -1259,7 +1331,9 @@ void main() {
   testWidgets('on a phone, a row\'s title opens the library on its albums tab, from another tab too, in the row\'s '
       'order', (tester) async {
     await pumpHome(tester, const Size(360, 640));
+
     final bar = find.byType(NavigationBar);
+
     await tester.tap(find.descendant(of: bar, matching: find.text('Biblioteca')));
     await tester.pumpAndSettle();
     await tapLibraryTab(tester, 'Artistas');
@@ -1277,9 +1351,11 @@ void main() {
   testWidgets('a row\'s tiles are as tall as their cover and the lines under it, as the grid\'s, with no room left '
       'under them', (tester) async {
     await pumpHome(tester, const Size(1000, 700));
+
     final tile = find.ancestor(of: find.text('Toys in the Attic').first, matching: find.byType(AlbumTile));
     final cover = tester.getSize(find.descendant(of: tile, matching: find.byType(AspectRatio)).first);
     final lines = AlbumTile.linesHeight(tester.element(tile));
+
     expect(tester.getSize(tile).height, moreOrLessEquals(cover.height + lines + 2 * AlbumTile.padding));
     await tester.pumpWidget(const SizedBox());
   });
@@ -1300,11 +1376,13 @@ void main() {
       mostPlayed: [for (var i = 0; i < 40; i++) 'Most $i'],
       latest: [for (var i = 0; i < 40; i++) 'Latest $i'],
     );
+
     expect([for (final query in asked) query['size']], ['8', '30', '30', '30'], reason: 'those played last, 8');
 
     for (final prefix in ['Released', 'Most', 'Latest']) {
       // By its albums: the list builds the rows that show, which change as it scrolls.
       final row = find.ancestor(of: find.text('$prefix 0'), matching: rows);
+
       await tester.ensureVisible(row); // the last ones are under the bottom bar, at first
       await tester.pumpAndSettle();
       await tester.drag(row, const Offset(-10000, 0));
@@ -1400,6 +1478,7 @@ void main() {
       of: find.ancestor(of: find.text('Latest 0'), matching: find.byType(AlbumTile)),
       matching: find.byType(AspectRatio),
     );
+
     expect(
       tester.getRect(find.text('Adicionados recentemente').first).left,
       moreOrLessEquals(tester.getRect(cover.first).left),
@@ -1430,7 +1509,9 @@ void main() {
 
     expect(focusedAlbum(), 'Latest 7');
     expect(tile('Latest 7').left, moreOrLessEquals(first), reason: 'in the first one\'s place');
+
     final row = tester.getRect(find.ancestor(of: find.text('Latest 7'), matching: find.byType(Scrollable)).first);
+
     expect(focusedCard().left - row.left, greaterThanOrEqualTo(8), reason: 'its ring clear of the rail');
     expect(tile('Latest 11').left, lessThan(960), reason: 'a piece of the last, at the screen\'s side');
     expect(tile('Latest 11').right, greaterThan(960));
@@ -1441,7 +1522,9 @@ void main() {
     await press(tester, LogicalKeyboardKey.arrowDown);
     await press(tester, LogicalKeyboardKey.arrowDown);
     expect(focusedAlbum(), startsWith('Released'));
+
     final page = tester.getRect(find.descendant(of: find.byType(HomeView), matching: find.byType(Scrollable)).first);
+
     expect(focusedCard().bottom, lessThanOrEqualTo(page.bottom - 8 + 0.01), reason: 'at the page\'s bottom');
     await tester.pumpWidget(const SizedBox());
   });

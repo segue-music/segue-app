@@ -181,6 +181,7 @@ class _PlayerPageState extends State<PlayerPage> with SingleTickerProviderStateM
             builder: (context, _) => PlayingPageBuilder(
               builder: (context, _, now) {
                 _askForLyrics(now);
+
                 final lyrics = widget._lyrics.value;
                 final colors = Theme.of(context).colorScheme;
                 final device = now.device;
@@ -780,6 +781,7 @@ class _ClosingScrollPosition extends ScrollPositionWithSingleContext {
       final (toEnd, toStart) = (maxScrollExtent - pixels, pixels - minScrollExtent);
       final (toTop, toBottom) = _reversed ? (toEnd, toStart) : (toStart, toEnd);
       final scrolling = down.clamp(-max(toBottom, 0.0), max(toTop, 0.0)).toDouble();
+
       _scroll(scrolling);
       down -= scrolling;
 
@@ -813,6 +815,7 @@ class _ClosingScrollPosition extends ScrollPositionWithSingleContext {
 
     _drag = null;
     final moved = drag.moved;
+
     drag.end(_reversed ? velocity : -velocity);
     super.goBallistic(moved ? 0 : velocity);
   }
@@ -928,6 +931,7 @@ class _Player extends StatelessWidget {
 
     final (two, one) = (laidOut(width), laidOut(double.infinity));
     final extra = two.height - one.height;
+
     two.dispose();
     one.dispose();
 
@@ -1215,7 +1219,9 @@ class _SwipeToSkipState extends State<_SwipeToSkip> with SingleTickerProviderSta
 
     setState(() => _leaving = (coverArt: widget.coverArt));
     unawaited(runCommand(context, skip));
+
     final out = toward < 0 ? -_width : _width;
+
     await _offset.animateTo(out, duration: const Duration(milliseconds: 150), curve: Curves.easeIn);
 
     if (!mounted) {

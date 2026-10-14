@@ -127,6 +127,7 @@ class _AlbumsViewState extends State<AlbumsView> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+
     final services = ServicesScope.of(context);
     final downloads = services.downloads;
 
@@ -276,10 +277,12 @@ class _AlbumsViewState extends State<AlbumsView> {
   /// Loads the favorites, and shows their albums, unless another start over, after the [generation]th, came first.
   Future<void> _loadFavorites(int generation) async {
     final favorites = ServicesScope.of(context).favorites;
+
     setState(() {
       _loading = true;
       _error = null;
     });
+
     Object? error;
 
     try {
@@ -318,6 +321,7 @@ class _AlbumsViewState extends State<AlbumsView> {
   /// have come, asked for in turn; past the last letter there is, to the last album. The focus stays on the letter.
   Future<void> _jumpTo(String letter) async {
     final jump = ++_jumps;
+
     int? start;
 
     while (mounted && jump == _jumps) {
@@ -336,6 +340,7 @@ class _AlbumsViewState extends State<AlbumsView> {
     }
 
     final index = start ?? _albums.length - 1;
+
     // Once the grid has the albums that came.
     WidgetsBinding.instance.addPostFrameCallback((_) => scrollToGridChild(_grid, index));
     WidgetsBinding.instance.scheduleFrame();
@@ -614,6 +619,7 @@ class AlbumTile extends StatefulWidget {
         maxLines: 1,
       )..layout();
       final height = painter.height;
+
       painter.dispose();
 
       return height;

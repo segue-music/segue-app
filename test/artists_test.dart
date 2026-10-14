@@ -480,12 +480,16 @@ void main() {
     expect(tester.getSize(artistPicture()), const Size.square(220), reason: 'as big as an album\'s cover on its page');
     expect(artistPictureAt(800), findsOneWidget, reason: 'asked of the server as that one is');
     expect(artistPictureAt(300), findsOneWidget, reason: 'under it, as it comes');
+
     final newer = tester.getTopLeft(find.text('Toys in the Attic'));
     final older = tester.getTopLeft(find.text('1973'));
+
     expect(newer.dx < older.dx || newer.dy < older.dy, isTrue, reason: 'the 1975 album comes first');
     expect(find.text('Suas mais tocadas'), findsNothing, reason: 'none of their songs has played');
     expect(find.text('Populares'), findsNothing, reason: 'nor are there popular ones');
+
     final albums = find.descendant(of: find.byType(ArtistPage), matching: find.text('Álbuns'));
+
     expect(albums, findsOneWidget, reason: 'their albums have a title all the same');
     expect(tester.getTopLeft(albums).dy, lessThan(tester.getTopLeft(find.text('Toys in the Attic')).dy));
 
@@ -506,8 +510,10 @@ void main() {
     expect(picked(tester, 'Favoritos'), isFalse);
     expect(find.text('Aerosmith'), findsOneWidget);
     expect(find.text('Ramones'), findsOneWidget);
+
     final picture = tester.getRect(find.descendant(of: tile('Aerosmith'), matching: find.byType(Cover)));
     final chip = tester.getRect(order('Nome'));
+
     expect(picture.left, moreOrLessEquals(chip.left), reason: 'lined up with the chips');
     expect(picture.top, greaterThan(chip.bottom), reason: 'under them');
 
@@ -541,17 +547,21 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Cheap Trick'));
     await tester.pumpAndSettle();
+
     final page = find.byType(ArtistPage);
     Finder inBar(Finder finder) => find.descendant(of: find.byType(PageBarSliver), matching: finder);
     final position = tester
         .state<ScrollableState>(find.descendant(of: page, matching: find.byType(Scrollable)).first)
         .position;
+
     expect(inBar(find.text('Cheap Trick')), findsNothing, reason: 'by the picture');
 
     position.jumpTo(300);
     await tester.pumpAndSettle();
     expect(position.pixels, 300, reason: 'far enough down for the picture to have gone');
+
     final (area, name) = (tester.getRect(page), tester.getRect(inBar(find.text('Cheap Trick'))));
+
     expect(name.left, area.left + 16, reason: 'from the page\'s margin');
     expect(name.center.dy, moreOrLessEquals(area.top + kToolbarHeight / 2, epsilon: 1), reason: 'at its top');
     expect(find.descendant(of: page, matching: find.byType(BackButton)), findsNothing);
@@ -571,15 +581,21 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Cheap Trick'));
       await tester.pumpAndSettle();
+
       final page = find.byType(ArtistPage);
       final backdrop = find.descendant(of: page, matching: find.byType(ImageFiltered));
+
       expect(tester.widget<Cover>(find.descendant(of: backdrop, matching: find.byType(Cover))).id, 'ar-ar2');
+
       final (area, behind) = (tester.getRect(page), tester.getRect(backdrop));
       final round = tester.getRect(find.descendant(of: page, matching: find.byType(ClipOval)));
+
       expect(behind, Rect.fromLTRB(area.left, area.top, area.right, round.bottom));
+
       final shade = tester.widget<DecoratedBox>(find.ancestor(of: backdrop, matching: find.byType(DecoratedBox)).first);
       final gradient = (shade.decoration as BoxDecoration).gradient! as LinearGradient;
       final surface = Theme.of(tester.element(page)).colorScheme.surface;
+
       expect(shade.position, DecorationPosition.foreground);
       expect((gradient.colors.first, gradient.colors.last), (surface.withValues(alpha: 0.2), surface));
 
@@ -607,13 +623,16 @@ void main() {
       'play from the one picked', (tester) async {
     // Tall enough for the songs and the album under them.
     final engine = await pumpHome(tester, const Size(1000, 900));
+
     await tester.tap(find.byTooltip('Artistas'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Cheap Trick'));
     await tester.pumpAndSettle();
     expect(artistName('Cheap Trick'), findsOneWidget);
+
     final heading = songList('Suas mais tocadas');
     final albums = find.descendant(of: find.byType(ArtistPage), matching: find.text('Álbuns'));
+
     expect(heading, findsOneWidget);
     expect(
       tester.getSemantics(heading),
@@ -621,20 +640,26 @@ void main() {
       reason: 'the user\'s first',
     );
     expect(find.text('Big Eyes'), findsNothing, reason: 'it hasn\'t played');
+
     final top = find.text('I Want You to Want Me');
     final second = find.text('Hello There');
+
     expect(tester.getTopLeft(heading).dy, lessThan(tester.getTopLeft(top).dy));
     expect(tester.getTopLeft(top).dy, lessThan(tester.getTopLeft(second).dy), reason: 'the most played first');
     expect(tester.getTopLeft(second).dy, lessThan(tester.getTopLeft(albums).dy), reason: 'the albums under them');
+
     final last = find.descendant(of: find.widgetWithText(ListTile, 'Downed'), matching: find.text('In Color'));
+
     expect(
       tester.getRect(albums).top - tester.getRect(last).bottom,
       moreOrLessEquals(36, epsilon: 1),
       reason: 'as far from the last song\'s lines as a section of albums is from the one over it',
     );
     expect(find.text('So Good to See You'), findsNothing, reason: 'the sixth');
+
     final tile = find.widgetWithText(ListTile, 'Hello There');
     final number = find.descendant(of: tile, matching: find.text('2'));
+
     expect(number, findsOneWidget);
     expect(
       tester.getTopRight(number).dx,
@@ -658,6 +683,7 @@ void main() {
     tester,
   ) async {
     final engine = await pumpHome(tester, const Size(1000, 900));
+
     await tester.tap(find.byTooltip('Artistas'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Cheap Trick'));
@@ -677,6 +703,7 @@ void main() {
   testWidgets('picking the popular ones shows the artist\'s songs everyone plays most, as the server gives them, which '
       'play from the one picked', (tester) async {
     final engine = await pumpHome(tester, const Size(1000, 900));
+
     await tester.tap(find.byTooltip('Artistas'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Cheap Trick'));
@@ -684,8 +711,10 @@ void main() {
     await tester.tap(songList('Populares'));
     await tester.pumpAndSettle();
     expect(tester.getSemantics(songList('Populares')), isSemantics(label: 'Populares'));
+
     final first = find.widgetWithText(ListTile, 'Big Eyes');
     final last = find.widgetWithText(ListTile, 'So Good to See You');
+
     expect(find.descendant(of: first, matching: find.text('1')), findsOneWidget);
     expect(find.descendant(of: last, matching: find.text('3')), findsOneWidget);
     expect(find.text('Hello There'), findsNothing, reason: 'the user\'s, not among the popular ones');
@@ -708,7 +737,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Cheap Trick'));
     await tester.pumpAndSettle();
+
     final heading = songList('Populares');
+
     expect(heading, findsOneWidget);
     expect(find.byWidgetPredicate((widget) => widget is SegmentedChoice), findsNothing, reason: 'nothing else to pick');
     expect(find.text('Suas mais tocadas'), findsNothing);
@@ -724,7 +755,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Aerosmith'));
     await tester.pumpAndSettle();
+
     final choice = find.descendant(of: find.byType(ArtistPage), matching: orders());
+
     expect(choice, findsOneWidget);
     expect(find.descendant(of: choice, matching: find.text('Álbuns')), findsOneWidget);
     expect(find.descendant(of: choice, matching: find.text('Singles e EPs')), findsOneWidget);
@@ -733,7 +766,9 @@ void main() {
       isSemantics(label: 'Álbuns', isButton: true),
       reason: 'the albums first',
     );
+
     final toys = tester.getRect(find.text('Toys in the Attic'));
+
     expect(tester.getRect(choice).bottom, lessThan(toys.top));
     expect(tester.getRect(choice).left, toys.left, reason: 'lined up with the covers and their names');
     expect(tester.getRect(choice).width, lessThan(400), reason: 'as wide as its options, not the page');
@@ -746,7 +781,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.getSemantics(find.text('Singles e EPs')), isSemantics(label: 'Singles e EPs'));
     expect(find.text('Toys in the Attic'), findsNothing);
+
     final (pink, dreamOn) = (tester.getRect(find.text('Pink')), tester.getRect(find.text('Dream On')));
+
     expect(tester.getRect(choice).bottom, lessThan(pink.top));
     expect((pink.top, pink.left), (dreamOn.top, toys.left), reason: 'where the albums were');
     expect(pink.left, lessThan(dreamOn.left), reason: 'the 1997 EP before the 1973 single');
@@ -780,7 +817,9 @@ void main() {
     await tester.tap(find.text('Cheap Trick'));
     await tester.pumpAndSettle();
     expect(find.text('1977'), findsOneWidget, reason: 'the album, in the grid');
+
     final albums = find.descendant(of: find.byType(ArtistPage), matching: find.text('Álbuns'));
+
     expect(albums, findsOneWidget);
     expect(
       find.ancestor(of: albums, matching: orders()),
@@ -811,11 +850,15 @@ void main() {
 
     await tester.tap(find.text('Cheap Trick'));
     await tester.pumpAndSettle();
+
     final page = find.byType(ArtistPage);
+
     await ServicesScope.of(tester.element(page)).player.playQueue(const [Song(id: 's1', title: 'Dream Police')]);
     await tester.pumpAndSettle();
+
     // Under the home's bars, which stay; the albums go on behind them, and end clear of them.
     final grid = find.descendant(of: page, matching: find.byType(AlbumGrid));
+
     expect(find.byType(NavigationBar).hitTestable(), findsOneWidget);
     expect(find.descendant(of: page, matching: find.byType(NowPlayingBar)), findsNothing);
     expect(find.byType(BackButton), findsOneWidget);
@@ -834,7 +877,9 @@ void main() {
     await openSection(tester, 'Artistas');
     await tester.tap(find.text('Cheap Trick'));
     await tester.pumpAndSettle();
+
     final picture = tester.getRect(artistPicture());
+
     expect(
       picture,
       const Rect.fromLTWH(0, 0, 360, 24 + 320),
@@ -843,9 +888,11 @@ void main() {
     expect(find.descendant(of: find.byType(ArtistPage), matching: find.byType(ClipOval)), findsNothing);
     expect(artistPictureAt(1200), findsOneWidget, reason: 'asked of the server as many pixels across as a phone has');
     expect(artistPictureAt(300), findsOneWidget, reason: 'under it, as it comes');
+
     final appBar = find.descendant(of: find.byType(ArtistPage), matching: find.byType(AppBar));
     final title = find.descendant(of: appBar, matching: find.text('Cheap Trick'));
     final (arrow, name) = (tester.getRect(find.byType(BackButton)), tester.getRect(title));
+
     expect(arrow.center.dy, 24 + kToolbarHeight / 2, reason: 'over the picture, under the system\'s bar');
     expect(name.left, greaterThanOrEqualTo(arrow.right));
     expect(name.center.dx, moreOrLessEquals(180, epsilon: 1), reason: 'centered on the page');
@@ -853,6 +900,7 @@ void main() {
     double titleOpacity() =>
         tester.widget<Opacity>(find.ancestor(of: title, matching: find.byType(Opacity)).first).opacity;
     expect(titleOpacity(), 0, reason: 'the page shows it');
+
     // The page's own, over the bottom of the picture, in bold, bigger than the bar has it.
     final heading = find.descendant(
       of: find.byType(ArtistPage),
@@ -860,22 +908,31 @@ void main() {
         (widget) => widget is Text && widget.data == 'Cheap Trick' && widget.style?.fontWeight == FontWeight.bold,
       ),
     );
+
     expect(tester.getRect(heading).left, 16);
     expect(tester.getRect(heading).top, greaterThan(picture.center.dy));
     expect(tester.getSize(heading).height, greaterThan(tester.getSize(title).height));
+
     final choice = tester.getRect(find.byWidgetPredicate((widget) => widget is SegmentedChoice));
+
     expect(choice.bottom, lessThanOrEqualTo(picture.bottom));
     expect(choice.top, greaterThan(tester.getRect(heading).bottom), reason: 'under the name');
+
     // Their radio at the end of the name's line, round, as a music app's play button: the page's first way to play
     // anything of theirs.
     final radio = tester.getRect(find.byTooltip('Rádio do artista'));
+
     expect(radio.size, const Size.square(48));
     expect(radio.right, moreOrLessEquals(360 - 16, epsilon: 1));
     expect(radio.left, greaterThan(tester.getRect(heading).right));
     expect(radio.bottom, lessThanOrEqualTo(choice.top));
+
     final count = tester.getRect(find.text('1 álbum'));
+
     expect(count.center.dy, moreOrLessEquals(choice.center.dy, epsilon: 1), reason: 'on the choice\'s line');
+
     final heart = tester.getRect(find.byTooltip('Adicionar aos favoritos'));
+
     expect(heart.center.dy, moreOrLessEquals(choice.center.dy, epsilon: 1), reason: 'on the choice\'s line');
     expect(heart.right, moreOrLessEquals(360 - 16, epsilon: 1), reason: 'at its end, the page\'s margin from the edge');
     expect(count.right, lessThanOrEqualTo(heart.left), reason: 'the heart after it');
@@ -898,6 +955,7 @@ void main() {
       tester.getSemantics(find.byTooltip('Suas mais tocadas')),
       isSemantics(label: 'Suas mais tocadas', isButton: true),
     );
+
     // The picture is as it is at the top, under the system's bar, and fades to the page's color from a little above
     // the name, more than half of it behind the name, so that it reads over any picture, and all of it at the bottom.
     final surface = Theme.of(tester.element(find.byType(ArtistPage))).colorScheme.surface;
@@ -913,6 +971,7 @@ void main() {
     );
     final above = tester.getRect(fade(from: 0, to: 0.6));
     final under = tester.getRect(fade(from: 0.6, to: 1));
+
     expect(above.bottom, under.top);
     expect(above.top, greaterThan(24 + kToolbarHeight), reason: 'the picture as it is under the bars');
     expect(under.top, lessThanOrEqualTo(tester.getRect(heading).top), reason: 'behind the name');
@@ -953,7 +1012,9 @@ void main() {
     await pumpHome(tester, const Size(1000, 700));
     await tester.tap(find.byTooltip('Artistas'));
     await tester.pumpAndSettle();
+
     final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+
     await gesture.addPointer(location: const Offset(999, 699));
     addTearDown(gesture.removePointer);
     expect(shade('Aerosmith'), findsNothing);
@@ -961,12 +1022,16 @@ void main() {
     await gesture.moveTo(tester.getCenter(find.text('Aerosmith')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 75));
+
     final fade = tester.widget<FadeTransition>(
       find.ancestor(of: shade('Aerosmith'), matching: find.byType(FadeTransition)).first,
     );
+
     expect(fade.opacity.value, inExclusiveRange(0, 1), reason: 'it fades in, as the cover\'s shade does');
     await tester.pumpAndSettle();
+
     final picture = find.descendant(of: tile('Aerosmith'), matching: find.byType(Cover));
+
     expect(tester.getRect(shade('Aerosmith')), tester.getRect(picture), reason: 'all of the picture');
     expect(
       find.ancestor(of: shade('Aerosmith'), matching: find.byType(ClipOval)),
@@ -990,11 +1055,14 @@ void main() {
       Rect picture(String name) => tester.getRect(find.descendant(of: tile(name), matching: find.byType(Cover)));
 
       final (artist, next) = ('Aerosmith', 'Cheap Trick');
+
       expect(picture(artist).left - tester.getRect(tile(artist)).left, 8);
       expect(picture(artist).top - tester.getRect(tile(artist)).top, 8);
       expect(tester.getRect(tile(artist)).right - picture(artist).right, 8);
       expect(picture(next).left - picture(artist).right, moreOrLessEquals(16));
+
       final grid = find.descendant(of: find.byType(ArtistsView), matching: find.byType(CustomScrollView));
+
       expect(picture(artist).left - tester.getRect(grid).left, moreOrLessEquals(16));
       await tester.pumpWidget(const SizedBox());
     },
@@ -1043,6 +1111,7 @@ void main() {
     expect(find.textContaining('1975'), findsOneWidget, reason: 'the year, after the artist');
 
     final link = find.byTooltip('Abrir o artista');
+
     await tester.tap(link);
     await tester.pumpAndSettle();
     expect(artistName('Aerosmith'), findsOneWidget);
@@ -1066,6 +1135,7 @@ void main() {
     testWidgets('on $screen, a button after how many albums an artist has opens their biography over the window, under '
         'their picture; an artist without one has no button', (tester) async {
       final narrow = size.width < 600;
+
       await pumpHome(tester, size);
       await openSection(tester, 'Artistas');
       await tester.tap(tile('Aerosmith'));
@@ -1074,6 +1144,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final page = find.byType(BiographyPage);
+
       expect(page, findsOneWidget);
       expect(find.descendant(of: page, matching: find.text('Aerosmith')), findsOneWidget);
       expect(
@@ -1081,10 +1152,14 @@ void main() {
         findsOneWidget,
       );
       expect(find.descendant(of: page, matching: find.text('Biografia provida por Last.fm')), findsOneWidget);
+
       final picture = find.descendant(of: page, matching: find.byType(LargeCover));
+
       expect(tester.widget<LargeCover>(picture).id, 'ar-ar1');
+
       // As wide as the text under it, in the middle, but no taller than most of the screen.
       final side = narrow ? 328.0 : 420.0;
+
       expect(
         tester.getRect(picture),
         rectMoreOrLessEquals(Rect.fromCenter(center: Offset(size.width / 2, side / 2), width: side, height: side)),
@@ -1126,6 +1201,7 @@ void main() {
         'beside and the arrows go from one to the next', (tester) async {
       final narrow = size.width < 600;
       final asked = <http.Request>[];
+
       await pumpHome(tester, size, fanartTv: fanartTv(asked: asked));
       await openSection(tester, 'Artistas');
       await tester.tap(tile('Aerosmith'));
@@ -1142,6 +1218,7 @@ void main() {
       final page = find.byType(BiographyPage);
       final picture = find.descendant(of: page, matching: find.byType(LargeCover));
       final middle = size.width / 2;
+
       expect(tester.getCenter(picture).dx, middle);
       expect(tester.getRect(morePicture(1)).left, tester.getRect(picture).right + 8, reason: 'beside it');
       expect(tester.getRect(morePicture(1)).left, lessThanOrEqualTo(size.width - 8), reason: 'showing');
@@ -1177,13 +1254,17 @@ void main() {
           .widget<AnimatedOpacity>(find.ancestor(of: find.byTooltip(tooltip), matching: find.byType(AnimatedOpacity)))
           .opacity;
       expect(opacity('Próxima foto'), 0);
+
       final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+
       await mouse.addPointer(location: tester.getCenter(find.byType(PictureGallery)));
       addTearDown(mouse.removePointer);
       await tester.pumpAndSettle();
       expect(opacity('Foto anterior'), 1);
       expect(opacity('Próxima foto'), 1);
+
       final next = tester.getCenter(find.byTooltip('Próxima foto')).dx;
+
       expect(tester.getRect(find.byType(PictureGallery)).right - next, lessThan(32));
 
       if (!narrow) {
@@ -1201,6 +1282,7 @@ void main() {
   testWidgets('a gallery takes fanart.tv\'s pictures as they come; the first is in the middle where the server has no '
       'picture of the artist, and a placeholder where neither has any', (tester) async {
     final more = Completer<List<Uri>>();
+
     await tester.pumpWidget(
       MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -1213,8 +1295,11 @@ void main() {
       ),
     );
     await tester.pump();
+
     final placeholder = find.descendant(of: find.byType(PictureGallery), matching: find.byType(LargeCover));
+
     expect(tester.widget<LargeCover>(placeholder).id, isNull);
+
     final text = tester.getTopLeft(find.text('Aerosmith is an American rock band.'));
 
     more.complete([fanartUrl(1), fanartUrl(2)]);
@@ -1231,6 +1316,7 @@ void main() {
         'person', (tester) async {
       final narrow = size.width < 600;
       final asked = <http.Request>[];
+
       await pumpHome(tester, size, fanartTv: fanartTv(asked: asked));
 
       if (narrow) {
@@ -1241,7 +1327,9 @@ void main() {
       await tester.enterText(find.byType(TextField), 'perry');
       await tester.pump(HomePage.searchTypingPause);
       await tester.pumpAndSettle();
+
       final liked = fanartPicture(fanartUrl(2, artist: 'joe-perry'));
+
       expect(find.descendant(of: find.widgetWithText(ListTile, 'Joe Perry'), matching: liked), findsOneWidget);
       expect(asked.map((request) => request.url.path), ['/v3/music/mb-perry']);
 
@@ -1256,6 +1344,7 @@ void main() {
 
       if (!narrow) {
         final backdrop = find.descendant(of: find.byType(ArtistPage), matching: find.byType(ImageFiltered));
+
         expect(
           find.descendant(of: backdrop, matching: liked),
           findsOneWidget,
@@ -1277,24 +1366,31 @@ void main() {
         await openSection(tester, 'Artistas');
         await tester.tap(tile('Aerosmith'));
         await tester.pumpAndSettle();
+
         // The page's own, the first: the row's scrolls sideways.
         final page = find.descendant(of: find.byType(ArtistPage), matching: find.byType(Scrollable)).first;
+
         await tester.drag(page, const Offset(0, -3000));
         await tester.pumpAndSettle();
 
         final row = find.descendant(of: find.byType(ArtistPage), matching: find.byType(TileRow));
+
         expect(find.descendant(of: row, matching: find.text('Artistas parecidos')), findsOneWidget);
         expect(
           tester.getTopLeft(row).dy,
           greaterThan(tester.getBottomLeft(find.text('1973')).dy),
           reason: 'after their albums, the 1973 one last',
         );
+
         final artists = find.descendant(of: row, matching: find.byType(ArtistTile));
+
         expect(
           [for (final tile in tester.widgetList<ArtistTile>(artists)) tile.artist.name],
           ['Cheap Trick', 'Ramones'],
         );
+
         final picture = find.descendant(of: artists.first, matching: find.byType(ClipOval));
+
         expect(tester.getSize(picture), const Size.square(160), reason: 'as big as a cover in a row of albums');
 
         await tester.tap(picture);
@@ -1318,18 +1414,23 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(tile('Aerosmith'));
       await tester.pumpAndSettle();
+
       final page = find.byType(ArtistPage);
       Finder inPage(String text) => find.descendant(of: page, matching: find.text(text));
       expect(find.descendant(of: page, matching: find.byTooltip('Abrir o gênero')), findsNWidgets(3));
       expect(inPage('Pop'), findsNothing, reason: 'in as many albums as Rock, which came first');
+
       final genres = [
         for (final name in ['Hard Rock', 'Blues Rock', 'Rock']) tester.getRect(inPage(name)),
       ];
+
       expect(genres[0].left, tester.getTopLeft(artistName('Aerosmith')).dx, reason: 'lined up with the name');
       expect(genres[0].top, greaterThan(tester.getBottomLeft(inPage('2 álbuns · 2 singles e EPs')).dy));
       expect(genres[1].left, greaterThan(genres[0].right));
       expect(genres[2].left, greaterThan(genres[1].right));
+
       final link = tester.widget<TextLink>(find.ancestor(of: inPage('Hard Rock'), matching: find.byType(TextLink)));
+
       expect(link.style?.shadows, isNull, reason: 'no halo off the picture');
 
       await tester.tap(inPage('Blues Rock'));
@@ -1352,16 +1453,20 @@ void main() {
     await openSection(tester, 'Artistas');
     await tester.tap(tile('Cheap Trick'));
     await tester.pumpAndSettle();
+
     final page = find.byType(ArtistPage);
     final genre = find.descendant(of: page, matching: find.text('Power Pop'));
     final choice = find.descendant(of: page, matching: orders());
     // The page's, not the bar's.
     final name = find.descendant(of: find.byType(AlbumGrid), matching: find.text('Cheap Trick'));
+
     expect(tester.getTopLeft(genre).dx, 16);
     expect(tester.getTopLeft(genre).dy, greaterThanOrEqualTo(tester.getBottomLeft(name).dy));
     expect(tester.getBottomLeft(genre).dy, lessThanOrEqualTo(tester.getTopLeft(choice).dy));
     expect(tester.getBottomLeft(genre).dy, lessThan(tester.getBottomLeft(artistPicture()).dy));
+
     final link = tester.widget<TextLink>(find.ancestor(of: genre, matching: find.byType(TextLink)));
+
     expect(link.style?.shadows, isNull);
     await tester.pumpWidget(const SizedBox());
   });
@@ -1373,14 +1478,18 @@ void main() {
       await openSection(tester, 'Artistas');
       await tester.tap(tile('Cheap Trick'));
       await tester.pumpAndSettle();
+
       final page = find.byType(ArtistPage);
       // Blurred across the page on a wide screen, across it from the top on a phone.
       final picture = size.width < 600
           ? artistPicture()
           : find.descendant(of: page, matching: find.byType(ImageFiltered));
+
       expect(picture, findsOneWidget);
+
       final genre = find.descendant(of: page, matching: find.text('Power Pop'));
       final material = find.ancestor(of: genre, matching: find.byType(Material)).first;
+
       expect(find.descendant(of: material, matching: picture), findsNothing);
       await tester.pumpWidget(const SizedBox());
     });
@@ -1411,6 +1520,7 @@ void main() {
         );
       }),
     );
+
     await pumpHome(tester, const Size(1000, 700), musicBrainz: brainz);
     await tester.tap(find.byTooltip('Artistas'));
     await tester.pumpAndSettle();
@@ -1420,7 +1530,9 @@ void main() {
     await tester.tap(find.descendant(of: find.byType(ArtistPage), matching: find.byTooltip('Ver a biografia')));
     await tester.pumpAndSettle();
     expect(asked.single.path, '/ws/2/artist/mb1', reason: 'once for the years and where it comes from');
+
     final page = find.byType(BiographyPage);
+
     expect(find.descendant(of: page, matching: find.text('Aerosmith (desde 1970)')), findsOneWidget);
     expect(find.descendant(of: page, matching: find.text('Massachusetts, Estados Unidos')), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
@@ -1449,6 +1561,7 @@ void main() {
         ),
       );
       await tester.pump();
+
       final pin = icon(HugeIcons.strokeRoundedLocation01);
 
       if (text == null) {
@@ -1457,6 +1570,7 @@ void main() {
       }
 
       final line = find.text(text);
+
       expect(line, findsOneWidget, reason: '$origin');
       expect(tester.getCenter(pin).dy, moreOrLessEquals(tester.getCenter(line).dy, epsilon: 1));
       expect(tester.getTopLeft(line).dy, greaterThan(tester.getBottomLeft(find.text('Aerosmith')).dy));
@@ -1468,6 +1582,7 @@ void main() {
 
     // The country again, where it turns out to be another.
     final origins = StreamController<Origin>();
+
     addTearDown(origins.close);
     await tester.pumpWidget(
       MaterialApp(
@@ -1585,6 +1700,7 @@ void main() {
           ),
         ),
       );
+
       await pumpHome(tester, size, musicBrainz: brainz);
       await openSection(tester, 'Artistas');
       await tester.tap(tile('Aerosmith'));
@@ -1649,10 +1765,13 @@ void main() {
         member('Tommy Moore', [(begin: 1960, end: 1960, ended: true)]),
       ],
     ));
+
     final perry = find.text('1970\u00a0–\u00a01979, desde\u00a01984');
     final tyler = find.text('desde\u00a01970');
+
     expect(find.text('1970\u00a0–\u00a01971'), findsOneWidget);
     expect(find.text('1960'), findsOneWidget, reason: 'in one year alone');
+
     final lines = ['Integrantes', 'Steven Tyler', 'Joe Perry', 'Ex-integrantes', 'Ray Tabano', 'Tommy Moore'];
 
     // Those it has now, then those it had, each in the order they came.

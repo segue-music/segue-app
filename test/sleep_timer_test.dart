@@ -23,6 +23,7 @@ const songs = [
     SubsonicApi(Uri.parse('https://music.test'), const SubsonicCredentials(username: 'a', token: 't', salt: 's')),
     volume: volume,
   );
+
   player.playQueue(songs);
 
   return (player, SleepTimer(player));
@@ -34,6 +35,7 @@ void main() {
   test('after a while the music pauses, having faded out over the last 30 seconds, and plays as loud as before', () {
     fakeAsync((async) {
       final (player, timer) = playing(FakeEngine());
+
       timer.start(const Duration(minutes: 5));
       expect(timer.on, isTrue);
       expect(timer.minutesLeft, 5);
@@ -62,6 +64,7 @@ void main() {
     fakeAsync((async) {
       final (_, timer) = playing(FakeEngine());
       final told = <int?>[];
+
       timer.addListener(() => told.add(timer.minutesLeft));
       timer.start(const Duration(minutes: 3));
       async.elapse(const Duration(minutes: 3, seconds: 1));
@@ -72,6 +75,7 @@ void main() {
   test('a volume picked as the music fades stays, and it fades no more', () {
     fakeAsync((async) {
       final (player, timer) = playing(FakeEngine());
+
       timer.start(const Duration(minutes: 1));
       async.elapse(const Duration(seconds: 40));
       expect(player.volume, lessThan(100));
@@ -92,6 +96,7 @@ void main() {
       fakeAsync((async) {
         final volume = VolumeChoice(80);
         final (player, timer) = playing(FakeEngine(), volume: volume);
+
         timer.start(const Duration(minutes: 1));
         async.elapse(const Duration(seconds: 45));
         expect(player.volume, lessThan(80));
@@ -103,6 +108,7 @@ void main() {
   test('turned off as the music fades, it plays on as loud as before', () {
     fakeAsync((async) {
       final (player, timer) = playing(FakeEngine());
+
       timer.start(const Duration(minutes: 1));
       async.elapse(const Duration(seconds: 45));
       expect(player.volume, lessThan(100));
@@ -120,6 +126,7 @@ void main() {
   test('another while takes the place of the one before, as loud as before', () {
     fakeAsync((async) {
       final (player, timer) = playing(FakeEngine());
+
       timer.start(const Duration(minutes: 1));
       async.elapse(const Duration(seconds: 45));
       timer.start(const Duration(minutes: 15));
@@ -138,6 +145,7 @@ void main() {
     fakeAsync((async) {
       final engine = FakeEngine();
       final (player, timer) = playing(engine);
+
       timer.startUntilSongEnds();
       expect(timer.untilSongEnds, isTrue);
       expect(timer.minutesLeft, isNull);
@@ -160,6 +168,7 @@ void main() {
     fakeAsync((async) {
       final engine = FakeEngine();
       final (player, timer) = playing(engine);
+
       player.setRepeat(Repeat.one);
       timer.startUntilSongEnds();
       async.elapse(const Duration(minutes: 4));
@@ -175,6 +184,7 @@ void main() {
     fakeAsync((async) {
       final engine = FakeEngine();
       final (player, timer) = playing(engine);
+
       player.next();
       timer.startUntilSongEnds();
       engine.endTrack();
@@ -187,6 +197,7 @@ void main() {
   test('the player stopped, as another device takes the music, the timer goes off', () {
     fakeAsync((async) {
       final (player, timer) = playing(FakeEngine());
+
       timer.start(const Duration(minutes: 30));
       player.stop();
       async.flushMicrotasks();

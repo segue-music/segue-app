@@ -108,9 +108,11 @@ Future<TestGesture> pumpApp(WidgetTester tester) async {
     client: MockClient((request) async => server(request)),
   );
   final player = PlayerController(FakeEngine(), api);
+
   await player.playQueue(const [
     Song(id: 's1', title: 'Walk This Way', artist: 'Aerosmith', albumId: 'a1'),
   ], play: false);
+
   final services = Services(
     Session(server: Uri.parse('https://music.test'), credentials: credentials, deviceId: 'me', deviceName: 'me'),
     api,
@@ -118,6 +120,7 @@ Future<TestGesture> pumpApp(WidgetTester tester) async {
     ConnectController(player: player),
   );
   final settings = Settings(equalizer: EqualizerChoice(const EqualizerSettings(on: true)));
+
   addTearDown(settings.dispose);
   tester.view.physicalSize = const Size(1000, 700);
   tester.view.devicePixelRatio = 1;
@@ -142,6 +145,7 @@ Future<TestGesture> pumpApp(WidgetTester tester) async {
 /// A mouse, in the window's bottom right corner.
 Future<TestGesture> addMouse(WidgetTester tester) async {
   final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+
   await gesture.addPointer(location: const Offset(999, 699));
   addTearDown(gesture.removePointer);
   await tester.pumpAndSettle();
@@ -255,6 +259,7 @@ void main() {
 
   testWidgets('on the sign-in, the language menu, and the languages in it', (tester) async {
     final settings = Settings();
+
     addTearDown(settings.dispose);
     tester.view.physicalSize = const Size(1000, 700);
     tester.view.devicePixelRatio = 1;
@@ -268,7 +273,9 @@ void main() {
         home: LoginPage(onSignedIn: (_) {}),
       ),
     );
+
     final gesture = await addMouse(tester);
+
     expect(await cursorOver(tester, gesture, find.byTooltip('Idioma')), SystemMouseCursors.click, reason: 'the menu');
 
     await tester.tap(find.byTooltip('Idioma'));

@@ -114,6 +114,7 @@ List<CreditedPerson> _people(List<(Credit, Set<int>)> credits, int count) {
   for (final (credit, songs) in credits) {
     final (_, roles) = byPerson[credit.musicBrainzId ?? credit.artistId ?? credit.name.toLowerCase()] ??= (credit, {});
     final (_, found) = roles[(credit.role, credit.part?.toLowerCase())] ??= (credit.part, <int>{});
+
     found.addAll(songs);
   }
 
@@ -173,6 +174,7 @@ List<RecordingVenue> _venues(List<(RecordingSession, Set<int>)> sessions, int co
 
   for (final (session, songs) in sessions) {
     final (_, dates, found) = places[(session.place.id, session.stage)] ??= (session, [], {});
+
     dates.addAll([?session.begin, ?session.end]);
     found.addAll(songs);
   }

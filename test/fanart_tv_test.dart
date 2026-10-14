@@ -53,7 +53,9 @@ void main() {
       Uri.parse('https://assets.fanart.tv/fanart/music/mb1/artistthumb/old.jpg'),
       Uri.parse('https://assets.fanart.tv/fanart/new.jpg'),
     ]);
+
     final request = asked.single;
+
     expect(request.url.host, 'webservice.fanart.tv');
     expect(request.url.path, '/v3/music/mb1');
     expect(request.url.queryParameters['api_key'], 'key');
@@ -76,12 +78,14 @@ void main() {
     }
 
     asked.clear();
+
     final unknown = fanartTv(
       () => json({
         'artistthumb': [thumb('liked', 1)],
       }),
       asked: asked,
     );
+
     expect(await unknown.artistPictures(const Artist(id: 'ar2', name: 'Cheap Trick')), isEmpty);
     expect(asked, isEmpty);
   });
@@ -96,6 +100,7 @@ void main() {
               'artistthumb': [thumb('liked', 1)],
             }),
     );
+
     expect(fanart.foundPictures(const Artist(id: 'ar2', name: 'Cheap Trick')), isEmpty);
     expect(fanart.foundPictures(aerosmith), isNull);
 
@@ -104,6 +109,7 @@ void main() {
 
     fails = false;
     final pictures = fanart.artistPictures(aerosmith);
+
     expect(fanart.foundPictures(aerosmith), isNull, reason: 'not yet');
     await pictures;
     expect(fanart.foundPictures(aerosmith), [Uri.parse('https://assets.fanart.tv/fanart/liked.jpg')]);

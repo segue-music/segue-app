@@ -135,9 +135,11 @@ class SegueClient extends ChangeNotifier {
     _open = true;
     final welcomed = Completer<void>();
     final ended = _ended = Completer<void>();
+
     channel.stream.listen(
       (data) {
         final msg = jsonDecode(data as String) as Map<String, dynamic>;
+
         _receive(msg);
 
         if (msg['type'] == 'welcome' && !welcomed.isCompleted) {

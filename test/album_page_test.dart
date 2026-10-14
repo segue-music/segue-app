@@ -424,6 +424,7 @@ void main() {
 
   testWidgets('the keyboard and the remote get to the cover too', (tester) async {
     await pumpAlbum(tester);
+
     final cover = find.byTooltip('Ver a capa');
 
     for (var i = 0; i < 5 && FocusManager.instance.primaryFocus?.rect != tester.getRect(cover); i++) {
@@ -449,6 +450,7 @@ void main() {
   ) async {
     final engine = await pumpAlbum(tester);
     final play = find.byTooltip('Tocar o álbum');
+
     expect(find.descendant(of: play, matching: find.byType(Text)), findsNothing);
     expect(find.text('Tocar'), findsNothing);
     await tester.tap(play);
@@ -462,6 +464,7 @@ void main() {
   testWidgets('under each song, its artist, a link to their page that doesn\'t play the song', (tester) async {
     final engine = await pumpAlbum(tester);
     final artist = find.descendant(of: song('Walk This Way'), matching: find.text('Aerosmith'));
+
     expect(artist, findsOneWidget, reason: 'also when they are the album\'s artist');
     await tester.tap(artist);
     await tester.pumpAndSettle();
@@ -516,8 +519,10 @@ void main() {
         {'disc': 2, 'title': 'Live'},
       ],
     );
+
     final one = tester.getRect(find.text('Disco 1'));
     final two = tester.getRect(find.text('Disco 2'));
+
     expect(one.bottom, lessThan(tester.getRect(song('Dream On')).top));
     expect(two.top, greaterThan(tester.getRect(song('Sweet Emotion')).bottom));
     expect(two.bottom, lessThan(tester.getRect(song('Walk This Way')).top));
@@ -539,6 +544,7 @@ void main() {
     tester,
   ) async {
     final engine = await pumpAlbum(tester, similar: const []);
+
     await tester.tap(find.descendant(of: song('Walk This Way'), matching: find.byTooltip('Mais opções')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Rádio da música'));
@@ -554,8 +560,10 @@ void main() {
     variant: const TargetPlatformVariant({TargetPlatform.android, TargetPlatform.linux}),
     (tester) async {
       await pumpAlbum(tester, size: const Size(360, 640));
+
       final add = tester.getRect(albumMenu);
       final play = tester.getRect(find.byTooltip('Tocar o álbum'));
+
       expect(play.right, 360 - 16);
       expect(play.left, greaterThan(add.right), reason: 'after it, apart');
       await tester.pumpWidget(const SizedBox());
@@ -583,10 +591,14 @@ void main() {
 
   testWidgets('a song by several artists links each of them', (tester) async {
     await pumpDuet(tester);
+
     final duet = song('Walk This Way (Run-DMC)');
+
     expect(find.descendant(of: duet, matching: find.byTooltip('Abrir o artista')), findsNWidgets(2));
     expect(find.descendant(of: duet, matching: find.text(' · ')), findsOneWidget);
+
     final runDmc = find.descendant(of: duet, matching: find.text('Run-DMC'));
+
     await tester.ensureVisible(runDmc);
     await tester.pumpAndSettle();
     await tester.tap(runDmc);
@@ -600,8 +612,11 @@ void main() {
     (tester) async {
       final engine = await pumpDuet(tester, size: const Size(360, 640));
       final duet = song('Walk This Way (Run-DMC)');
+
       expect(find.descendant(of: duet, matching: find.byTooltip('Abrir o artista')), findsNothing);
+
       final artists = find.descendant(of: duet, matching: find.text('Run-DMC · Aerosmith'));
+
       await tester.ensureVisible(artists);
       await tester.pumpAndSettle();
       await tester.tap(artists);
@@ -617,10 +632,14 @@ void main() {
     'under the album\'s name, its artist, with their picture, then its year, its songs and how long they last',
     (tester) async {
       await pumpAlbum(tester);
+
       final byline = find.textContaining(' · 1975 · 2 faixas, 8 min');
+
       expect(byline, findsOneWidget);
+
       final artist = find.descendant(of: byline, matching: find.text('Aerosmith'));
       final picture = find.descendant(of: byline, matching: coverOf('ar-ar1'));
+
       expect(tester.getSize(picture), const Size(24, 24));
       expect(tester.getRect(picture).right, lessThan(tester.getRect(artist).left));
       expect(tester.getCenter(picture).dy, moreOrLessEquals(tester.getCenter(artist).dy, epsilon: 1));
@@ -641,7 +660,9 @@ void main() {
     tester,
   ) async {
     await pumpAlbum(tester);
+
     final first = song('Walk This Way');
+
     expect(
       tester.getRect(find.text('#')).left,
       tester.getRect(find.descendant(of: first, matching: find.text('1'))).left,
@@ -709,11 +730,14 @@ void main() {
           builder: (context) => const AlbumPage(Album(id: 'a1', name: 'Toys in the Attic')),
         ),
       );
+
       await tester.pumpAndSettle();
+
       final page = find.byType(AlbumPage).last;
       final title = find.descendant(of: find.byType(AppBar), matching: find.text('Toys in the Attic'));
       final (arrow, name) = (tester.getRect(find.byType(BackButton)), tester.getRect(title));
       final cover = tester.getRect(find.byTooltip('Ver a capa'));
+
       expect(
         find.descendant(of: page, matching: find.text('Toys in the Attic')),
         findsOneWidget,
@@ -724,8 +748,11 @@ void main() {
       expect(name.center.dx, moreOrLessEquals(180, epsilon: 1), reason: 'centered on the page');
       expect(name.left, greaterThanOrEqualTo(arrow.right));
       expect(cover.top, 24 + kToolbarHeight + 8, reason: 'under them');
+
       final list = find.descendant(of: page, matching: find.byType(CustomScrollView));
+
       expect(tester.getRect(list).top, 0, reason: 'the page goes on under the bars, to the top of the screen');
+
       // Clear at the top of the page, more of the page's color as the cover goes up under the bar, all of it once half
       // the cover has.
       final appBar = find.descendant(of: page, matching: find.byType(AppBar));
@@ -754,10 +781,12 @@ void main() {
     tester,
   ) async {
     await pumpAlbum(tester);
+
     final cover = tester.getRect(find.byTooltip('Ver a capa'));
     final name = tester.getRect(find.text('Toys in the Attic'));
     final byline = tester.getRect(find.textContaining(' · 1975 · 2 faixas, 8 min'));
     final play = tester.getRect(playButton);
+
     expect(name.left, greaterThan(cover.right));
     expect(play.bottom, lessThanOrEqualTo(cover.bottom), reason: 'all beside it');
     expect((byline.left, play.left), (name.left, name.left));
@@ -770,12 +799,14 @@ void main() {
     (tester) async {
       await pumpAlbum(tester, size: const Size(360, 640));
       await pushAlbum(tester);
+
       final cover = tester.getRect(find.byTooltip('Ver a capa'));
       // The artist with their picture, which the songs' have not.
       final artist = tester.getRect(find.ancestor(of: coverOf('ar-ar1'), matching: find.byTooltip('Abrir o artista')));
       final details = tester.getRect(find.text('1975 · 2 faixas'));
       // Its round edge, without the room Material leaves around it on a touch screen.
       final play = tester.getRect(find.byTooltip('Tocar o álbum'));
+
       expect(artist.top, greaterThanOrEqualTo(cover.bottom));
       expect(details.top, greaterThanOrEqualTo(artist.bottom), reason: 'the year and the songs under the artist');
       expect((artist.left, details.left), (16, 16), reason: 'from the page\'s margin, not the cover\'s');
@@ -800,11 +831,13 @@ void main() {
       recordLabels: ['Columbia'],
       size: const Size(360, 640),
     );
+
     final (date, length, labels) = (
       tester.getRect(find.text('8 de abril de 1975')),
       tester.getRect(find.text('8 min')),
       tester.getRect(find.text('Columbia')),
     );
+
     expect(date.top, greaterThan(tester.getRect(song('Sweet Emotion')).bottom));
     expect(length.top, greaterThanOrEqualTo(date.bottom));
     expect(labels.top, greaterThanOrEqualTo(length.bottom));
@@ -817,7 +850,9 @@ void main() {
     for (final (width, side) in [(300.0, 300.0 - 2 * 16), (360.0, 280.0)]) {
       await pumpAlbum(tester, size: Size(width, 800));
       await pushAlbum(tester);
+
       final cover = find.byTooltip('Ver a capa');
+
       expect(tester.getSize(cover), Size.square(side), reason: '$width');
       expect(tester.getCenter(cover).dx, width / 2, reason: '$width');
       expect(
@@ -855,10 +890,14 @@ void main() {
     position.jumpTo(300);
     await tester.pumpAndSettle();
     expect(shown(), 1, reason: 'the cover gone');
+
     final (page, bar) = (tester.getRect(list), tester.getRect(inBar(find.byType(Material)).first));
+
     expect(bar, Rect.fromLTWH(page.left, page.top, page.width, kToolbarHeight + 1), reason: 'at the top, a line under');
+
     final play = tester.getRect(inBar(find.byTooltip('Tocar o álbum')));
     final name = tester.getRect(inBar(find.text('Toys in the Attic')));
+
     expect(name.left, greaterThan(play.right), reason: 'after the play button');
     expect(name.center.dy, moreOrLessEquals(page.top + kToolbarHeight / 2, epsilon: 1));
     expect(play.center.dy, moreOrLessEquals(page.top + kToolbarHeight / 2, epsilon: 1));
@@ -878,7 +917,9 @@ void main() {
     tester,
   ) async {
     await pumpAlbum(tester, more: 20, size: const Size(360, 640));
+
     final list = find.byType(CustomScrollView);
+
     tester.state<ScrollableState>(find.descendant(of: list, matching: find.byType(Scrollable))).position.jumpTo(100);
     await tester.pumpAndSettle();
 
@@ -908,12 +949,15 @@ void main() {
       }
 
       final bar = find.descendant(of: find.byType(PageBarSliver), matching: find.byType(Material)).first;
+
       expect(bar, findsOneWidget, reason: 'down at the last song');
 
       for (var i = 20; i > 0; i--) {
         await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
         await tester.pumpAndSettle();
+
         final focused = FocusManager.instance.primaryFocus!.rect;
+
         expect(focused, tester.getRect(song(i == 1 ? 'Sweet Emotion' : 'Song ${i - 1}')));
 
         if (bar.evaluate().isNotEmpty) {
@@ -927,7 +971,9 @@ void main() {
 
   testWidgets('on a wide screen, the cover is 220, asked of the server as the phone\'s', (tester) async {
     await pumpAlbum(tester);
+
     final cover = find.byTooltip('Ver a capa');
+
     expect(tester.getSize(cover), const Size.square(220));
     expect(find.descendant(of: cover, matching: coverAt(800)), findsOneWidget);
     expect(
@@ -960,7 +1006,9 @@ void main() {
       style(inSong('Walk This Way', 'Walk This Way'))?.color,
       reason: 'the song that plays',
     );
+
     final (otherNumber, otherDuration) = (inSong('Sweet Emotion', '2'), inSong('Sweet Emotion', '4:34'));
+
     expect(style(duration)?.color, isNot(style(otherDuration)?.color), reason: 'unlike the song that doesn\'t play');
     expect(style(otherNumber)?.color, style(otherDuration)?.color, reason: 'its number, as its duration');
     await tester.pumpWidget(const SizedBox());
@@ -975,6 +1023,7 @@ void main() {
     // On the artist's line, halfway along the song: well past their name.
     final besideName = Offset(tester.getCenter(song('Walk This Way')).dx, tester.getCenter(artist).dy);
     final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+
     await mouse.addPointer(location: Offset.zero);
     addTearDown(mouse.removePointer);
     await mouse.moveTo(besideName);
@@ -992,7 +1041,9 @@ void main() {
     tester,
   ) async {
     await pumpAlbum(tester, releaseDate: {'year': 1975, 'month': 4, 'day': 8}, recordLabels: ['Columbia', 'Sony']);
+
     final (date, labels) = (find.text('8 de abril de 1975'), find.text('Columbia, Sony'));
+
     expect(tester.getRect(date).top, greaterThan(tester.getRect(song('Sweet Emotion')).bottom));
     expect(tester.getRect(labels).top, greaterThanOrEqualTo(tester.getRect(date).bottom));
     expect(tester.getRect(date).left, tester.getRect(find.byTooltip('Ver a capa')).left);
@@ -1007,7 +1058,9 @@ void main() {
 
   testWidgets('on a wide screen, the album\'s type is above its name, lined up with it', (tester) async {
     await pumpAlbum(tester, releaseTypes: ['EP']);
+
     final (type, name) = (tester.getRect(find.text('EP')), tester.getRect(find.text('Toys in the Attic')));
+
     expect(type.bottom, lessThanOrEqualTo(name.top));
     expect(type.left, name.left);
     expect(find.textContaining('EP ·'), findsNothing, reason: 'not in the byline too');
@@ -1065,6 +1118,7 @@ void main() {
         ),
       ),
     );
+
     await pumpAlbum(tester, musicBrainz: brainz);
     expect(find.text('8 de abril de 1975'), findsOneWidget);
     expect(find.text('EP'), findsOneWidget);
@@ -1110,7 +1164,9 @@ void main() {
         'cover: who performed it, wrote it and produced it, one a line, what they did beside them; an album without '
         'any has no button', (tester) async {
       final narrow = size.width < 600;
+
       await pumpAlbum(tester, contributors: serverCredits, size: size);
+
       final button = find.byTooltip('Ver os créditos');
       final details = narrow ? find.text('1975 · 2 faixas') : find.textContaining('2 faixas, 8 min');
 
@@ -1126,15 +1182,19 @@ void main() {
 
       await tester.tap(button);
       await tester.pumpAndSettle();
+
       final page = find.byType(CreditsPage);
+
       expect(page, findsOneWidget);
       Finder inPage(String text) => find.descendant(of: page, matching: find.text(text));
       expect(tester.widget<LargeCover>(find.descendant(of: page, matching: find.byType(LargeCover))).id, 'al-a1');
       expect(inPage('Toys in the Attic'), findsOneWidget);
       expect(inPage('Aerosmith · 1975'), findsOneWidget);
+
       final titles = [
         for (final title in ['Intérpretes', 'Composição', 'Produção']) tester.getRect(inPage(title)),
       ];
+
       expect(titles[0].bottom, lessThan(titles[1].top));
       expect(titles[1].bottom, lessThan(titles[2].top));
       expect(inPage('Gravação'), findsNothing, reason: 'only MusicBrainz says where');
@@ -1183,7 +1243,9 @@ void main() {
     await pumpAlbum(tester, contributors: serverCredits);
     await tester.tap(find.byTooltip('Ver os créditos'));
     await tester.pumpAndSettle();
+
     final page = find.byType(CreditsPage);
+
     expect(find.descendant(of: page, matching: find.widgetWithText(TextLink, 'Steven Tyler')), findsNWidgets(2));
     expect(find.descendant(of: page, matching: find.widgetWithText(TextLink, 'Joe Perry')), findsNothing);
 
@@ -1201,6 +1263,7 @@ void main() {
     'says MusicBrainz said so',
     (tester) async {
       final credits = Completer<void>();
+
       await pumpAlbum(
         tester,
         musicBrainzId: 'r1',
@@ -1242,6 +1305,7 @@ void main() {
       expect(detail('Sterling Sound'), 'masterização');
       expect(detail('Pacific Eye & Ear'), 'projeto gráfico');
       expect(detail('Bob Gruen'), 'fotografia');
+
       final lines = [
         for (final (name, index) in [
           ('Produção', 0),
@@ -1257,6 +1321,7 @@ void main() {
         ])
           tester.getTopLeft(inPage(name).at(index)).dy,
       ];
+
       expect(
         lines,
         orderedEquals([...lines]..sort()),
@@ -1278,6 +1343,7 @@ void main() {
     tester,
   ) async {
     final credits = Completer<void>();
+
     await pumpAlbum(
       tester,
       contributors: {
@@ -1288,6 +1354,7 @@ void main() {
     );
     await tester.tap(find.byTooltip('Ver os créditos'));
     await tester.pumpAndSettle();
+
     final page = find.byType(CreditsPage);
     Finder inPage(String text) => find.descendant(of: page, matching: find.text(text));
     expect(inPage('Composição'), findsOneWidget);
@@ -1328,13 +1395,17 @@ void main() {
       ],
       size: const Size(1000, 1000),
     );
+
     final title = find.text('Mais de Aerosmith');
+
     expect(tester.getRect(title).top, greaterThan(tester.getRect(find.text('Columbia')).bottom));
+
     final row = find.ancestor(of: title, matching: find.byType(TileRow));
     final names = [
       for (final tile in find.descendant(of: row, matching: find.byType(AlbumTile)).evaluate())
         (tile.widget as AlbumTile).album.name,
     ];
+
     expect(names, ['Pump', 'Rocks', 'Get Your Wings', 'Dream On'], reason: 'not this one');
     Finder inTile(String name, String text) =>
         find.descendant(of: find.widgetWithText(AlbumTile, name), matching: find.text(text));

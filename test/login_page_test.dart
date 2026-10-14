@@ -47,6 +47,7 @@ void main() {
   testWidgets('on a TV, the sign-in shows a QR code, with which a phone signed in signs the TV in: the remote types '
       'nothing', (tester) async {
     Session? signedIn;
+
     final server = MockClient((request) async {
       final query = request.url.queryParameters;
       final ok = query['u'] == 'alice' && query['t'] == 't0k3n' && query['s'] == 's4lt';
@@ -78,9 +79,13 @@ void main() {
     await tester.pump();
     expect(find.text('Entre pelo celular'), findsOneWidget);
     expect(find.textContaining('toque em Entrar numa TV'), findsOneWidget);
+
     final code = tester.getRect(find.byType(QrImageView));
+
     expect(code.right, lessThan(tester.getRect(find.widgetWithText(TextFormField, 'Servidor')).left), reason: 'before');
+
     final invite = tester.widget<PhoneSignIn>(find.byType(PhoneSignIn)).invite;
+
     expect(invite.name, 'laptop');
     expect(find.text('laptop · 127.0.0.1'), findsOneWidget, reason: 'which the phone shows before signing it in');
 
@@ -91,9 +96,11 @@ void main() {
       deviceId: 'phone',
       deviceName: 'Phone',
     );
+
     // Over the network for real: the test's binding answers any request of its own HttpClient with a 400. The TV
     // answers in the test's clock, which moves as it pumps.
     Object? device;
+
     await tester.runAsync(() async {
       unawaited(
         HttpOverrides.runWithHttpOverrides(
@@ -153,7 +160,9 @@ void main() {
         home: LoginPage(onSignedIn: (_) {}),
       ),
     );
+
     final logo = find.bySemanticsLabel('Segue');
+
     expect(logo, findsOneWidget);
     expect(tester.getSize(logo), const Size.square(96));
     expect(tester.getRect(logo).bottom, lessThan(tester.getRect(find.widgetWithText(TextFormField, 'Servidor')).top));
@@ -230,6 +239,7 @@ void main() {
   testWidgets('while it signs in, the button spins and can\'t be pressed again', (tester) async {
     final answer = Completer<http.Response>();
     final client = MockClient((_) => answer.future);
+
     await tester.pumpWidget(
       MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -253,6 +263,7 @@ void main() {
 
   testWidgets('a Jellyfin server is found by its address alone, and signed in to', (tester) async {
     Session? signedIn;
+
     final client = MockClient((request) async {
       final body = switch (request.url.path) {
         '/System/Info/Public' => {'Id': 'abc', 'Version': '10.10.7'},
@@ -265,6 +276,7 @@ void main() {
 
       return body == null ? http.Response('', 404) : http.Response(jsonEncode(body), 200);
     });
+
     await tester.pumpWidget(
       MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -280,6 +292,7 @@ void main() {
   testWidgets('a server that takes API keys alone refuses the password, and the sign-in asks for a key, which signs in '
       'as the server says whose it is', (tester) async {
     Session? signedIn;
+
     final client = MockClient((request) async {
       final query = request.url.queryParameters;
       final body = switch (request.url.pathSegments.last) {
@@ -309,6 +322,7 @@ void main() {
 
       return http.Response(jsonEncode({'subsonic-response': body}), 200);
     });
+
     await tester.pumpWidget(
       MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -356,6 +370,7 @@ void main() {
 
   testWidgets('an address with no media server says so', (tester) async {
     final client = MockClient((_) async => http.Response('<!doctype html>', 200));
+
     await tester.pumpWidget(
       MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,

@@ -189,6 +189,7 @@ class _QueuePageState extends State<QueuePage> {
     final after = [...tracks]
       ..removeAt(from)
       ..insert(to, tracks[from]);
+
     _edit(_QueueChange(_ids(tracks), after, after.indexOf(tracks[index])), () => connect.moveInQueue(from, to));
   }
 
@@ -209,6 +210,7 @@ class _QueuePageState extends State<QueuePage> {
   /// was again, and why, where that fails.
   Future<void> _edit(_QueueChange change, Future<Result> Function() command) async {
     setState(() => _change = change);
+
     final result = await runCommand(context, command);
 
     if (!result.ok && mounted && identical(_change, change)) {

@@ -100,6 +100,7 @@ void main() {
   setUpAll(() async {
     hub = await Process.start(hubBin, [], environment: {'SEGUE_AUTH': 'none', 'SEGUE_LISTEN': '127.0.0.1:0'});
     final listening = Completer<Uri>();
+
     hub.stdout.transform(utf8.decoder).transform(const LineSplitter()).listen((line) {
       final match = RegExp(r'msg="hub listening" url=http://(\S+)').firstMatch(line);
 
@@ -123,6 +124,7 @@ void main() {
       auth: Auth.subsonic(username: newUser(), token: '-', salt: '-'),
       device: const DeviceInfo(id: 'x', name: '', client: 'test', api: Api.subsonic, roles: [], capabilities: []),
     );
+
     await expectLater(
       client.connect(),
       throwsA(
@@ -134,10 +136,13 @@ void main() {
   test('a copy kicked out by another with the same device id stays out', () async {
     final user = newUser();
     final first = App(user, 'laptop');
+
     unawaited(first.client.start());
     addTearDown(first.client.close);
     await until(() => first.client.status == HubStatus.connected, 'the first copy');
+
     final second = await App(user, 'laptop').start();
+
     await until(() => first.client.status == HubStatus.rejected, 'the first copy to give up');
     expect(first.client.lastClose?.code, CloseCode.replaced);
     await Future<void>.delayed(const Duration(milliseconds: 1500)); // longer than the backoff
@@ -148,6 +153,7 @@ void main() {
     final user = newUser();
     final laptop = await App(user, 'laptop').start();
     final phone = await App(user, 'phone').start();
+
     await laptop.player.playQueue(songs, position: const Duration(seconds: 10));
     await until(() => phone.client.devices['laptop']?.state?.current != null, 'the laptop state');
     expect(phone.client.devices['laptop']!.state!.current!.title, 'Dream On');
@@ -158,6 +164,7 @@ void main() {
     final user = newUser();
     final laptop = await App(user, 'laptop').start();
     final phone = await App(user, 'phone').start();
+
     await laptop.player.playQueue(songs);
     await until(() => phone.connect.nowPlaying?.device == 'laptop', 'the phone to follow the laptop');
     expect(phone.connect.nowPlaying?.title, 'Dream On');
@@ -173,6 +180,7 @@ void main() {
     final user = newUser();
     final laptop = await App(user, 'laptop').start();
     final phone = await App(user, 'phone').start();
+
     await phone.player.playQueue(songs);
     await until(() => laptop.connect.nowPlaying?.device == 'phone', 'the laptop to follow the phone');
     await phone.player.toggle();
@@ -185,10 +193,13 @@ void main() {
   test('reopening the app brings back the last playback, paused where it was', () async {
     final user = newUser();
     final laptop = await App(user, 'laptop').start();
+
     await laptop.player.playQueue(songs, index: 1, position: const Duration(seconds: 30));
     await Future<void>.delayed(const Duration(milliseconds: 100)); // the report reaches the hub
     await laptop.client.close();
+
     final reopened = await App(user, 'laptop').start();
+
     await until(() => reopened.player.queue.isNotEmpty, 'the queue to come back');
     expect(reopened.player.index, 1);
     expect(reopened.player.playing, isFalse);
@@ -200,14 +211,19 @@ void main() {
   test('a play pressed as the app opens, before it has any music, plays the last playback as it comes back', () async {
     final user = newUser();
     final laptop = await App(user, 'laptop').start();
+
     await laptop.player.playQueue(songs, index: 1, position: const Duration(seconds: 30));
     await Future<void>.delayed(const Duration(milliseconds: 100)); // the report reaches the hub
     await laptop.client.close();
+
     // The media controls take it before the app has signed in, as a headphone's button that woke the app up.
     final controls = MediaControls();
+
     addTearDown(() => controls.attach(null, null));
     await controls.play();
+
     final reopened = App(user, 'laptop');
+
     controls.attach(reopened.connect, null);
     await reopened.start();
     await until(() => reopened.player.playing, 'the last playback to play');
@@ -218,10 +234,13 @@ void main() {
   test('a play pressed too long before the last playback comes back leaves it paused', () async {
     final user = newUser();
     final laptop = await App(user, 'laptop').start();
+
     await laptop.player.playQueue(songs);
     await Future<void>.delayed(const Duration(milliseconds: 100));
     await laptop.client.close();
+
     final reopened = App(user, 'laptop')..connect.playRestoredBy = DateTime.now().subtract(const Duration(seconds: 1));
+
     await reopened.start();
     await until(() => reopened.player.queue.isNotEmpty, 'the queue to come back');
     await Future<void>.delayed(const Duration(milliseconds: 100));
@@ -231,10 +250,13 @@ void main() {
   test('a play pressed as the app opens leaves the last playback as it is on the device it is on', () async {
     final user = newUser();
     final tv = await App(user, 'tv').start();
+
     await tv.player.playQueue(songs);
     await tv.player.toggle();
     await Future<void>.delayed(const Duration(milliseconds: 100));
+
     final phone = App(user, 'phone')..connect.playRestoredBy = DateTime.now().add(const Duration(seconds: 8));
+
     await phone.start();
     await until(() => phone.connect.nowPlaying?.device == 'tv', 'the phone to show the TV');
     await Future<void>.delayed(const Duration(milliseconds: 100));
@@ -245,10 +267,13 @@ void main() {
   test('another device opening after the last one closed continues it there', () async {
     final user = newUser();
     final laptop = await App(user, 'laptop').start();
+
     await laptop.player.playQueue(songs);
     await Future<void>.delayed(const Duration(milliseconds: 100));
     await laptop.client.close();
+
     final phone = await App(user, 'phone').start();
+
     await until(() => phone.player.queue.isNotEmpty, 'the queue on the phone');
     expect(phone.player.current?.title, 'Dream On');
     expect(phone.player.playing, isFalse);
@@ -257,14 +282,19 @@ void main() {
   test('an app opened after another one that just opened shows the music on its own', () async {
     final user = newUser();
     final laptop = await App(user, 'laptop').start();
+
     await laptop.player.playQueue(songs);
     await Future<void>.delayed(const Duration(milliseconds: 100));
     await laptop.client.close();
+
     // The laptop opens again and loads it, with nobody pressing anything; then the phone opens.
     final again = await App(user, 'laptop').start();
+
     await until(() => again.player.queue.isNotEmpty, 'the music on the laptop');
     await Future<void>.delayed(const Duration(milliseconds: 100));
+
     final phone = await App(user, 'phone').start();
+
     await until(() => phone.player.queue.isNotEmpty, 'the music on the phone');
     expect(phone.connect.nowPlaying?.device, isNull);
     expect(again.connect.nowPlaying?.device, isNull);
@@ -273,10 +303,13 @@ void main() {
   test('opening while the last device is on and paused shows that device', () async {
     final user = newUser();
     final tv = await App(user, 'tv').start();
+
     await tv.player.playQueue(songs);
     await tv.player.toggle();
     await Future<void>.delayed(const Duration(milliseconds: 100));
+
     final phone = await App(user, 'phone').start();
+
     await until(() => phone.connect.nowPlaying?.device == 'tv', 'the phone to show the TV');
     expect(phone.connect.nowPlaying?.playing, isFalse);
     expect(phone.player.queue, isEmpty);
@@ -285,13 +318,18 @@ void main() {
   test('apps opened after the last one closed, with nothing played, each show it on their own', () async {
     final user = newUser();
     final laptop = await App(user, 'laptop').start();
+
     await laptop.player.playQueue(songs);
     await Future<void>.delayed(const Duration(milliseconds: 100));
     await laptop.client.close(); // closed while playing
+
     final desktop = await App(user, 'desktop').start();
+
     await until(() => desktop.player.queue.isNotEmpty, 'the queue on the desktop');
     await Future<void>.delayed(const Duration(milliseconds: 100));
+
     final again = await App(user, 'laptop').start();
+
     await until(() => again.player.queue.isNotEmpty, 'the queue on the laptop');
     expect(again.player.playing, isFalse);
     expect(again.connect.nowPlaying?.device, isNull);
@@ -305,6 +343,7 @@ void main() {
     final user = newUser();
     final laptop = await App(user, 'laptop').start();
     final phone = await App(user, 'phone').start();
+
     await laptop.player.playQueue(songs, index: 1, position: const Duration(seconds: 30));
     await until(() => phone.connect.nowPlaying?.device == 'laptop', 'the phone to follow the laptop');
     await laptop.client.close();
@@ -315,9 +354,11 @@ void main() {
     expect(phone.connect.nowPlaying?.title, 'Other');
     expect(phone.player.playing, isFalse);
     expect(phone.player.position.inMilliseconds, greaterThanOrEqualTo(30000));
+
     // Keeping it isn't playing it: the laptop, opened again, still has the last playback, and
     // shows it on its own, as the phone does.
     final again = await App(user, 'laptop').start();
+
     await until(() => again.player.queue.isNotEmpty, 'the music back on the laptop');
     expect(again.connect.nowPlaying?.device, isNull);
     await Future<void>.delayed(const Duration(milliseconds: 100));
@@ -329,11 +370,14 @@ void main() {
     final laptop = await App(user, 'laptop').start();
     final phone = await App(user, 'phone').start();
     final tv = await App(user, 'tv').start();
+
     await laptop.player.playQueue(songs, index: 1);
     await until(() => phone.connect.playingId == 'laptop' && tv.connect.playingId == 'laptop', 'the others to follow');
     await laptop.client.close();
     await until(() => phone.player.queue.isNotEmpty && tv.player.queue.isNotEmpty, 'the music kept on the others');
+
     final again = await App(user, 'laptop').start();
+
     await until(() => again.player.queue.isNotEmpty, 'the music back on the laptop');
     await again.player.play();
     await until(() => phone.player.queue.isEmpty && tv.player.queue.isEmpty, 'the others to let go of it');
@@ -352,6 +396,7 @@ void main() {
     final user = newUser();
     final laptop = await App(user, 'laptop').start();
     final phone = await App(user, 'phone').start();
+
     await phone.player.playQueue(songs);
     await phone.player.pause();
     await until(
@@ -371,6 +416,7 @@ void main() {
     final user = newUser();
     final laptop = await App(user, 'laptop').start();
     final phone = await App(user, 'phone').start();
+
     await laptop.player.playQueue(songs);
     await until(() => phone.connect.nowPlaying?.device == 'laptop', 'the phone to follow the laptop');
     expect(phone.connect.nowPlaying?.canRepeat, isTrue);
@@ -388,6 +434,7 @@ void main() {
     final user = newUser();
     final laptop = await App(user, 'laptop').start();
     final phone = await App(user, 'phone').start();
+
     await laptop.player.playQueue(songs);
     await until(() => phone.connect.nowPlaying?.device == 'laptop', 'the phone to follow the laptop');
     expect(phone.connect.queue.tracks.map((track) => track.title), ['Dream On', 'Other']);
@@ -405,6 +452,7 @@ void main() {
     final user = newUser();
     final laptop = await App(user, 'laptop').start();
     final phone = await App(user, 'phone').start();
+
     await laptop.player.playQueue(songs);
     await until(() => phone.connect.nowPlaying?.device == 'laptop', 'the phone to follow the laptop');
     expect(phone.connect.canAddToQueue, isTrue);
@@ -422,6 +470,7 @@ void main() {
     final user = newUser();
     final laptop = await App(user, 'laptop').start();
     final phone = await App(user, 'phone').start();
+
     await laptop.player.playQueue(songs);
     await until(() => phone.connect.playingId == 'laptop', 'the phone to see the laptop playing');
     await phone.player.playQueue(songs, index: 1);
@@ -443,6 +492,7 @@ void main() {
     final controls = MediaControls()
       ..strings = lookupAppLocalizations(const Locale('pt'))
       ..attach(phone.connect, null);
+
     addTearDown(() => controls.attach(null, null));
     await laptop.player.playQueue(songs);
     await until(() => controls.mediaItem.value?.artist == 'Aerosmith (em laptop)', 'the phone to show the laptop');
@@ -457,6 +507,7 @@ void main() {
     final user = newUser();
     final laptop = await App(user, 'laptop').start();
     final phone = await App(user, 'phone').start();
+
     await laptop.player.playQueue(songs);
     await until(() => phone.connect.nowPlaying?.device == 'laptop', 'the phone to follow the laptop');
     expect(phone.connect.canEditQueue, isTrue);
@@ -478,6 +529,7 @@ void main() {
     final user = newUser();
     final laptop = await App(user, 'laptop').start();
     final phone = await App(user, 'phone').start();
+
     await laptop.player.playQueue(songs);
     await until(() => phone.connect.nowPlaying?.title == 'Dream On', 'the phone to show the first track');
     await laptop.player.next();
@@ -489,6 +541,7 @@ void main() {
     final user = newUser();
     final laptop = await App(user, 'laptop').start();
     final phone = await App(user, 'phone').start();
+
     await laptop.player.playQueue(songs, index: 1, position: const Duration(seconds: 30));
     await until(() => phone.client.devices['laptop']?.state?.current != null, 'the laptop queue');
 
@@ -523,10 +576,13 @@ void main() {
     final user = newUser();
     final laptop = await App(user, 'laptop').start();
     final phone = await App(user, 'phone').start();
+
     await laptop.player.playQueue(three, index: 1);
     await laptop.player.setRepeat(Repeat.all);
     await laptop.player.setShuffle(true);
+
     final shuffled = titles(laptop.player);
+
     expect(shuffled, isNot(unshuffled), reason: 'the fake\'s shuffle');
     await until(() => phone.client.devices['laptop']?.state?.order != null, 'the laptop\'s order');
 
@@ -542,14 +598,18 @@ void main() {
   test('the last playback comes back in its modes, shuffled in the same order', () async {
     final user = newUser();
     final laptop = await App(user, 'laptop').start();
+
     await laptop.player.playQueue(three, index: 1);
     await laptop.player.setRepeat(Repeat.one);
     await laptop.player.setShuffle(true);
+
     final shuffled = titles(laptop.player);
+
     await Future<void>.delayed(const Duration(milliseconds: 100)); // the report reaches the hub
     await laptop.client.close();
 
     final reopened = await App(user, 'laptop').start();
+
     await until(() => listEquals(titles(reopened.player), shuffled), 'the queue to come back, shuffled as it was');
     expect((reopened.player.shuffle, reopened.player.repeat), (true, Repeat.one));
     await reopened.player.setShuffle(false);
@@ -560,6 +620,7 @@ void main() {
     final user = newUser();
     final laptop = await App(user, 'laptop').start();
     final phone = await App(user, 'phone').start();
+
     await until(() => phone.client.devices.containsKey('laptop'), 'the laptop');
     await phone.connect.switchTo('laptop');
     expect((await phone.connect.playSongs(songs, 0)).ok, isTrue);
@@ -574,6 +635,7 @@ void main() {
       final user = newUser();
       final laptop = await App(user, 'laptop').start();
       final phone = await App(user, 'phone').start();
+
       await until(() => phone.client.devices.containsKey('laptop'), 'the laptop');
       await phone.connect.switchTo('laptop');
       expect((await phone.connect.playSongs(songs, 0)).ok, isTrue);
@@ -592,6 +654,7 @@ void main() {
     final user = newUser();
     final laptop = await App(user, 'laptop').start();
     final phone = await App(user, 'phone').start();
+
     await until(() => phone.connect.devices.any((d) => d.id == 'laptop'), 'the laptop');
     await laptop.client.close();
     await until(() => phone.client.devices['laptop']?.online == false, 'the laptop to go offline');
@@ -613,6 +676,7 @@ void main() {
       ),
       engine: engine,
     );
+
     addTearDown(tv.dispose);
     await until(() => laptop.connect.devices.any((d) => d.id == 'tv'), 'the tv');
     expect(laptop.client.devices['tv']!.info.api, Api.jellyfin);
@@ -631,6 +695,7 @@ void main() {
     SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
     // A media server that answers its ping, with no hub found next to it this time.
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+
     addTearDown(server.close);
     server.listen((request) {
       if (request.uri.path.endsWith('/ping.view')) {
@@ -642,7 +707,9 @@ void main() {
 
       request.response.close();
     });
+
     final url = Uri.parse('http://127.0.0.1:${server.port}/');
+
     await Session.rememberFoundHub(url, hubUrl);
 
     final user = newUser();
@@ -656,6 +723,7 @@ void main() {
       ),
       engine: FakeEngine(),
     );
+
     addTearDown(tv.dispose);
     expect(tv.reachability?.value, isTrue, reason: 'the server in reach');
     await until(() => laptop.connect.devices.any((d) => d.id == 'tv'), 'the tv');
@@ -667,9 +735,12 @@ void main() {
       SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
       // A media server that takes requests and leaves them waiting, as one out of reach may for minutes.
       final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+
       addTearDown(() => server.close(force: true));
       server.listen((_) {});
+
       final url = Uri.parse('http://127.0.0.1:${server.port}/');
+
       await Session.rememberFoundHub(url, hubUrl);
 
       final user = newUser();
@@ -683,6 +754,7 @@ void main() {
         ),
         engine: FakeEngine(),
       ).timeout(const Duration(seconds: 1));
+
       addTearDown(tv.dispose);
       await until(() => laptop.connect.devices.any((d) => d.id == 'tv'), 'the tv');
     },
@@ -691,6 +763,7 @@ void main() {
   test('a hub found elsewhere than the one found before is where the app connects, and is kept', () async {
     SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
     final server = Uri.parse('https://music.test/');
+
     // Where nothing answers any more.
     await Session.rememberFoundHub(server, Uri.parse('ws://127.0.0.1:1/connect/v1/ws'));
 
@@ -706,6 +779,7 @@ void main() {
       ),
       engine: FakeEngine(),
     );
+
     addTearDown(tv.dispose);
     await until(() => laptop.connect.devices.any((d) => d.id == 'tv'), 'the tv');
     expect(await Session.foundHub(server), tv.connect.client!.url);

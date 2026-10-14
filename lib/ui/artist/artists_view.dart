@@ -129,6 +129,7 @@ class _ArtistsViewState extends State<ArtistsView> {
   /// there is, to the last artist. The focus stays on the letter.
   void _jumpTo(List<Artist> artists, String letter) {
     final start = letterStart([for (final artist in artists) letterOf(artist.name)], letter);
+
     scrollToGridChild(_grid, start ?? artists.length - 1);
   }
 
@@ -168,6 +169,7 @@ class _ArtistsViewState extends State<ArtistsView> {
               final list = RefreshIndicator(
                 onRefresh: () async {
                   final reload = _load();
+
                   setState(() => _artists = reload);
                   await reload;
                 },

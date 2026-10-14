@@ -51,7 +51,9 @@ void main() {
   testWidgets('a finger swiping a page to the right, from its middle, moves it as far, the page under showing beside '
       'it, and takes it back once let go past the middle', (tester) async {
     await pumpPages(tester);
+
     final title = tester.getTopLeft(find.text('Second')).dx;
+
     expect(find.text('Open'), findsNothing, reason: 'under the second page');
 
     var gesture = await tester.startGesture(tester.getCenter(find.text('Body')));
@@ -94,6 +96,7 @@ void main() {
     tester,
   ) async {
     final presses = <int>[];
+
     await pumpPages(tester, presses: presses);
     await tester.drag(find.text('Item 1'), const Offset(-300, 0));
     await tester.pumpAndSettle();

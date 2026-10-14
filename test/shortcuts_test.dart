@@ -28,6 +28,7 @@ void main() {
       player,
       ConnectController(player: player),
     );
+
     await player.playQueue(const [Song(id: 's1', title: 'Dream On'), Song(id: 's2', title: 'Other')]);
     // As in the app: services and shortcuts above the navigator, the page below.
     await tester.pumpWidget(
@@ -147,6 +148,7 @@ void main() {
       final controller = TextEditingController.fromValue(
         const TextEditingValue(text: 'abc', selection: TextSelection.collapsed(offset: 3)),
       );
+
       addTearDown(controller.dispose);
       await pumpLibrary(tester);
       await pushPage(tester, body: TextField(autofocus: true, controller: controller));
@@ -243,7 +245,9 @@ void main() {
     testWidgets('in a text field on a page, leaves the field first, and the page then', (tester) async {
       await pumpPage(tester, const Text('library'));
       await pushPage(tester, const TextField(autofocus: true));
+
       final field = tester.state<EditableTextState>(find.byType(EditableText)).widget.focusNode;
+
       expect(field.hasFocus, isTrue);
       await pressEsc(tester);
       expect(field.hasFocus, isFalse);
@@ -284,7 +288,9 @@ void main() {
           ],
         ),
       );
+
       final button = Focus.of(tester.element(find.text('play')));
+
       expect(button.hasPrimaryFocus, isTrue);
       await tester.sendKeyEvent(LogicalKeyboardKey.escape);
       await tester.pump();
@@ -292,7 +298,9 @@ void main() {
 
       await tester.tap(find.byType(TextField));
       await tester.pump();
+
       final field = tester.state<EditableTextState>(find.byType(EditableText)).widget.focusNode;
+
       expect(field.hasFocus, isTrue);
       await tester.sendKeyEvent(LogicalKeyboardKey.escape);
       await tester.pump();

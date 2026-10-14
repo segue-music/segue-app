@@ -67,6 +67,7 @@ class _Found {
 
 Future<Lyrics?> _find(Services services, NowPlaying now) async {
   final (songId, title, artist) = (now.songId, now.title, now.artist);
+
   (Object, StackTrace)? failure;
   Lyrics? lyrics;
 
@@ -292,6 +293,7 @@ class _LyricsViewState extends State<LyricsView> {
       textHeightBehavior: paragraph.textHeightBehavior,
     )..layout(minWidth: paragraph.constraints.minWidth, maxWidth: paragraph.constraints.maxWidth);
     final growth = paragraph.constraints.constrainHeight(painter.height) - paragraph.size.height;
+
     painter.dispose();
 
     return growth;
@@ -304,6 +306,7 @@ class _LyricsViewState extends State<LyricsView> {
     }
 
     RenderParagraph? found;
+
     object.visitChildren((child) => found ??= _paragraphIn(child));
 
     return found;
@@ -413,6 +416,7 @@ class _LyricsViewState extends State<LyricsView> {
           painter.getPositionForOffset(Offset(line.left + line.width / 2, line.baseline - line.ascent / 2)),
         ),
     ];
+
     painter.dispose();
 
     return lines.length < 2 ? text : [for (final line in lines) line.textInside(text).trim()].join('\n');

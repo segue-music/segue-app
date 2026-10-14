@@ -161,6 +161,7 @@ void main() {
   testWidgets('the side rail goes to the genres, by name, each with its number of albums, and a genre shows its '
       'albums', (tester) async {
     final asked = await pumpHome(tester, const Size(1000, 700));
+
     await tester.tap(find.byTooltip('Gêneros'));
     await tester.pumpAndSettle();
     expect(selectedInRail('Gêneros'), findsOneWidget);
@@ -168,6 +169,7 @@ void main() {
     final [blues, hardRock, rock] = [
       for (final name in ['Blues', 'hard rock', 'Rock']) tester.getRect(tile(name)),
     ];
+
     expect(hardRock.top, greaterThanOrEqualTo(blues.bottom), reason: 'by name, whatever the case');
     expect(rock.top, greaterThanOrEqualTo(hardRock.bottom));
     expect(find.text('1 álbum'), findsOneWidget);
@@ -208,6 +210,7 @@ void main() {
     final rock = tester.getRect(button('Rock'));
     final hardRock = tester.getRect(button('hard rock'));
     final all = tester.getRect(find.text('Todos os gêneros'));
+
     expect(rock.top, greaterThan(heading.bottom));
     expect(hardRock.top, rock.top);
     expect(hardRock.left, greaterThan(rock.right), reason: 'Rock, played more, first');
@@ -239,6 +242,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final row = find.byWidgetPredicate((widget) => widget is ListView && widget.scrollDirection == Axis.horizontal);
+
     expect(find.descendant(of: row, matching: find.text('Toys in the Attic')), findsOneWidget);
     expect(
       find.descendant(of: row, matching: find.text('Pump')),
@@ -253,6 +257,7 @@ void main() {
 
     final mostPlayed = tester.getRect(find.text('Mais tocados'));
     final all = tester.getRect(find.text('Álbuns'));
+
     expect(tester.getRect(row).top, greaterThan(mostPlayed.bottom));
     expect(all.top, greaterThan(tester.getRect(row).bottom));
     expect(tester.getRect(find.text('Rocks')).top, greaterThan(all.bottom));
@@ -261,6 +266,7 @@ void main() {
 
   testWidgets('a genre\'s page starts with a button that plays a mix of its songs, at random', (tester) async {
     final asked = await pumpHome(tester, const Size(1000, 700));
+
     await tester.tap(find.byTooltip('Gêneros'));
     await tester.pumpAndSettle();
     await tester.tap(tile('Rock'));
@@ -273,7 +279,9 @@ void main() {
 
     await tester.tap(find.text('Tocar um mix'));
     await tester.pumpAndSettle();
+
     final player = ServicesScope.of(tester.element(find.byType(GenrePage))).player;
+
     expect([for (final song in player.queue) song.title], ['Back in the Saddle', 'Walk This Way']);
     expect(player.playing, isTrue);
     expect(asked.last, allOf(containsPair('genre', 'Rock'), containsPair('size', '100')));
@@ -294,6 +302,7 @@ void main() {
 
   testWidgets('dragged down from its top, the genres come again', (tester) async {
     final asked = await pumpHome(tester, const Size(360, 640));
+
     await openSection(tester, 'Gêneros');
 
     // The genres' most played come from the 500 most played albums, as the home's mixes do, which the home's row of
@@ -302,6 +311,7 @@ void main() {
 
     final before = mostPlayed();
     final list = find.descendant(of: find.byType(GenresView), matching: find.byType(Scrollable));
+
     await tester.dragFrom(tester.getTopLeft(list) + const Offset(100, 20), const Offset(0, 300));
     await tester.pumpAndSettle();
     expect(mostPlayed(), before + 1);
@@ -319,11 +329,15 @@ void main() {
 
     await tester.tap(tile('hard rock'));
     await tester.pumpAndSettle();
+
     final page = find.byType(GenrePage);
+
     await ServicesScope.of(tester.element(page)).player.playQueue(const [Song(id: 's1', title: 'Dream Police')]);
     await tester.pumpAndSettle();
+
     // Under the home's bars, which stay; the albums go on behind them, and end clear of them.
     final grid = find.descendant(of: page, matching: find.byType(AlbumGrid));
+
     expect(find.byType(NavigationBar).hitTestable(), findsOneWidget);
     expect(find.descendant(of: page, matching: find.byType(NowPlayingBar)), findsNothing);
     expect(find.byType(BackButton), findsOneWidget);

@@ -86,8 +86,11 @@ class Cover extends StatelessWidget {
       (image, _) => loaded.isCompleted ? image.dispose() : loaded.complete(image),
       onError: (_, _) => loaded.isCompleted ? null : loaded.complete(null),
     );
+
     stream.addListener(listener);
+
     final info = await loaded.future;
+
     stream.removeListener(listener);
 
     if (info == null) {

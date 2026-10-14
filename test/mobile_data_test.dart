@@ -21,6 +21,7 @@ void main() {
       }
 
       final mobileData = await MobileData.watch(askSystem: true);
+
       await Future<void>.delayed(const Duration(milliseconds: 100)); // for an error that would come later
       expect(mobileData.value, isFalse);
       mobileData.dispose();
@@ -29,6 +30,7 @@ void main() {
 
   test('a computer isn\'t asked, and has no mobile data', () async {
     final mobileData = await MobileData.watch();
+
     addTearDown(mobileData.dispose);
     expect(mobileData.value, isFalse);
   });

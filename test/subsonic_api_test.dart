@@ -16,12 +16,14 @@ void main() {
 
   test('the token is md5(password + salt), as in the Subsonic docs', () {
     final fresh = SubsonicCredentials.fromPassword('alice', 'sesame') as SubsonicToken;
+
     expect(fresh.token, md5.convert(utf8.encode('sesame${fresh.salt}')).toString());
     expect(md5.convert(utf8.encode('sesamec19b2d')).toString(), credentials.token);
   });
 
   test('requests carry the token, never the password, under the app name', () async {
     late Uri asked;
+
     final api = SubsonicApi(
       Uri.parse('https://music.test:4533'),
       credentials,
@@ -31,6 +33,7 @@ void main() {
         return subsonic({'status': 'ok'});
       }),
     );
+
     await api.ping();
     expect(asked.path, '/rest/ping.view');
     expect(asked.queryParameters, containsPair('t', credentials.token));
@@ -83,6 +86,7 @@ void main() {
     'with an API key, requests carry it alone, without the user\'s name or a token; the hub\'s hello, the key',
     () async {
       late Uri asked;
+
       final api = SubsonicApi(
         Uri.parse('https://music.test'),
         const SubsonicApiKey(username: 'alice', apiKey: 'k3y'),
@@ -95,6 +99,7 @@ void main() {
           });
         }),
       );
+
       await api.ping();
       expect(asked.queryParameters, containsPair('apiKey', 'k3y'));
       expect(asked.queryParameters.keys, isNot(anyOf(contains('u'), contains('t'), contains('s'), contains('p'))));
@@ -120,6 +125,7 @@ void main() {
             }),
           ),
         );
+
         await expectLater(
           api.ping(),
           throwsA(isA<ServerError>().having((e) => (e.isAuth, e.wantsApiKey), 'refusal', (true, wantsApiKey))),
@@ -131,6 +137,7 @@ void main() {
 
   test('a server under a path keeps it', () {
     final api = SubsonicApi(Uri.parse('https://example.test/music'), credentials);
+
     expect(api.streamUrl('s1').path, '/music/rest/stream.view');
   });
 
@@ -154,6 +161,7 @@ void main() {
         });
       }),
     );
+
     expect(api.streamUrl('s1', maxBitRate: 160).queryParameters, containsPair('maxBitRate', '160'));
     expect(api.streamUrl('s1').queryParameters.containsKey('maxBitRate'), isFalse, reason: 'the file as it is');
 
@@ -162,6 +170,7 @@ void main() {
       maxBitRate: 160,
       from: const Duration(seconds: 42, milliseconds: 900),
     );
+
     expect(later?.path, '/rest/stream.view');
     expect(later?.queryParameters, containsPair('id', 's1'));
     expect(later?.queryParameters, containsPair('maxBitRate', '160'));
@@ -210,6 +219,7 @@ void main() {
         }),
       ),
     );
+
     await expectLater(api.ping(), throwsA(isA<ServerError>().having((e) => e.isAuth, 'isAuth', isTrue)));
   });
 
@@ -259,10 +269,13 @@ void main() {
       }),
     );
     final albums = await api.albums(order: AlbumOrder.latest);
+
     expect(albums.single.name, 'Aerosmith');
     expect(albums.single.year, 1973);
     expect(albums.single.artistId, 'ar1');
+
     final (album, songs) = await api.album('a1');
+
     expect(album.recordLabels, ['Columbia'], reason: 'OpenSubsonic\'s recordLabels');
     expect(album.musicBrainzId, 'r1');
     expect(albums.single.musicBrainzId, isNull);
@@ -375,6 +388,7 @@ void main() {
 
   test('a song comes with the ids of its album and its artist (getSong)', () async {
     late Uri asked;
+
     final api = SubsonicApi(
       Uri.parse('https://music.test'),
       credentials,
@@ -395,6 +409,7 @@ void main() {
       }),
     );
     final song = await api.song('s1');
+
     expect(asked.path, '/rest/getSong.view');
     expect(asked.queryParameters, containsPair('id', 's1'));
     expect((song.title, song.albumId, song.artistId), ('Dream On', 'a1', 'ar1'));
@@ -424,6 +439,7 @@ void main() {
       ),
     );
     final duet = await api.song('s1');
+
     expect(duet.artists.map((artist) => (artist.id, artist.name, artist.coverArt)), [
       ('ar2', 'Run-DMC', null),
       ('ar1', 'Aerosmith', 'ar-ar1'),
@@ -478,6 +494,7 @@ void main() {
         ),
       );
       final song = await api.song('s1');
+
       expect(song.musicBrainzId, 'rec1');
       expect(
         [
@@ -491,7 +508,9 @@ void main() {
           ('Jam Master Jay', CreditRole.djMixer, null, 'ar5', null),
         ],
       );
+
       final plain = await api.song('s2');
+
       expect(plain.musicBrainzId, isNull);
       expect(plain.credits, isEmpty);
     },
@@ -521,8 +540,11 @@ void main() {
         ),
       );
       final tagged = (await api.song('s1')).replayGain!;
+
       expect((tagged.trackGain, tagged.albumGain, tagged.trackPeak, tagged.albumPeak), (-7.5, -6, 0.98, 1));
+
       final albumOnly = (await api.song('s2')).replayGain!;
+
       expect((albumOnly.trackGain, albumOnly.albumGain, albumOnly.trackPeak), (null, -6.2, null));
       expect((await api.song('s3')).replayGain, isNull, reason: 'peaks, but no gain');
       expect((await api.song('s4')).replayGain, isNull);
@@ -540,6 +562,7 @@ void main() {
         return subsonic({'status': 'ok', 'albumList2': <String, Object?>{}});
       }),
     );
+
     await api.albums(order: AlbumOrder.name, size: 200, offset: 400);
     await api.albums(order: AlbumOrder.latest, size: 20);
     expect(asked.first.queryParameters, containsPair('type', 'alphabeticalByName'));
@@ -550,6 +573,7 @@ void main() {
 
   test('lyrics are OpenSubsonic\'s getLyricsBySongId: the synced ones first, shifted by their offset', () async {
     late Uri asked;
+
     final api = SubsonicApi(
       Uri.parse('https://music.test'),
       credentials,
@@ -583,6 +607,7 @@ void main() {
       }),
     );
     final lyrics = (await api.lyrics('s1'))!;
+
     expect(asked.path, '/rest/getLyricsBySongId.view');
     expect(asked.queryParameters, containsPair('id', 's1'));
     expect(lyrics.synced, isTrue);
@@ -600,6 +625,7 @@ void main() {
       credentials,
       client: MockClient((_) async => subsonic({'status': 'ok', ...body})),
     );
+
     expect(await api.lyrics('s1'), isNull);
 
     body = {
@@ -616,6 +642,7 @@ void main() {
       },
     };
     final plain = (await api.lyrics('s1'))!;
+
     expect(plain.synced, isFalse);
     expect([for (final line in plain.lines) (line.start, line.text)], [(null, 'One'), (null, 'Two')]);
     expect(plain.provider, isNull, reason: 'a server that doesn\'t say its name');
@@ -623,6 +650,7 @@ void main() {
 
   test('albums by most played are getAlbumList2\'s frequent, a page at a time', () async {
     late Uri asked;
+
     final api = SubsonicApi(
       Uri.parse('https://music.test'),
       credentials,
@@ -632,6 +660,7 @@ void main() {
         return subsonic({'status': 'ok', 'albumList2': <String, Object?>{}});
       }),
     );
+
     await api.albums(order: AlbumOrder.mostPlayed, size: 200, offset: 200);
     expect(asked.path, '/rest/getAlbumList2.view');
     expect(asked.queryParameters, containsPair('type', 'frequent'));
@@ -662,6 +691,7 @@ void main() {
       ),
     );
     final (album, songs) = await api.album('a1');
+
     expect(album.discTitles, {2: 'Encore'}, reason: 'none for a disc whose title is empty');
     expect((songs.first.track, songs.first.disc), (3, 2));
     expect((songs.last.track, songs.last.disc), (null, null));
@@ -669,6 +699,7 @@ void main() {
 
   test('albums played last are getAlbumList2\'s recent', () async {
     late Uri asked;
+
     final api = SubsonicApi(
       Uri.parse('https://music.test'),
       credentials,
@@ -678,12 +709,14 @@ void main() {
         return subsonic({'status': 'ok', 'albumList2': <String, Object?>{}});
       }),
     );
+
     await api.albums(order: AlbumOrder.recentlyPlayed, size: 30);
     expect(asked.queryParameters, allOf(containsPair('type', 'recent'), containsPair('size', '30')));
   });
 
   test('albums by release date are getAlbumList2\'s byYear, from the farthest year back to the first', () async {
     late Uri asked;
+
     final api = SubsonicApi(
       Uri.parse('https://music.test'),
       credentials,
@@ -693,6 +726,7 @@ void main() {
         return subsonic({'status': 'ok', 'albumList2': <String, Object?>{}});
       }),
     );
+
     await api.albums(order: AlbumOrder.released, size: 20, offset: 40);
     expect(asked.path, '/rest/getAlbumList2.view');
     expect(asked.queryParameters, containsPair('type', 'byYear'));
@@ -732,9 +766,11 @@ void main() {
       }),
     );
     final genre = (await api.genres()).single;
+
     expect((genre.id, genre.name, genre.albumCount), ('Hard Rock', 'Hard Rock', 3));
 
     final albums = await api.genreAlbums(genre.id, size: 20, offset: 40);
+
     expect(albums.single.name, 'Toys in the Attic');
     expect(asked.last.path, '/rest/getAlbumList2.view');
     expect(asked.last.queryParameters, containsPair('type', 'byGenre'));
@@ -774,10 +810,12 @@ void main() {
       }),
     );
     final playlist = (await api.playlists()).single;
+
     expect((playlist.id, playlist.name, playlist.songCount, playlist.coverArt), ('p1', 'Road trip', 2, 'pl-p1'));
     expect(asked.single.path, '/rest/getPlaylists.view');
 
     final (found, songs) = await api.playlist('p1');
+
     expect(found.name, 'Road trip');
     expect([for (final song in songs) song.title], ['Sweet Emotion', 'Walk This Way']);
     expect(songs.first.duration, const Duration(seconds: 274));
@@ -805,6 +843,7 @@ void main() {
           }),
         ),
       );
+
       expect([for (final playlist in await api.playlists()) playlist.editable], [true, false, false, true]);
     },
   );
@@ -851,6 +890,7 @@ void main() {
   test('a playlist is made (createPlaylist), renamed and given songs (updatePlaylist), and deleted', () async {
     final asked = <http.Request>[];
     final api = changing(asked);
+
     await api.createPlaylist('Road trip', songIds: ['s2', 's1']);
     expect(asked.last.url.path, '/rest/createPlaylist.view');
     expect(params(asked.last)['name'], ['Road trip']);
@@ -874,6 +914,7 @@ void main() {
 
   test('a song moves in a playlist as its songs go back in their new order, all of them', () async {
     final asked = <http.Request>[];
+
     await changing(asked).moveInPlaylist('p1', from: 2, to: 0);
     expect(asked.last.url.path, '/rest/createPlaylist.view');
     expect(params(asked.last)['playlistId'], ['p1']);
@@ -886,9 +927,12 @@ void main() {
     () async {
       final asked = <http.Request>[];
       final api = changing(asked, extensions: ['formPost']);
+
       await api.addToPlaylist('p1', ['s3', 's4']);
       await api.addToPlaylist('p1', ['s5']);
+
       final posted = asked.where((request) => request.method == 'POST').toList();
+
       expect(posted, hasLength(2));
       expect(posted.first.url.query, isEmpty);
       expect(posted.first.headers['content-type'], startsWith('application/x-www-form-urlencoded'));
@@ -916,11 +960,13 @@ void main() {
       ),
     );
     final (_, songs) = await api.playlist('p1');
+
     expect(songs, isEmpty);
   });
 
   test('the most played albums are getAlbumList2\'s frequent', () async {
     late Uri asked;
+
     final api = SubsonicApi(
       Uri.parse('https://music.test'),
       credentials,
@@ -938,6 +984,7 @@ void main() {
       }),
     );
     final albums = await api.mostPlayedAlbums(size: 12);
+
     expect(asked.path, '/rest/getAlbumList2.view');
     expect(asked.queryParameters, containsPair('type', 'frequent'));
     expect(asked.queryParameters, containsPair('size', '12'));
@@ -948,6 +995,7 @@ void main() {
     'a genre\'s most played albums are those of the genre among the 500 most played: frequent takes no genre',
     () async {
       late Uri asked;
+
       final api = SubsonicApi(
         Uri.parse('https://music.test'),
         credentials,
@@ -986,6 +1034,7 @@ void main() {
         }),
       );
       final albums = await api.mostPlayedAlbums(size: 3, genre: 'Rock');
+
       expect(asked.queryParameters, containsPair('type', 'frequent'));
       expect(asked.queryParameters, containsPair('size', '500'));
       expect([for (final album in albums) album.name], ['Pump', 'Toys in the Attic', 'Rocks']);
@@ -994,6 +1043,7 @@ void main() {
 
   test('the most played genres add up the plays of the 500 most played albums, by each of their genres', () async {
     late Uri asked;
+
     final api = SubsonicApi(
       Uri.parse('https://music.test'),
       credentials,
@@ -1031,6 +1081,7 @@ void main() {
       }),
     );
     final genres = await api.mostPlayedGenres(size: 3);
+
     expect(asked.queryParameters, containsPair('type', 'frequent'));
     expect(asked.queryParameters, containsPair('size', '500'));
     expect(
@@ -1042,6 +1093,7 @@ void main() {
 
   test('the most played decades add up the plays of the 500 most played albums, by their years', () async {
     late Uri asked;
+
     final api = SubsonicApi(
       Uri.parse('https://music.test'),
       credentials,
@@ -1064,6 +1116,7 @@ void main() {
         });
       }),
     );
+
     expect(await api.mostPlayedDecades(), [1970, 1980, 2000]);
     expect(asked.queryParameters, containsPair('type', 'frequent'));
     expect(asked.queryParameters, containsPair('size', '500'));
@@ -1090,6 +1143,7 @@ void main() {
       }),
     );
     final (genres, decades) = await (api.mostPlayedGenres(), api.mostPlayedDecades()).wait;
+
     expect([for (final genre in genres) genre.name], ['Rock']);
     expect(decades, [1980]);
     expect(asked, 1);
@@ -1119,6 +1173,7 @@ void main() {
       }),
     );
     final songs = await api.randomSongs(size: 50, genre: 'Rock', years: (from: 1970, to: 1979));
+
     expect([for (final song in songs) song.title], ['Sweet Emotion', 'Love in an Elevator']);
     expect(songs.first.coverArt, 'al-a2');
     expect(asked.single, allOf(containsPair('size', '50'), containsPair('genre', 'Rock')));
@@ -1135,6 +1190,7 @@ void main() {
       credentials,
       client: MockClient((request) async => subsonic({'status': 'ok', 'randomSongs': <String, Object?>{}})),
     );
+
     expect(await api.randomSongs(genre: 'Polka'), isEmpty);
   });
 
@@ -1145,6 +1201,7 @@ void main() {
       credentials,
       client: MockClient((request) async {
         asked.add(request.url);
+
         final id = request.url.queryParameters['id'];
 
         if (request.url.path.endsWith('getArtist.view')) {
@@ -1182,6 +1239,7 @@ void main() {
       }),
     );
     final songs = await api.mostPlayedSongs('ar1');
+
     expect(asked.first.queryParameters, containsPair('id', 'ar1'));
     expect(
       [for (final url in asked.skip(1)) url.queryParameters['id']],
@@ -1216,6 +1274,7 @@ void main() {
         });
       }),
     );
+
     expect(await api.mostPlayedSongs('ar1'), isEmpty);
     expect(asked.single.path, '/rest/getArtist.view');
   });
@@ -1254,6 +1313,7 @@ void main() {
       }),
     );
     final ((artist, albums), songs) = await (api.artist('ar1'), api.mostPlayedSongs('ar1')).wait;
+
     expect(artist.name, 'Aerosmith');
     expect([for (final album in albums) album.name], ['Toys in the Attic']);
     expect([for (final song in songs) song.title], ['Walk This Way']);
@@ -1286,6 +1346,7 @@ void main() {
       }),
     );
     final biography = (await api.biography('ar1'))!;
+
     expect(asked.single.path, '/rest/getArtistInfo2.view');
     expect(asked.single.queryParameters, containsPair('id', 'ar1'));
     expect(biography.paragraphs, [
@@ -1305,6 +1366,7 @@ void main() {
         credentials,
         client: MockClient((_) async => subsonic({'status': 'ok', 'artistInfo2': info})),
       );
+
       expect(await api.biography('ar1'), isNull, reason: '$info');
     }
   });
@@ -1330,6 +1392,7 @@ void main() {
       }),
     );
     final similar = await api.similarArtists('ar1');
+
     expect(asked.single.path, '/rest/getArtistInfo2.view');
     expect(asked.single.queryParameters, containsPair('id', 'ar1'));
     expect([for (final artist in similar) artist.id], ['ar2', 'ar3']);
@@ -1343,6 +1406,7 @@ void main() {
       credentials,
       client: MockClient((_) async => subsonic({'status': 'ok', 'artistInfo2': <String, Object?>{}})),
     );
+
     expect(await none.similarArtists('ar1'), isEmpty);
   });
 
@@ -1366,6 +1430,7 @@ void main() {
       }),
     );
     final (biography, similar) = await (api.biography('ar1'), api.similarArtists('ar1')).wait;
+
     expect(biography!.paragraphs, ['Aerosmith is an American rock band.']);
     expect([for (final artist in similar) artist.name], ['Cheap Trick']);
     expect(asked, ['/rest/getArtistInfo2.view']);
@@ -1395,6 +1460,7 @@ void main() {
       }),
     );
     final songs = await api.popularSongs(const Artist(id: 'ar1', name: 'Aerosmith'), size: 5);
+
     expect([for (final song in songs) song.title], ['Dream On', 'Walk This Way'], reason: 'in the server\'s order');
     expect(songs.first.album, 'Aerosmith');
     expect(asked.last.path, '/rest/getTopSongs.view');
@@ -1432,6 +1498,7 @@ void main() {
               });
       }),
     );
+
     expect(await api.popularSongs(const Artist(id: 'ar1', name: 'Aerosmith')), hasLength(1));
     expect(asked.last.queryParameters, allOf(containsPair('id', 'ar1'), containsPair('artist', 'Aerosmith')));
     expect(
@@ -1453,6 +1520,7 @@ void main() {
         return subsonic({'status': 'ok', 'topSongs': <String, Object?>{}});
       }),
     );
+
     expect(await api.popularSongs(const Artist(id: 'ar1', name: 'Aerosmith')), isEmpty);
     expect(await api.popularSongs(const Artist(id: 'ar2', name: '')), isEmpty);
     expect(
@@ -1494,6 +1562,7 @@ void main() {
       artists: [Artist(id: 'ar1', name: 'Aerosmith')],
     );
     final similar = await api.similarSongs(song, size: 20);
+
     expect([for (final found in similar) found.title], ['Dream On', 'Surrender'], reason: 'in the server\'s order');
     expect(similar.last.artistId, 'ar2');
     expect(asked.single.path, '/rest/getSimilarSongs2.view');
@@ -1535,6 +1604,7 @@ void main() {
               });
       }),
     );
+
     expect(await api.radioSongs('al1', artistId: 'ar1', size: 100), hasLength(1));
     expect(asked.single, allOf(containsPair('id', 'al1'), containsPair('count', '100')));
     asked.clear();
@@ -1550,6 +1620,7 @@ void main() {
 
   test('search asks for artists, albums and songs', () async {
     late Uri asked;
+
     final api = SubsonicApi(
       Uri.parse('https://music.test'),
       credentials,
@@ -1573,6 +1644,7 @@ void main() {
       }),
     );
     final (:artists, :albums, :songs) = await api.search('dream on');
+
     expect(asked.path, '/rest/search3.view');
     expect(asked.queryParameters, containsPair('query', 'dream on'));
     expect(int.parse(asked.queryParameters['artistCount']!), greaterThan(0));
@@ -1584,6 +1656,7 @@ void main() {
 
   test('artists come in name order, from every letter of the index', () async {
     late Uri asked;
+
     final api = SubsonicApi(
       Uri.parse('https://music.test'),
       credentials,
@@ -1613,6 +1686,7 @@ void main() {
       }),
     );
     final artists = await api.artists();
+
     expect(asked.path, '/rest/getArtists.view');
     expect(artists.map((artist) => artist.name), ['Aerosmith', 'Cheap Trick']);
     expect(artists.first.coverArt, 'ar-ar1');
@@ -1682,6 +1756,7 @@ void main() {
       }),
     );
     final artists = await api.mostPlayedArtists();
+
     expect(asked.first.path, '/rest/getAlbumList2.view');
     expect(asked.first.queryParameters, containsPair('type', 'frequent'));
     expect(asked.first.queryParameters, containsPair('size', '500'));
@@ -1703,12 +1778,14 @@ void main() {
         return subsonic({'status': 'ok', 'albumList2': <String, Object?>{}});
       }),
     );
+
     expect(await api.mostPlayedArtists(), isEmpty);
     expect(asked.single.path, '/rest/getAlbumList2.view');
   });
 
   test('an artist comes with their albums, and their MusicBrainz id', () async {
     late Uri asked;
+
     final api = SubsonicApi(
       Uri.parse('https://music.test'),
       credentials,
@@ -1731,6 +1808,7 @@ void main() {
       }),
     );
     final (artist, albums) = await api.artist('ar1');
+
     expect(asked.path, '/rest/getArtist.view');
     expect(asked.queryParameters, containsPair('id', 'ar1'));
     expect(artist.name, 'Aerosmith');
@@ -1745,6 +1823,7 @@ void main() {
       client: MockClient((_) async => subsonic({'status': 'ok', 'searchResult3': <String, Object?>{}})),
     );
     final (artists: _, :albums, :songs) = await api.search('zzz');
+
     expect(albums, isEmpty);
     expect(songs, isEmpty);
   });
@@ -1776,6 +1855,7 @@ void main() {
       }),
     );
     final (:artists, :albums, :songs) = await api.favorites();
+
     expect([for (final artist in artists) artist.name], ['Aerosmith']);
     expect([for (final album in albums) album.id], ['a2', 'a1']);
     expect([for (final song in songs) song.id], ['s2', 's1', 's3'], reason: 'one that doesn\'t say when, last');
@@ -1788,6 +1868,7 @@ void main() {
       client: MockClient((request) async => subsonic({'status': 'ok', 'starred2': <String, Object?>{}})),
     );
     final (:artists, :albums, :songs) = await api.favorites();
+
     expect([artists, albums, songs], everyElement(isEmpty));
   });
 
@@ -1802,6 +1883,7 @@ void main() {
         return subsonic({'status': 'ok'});
       }),
     );
+
     await api.setFavorite(FavoriteKind.song, 's1', favorite: true);
     await api.setFavorite(FavoriteKind.album, 'a1', favorite: true);
     await api.setFavorite(FavoriteKind.artist, 'ar1', favorite: false);

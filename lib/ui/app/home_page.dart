@@ -163,6 +163,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+
     final reachability = ServicesScope.of(context).reachability;
 
     if (reachability != _reachability) {
@@ -359,6 +360,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
   void _searchFor(String text) {
     _typing?.cancel();
+
     final query = text.trim();
 
     if (query == _query) {
@@ -441,8 +443,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       _Section.genres when narrow => _Section.search,
       final section => section,
     };
+
     // Shown in another's place, as the window changes width, a section loads too.
     _opened.add(shown);
+
     final television = context.television;
     // On a phone, as wide as the top bar leaves it; on a wide screen, at most 600 and two fifths of the window, which on
     // a TV's (960 wide) leaves the top bar more than the search.

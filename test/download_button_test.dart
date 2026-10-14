@@ -54,6 +54,7 @@ Future<void> pumpWith(
     ConnectController(player: player),
     downloads: downloads,
   );
+
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -101,6 +102,7 @@ Future<void> idle(WidgetTester tester, Downloads downloads) async {
 
 void main() {
   setUpAll(() => SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty());
+
   late Directory directory;
   late FileServer server;
   late Downloads downloads;
@@ -134,7 +136,9 @@ void main() {
     tester,
   ) async {
     await open(tester);
+
     final second = server.held['s2'] = Completer<void>();
+
     await pumpWith(tester, server, downloads, const Center(child: DownloadButton.album(album, songs)));
     expect(find.byTooltip('Baixar'), findsOneWidget);
 
@@ -196,9 +200,11 @@ void main() {
     });
     await pumpWith(tester, server, downloads, const DownloadsPage());
     await until(tester, () => progressIs(2, 0) && find.textContaining('no aparelho').evaluate().isNotEmpty);
+
     final names = [
       for (final title in find.byType(ListTile).evaluate()) ((title.widget as ListTile).title! as Text).data,
     ];
+
     expect(names, ['Road trip', 'Toys in the Attic']);
     expect(find.text('0 MB no aparelho'), findsOneWidget);
     expect(find.text('2 faixas, 7 min'), findsOneWidget);
@@ -209,6 +215,7 @@ void main() {
     await tester.runAsync(() => downloads.addAlbum(album, songs));
     var shown = AlbumsShown.downloaded;
     AlbumOrder? picked;
+
     await pumpWith(
       tester,
       server,
@@ -275,8 +282,11 @@ void main() {
     'the settings pick the downloads\' quality and whether they go over mobile data, over the list of them',
     (tester) async {
       await open(tester);
+
       final settings = Settings(download: DownloadChoice(mobileData: true));
+
       addTearDown(settings.dispose);
+
       final choice = settings.download;
       tester.view.physicalSize = const Size(400, 1600);
       tester.view.devicePixelRatio = 1;
@@ -307,7 +317,9 @@ void main() {
 
   testDownloads('without mobile data, downloading over it is no choice', (tester) async {
     await open(tester);
+
     final settings = Settings();
+
     addTearDown(settings.dispose);
     await pumpWith(tester, server, downloads, SettingsPage(onSignOut: () {}), settings: settings);
     // After the appearance and the playback, under the window's bottom.

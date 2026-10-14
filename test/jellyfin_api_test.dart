@@ -75,6 +75,7 @@ const artist = {
 void main() {
   test('requests carry the token in the Authorization header, as this device', () async {
     final asked = <http.Request>[];
+
     await jellyfin((_) => items([]), asked).albums(order: AlbumOrder.latest);
     expect(
       asked.single.headers['Authorization'],
@@ -88,13 +89,16 @@ void main() {
     final asked = <http.Request>[];
     final albums = await jellyfin((_) => items([album]), asked).albums(order: AlbumOrder.latest, size: 20, offset: 40);
     final query = asked.single.url.queryParameters;
+
     expect(query, containsPair('IncludeItemTypes', 'MusicAlbum'));
     expect(query, containsPair('Recursive', 'true'));
     expect(query['SortBy'], startsWith('DateCreated'));
     expect(query, containsPair('SortOrder', 'Descending'));
     expect(query, containsPair('Limit', '20'));
     expect(query, containsPair('StartIndex', '40'));
+
     final first = albums.single;
+
     expect(
       (first.id, first.name, first.artist, first.year, first.songCount),
       ('a1', 'Toys in the Attic', 'Aerosmith', 1975, 9),
@@ -104,8 +108,11 @@ void main() {
 
   test('albums by name', () async {
     final asked = <http.Request>[];
+
     await jellyfin((_) => items([album]), asked).albums(order: AlbumOrder.name, size: 200, offset: 400);
+
     final query = asked.single.url.queryParameters;
+
     expect(query, containsPair('IncludeItemTypes', 'MusicAlbum'));
     expect(query['SortBy'], startsWith('SortName'));
     expect(query, containsPair('SortOrder', 'Ascending'));
@@ -115,8 +122,11 @@ void main() {
 
   test('albums by release date: the latest year first, and in a year the latest date', () async {
     final asked = <http.Request>[];
+
     await jellyfin((_) => items([album]), asked).albums(order: AlbumOrder.released, size: 20, offset: 40);
+
     final query = asked.single.url.queryParameters;
+
     expect(query, containsPair('IncludeItemTypes', 'MusicAlbum'));
     expect(query['SortBy'], startsWith('ProductionYear,PremiereDate'));
     expect(query, containsPair('SortOrder', 'Descending'));
@@ -135,14 +145,18 @@ void main() {
       asked,
     );
     final genre = (await api.genres()).single;
+
     expect((genre.id, genre.name, genre.albumCount), ('g1', 'Hard Rock', 3));
     expect(asked.single.url.path, '/jellyfin/MusicGenres');
     expect(asked.single.url.queryParameters, containsPair('userId', 'u1'));
     expect(asked.single.url.queryParameters, containsPair('Fields', 'ItemCounts'));
 
     final albums = await api.genreAlbums('g1', size: 20, offset: 40);
+
     expect(albums.single.name, 'Toys in the Attic');
+
     final query = asked.last.url.queryParameters;
+
     expect(asked.last.url.path, '/jellyfin/Items');
     expect(query, containsPair('GenreIds', 'g1'));
     expect(query, containsPair('IncludeItemTypes', 'MusicAlbum'));
@@ -175,13 +189,16 @@ void main() {
       asked,
     );
     final playlist = (await api.playlists()).single;
+
     expect((playlist.id, playlist.name, playlist.songCount, playlist.coverArt), ('p1', 'Road trip', 2, null));
     expect(playlist.editable, isTrue, reason: 'Jellyfin doesn\'t say: the server refuses where the user can\'t');
     expect(asked.single.url.path, '/jellyfin/Items');
     expect(asked.single.url.queryParameters, containsPair('Recursive', 'true'));
 
     asked.clear();
+
     final (found, songs) = await api.playlist('p1');
+
     expect((found.name, found.coverArt), ('Road trip', 'p1'));
     expect([for (final song in songs) song.title], ['Sweet Emotion', 'Walk This Way']);
     expect(asked.map((request) => request.url.path), contains('/jellyfin/Playlists/p1/Items'));
@@ -190,6 +207,7 @@ void main() {
   test('a playlist is made with its songs, for the user, renamed by its id, and deleted as an item', () async {
     final asked = <http.Request>[];
     final api = jellyfin((_) => http.Response('', 204), asked);
+
     await api.createPlaylist('Road trip', songIds: ['s2', 's1']);
     expect((asked.last.method, asked.last.url.path), ('POST', '/jellyfin/Playlists'));
     expect(jsonDecode(asked.last.body), {
@@ -211,6 +229,7 @@ void main() {
   test('songs go at the end of a playlist, and come out and move by their entries in it', () async {
     final asked = <http.Request>[];
     final api = jellyfin((request) => request.method == 'GET' ? playlistItems : http.Response('', 204), asked);
+
     await api.addToPlaylist('p1', ['s3', 's4']);
     expect((asked.last.method, asked.last.url.path), ('POST', '/jellyfin/Playlists/p1/Items'));
     expect(asked.last.url.queryParameters, containsPair('ids', 's3,s4'));
@@ -230,6 +249,7 @@ void main() {
 
   test('a change the server refuses says so', () async {
     final api = jellyfin((_) => http.Response('', 403));
+
     await expectLater(
       api.renamePlaylist('p1', 'Mine now'),
       throwsA(isA<ServerError>().having((error) => error.isAuth, 'isAuth', isFalse)),
@@ -242,6 +262,7 @@ void main() {
         {'Id': 'g1', 'Name': 'Hard Rock', 'Type': 'MusicGenre'},
       ]),
     ).genres();
+
     expect(genres.single.albumCount, isNull);
   });
 
@@ -256,6 +277,7 @@ void main() {
       ],
     }..remove('AlbumArtist');
     final albums = await jellyfin((_) => items([album, untagged])).albums(order: AlbumOrder.name);
+
     expect(albums.map((album) => (album.artist, album.artistId)), [('Aerosmith', 'ar1'), ('Run-DMC', 'ar2')]);
   });
 
@@ -288,8 +310,11 @@ void main() {
         for (final id in ids.reversed) {...album, 'Id': id, 'Name': 'Album $id'},
       ]);
     }, asked).mostPlayedAlbums(size: 2);
+
     expect([for (final album in albums) album.name], ['Album a2', 'Album a1']);
+
     final songs = asked.first.url.queryParameters;
+
     expect(songs, containsPair('Recursive', 'true'));
     expect(songs, containsPair('Filters', 'IsPlayed'));
     expect(songs, containsPair('SortBy', 'PlayCount'));
@@ -322,6 +347,7 @@ void main() {
       asked,
     );
     final synced = (await api.lyrics('s1'))!;
+
     expect(asked.single.url.path, '/jellyfin/Audio/s1/Lyrics');
     expect(synced.synced, isTrue);
     expect(synced.provider, 'Jellyfin');
@@ -329,7 +355,9 @@ void main() {
       [for (final line in synced.lines) (line.start, line.text)],
       [(const Duration(seconds: 1), 'First'), (const Duration(milliseconds: 2500), 'Second')],
     );
+
     final plain = (await api.lyrics('s2'))!;
+
     expect(plain.synced, isFalse);
     expect([for (final line in plain.lines) (line.start, line.text)], [(null, 'One'), (null, 'Two')]);
     expect(await api.lyrics('s3'), isNull, reason: 'Jellyfin answers 404');
@@ -356,6 +384,7 @@ void main() {
       ]);
     }, asked);
     final page = await api.albums(order: AlbumOrder.mostPlayed, size: 1, offset: 1);
+
     expect([for (final album in page) album.name], ['Album a2']);
     expect(asked.last.url.queryParameters, containsPair('Ids', 'a2'));
 
@@ -386,21 +415,28 @@ void main() {
       ]);
     }, asked);
     final albums = await api.albums(order: AlbumOrder.recentlyPlayed, size: 2);
+
     expect([for (final album in albums) album.name], ['Album a2', 'Album a1']);
+
     final songs = asked.first.url.queryParameters;
+
     expect(songs, containsPair('Filters', 'IsPlayed'));
     expect(songs, containsPair('SortBy', 'DatePlayed'));
     expect(songs, containsPair('SortOrder', 'Descending'));
     expect(asked.last.url.queryParameters, containsPair('Ids', 'a2,a1'));
 
     final page = await api.albums(order: AlbumOrder.recentlyPlayed, size: 2, offset: 2);
+
     expect([for (final album in page) album.name], ['Album a3']);
   });
 
   test('a genre\'s most played albums add up the plays of its songs', () async {
     final asked = <http.Request>[];
+
     await jellyfin((_) => items([]), asked).mostPlayedAlbums(genre: 'g1');
+
     final songs = asked.single.url.queryParameters;
+
     expect(songs, containsPair('IncludeItemTypes', 'Audio'));
     expect(songs, containsPair('GenreIds', 'g1'));
     expect(songs, containsPair('SortBy', 'PlayCount'));
@@ -426,8 +462,11 @@ void main() {
       ]),
       asked,
     ).mostPlayedGenres(size: 2);
+
     expect([for (final genre in genres) (genre.id, genre.name)], [('g1', 'Rock'), ('g3', 'Jazz')]);
+
     final songs = asked.single.url.queryParameters;
+
     expect(songs, containsPair('IncludeItemTypes', 'Audio'));
     expect(songs, containsPair('Filters', 'IsPlayed'));
     expect(songs, containsPair('SortBy', 'PlayCount'));
@@ -454,10 +493,13 @@ void main() {
       asked,
     );
     final (genres, decades) = await (api.mostPlayedGenres(), api.mostPlayedDecades()).wait;
+
     expect(decades, [1970, 1980]);
     expect(genres, isEmpty);
     expect(asked, hasLength(1), reason: 'asked at once, the genres and the decades share the most played songs');
+
     final songs = asked.single.url.queryParameters;
+
     expect(songs, containsPair('Filters', 'IsPlayed'));
     expect(songs, containsPair('SortBy', 'PlayCount'));
   });
@@ -470,8 +512,11 @@ void main() {
       ]),
       asked,
     ).randomSongs(size: 50, genre: 'g1', years: (from: 1970, to: 1979));
+
     expect([for (final song in songs) song.title], ['Sweet Emotion']);
+
     final query = asked.single.url.queryParameters;
+
     expect(asked.single.url.path, '/jellyfin/Items');
     expect(query, containsPair('IncludeItemTypes', 'Audio'));
     expect(query, containsPair('SortBy', 'Random'));
@@ -497,9 +542,12 @@ void main() {
       ]),
       asked,
     ).mostPlayedSongs('ar1');
+
     expect(songs.single.title, 'Walk This Way');
     expect(songs.single.album, 'Toys in the Attic');
+
     final query = asked.single.url.queryParameters;
+
     expect(query, containsPair('IncludeItemTypes', 'Audio'));
     expect(query, containsPair('ArtistIds', 'ar1'));
     expect(query, containsPair('Filters', 'IsPlayed'));
@@ -510,18 +558,21 @@ void main() {
 
   test('an artist has no popular songs: Jellyfin knows no one\'s plays but its users\'', () async {
     final asked = <http.Request>[];
+
     expect(await jellyfin((_) => items([]), asked).popularSongs(const Artist(id: 'ar1', name: 'Aerosmith')), isEmpty);
     expect(asked, isEmpty);
   });
 
   test('a scrobble asks nothing of the server: the hub\'s Sessions/Playing counts the play', () async {
     final asked = <http.Request>[];
+
     await jellyfin((_) => items([]), asked).scrobble('s1', time: DateTime(2026, 10, 6));
     expect(asked, isEmpty);
   });
 
   test('with nothing played yet there are no most played albums, and no albums to ask for', () async {
     final asked = <http.Request>[];
+
     expect(await jellyfin((_) => items([]), asked).mostPlayedAlbums(), isEmpty);
     expect(asked, hasLength(1));
   });
@@ -551,13 +602,18 @@ void main() {
 
       return http.Response('', 404);
     }, asked).album('a1');
+
     expect(found.name, 'Toys in the Attic');
     expect(found.recordLabels, ['Columbia'], reason: 'its studios, which come only when asked for');
     expect(found.musicBrainzId, 'r1', reason: 'its release\'s, among its other ids, which come only when asked for');
+
     final tracks = asked.firstWhere((request) => request.url.queryParameters['ParentId'] == 'a1').url.queryParameters;
+
     expect(tracks, containsPair('IncludeItemTypes', 'Audio'));
     expect(tracks['SortBy'], startsWith('ParentIndexNumber,IndexNumber'));
+
     final first = songs.single;
+
     expect(
       (first.id, first.title, first.artist, first.album),
       ('s1', 'Walk This Way', 'Aerosmith', 'Toys in the Attic'),
@@ -596,6 +652,7 @@ void main() {
         {...song, 'Id': 's3'},
       ]);
     }).album('a1');
+
     expect(
       [for (final credit in songs.first.credits) (credit.name, credit.role, credit.artistId)],
       [('Steven Tyler', CreditRole.composer, null), ('Jack Douglas', CreditRole.producer, null)],
@@ -638,8 +695,11 @@ void main() {
       },
     );
     final both = (await api.song('s1')).replayGain!;
+
     expect((both.trackGain, both.albumGain, both.trackPeak, both.albumPeak), (-8.25, -7.5, null, null));
+
     final own = (await api.song('s2')).replayGain!;
+
     expect((own.trackGain, own.albumGain), (2, null), reason: 'a Jellyfin before 12.0 gives no album gain with a song');
     expect((await api.song('s3')).replayGain, isNull, reason: 'Jellyfin hasn\'t measured it, nor read its tags');
   });
@@ -658,6 +718,7 @@ void main() {
                 {...album, 'NormalizationGain': -7.5},
               ]),
       ).album('a1');
+
       expect(
         [for (final song in songs) (song.replayGain?.trackGain, song.replayGain?.albumGain)],
         [(-9, -7.5), (-6, -7.25), (null, -7.5)],
@@ -683,10 +744,13 @@ void main() {
       },
     );
     final found = await api.song('s1');
+
     expect((found.title, found.artist), ('Walk This Way', 'Run-DMC, Aerosmith'));
     expect((found.albumId, found.artistId), ('a1', 'ar2'));
     expect(found.artists.map((artist) => (artist.id, artist.name)), [('ar2', 'Run-DMC'), ('ar1', 'Aerosmith')]);
+
     final untaggedFound = await api.song('s2');
+
     expect(untaggedFound.artistId, 'ar1', reason: 'its artist shows as the album artist');
     expect(untaggedFound.artists.map((artist) => (artist.id, artist.name)), [('ar1', 'Aerosmith')]);
     await expectLater(api.song('s3'), throwsA(isA<ServerError>()));
@@ -711,6 +775,7 @@ void main() {
         _ => http.Response('', 404),
       };
     }, asked).search('aero');
+
     expect(asked.map((request) => request.url.queryParameters['searchTerm']), everyElement('aero'));
     expect(asked.map((request) => request.url.queryParameters['Limit']), unorderedEquals(['5', '10', '50']));
     expect(artists.single.name, 'Aerosmith');
@@ -731,6 +796,7 @@ void main() {
       ]),
       asked,
     ).artists();
+
     expect(asked.single.url.path, '/jellyfin/Artists/AlbumArtists');
     expect(
       asked.single.url.queryParameters,
@@ -770,12 +836,15 @@ void main() {
         played('s5', 1, []),
       ]);
     }, asked).mostPlayedArtists(size: 3);
+
     expect(
       [for (final artist in artists) (artist.id, artist.name)],
       [('ar1', 'Aerosmith'), ('ar2', 'Cheap Trick'), ('ar3', 'Miles Davis')],
     );
     expect(artists.first.coverArt, 'ar1');
+
     final songs = asked.first.url.queryParameters;
+
     expect(songs, containsPair('IncludeItemTypes', 'Audio'));
     expect(songs, containsPair('Filters', 'IsPlayed'));
     expect(songs, containsPair('SortBy', 'PlayCount'));
@@ -784,6 +853,7 @@ void main() {
 
   test('with nothing played yet there are no most played artists, and no artists to ask for', () async {
     final asked = <http.Request>[];
+
     expect(await jellyfin((_) => items([]), asked).mostPlayedArtists(), isEmpty);
     expect(asked, hasLength(1));
   });
@@ -818,6 +888,7 @@ void main() {
 
         return http.Response('', 404);
       }).artist('ar1');
+
       expect(found.name, 'Aerosmith');
       expect(found.albumCount, 1);
       expect(found.musicBrainzId, 'mb1');
@@ -839,6 +910,7 @@ void main() {
       ]),
       asked,
     ).biography('ar1'))!;
+
     expect(asked.single.url.queryParameters, allOf(containsPair('Ids', 'ar1'), containsPair('Fields', 'Overview')));
     expect(biography.paragraphs, [
       'Aerosmith is an American rock band.',
@@ -866,6 +938,7 @@ void main() {
       ]),
       asked,
     ).similarArtists('ar1');
+
     expect(asked.single.url.path, '/jellyfin/Artists/ar1/Similar');
     expect(asked.single.url.queryParameters, allOf(containsPair('Limit', '20'), containsPair('userId', 'u1')));
     expect([for (final artist in similar) artist.name], ['Cheap Trick', 'Ramones']);
@@ -882,6 +955,7 @@ void main() {
       ]),
       asked,
     ).similarSongs(const Song(id: 's1', title: 'Walk This Way'), size: 20);
+
     expect(asked.single.url.path, '/jellyfin/Items/s1/InstantMix');
     expect(asked.single.url.queryParameters, allOf(containsPair('Limit', '20'), containsPair('userId', 'u1')));
     expect([for (final song in similar) song.title], ['Walk This Way', 'Sweet Emotion']);
@@ -895,6 +969,7 @@ void main() {
         {...song, 'Id': 's2'},
       ]),
     ).randomSongs();
+
     expect((songs.first.track, songs.first.disc), (3, 2));
     expect((songs.last.track, songs.last.disc), (null, null));
   });
@@ -902,6 +977,7 @@ void main() {
   test('an album\'s or an artist\'s radio is their Items/{id}/InstantMix', () async {
     final asked = <http.Request>[];
     final api = jellyfin((_) => items([song]), asked);
+
     expect(await api.radioSongs('al1', artistId: 'ar1', size: 100), hasLength(1));
     expect(await api.radioSongs('ar1'), hasLength(1));
     expect(
@@ -914,10 +990,13 @@ void main() {
   test('audio and covers come from URLs a player can open, the token in the stream\'s', () {
     final api = jellyfin((_) => http.Response('', 404));
     final stream = api.streamUrl('s1');
+
     expect(stream.path, '/jellyfin/Audio/s1/stream');
     expect(stream.queryParameters, containsPair('static', 'true'));
     expect(stream.queryParameters, containsPair('ApiKey', 'tok'));
+
     final cover = api.coverArtUrl('a1', size: 96);
+
     expect(cover.path, '/jellyfin/Items/a1/Images/Primary');
     expect(cover.queryParameters, containsPair('maxWidth', '96'));
   });
@@ -925,6 +1004,7 @@ void main() {
   test('within a bitrate, a song comes through universal: as it is where it fits, otherwise as HLS', () async {
     final api = jellyfin((_) => http.Response('', 404));
     final stream = api.streamUrl('s1', maxBitRate: 160);
+
     expect(stream.path, '/jellyfin/Audio/s1/universal');
     expect(stream.queryParameters, containsPair('MaxStreamingBitrate', '160000'));
     expect(stream.queryParameters, containsPair('TranscodingProtocol', 'hls'));
@@ -940,8 +1020,11 @@ void main() {
 
   test('a download within a bitrate comes as one file: universal over plain HTTP, MP3 where transcoded', () {
     final api = jellyfin((_) => http.Response('', 404));
+
     expect(api.downloadUrl('s1'), api.streamUrl('s1'));
+
     final download = api.downloadUrl('s1', maxBitRate: 160);
+
     expect(download.path, '/jellyfin/Audio/s1/universal');
     expect(download.queryParameters, containsPair('MaxStreamingBitrate', '160000'));
     expect(download.queryParameters, containsPair('TranscodingProtocol', 'http'));
@@ -952,6 +1035,7 @@ void main() {
 
   test('a play missed while out of reach marks the song played then, which the hub never reported', () async {
     final asked = <http.Request>[];
+
     await jellyfin((_) => http.Response('', 200), asked).scrobbleMissed('s1', time: DateTime.utc(2026, 10, 10, 12));
     expect(asked.single.method, 'POST');
     expect(asked.single.url.path, '/jellyfin/UserPlayedItems/s1');
@@ -973,6 +1057,7 @@ void main() {
 
   test('signing out ends the sign-in on the server, and never fails', () async {
     final asked = <http.Request>[];
+
     await jellyfin((_) => http.Response('', 204), asked).signOut();
     expect((asked.single.method, asked.single.url.path), ('POST', '/jellyfin/Sessions/Logout'));
     expect(asked.single.headers['Authorization'], contains('Token="tok"'));
@@ -992,10 +1077,13 @@ void main() {
       asked,
     );
     final (:artists, :albums, :songs) = await api.favorites();
+
     expect([for (final artist in artists) artist.id], ['ar1']);
     expect([for (final album in albums) album.id], ['a1']);
     expect([for (final song in songs) song.id], ['s1']);
+
     final artistsAsked = asked.firstWhere((request) => request.url.path == '/jellyfin/Artists').url;
+
     expect(artistsAsked.queryParameters, allOf(containsPair('IsFavorite', 'true'), containsPair('userId', 'u1')));
 
     for (final request in asked.where((request) => request.url.path == '/jellyfin/Items')) {
@@ -1009,6 +1097,7 @@ void main() {
   test('a favorite is UserFavoriteItems/{id}: POST makes it one, DELETE no longer one', () async {
     final asked = <http.Request>[];
     final api = jellyfin((_) => json({'IsFavorite': true}), asked);
+
     await api.setFavorite(FavoriteKind.album, 'a1', favorite: true);
     expect((asked.last.method, asked.last.url.path), ('POST', '/jellyfin/UserFavoriteItems/a1'));
     expect(asked.last.url.queryParameters, containsPair('userId', 'u1'));

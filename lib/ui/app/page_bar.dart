@@ -195,6 +195,7 @@ class _RenderOverlaySliver extends RenderSliverSingleBoxAdapter {
     }
 
     child.layout(constraints.asBoxConstraints(), parentUsesSize: true);
+
     final extent = child.size.height;
     geometry = SliverGeometry(
       paintExtent: min(extent, constraints.remainingPaintExtent),

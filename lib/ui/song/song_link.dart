@@ -75,6 +75,7 @@ class _SongLinkState extends State<SongLink> {
   Future<void> _open(String songId) async {
     final messenger = ScaffoldMessenger.of(context);
     final strings = AppLocalizations.of(context);
+
     Widget? page;
     Object? error;
 
@@ -105,6 +106,7 @@ class _SongLinkState extends State<SongLink> {
       (_, null) => strings.couldNotOpenAlbum,
       (_, final error?) => strings.couldNotOpenAlbumError('$error'),
     };
+
     messenger.showSnackBar(SnackBar(content: Text(message)));
   }
 

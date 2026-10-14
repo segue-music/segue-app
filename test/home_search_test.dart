@@ -113,6 +113,7 @@ void main() {
   ) async {
     final (player, queries) = await pumpHome(tester, const Size(360, 640));
     final sections = find.byType(NavigationBar);
+
     expect(find.text('Toys in the Attic'), findsOneWidget);
     expect(find.byType(SearchBar), findsNothing, reason: 'only in the search');
 
@@ -130,8 +131,10 @@ void main() {
     await tester.tap(find.byType(TextField));
     await tester.pump();
     expect(tester.testTextInput.isVisible, isTrue);
+
     // In the top bar, 16 from the edge, in the place of the app's icon and the search's name, which its hint says.
     final searchBar = find.descendant(of: find.byType(AppBar), matching: find.byType(SearchBar));
+
     expect(searchBar, findsOneWidget);
     expect(tester.getTopLeft(searchBar).dx, 16);
     expect(find.descendant(of: searchBar, matching: find.text('Buscar')), findsOneWidget);
@@ -178,6 +181,7 @@ void main() {
     'next ones come in from the other side once they are gone',
     (tester) async {
       await pumpHome(tester, const Size(360, 640));
+
       final sections = find.byType(NavigationBar);
       final chips = find.byType(HomeChips);
       final searchBar = find.byType(SearchBar);
@@ -234,7 +238,9 @@ void main() {
     await tester.enterText(find.byType(TextField), 'dream');
     await tester.pump(HomePage.searchTypingPause);
     await tester.pump();
+
     final field = tester.state<EditableTextState>(find.byType(EditableText)).widget.focusNode;
+
     expect(tester.testTextInput.isVisible, isTrue);
 
     await tester.tap(find.text('Músicas'));
@@ -260,12 +266,14 @@ void main() {
 
   testWidgets('on a phone, with the keyboard open, a touch off the search bar only closes it', (tester) async {
     final (player, _) = await pumpHome(tester, const Size(360, 640));
+
     await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Buscar')));
     await tester.pumpAndSettle();
     await tester.tap(find.byType(TextField));
     // The keyboard, over the bottom of the screen.
     tester.view.viewInsets = const FakeViewPadding(bottom: 300);
     await tester.pump();
+
     final field = tester.state<EditableTextState>(find.byType(EditableText)).widget.focusNode;
 
     await tester.tap(find.text('Hard Rock'));
@@ -297,12 +305,15 @@ void main() {
     final (player, _) = await pumpHome(tester, const Size(360, 640));
     final sections = find.byType(NavigationBar);
     final bottom = tester.getRect(sections).bottom;
+
     expect(find.byType(NowPlayingBar), findsOneWidget);
     expect(tester.getRect(find.byType(NowPlayingBar)).bottom, tester.getRect(sections).top, reason: 'nothing plays');
 
     await player.playQueue(const [Song(id: 's1', title: 'Dream On')]);
     await tester.pump();
+
     final bar = tester.getRect(find.byType(NowPlayingBar));
+
     expect(tester.getRect(sections).top - bar.bottom, 2);
     expect(
       tester.widget<NavigationBar>(sections).backgroundColor?.a,
@@ -318,6 +329,7 @@ void main() {
 
     tester.view.padding = const FakeViewPadding(bottom: 24);
     final height = tester.getSize(sections).height;
+
     expect(height, 68, reason: 'lower than Material\'s 80');
     await tester.pump();
     expect(tester.getSize(find.byType(NowPlayingBar)).height, bar.height);
@@ -341,8 +353,10 @@ void main() {
     tester,
   ) async {
     await pumpHome(tester, const Size(1200, 640));
+
     final arrows = tester.getRect(find.byTooltip('Avançar'));
     final bar = tester.getRect(find.byType(SearchBar));
+
     expect(find.byTooltip('Buscar'), findsNothing, reason: 'no section in the side rail: the bar is always there');
     expect(bar.center.dx, moreOrLessEquals(600, epsilon: 1));
     expect(bar.left, greaterThan(arrows.right));
@@ -360,8 +374,10 @@ void main() {
 
   testWidgets('where the middle has no room for it, the bar keeps clear of the arrows and the buttons', (tester) async {
     await pumpHome(tester, const Size(640, 640));
+
     final arrows = tester.getRect(find.byTooltip('Avançar'));
     final bar = tester.getRect(find.byType(SearchBar));
+
     expect(bar.left, greaterThan(arrows.right));
     expect(bar.right, lessThan(tester.getRect(find.byTooltip('Sem hub: só toca neste aparelho')).left));
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
@@ -386,7 +402,9 @@ void main() {
     await tester.pump(HomePage.searchTypingPause);
     await tester.pump();
     expect(find.text('Dream Police'), findsOneWidget);
+
     final field = tester.state<EditableTextState>(find.byType(EditableText)).widget.focusNode;
+
     expect(field.hasFocus, isTrue);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
@@ -406,7 +424,9 @@ void main() {
   testWidgets('the key "/" goes to the search bar, also as a keyboard types it with Shift; not while typing, where it '
       'goes on to the text field', (tester) async {
     await pumpHome(tester, const Size(1000, 640));
+
     final field = tester.state<EditableTextState>(find.byType(EditableText)).widget.focusNode;
+
     expect(field.hasFocus, isFalse);
 
     expect(await tester.sendKeyEvent(LogicalKeyboardKey.slash, character: '/'), isTrue);
@@ -441,10 +461,14 @@ void main() {
   testWidgets('on a phone, the search picked again goes to its bar, ready to type; with a page over it, it shows '
       'again', (tester) async {
     await pumpHome(tester, const Size(360, 640));
+
     final search = find.descendant(of: find.byType(NavigationBar), matching: find.text('Buscar'));
+
     await tester.tap(search);
     await tester.pumpAndSettle();
+
     final field = tester.state<EditableTextState>(find.byType(EditableText)).widget.focusNode;
+
     expect(field.hasFocus, isFalse);
     expect(tester.testTextInput.isVisible, isFalse);
 

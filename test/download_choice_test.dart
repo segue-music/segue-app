@@ -17,6 +17,7 @@ void main() {
 
   test('the files as they are, over Wi-Fi alone, until a pick, which the next launch, and a sign-out, keep', () async {
     final first = await DownloadChoice.load(mobileData: true);
+
     expect(first.value, const DownloadSettings());
     expect(first.value.quality, StreamQuality.original);
     expect(first.value.onMobileData, isFalse);
@@ -24,7 +25,9 @@ void main() {
     await first.pickQuality(StreamQuality.normal);
     await first.pickOnMobileData(true);
     await Session.clear();
+
     final again = await DownloadChoice.load(mobileData: true);
+
     expect(again.value, const DownloadSettings(quality: StreamQuality.normal, onMobileData: true));
   });
 
@@ -39,6 +42,7 @@ void main() {
     final settings = ValueNotifier(const DownloadSettings());
     final mobileData = ValueNotifier(false);
     final hold = DownloadHold(settings, mobileData);
+
     addTearDown(hold.dispose);
     expect(hold.value, isFalse);
 

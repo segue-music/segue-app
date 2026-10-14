@@ -27,6 +27,7 @@ class AudioInterruptions {
 
     try {
       final session = await AudioSession.instance;
+
       await session.configure(const AudioSessionConfiguration.music());
 
       return AudioInterruptions(
@@ -127,6 +128,7 @@ class AudioInterruptions {
       }
 
       final playing = player.playing;
+
       _pause();
       _resume = playing;
     } else {

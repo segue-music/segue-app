@@ -54,6 +54,7 @@ class _PlaylistsViewState extends State<PlaylistsView> {
   /// Loads them again, showing those there are until they come.
   Future<void> _reload() async {
     final reload = _load();
+
     // In braces: setState takes no callback that returns a future, as the assignment would.
     setState(() {
       _playlists = reload;

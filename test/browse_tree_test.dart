@@ -40,6 +40,7 @@ List<Object>? played((List<Song>, int)? queue) =>
 void main() {
   test('at the root, the car has four tabs: the home, the playlists, the albums and the artists, which open', () async {
     final tabs = await tree().children(AudioService.browsableRootId);
+
     expect(titles(tabs), [('Início', null), ('Playlists', null), ('Álbuns', null), ('Artistas', null)]);
     expect(tabs.every((tab) => tab.playable == false), isTrue);
   });
@@ -47,8 +48,11 @@ void main() {
   test('the home has the albums played last, then the mixes, which play, then the other rows of albums, each album in '
       'the first one that has it, as the app\'s home', () async {
     final home = await tree().children(BrowseTree.home);
+
     expect(titles(home.take(1).toList()), [('Pump', 'Tocados recentemente')]);
+
     final mixes = home.where((item) => item.extras?[groupTitle] == 'Mixes').toList();
+
     expect(mixes, isNotEmpty);
     expect(mixes.every((mix) => mix.playable ?? false), isTrue);
     expect(home.skip(1).take(mixes.length), mixes, reason: 'after them');
@@ -78,9 +82,11 @@ void main() {
   test('an album opens its radio, then its songs, each of which plays the album from it', () async {
     final browse = tree();
     final albums = await browse.children(BrowseTree.albums);
+
     expect(titles(albums).map((album) => album.$1), ['Kind of Blue', 'Pump', 'Toys in the Attic'], reason: 'by name');
 
     final songs = await browse.children(albums.last.id);
+
     expect(songs.map((song) => song.title), ['Rádio do álbum', 'Sweet Emotion', 'Walk This Way']);
     expect(songs.every((song) => song.playable ?? false), isTrue);
     expect(songs[1].artist, 'Aerosmith');
@@ -96,13 +102,16 @@ void main() {
   test('the playlists have the favorite songs first, then the playlists by name, which play from a song', () async {
     final browse = tree();
     final playlists = await browse.children(BrowseTree.playlists);
+
     expect(titles(playlists).map((playlist) => playlist.$1), ['Músicas favoritas', 'chill', 'Road trip']);
 
     final favorite = await browse.children(playlists.first.id);
+
     expect(favorite.map((song) => song.title), ['Love in an Elevator']);
     expect(played(await browse.queueOf(favorite.single.id)), ['Love in an Elevator', 0]);
 
     final roadTrip = await browse.children(playlists.last.id);
+
     expect(roadTrip.map((song) => song.title), ['Walk This Way', 'So What']);
     expect(played(await browse.queueOf(roadTrip.last.id)), ['Walk This Way', 'So What', 1]);
 
@@ -115,9 +124,12 @@ void main() {
   test('an artist opens their radio, which plays, then their albums', () async {
     final browse = tree();
     final artists = await browse.children(BrowseTree.artists);
+
     expect(artists.map((artist) => artist.title), ['Aerosmith', 'Miles Davis']);
     expect(artists.first.artUri, Uri.parse('cover:ar-ar1'));
+
     final items = await browse.children(artists.first.id);
+
     expect(items.map((item) => item.title), ['Rádio do artista', 'Toys in the Attic', 'Pump']);
     expect(items.map((item) => item.playable), [true, false, false]);
     expect(items.first.artUri, Uri.parse('cover:ar-ar1'));
@@ -127,12 +139,14 @@ void main() {
   test('a mix plays its first songs, then more of its own', () async {
     final browse = tree();
     final jazz = (await browse.children(BrowseTree.home)).firstWhere((item) => item.title == 'Jazz');
+
     expect(played(await browse.queueOf(jazz.id)), ['So What', 0]);
   });
 
   test('a search typed in the car finds songs, which play alone, then albums and artists, which open', () async {
     final browse = tree();
     final found = await browse.search('a');
+
     expect(titles(found).where((item) => item.$2 == 'Músicas').map((song) => song.$1), [
       'Walk This Way',
       'Love in an Elevator',
@@ -145,12 +159,14 @@ void main() {
     ]);
 
     final walk = found.firstWhere((item) => item.title == 'Walk This Way');
+
     expect(played(await browse.queueOf(walk.id)), ['Walk This Way', 0]);
   });
 
   group('said to the car', () {
     test('words that name an artist play their songs, mixed', () async {
       final queue = (await tree().queueForVoice('aerosmith'))!;
+
       expect(
         queue.$1.map((song) => song.title),
         unorderedEquals(['Sweet Emotion', 'Walk This Way', 'Love in an Elevator']),

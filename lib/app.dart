@@ -162,6 +162,7 @@ class _SegueAppState extends State<SegueApp> {
 
   Future<void> _signOut() async {
     final services = _services;
+
     setState(() {
       _services = null;
       _error = null;

@@ -36,6 +36,7 @@ PlayerController counted(List<Map<String, String>> scrobbles) {
     }),
   );
   final player = PlayerController(FakeEngine(), api);
+
   PlayCounter(player, api);
 
   return player;
@@ -47,6 +48,7 @@ void main() {
       final scrobbles = <Map<String, String>>[];
       final player = counted(scrobbles);
       final start = clock.now();
+
       player.playQueue(songs); // One: 3 minutes
       async.elapse(const Duration(minutes: 1));
       player.pause();
@@ -67,6 +69,7 @@ void main() {
     fakeAsync((async) {
       final scrobbles = <Map<String, String>>[];
       final player = counted(scrobbles);
+
       player.playQueue([const Song(id: 'l1', title: 'Long', duration: Duration(minutes: 12))]);
       async.elapse(const Duration(minutes: 1));
       player.seek(const Duration(minutes: 7));
@@ -82,6 +85,7 @@ void main() {
     fakeAsync((async) {
       final scrobbles = <Map<String, String>>[];
       final player = counted(scrobbles);
+
       player.playQueue([const Song(id: 'j1', title: 'Jingle', duration: Duration(seconds: 30)), ...songs]);
       async.elapse(const Duration(minutes: 1));
       player.next(); // One, 3 minutes
@@ -96,6 +100,7 @@ void main() {
     fakeAsync((async) {
       final scrobbles = <Map<String, String>>[];
       final player = counted(scrobbles);
+
       player.playQueue(songs);
       async.elapse(const Duration(minutes: 2));
       player.pause();
@@ -113,6 +118,7 @@ void main() {
     fakeAsync((async) {
       final scrobbles = <Map<String, String>>[];
       final player = counted(scrobbles);
+
       player.playQueue(songs, position: const Duration(minutes: 1), play: false);
       async.elapse(const Duration(minutes: 10));
       player.play();

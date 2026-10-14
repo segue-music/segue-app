@@ -14,7 +14,9 @@ SubsonicApi musicLibrary({List<(String, Map<String, String>)>? asked}) => Subson
   client: MockClient((request) async {
     final endpoint = request.url.pathSegments.last.replaceAll('.view', '');
     final query = request.url.queryParameters;
+
     asked?.add((endpoint, query));
+
     final found = _answer(endpoint, query);
 
     return found == null

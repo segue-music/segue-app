@@ -47,6 +47,7 @@ void main() {
   testWidgets('on a TV, with the controls hidden, the arrows and OK only bring them back, play focused, and do nothing '
       'else', (tester) async {
     final player = await pumpFullHdHome(tester);
+
     await openTvPlayer(tester);
 
     for (final key in [LogicalKeyboardKey.select, LogicalKeyboardKey.arrowRight, LogicalKeyboardKey.arrowDown]) {
@@ -107,8 +108,10 @@ void main() {
       'on the screen\'s whole pixels, and is back in it as they come', (tester) async {
     await pumpFullHdHome(tester);
     await openTvPlayer(tester);
+
     final place = tester.getRect(playerCover);
     final slider = tester.getRect(find.byType(Slider));
+
     await tester.pump(TelevisionControls.idle);
     await tester.pumpAndSettle();
     expect(controlsShown(), isFalse);
@@ -117,7 +120,9 @@ void main() {
 
     for (var i = 0; i < 70; i++) {
       await tester.pump(const Duration(seconds: 6));
+
       final moved = tester.getRect(playerCover).topLeft - place.topLeft;
+
       moves.add(moved);
       expect(tester.getRect(find.byType(Slider)).topLeft - slider.topLeft, moved, reason: 'all of it together');
     }
@@ -144,6 +149,7 @@ void main() {
     const channel = MethodChannel('segue/device');
     final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
     final keptOn = <Object?>[];
+
     messenger.setMockMethodCallHandler(channel, (call) async {
       if (call.method == 'keepScreenOn') {
         keptOn.add(call.arguments);
@@ -152,8 +158,10 @@ void main() {
       return null;
     });
     addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+
     // A song without lyrics, paused.
     final player = await pumpFullHdHome(tester);
+
     await openTvPlayer(tester);
     keptOn.clear();
 
@@ -176,7 +184,9 @@ void main() {
       client: tvPlaying(const QueueItem(id: 's1', title: 'Dream On', artist: 'Aerosmith', durationMs: 240000)),
     );
     await openPlayer(tester);
+
     final playingOn = find.text('Tocando em Sala de estar');
+
     expect(playingOn, findsOneWidget);
     expect(tester.getRect(playingOn).overlaps(tester.getRect(playerCover)), isFalse);
 
@@ -194,7 +204,9 @@ void main() {
       reason: 'not fading',
     );
     expect(pillAlpha(), 0);
+
     final played = find.descendant(of: find.byType(SeekSlider), matching: find.byType(Text)).first;
+
     expect(
       tester.getRect(find.descendant(of: pill, matching: find.byType(ThemedIcon))).left,
       tester.getRect(played).left,
@@ -225,11 +237,13 @@ void main() {
         ),
       );
       await openPlayer(tester);
+
       final title = tester.getRect(onPage(find.text('We R All Gonna Die (Live at the Arena, Remastered)')));
       final albumText = onPage(find.text('We R All Gonna Die'));
       final album = tester.getRect(albumText);
       // The room the player has, above the slider, which cuts off what goes past it.
       final room = tester.getRect(find.ancestor(of: albumText, matching: find.byType(Scrollable)).first);
+
       expect(
         title.height,
         greaterThan(tester.getRect(onPage(find.text("Mother's Cake"))).height * 1.5),
@@ -251,6 +265,7 @@ void main() {
       client: tvPlaying(const QueueItem(id: 's1', title: 'Dream On', artist: 'Aerosmith', durationMs: 240000)),
     );
     await openPlayer(tester);
+
     final times = find.descendant(of: find.byType(SeekSlider), matching: find.byType(Text));
     final played = tester.getRect(times.first);
     final length = tester.getRect(times.last);

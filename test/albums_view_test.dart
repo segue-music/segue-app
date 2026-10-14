@@ -67,6 +67,7 @@ Future<List<String>> pumpAlbums(
       }
 
       asked.add('${query['type']} ${query['offset']} ${query['size']}');
+
       final offset = int.parse(query['offset']!);
 
       if (offset == failing && query['type'] == 'alphabeticalByName') {
@@ -138,6 +139,7 @@ void main() {
   testWidgets('the albums tab lists them by name, or as picked: the latest released, the most played, the recently '
       'played or the latest added', (tester) async {
     final asked = await pumpAlbums(tester, count: 3);
+
     expect(picked(tester, 'Nome'), isTrue);
     expect(picked(tester, 'Adicionados recentemente'), isFalse);
 
@@ -194,6 +196,7 @@ void main() {
     );
 
     final (album, next) = ('Album 000', 'Album 001');
+
     expect(cover(album).left - tile(album).left, 8);
     expect(cover(album).top - tile(album).top, 8);
     expect(tile(album).right - cover(album).right, 8);
@@ -221,9 +224,12 @@ void main() {
 
   testWidgets('the albums tab lists them by name', (tester) async {
     final asked = await pumpAlbums(tester, count: 3);
+
     expect(asked, ['alphabeticalByName 0 200']);
+
     final first = tester.getRect(find.text('Album 000'));
     final second = tester.getRect(find.text('Album 001'));
+
     expect(second.left, greaterThan(first.left));
     expect(second.top, first.top);
     await tester.pumpWidget(const SizedBox()); // stops the player bar's timers
@@ -249,6 +255,7 @@ void main() {
 
   testWidgets('scrolling down brings the next albums, until there are no more', (tester) async {
     final asked = await pumpAlbums(tester, count: 450);
+
     expect(find.text('Album 449'), findsNothing);
     await scrollToEnd(tester, times: 4);
     expect(find.text('Album 449'), findsOneWidget);
@@ -259,19 +266,24 @@ void main() {
   testWidgets('on a phone, the albums go on behind the bars at the bottom, showing through the gap between them, and '
       'end clear of them', (tester) async {
     await pumpAlbums(tester, count: 30, size: const Size(360, 640));
+
     final player = ServicesScope.of(tester.element(find.byType(HomePage))).player;
+
     await player.playQueue(const [Song(id: 's1', title: 'Dream On')]);
     await tester.pumpAndSettle();
     expect(tester.getRect(find.byType(AlbumGrid)).bottom, 640);
 
     await scrollToEnd(tester);
+
     final last = find.ancestor(of: find.text('Album 029'), matching: find.byType(AlbumTile));
+
     expect(tester.getRect(last).bottom, lessThanOrEqualTo(tester.getRect(find.byType(NowPlayingBar)).top));
     await tester.pumpWidget(const SizedBox()); // stops the player bar's timers
   });
 
   testWidgets('a page the server fails says so at the end, and is asked for again from there', (tester) async {
     final asked = await pumpAlbums(tester, count: 300, failing: 200);
+
     await scrollToEnd(tester, times: 2); // the message comes under where the first stopped
     expect(find.textContaining('Não consegui listar mais álbuns'), findsOneWidget);
     expect(find.text('Album 199'), findsOneWidget);

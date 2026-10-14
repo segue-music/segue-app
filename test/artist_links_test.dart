@@ -20,6 +20,7 @@ Future<List<String>> pumpLinks(
   TextAlign? textAlign,
 }) async {
   final opened = <String>[];
+
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -52,6 +53,7 @@ void main() {
     tester,
   ) async {
     final opened = await pumpLinks(tester, 'Run-DMC; Aerosmith', [runDmc, aerosmith]);
+
     expect(links, findsNWidgets(2));
     expect(find.text(' · '), findsOneWidget);
     await tester.tap(find.text('Aerosmith'));
@@ -65,14 +67,17 @@ void main() {
       tester.getRect(find.text(' · ')),
       tester.getRect(find.text('Aerosmith')),
     );
+
     expect((between.left, second.left), (first.right, between.right));
     expect(between.width, first.width * 3 / 'Run-DMC'.length, reason: 'the test font\'s letters are all as wide');
   });
 
   testWidgets('centered, as in the full-screen player, the dot is still in the middle of its spaces', (tester) async {
     await pumpLinks(tester, '', [runDmc, aerosmith], textAlign: TextAlign.center);
+
     final letter = tester.getSize(find.text('Run-DMC')).width / 'Run-DMC'.length;
     final dot = tester.renderObject<RenderParagraph>(find.text(' · '));
+
     // Off its middle, it was half a space further.
     expect(
       dot.getOffsetForCaret(const TextPosition(offset: 1), Rect.zero).dx,
@@ -95,6 +100,7 @@ void main() {
     expect(links, findsNothing);
 
     final opened = await pumpLinks(tester, 'Run-DMC; Aerosmith', [], unknown: true);
+
     await tester.tap(find.text('Run-DMC; Aerosmith'));
     expect(opened, ['unknown']);
   });
@@ -104,10 +110,12 @@ void main() {
   ) async {
     const artists = [runDmc, aerosmith, robThomas];
     await pumpLinks(tester, '', artists);
+
     final letter = tester.getSize(find.text('Run-DMC')).width / 'Run-DMC'.length;
 
     // Room for "Run-DMC · Aero".
     final opened = await pumpLinks(tester, '', artists, width: letter * 'Run-DMC · Aero'.length);
+
     expect(tester.renderObject<RenderParagraph>(find.text('Run-DMC')).didExceedMaxLines, isFalse);
     expect(tester.renderObject<RenderParagraph>(find.text('Aerosmith')).didExceedMaxLines, isTrue);
     expect(find.text('Rob Thomas'), findsNothing);

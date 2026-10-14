@@ -134,8 +134,10 @@ class _LoginPageState extends State<LoginPage> {
       _busy = true;
       _error = null;
     });
+
     final strings = AppLocalizations.of(context);
     final server = normalizeServer(_server.text);
+
     MediaServer? api;
 
     try {

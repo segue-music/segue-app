@@ -16,7 +16,9 @@ void main() {
     await pumpHome(tester, const Size(360, 800));
     await openSettings(tester);
     await tester.scrollUntilVisible(settingsItem('Sair'), 200, scrollable: find.byType(Scrollable).last);
+
     final item = settingsItem('Entrar numa TV');
+
     expect(item, findsOneWidget);
     expect(find.descendant(of: item, matching: find.text('Com este login, lendo o código que a TV mostra')), findsOne);
     expect(tester.getRect(item).bottom, lessThanOrEqualTo(tester.getRect(settingsItem('Sair')).top));
@@ -47,6 +49,7 @@ void main() {
       deviceId: 'phone',
       deviceName: 'Phone',
     );
+
     await tester.pumpWidget(
       MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,

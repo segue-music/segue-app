@@ -157,6 +157,7 @@ class _EqualizerBandState extends State<EqualizerBand> {
   /// A tap at [position], from the band's top: to the gain there, or, right after another near it, back to 0 dB.
   void _tapped(Offset position) {
     final last = _lastTap;
+
     _doubleTapTimer?.cancel();
 
     if (last != null && (position - last).distance <= kDoubleTapSlop) {
@@ -173,6 +174,7 @@ class _EqualizerBandState extends State<EqualizerBand> {
   /// To the gain at [y], from the top of the slider.
   void _moveTo(double y) {
     final fraction = ((y - _margin) / EqualizerBand.trackHeight).clamp(0.0, 1.0);
+
     _move((maxBandGain - fraction * 2 * maxBandGain).round());
   }
 
@@ -334,6 +336,7 @@ class _BandPainter extends CustomPainter {
     final line = Paint()
       ..strokeWidth = 4
       ..strokeCap = StrokeCap.round;
+
     canvas
       ..drawLine(Offset(x, at(maxBandGain)), Offset(x, at(-maxBandGain)), line..color = track)
       ..drawLine(

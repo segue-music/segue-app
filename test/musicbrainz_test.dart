@@ -232,10 +232,13 @@ void main() {
   test('by the album\'s MusicBrainz id, its release\'s date and labels, asked as an app MusicBrainz knows', () async {
     final asked = <http.Request>[];
     final found = await musicBrainz(release: reissue, asked: asked).complete(album(musicBrainzId: 'r1'));
+
     expect(parts(found.date), (2012, 11, 2), reason: 'the edition\'s');
     expect(found.labels, ['Columbia']);
     expect(found.type, ReleaseType.album, reason: 'its release group\'s');
+
     final url = asked.single.url;
+
     expect(url.path, '/ws/2/release/r1');
     expect(url.queryParameters, {'inc': 'labels release-groups', 'fmt': 'json'});
     expect(asked.single.headers['User-Agent'], startsWith('Segue/'));
@@ -244,10 +247,15 @@ void main() {
   test('a date of only a year takes a fuller one of that year: the edition\'s, else the first', () async {
     final brainz = musicBrainz(release: reissue);
     final first = await brainz.complete(album(releaseDate: const ReleaseDate(1975), musicBrainzId: 'r1'));
+
     expect(parts(first.date), (1975, 4, 8));
+
     final other = await brainz.complete(album(releaseDate: const ReleaseDate(1980), musicBrainzId: 'r1'));
+
     expect(parts(other.date), (1980, null, null), reason: 'none of its year');
+
     final month = await brainz.complete(album(releaseDate: const ReleaseDate(1975, month: 5), musicBrainzId: 'r1'));
+
     expect(parts(month.date), (1975, 5, null), reason: 'none of its month');
   });
 
@@ -259,18 +267,23 @@ void main() {
     final kept = await brainz.complete(
       album(releaseDate: full, recordLabels: ['Sony'], musicBrainzId: 'r1', releaseType: ep),
     );
+
     expect(parts(kept.date), (1975, 4, 8));
     expect(kept.labels, ['Sony']);
     expect(kept.type, ep);
     await brainz.complete(album(releaseDate: full, releaseType: ep));
     expect(asked, isEmpty, reason: 'without a MusicBrainz id, it would look for a date and a type only');
+
     final dated = await brainz.complete(
       album(releaseDate: const ReleaseDate(1975), recordLabels: ['Sony'], musicBrainzId: 'r1', releaseType: ep),
     );
+
     expect(parts(dated.date), (1975, 4, 8), reason: 'a fuller date');
     expect(dated.labels, ['Sony'], reason: 'its own labels');
     expect(dated.type, ep, reason: 'its own type');
+
     final typed = await brainz.complete(album(releaseDate: full, recordLabels: ['Sony'], musicBrainzId: 'r1'));
+
     expect(typed.type, ReleaseType.album, reason: 'a type where it has none');
   });
 
@@ -284,6 +297,7 @@ void main() {
       ],
       asked: asked,
     ).complete(album());
+
     expect(parts(found.date), (1975, 4, 8));
     expect(found.labels, isEmpty);
     expect(asked.single.url.path, '/ws/2/release-group');
@@ -342,11 +356,13 @@ void main() {
         group(title: 'Walk This Way', date: '1986-07-04', credit: [('Run‐DMC', ' & '), ('Aerosmith', '')]),
       ],
     ).complete(album(name: 'Walk This Way', artist: 'Run-DMC, Aerosmith', year: null));
+
     expect(parts(found.date), (1986, 7, 4));
   });
 
   test('a name with quotes stays one phrase in the search', () async {
     final asked = <http.Request>[];
+
     await musicBrainz(asked: asked).complete(album(name: r'The "Best" \ Rest'));
     expect(asked.single.url.queryParameters['query'], startsWith(r'releasegroup:"The \"Best\" \\ Rest" AND'));
   });
@@ -363,10 +379,12 @@ void main() {
       }),
     );
     final failed = await brainz.complete(album(releaseDate: const ReleaseDate(1975), musicBrainzId: 'r1'));
+
     expect(parts(failed.date), (1975, null, null));
     expect(failed.labels, isEmpty);
     status = 200;
     final found = await brainz.complete(album(releaseDate: const ReleaseDate(1975), musicBrainzId: 'r1'));
+
     expect(parts(found.date), (1975, 4, 8));
     expect(found.labels, ['Columbia']);
     await brainz.complete(album(releaseDate: const ReleaseDate(1975), musicBrainzId: 'r1'));
@@ -384,7 +402,9 @@ void main() {
           return statuses.removeAt(0) == 200 ? json(reissue) : http.Response('', 503);
         }),
       );
+
       AlbumRelease? first;
+
       brainz.complete(album(musicBrainzId: 'r1')).then((found) => first = found).ignore();
       async.flushMicrotasks();
       expect(asked, hasLength(1));
@@ -393,7 +413,9 @@ void main() {
       async.elapse(const Duration(seconds: 5));
       expect(asked, hasLength(2), reason: 'no more');
       expect(first?.labels, isEmpty);
+
       AlbumRelease? second;
+
       brainz.complete(album(musicBrainzId: 'r1')).then((found) => second = found).ignore();
       async.elapse(const Duration(seconds: 1));
       expect(asked, hasLength(4));
@@ -409,8 +431,11 @@ void main() {
         artist: lifeSpan(begin: '1966-05', end: '1978', ended: true),
         asked: asked,
       );
+
       expect((await brainz.band(mutantes))?.years, (begin: 1966, end: 1978, ended: true));
+
       final url = asked.single.url;
+
       expect(url.path, '/ws/2/artist/mb1');
       expect(url.queryParameters, {'inc': 'artist-rels', 'fmt': 'json'}, reason: 'its members too');
       await brainz.band(mutantes);
@@ -448,6 +473,7 @@ void main() {
         artist: lifeSpan(begin: '1966'),
         asked: asked,
       );
+
       expect(await brainz.band(const Artist(id: 'ar1', name: 'Os Mutantes')), isNull);
       expect(asked, isEmpty);
       expect(await musicBrainz().band(mutantes), isNull, reason: 'an id MusicBrainz no longer has');
@@ -477,6 +503,7 @@ void main() {
         ],
       },
     ).band(mutantes);
+
     expect(band?.years, (begin: 1970, end: null, ended: false));
     // As lists: a record's list equals only itself.
     expect(
@@ -541,6 +568,7 @@ void main() {
         ],
       },
     ).band(mutantes);
+
     expect(band?.years, (begin: 1960, end: 1970, ended: true));
     expect(
       [
@@ -584,11 +612,13 @@ void main() {
           'relations': relations,
         },
       ).band(mutantes);
+
       expect(band?.years, (begin: 1882, end: null, ended: false), reason: type);
       expect(band?.members, isEmpty, reason: type);
     }
 
     final group = await musicBrainz(artist: {...lifeSpan(), 'relations': relations}).band(mutantes);
+
     expect(group?.years, isNull);
     expect([for (final member in group!.members) member.name], ['Someone']);
   });
@@ -606,6 +636,7 @@ void main() {
       areas: boston,
       asked: asked,
     );
+
     expect(await brainz.origin(mutantes).toList(), [(place: 'Boston', country: 'US')], reason: 'nothing to correct');
     expect(
       [for (final request in asked) request.url.path],
@@ -634,6 +665,7 @@ void main() {
         'dumbarton': area('dumbarton', 'Dumbarton', partOf: area('sct', 'Scotland', codes: ['GB-SCT'])),
       },
     );
+
     expect(await brainz.origin(mutantes).toList(), [
       (place: 'Dumbarton', country: 'US'),
       (place: 'Dumbarton', country: 'GB'),
@@ -649,21 +681,25 @@ void main() {
       'begin-area': {'id': id, 'name': name},
     };
     final first = musicBrainz(artist: bornIn('boston', 'Boston'), areas: boston, remembersCountries: true);
+
     expect(await first.origin(mutantes).toList(), [(place: 'Boston', country: 'GB'), (place: 'Boston', country: 'US')]);
 
     final asked = <http.Request>[];
     final next = musicBrainz(artist: bornIn('boston', 'Boston'), areas: boston, asked: asked, remembersCountries: true);
+
     expect(await next.origin(mutantes).toList(), [(place: 'Boston', country: 'US')]);
     expect([for (final request in asked) request.url.path], ['/ws/2/artist/mb1']);
 
     // Another place in the county that one was in asks for itself alone.
     asked.clear();
+
     final another = musicBrainz(
       artist: bornIn('chelsea', 'Chelsea'),
       areas: {'chelsea': area('chelsea', 'Chelsea', partOf: area('suffolk', 'Suffolk County'))},
       asked: asked,
       remembersCountries: true,
     );
+
     expect(await another.origin(mutantes).toList(), [
       (place: 'Chelsea', country: 'GB'),
       (place: 'Chelsea', country: 'US'),
@@ -711,6 +747,7 @@ void main() {
       (<String, Object?>{}, []),
     ]) {
       final found = await musicBrainz(artist: {...lifeSpan(), ...artist}, asked: asked).origin(mutantes).toList();
+
       expect(found, origins, reason: '$artist');
     }
 
@@ -746,6 +783,7 @@ void main() {
         };
       }),
     );
+
     expect(await brainz.origin(mutantes).toList(), [(place: 'Boston', country: null)]);
     status = 200;
     expect(await brainz.origin(mutantes).toList(), [
@@ -766,6 +804,7 @@ void main() {
         return status == 200 ? json(lifeSpan(begin: '1966')) : http.Response('', status);
       }),
     );
+
     expect(await brainz.band(mutantes), isNull);
     status = 200;
     expect((await brainz.band(mutantes))?.years, (begin: 1966, end: null, ended: false));
@@ -854,7 +893,9 @@ void main() {
       'place-rels',
       'area-rels',
     ]);
+
     final [first, second] = found!.tracks;
+
     expect((first.id, first.recording, second.id, second.recording), ('t1', 'rec1', 't2', 'rec2'));
     expect(
       [for (final credit in first.credits) (credit.name, credit.role, credit.part, credit.musicBrainzId)],
@@ -911,6 +952,7 @@ void main() {
   test('an album without a MusicBrainz id has no credits, and asks nothing; a release MusicBrainz doesn\'t have has '
       'none; one that fails has none, and is asked again the next time; one found, no more', () async {
     final asked = <http.Request>[];
+
     expect(await musicBrainz(asked: asked).credits(album()), isNull);
     expect(asked, isEmpty);
     expect(await musicBrainz(asked: asked).credits(album(musicBrainzId: 'r1')), isNull);
@@ -937,9 +979,11 @@ void main() {
               });
       }),
     );
+
     expect(await failing.credits(album(musicBrainzId: 'r1')), isNull);
     fails = false;
     final found = await failing.credits(album(musicBrainzId: 'r1'));
+
     expect(found?.tracks.single.credits.single.name, 'Jack Douglas');
     await failing.credits(album(musicBrainzId: 'r1'));
     expect(requests, 2);
@@ -949,6 +993,7 @@ void main() {
     fakeAsync((async) {
       final asked = <http.Request>[];
       final brainz = musicBrainz(release: reissue, asked: asked, spacing: const Duration(seconds: 1));
+
       brainz.complete(Album(id: 'a1', name: 'Toys in the Attic', musicBrainzId: 'r1')).ignore();
       brainz.complete(Album(id: 'a2', name: 'Rocks', musicBrainzId: 'r2')).ignore();
       async.flushMicrotasks();

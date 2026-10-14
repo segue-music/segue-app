@@ -32,6 +32,7 @@ void main() {
   test('the automatic quality is one to pick only on a device with mobile data: on another, a computer, it is the '
       'original, which it would always stream', () async {
     final (phone, laptop) = (QualityChoice(mobileData: true), QualityChoice());
+
     addTearDown(phone.dispose);
     addTearDown(laptop.dispose);
     expect(phone.options, StreamQuality.values);
@@ -46,7 +47,9 @@ void main() {
     'the original comes first, and each quality after it and the automatic one has a bitrate, lower down the list',
     () {
       expect(StreamQuality.values.take(2), [StreamQuality.original, StreamQuality.automatic]);
+
       final bitRates = [for (final quality in StreamQuality.values.skip(2)) quality.maxBitRate!];
+
       expect(StreamQuality.original.maxBitRate, isNull);
       expect(bitRates, [...bitRates]..sort((a, b) => b.compareTo(a)));
     },

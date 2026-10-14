@@ -15,7 +15,9 @@ Map<String, int> titleBarColors(Brightness brightness) {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
   final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+
   late List<Object?> painted;
 
   setUp(() {

@@ -102,6 +102,7 @@ Future<void> wait(WidgetTester tester, Duration time) async {
 /// A mouse over [finder]'s center, which opens the slider over the volume's button, all the way.
 Future<TestGesture> mouseOver(WidgetTester tester, Finder finder) async {
   final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+
   await mouse.addPointer(location: Offset.zero);
   addTearDown(mouse.removePointer);
   await mouse.moveTo(tester.getCenter(finder));
@@ -137,6 +138,7 @@ Future<void> drag(WidgetTester tester, TestGesture mouse, double from, List<doub
 /// A notch of the mouse's wheel over [at], up (louder) or down.
 Future<void> scroll(WidgetTester tester, Offset at, {required bool up}) async {
   final mouse = TestPointer(2, PointerDeviceKind.mouse);
+
   await tester.sendEventToBinding(mouse.hover(at));
   await tester.sendEventToBinding(mouse.scroll(Offset(0, up ? -20 : 20)));
   await tester.pump();
@@ -150,27 +152,35 @@ void main() {
       'pointer over it opens the slider over it, which stays while the pointer is on either, and closes a moment after '
       'it leaves them', (tester) async {
     final semantics = tester.ensureSemantics();
+
     await pumpBar(tester, size: const Size(960, 540), sleepTimer: true);
+
     final button = tester.getRect(volumeButton);
+
     expect(button.left, greaterThanOrEqualTo(tester.getRect(find.byTooltip('Aparelhos')).right));
     expect(button.right, lessThanOrEqualTo(960));
     expect(find.bySemanticsLabel('Silenciar'), findsOneWidget);
     expect(volumeSlider, findsNothing);
 
     final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+
     await mouse.addPointer(location: Offset.zero);
     addTearDown(mouse.removePointer);
     await mouse.moveTo(tester.getCenter(volumeButton));
     await tester.pump();
     await wait(tester, const Duration(milliseconds: 100));
+
     // Growing out of the button, as it shows.
     final (opening, growing) = popup(tester);
+
     expect(opening, inExclusiveRange(0, 1));
     expect(growing.height, inExclusiveRange(40, 140));
     expect(growing.width, 40);
     await wait(tester, const Duration(milliseconds: 200));
     expect(popup(tester), (1.0, const Size(40, 140)));
+
     final slider = tester.getRect(volumeSlider);
+
     expect(slider.bottom, lessThanOrEqualTo(button.top));
     expect(slider.center.dx, moreOrLessEquals(button.center.dx));
     expect(slider.height, greaterThan(100));
@@ -188,8 +198,10 @@ void main() {
     await wait(tester, const Duration(milliseconds: 250));
     expect(popup(tester), (1.0, const Size(40, 140)), reason: 'a moment after');
     await wait(tester, const Duration(milliseconds: 150));
+
     // Going back into the button, as it fades.
     final (closing, shrinking) = popup(tester);
+
     expect(closing, inExclusiveRange(0, 1));
     expect(shrinking.height, inExclusiveRange(40, 140));
     await wait(tester, const Duration(milliseconds: 200));
@@ -211,6 +223,7 @@ void main() {
     final semantics = tester.ensureSemantics();
     final player = await pumpBar(tester, size: const Size(1280, 700));
     final mouse = await mouseOver(tester, volumeButton);
+
     await mouse.down(onTrack(tester, 99));
     await tester.pump();
     await mouse.moveTo(onTrack(tester, 70));
@@ -224,6 +237,7 @@ void main() {
     await mouse.up();
     await wait(tester, const Duration(milliseconds: 600));
     expect(volumeSlider, findsNothing, reason: 'let go away from it');
+
     final volume = player.volume;
 
     await tester.tap(volumeButton);
@@ -248,6 +262,7 @@ void main() {
 
   testWidgets('a notch of the mouse\'s wheel, over the button or the slider, moves the volume by 5', (tester) async {
     final player = await pumpBar(tester, size: const Size(1280, 700));
+
     await scroll(tester, tester.getCenter(volumeButton), up: false);
     expect(player.volume, 95);
     await wait(tester, const Duration(milliseconds: 300));
@@ -266,8 +281,11 @@ void main() {
   testWidgets('on another device, the slider shows its volume, which goes to it once, a moment after the slider '
       'stops', (tester) async {
     final client = TvClient();
+
     await pumpBar(tester, client: client, size: const Size(1280, 700));
+
     final mouse = await mouseOver(tester, volumeButton);
+
     expect(sliderValue(tester), 40);
 
     await mouse.down(onTrack(tester, 40));
@@ -312,9 +330,12 @@ void main() {
   testWidgets('the keyboard\'s focus on the button opens the slider, and its up and down arrows move the volume, which '
       'goes to another device once they stop', (tester) async {
     final client = TvClient();
+
     await pumpBar(tester, client: client, size: const Size(1280, 700));
+
     // The button's own, the nearest over its icon.
     final button = Focus.of(tester.element(find.descendant(of: volumeButton, matching: find.byType(ThemedIcon))));
+
     button.requestFocus();
     await tester.pump();
     await wait(tester, const Duration(milliseconds: 300));
@@ -339,6 +360,7 @@ void main() {
 
   testWidgets('on a device that takes no volume, it shows the device\'s, and moves nothing', (tester) async {
     final client = TvClient(volume: 30, canSetVolume: false);
+
     await pumpBar(tester, client: client, size: const Size(1280, 700));
     await mouseOver(tester, volumeButton);
     expect(sliderValue(tester), 30);
@@ -354,11 +376,13 @@ void main() {
   test('the player starts at the volume kept, and keeps the one set, here or from another device, for the next '
       'launch; a fade\'s it doesn\'t', () async {
     expect((await VolumeChoice.load()).value, 100, reason: 'until one is set');
+
     final player = PlayerController(
       FakeEngine(),
       SubsonicApi(Uri.parse('https://music.test'), credentials),
       volume: VolumeChoice(40),
     );
+
     expect(player.volume, 40);
 
     await player.setVolume(70);

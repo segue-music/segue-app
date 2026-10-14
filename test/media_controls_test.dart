@@ -60,6 +60,7 @@ void main() {
     );
     final player = PlayerController(FakeEngine(), api);
     final controls = MediaControls()..attach(ConnectController(player: player), api);
+
     expect(controls.mediaItem.value, isNull);
 
     await player.playQueue(songs, position: const Duration(seconds: 30));
@@ -113,9 +114,12 @@ void main() {
       ),
     );
     final connect = ConnectController(player: PlayerController(FakeEngine(), api), client: client);
+
     // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
     client.notifyListeners(); // as when the TV's state arrives
+
     final controls = MediaControls()..attach(connect, api);
+
     expect(controls.mediaItem.value?.artist, 'Aerosmith', reason: 'without the app\'s words yet');
 
     controls.strings = lookupAppLocalizations(const Locale('pt'));
@@ -148,6 +152,7 @@ void main() {
       client: MockClient((_) async => http.Response('', 404)),
     );
     final connect = ConnectController(player: PlayerController(FakeEngine(), api));
+
     controls.attach(connect, null);
     expect(connect.playRestoredBy, isNotNull);
     controls.attach(null, null);
@@ -159,10 +164,12 @@ void main() {
       var opened = 0;
       controls.open = () => opened++;
       final tabs = controls.getChildren(AudioService.browsableRootId);
+
       await pumpEventQueue();
       expect(opened, 1);
 
       final api = musicLibrary();
+
       controls.attach(ConnectController(player: PlayerController(FakeEngine(), api)), api);
       expect((await tabs).map((tab) => tab.title), ['Home', 'Playlists', 'Albums', 'Artists'], reason: 'English first');
       controls.strings = lookupAppLocalizations(const Locale('pt'));
@@ -178,8 +185,11 @@ void main() {
     test('the car is told that what it opened changed, as the session or the language does, and asks again', () async {
       final controls = MediaControls();
       final told = <Map<String, dynamic>>[];
+
       controls.subscribeToChildren(AudioService.browsableRootId).listen(told.add);
+
       final api = musicLibrary();
+
       controls.attach(ConnectController(player: PlayerController(FakeEngine(), api)), api);
       await pumpEventQueue();
       expect(told, hasLength(1));
@@ -198,6 +208,7 @@ void main() {
         final client = tvPlaying();
         final player = PlayerController(FakeEngine(), api);
         final connect = ConnectController(player: player, client: client);
+
         // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
         client.notifyListeners(); // as when the TV's state arrives
         expect(connect.activeId, 'tv');
@@ -205,6 +216,7 @@ void main() {
         final controls = MediaControls()..attach(connect, api);
         final albums = await controls.getChildren('albums');
         final songs = await controls.getChildren(albums.last.id);
+
         await controls.playFromMediaId(songs.last.id);
         expect(titles(player), ['Sweet Emotion', 'Walk This Way']);
         expect(player.current?.title, 'Walk This Way');
@@ -241,8 +253,11 @@ void main() {
     test('the car shows a stretch of the queue around the current track, and plays the track picked in it', () async {
       final api = musicLibrary();
       final player = PlayerController(FakeEngine(), api);
+
       await player.playQueue([for (var i = 0; i < 150; i++) Song(id: 's$i', title: 'Song $i')], index: 50, play: false);
+
       final controls = MediaControls()..attach(ConnectController(player: player), api);
+
       expect(controls.queue.value.first.title, 'Song 40');
       expect(controls.queue.value.last.title, 'Song 149');
       expect(controls.playbackState.value.queueIndex, 10);
@@ -261,8 +276,11 @@ void main() {
         final api = musicLibrary();
         final player = PlayerController(FakeEngine(), api);
         final controls = MediaControls()..attach(ConnectController(player: player), api);
+
         await player.playQueue(songs, play: false);
+
         final recent = await controls.getChildren(AudioService.recentRootId);
+
         expect(recent.single.title, 'Dream On');
         expect(recent.single.playable, isTrue);
 

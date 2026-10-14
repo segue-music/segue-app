@@ -24,6 +24,7 @@ class _FailedSongMessageState extends State<FailedSongMessage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+
     final player = ServicesScope.of(context).player;
 
     if (player != _player) {
@@ -45,6 +46,7 @@ class _FailedSongMessageState extends State<FailedSongMessage> {
 
     if (player.failed && !_failed && song != null) {
       final message = AppLocalizations.of(context).couldNotPlaySong(song.title);
+
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     }
 

@@ -103,6 +103,7 @@ void main() {
     () {
       for (final palette in Palette.values) {
         final primary = segueTheme(Brightness.dark, palette: palette, highContrast: true).colorScheme.primary;
+
         expect(HSLColor.fromColor(primary).saturation, greaterThan(0.5), reason: '$palette');
         expect(HSLColor.fromColor(primary).lightness, lessThan(0.9), reason: '$palette');
       }
@@ -120,6 +121,7 @@ void main() {
       ]) {
         final theme = segueTheme(Brightness.dark, palette: palette);
         final colors = theme.colorScheme;
+
         expect(colors.surface, background, reason: '$palette');
         expect(theme.scaffoldBackgroundColor, background, reason: '$palette');
         expect(background.computeLuminance(), lessThan(0.003), reason: '$palette: nearly black');
@@ -151,6 +153,7 @@ void main() {
       segueTheme(Brightness.light, palette: Palette.wine).colorScheme,
       segueTheme(Brightness.light).colorScheme,
     );
+
     expect(rose.onSurface, iconWine);
 
     for (final (role, color, first) in [
@@ -247,6 +250,7 @@ void main() {
   testWidgets('a top bar keeps its color as a page scrolls under it, in the light and in the dark', (tester) async {
     for (final brightness in Brightness.values) {
       final theme = segueTheme(brightness);
+
       await tester.pumpWidget(
         MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,

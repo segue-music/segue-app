@@ -108,6 +108,7 @@ Future<PairingServer> tv(http.Client server, List<Session> signedIn) async {
     name: 'TV',
     address: InternetAddress.loopbackIPv4,
   );
+
   addTearDown(pairing!.close);
 
   return pairing;
@@ -117,6 +118,7 @@ void main() {
   test('the TV\'s QR code says where it listens, its name, and a key for this once; nothing else is taken for one', () {
     final invite = PairingInvite.random('192.168.1.6:41234', 'Living room');
     final read = PairingInvite.parse('$invite')!;
+
     expect('$invite', startsWith('segue://pair?v=2&'));
     expect((read.address, read.name, read.id), (invite.address, 'Living room', invite.id));
     expect(read.key, invite.key);
@@ -178,6 +180,7 @@ void main() {
       ),
     );
     final json = offer.toJson();
+
     expect(json, {'server': 'https://music.example', 'api': 'subsonic', 'username': 'alice', 'apiKey': 'k3y'});
     expect(
       PairingOffer.fromJson(json).credentials,
@@ -188,9 +191,11 @@ void main() {
   test('a sign-in sealed with the code\'s key opens only with it, and only at the invite\'s id', () async {
     final invite = PairingInvite.random('192.168.1.6:1', 'TV');
     final sealed = await PairingOffer.of(phone).seal(invite);
+
     expect(utf8.decode(sealed, allowMalformed: true), isNot(contains('t0k3n')), reason: 'sealed');
 
     final offer = await PairingOffer.open(sealed, invite);
+
     expect(offer.toJson(), {
       'server': 'https://music.example',
       'hub': 'wss://hub.example/connect/v1/ws',
@@ -201,8 +206,11 @@ void main() {
     });
 
     final another = PairingInvite.random('192.168.1.6:1', 'TV');
+
     await expectLater(PairingOffer.open(sealed, another), throwsFormatException);
+
     final elsewhere = PairingInvite(address: invite.address, name: invite.name, id: another.id, key: invite.key);
+
     await expectLater(PairingOffer.open(sealed, elsewhere), throwsFormatException, reason: 'another id');
     await expectLater(PairingAnswer.open(sealed, invite), throwsFormatException, reason: 'not an answer');
   });
@@ -212,8 +220,11 @@ void main() {
     final pairing = await tv(subsonicServer, signedIn);
 
     final device = await offerSignIn(pairing.invite.value, phone, SubsonicApi(phone.server, subsonicCredentials));
+
     expect(device, 'TV');
+
     final session = signedIn.single;
+
     expect((session.server, session.hub, session.deviceId), (phone.server, phone.hub, 'tv'));
     expect(
       session.credentials,
@@ -255,6 +266,7 @@ void main() {
       session,
       JellyfinApi(phone.server, credentials, deviceId: 'phone', deviceName: 'Phone', client: server.client),
     );
+
     expect(device, 'TV');
     expect(server.authorized, isTrue);
 
@@ -288,6 +300,7 @@ void main() {
     final pairing = await tv(subsonicServer, []);
     final invite = pairing.invite.value;
     final client = http.Client();
+
     addTearDown(client.close);
 
     var response = await client.post(Uri.parse('http://${invite.address}/pair/guess'), body: 'hello');
@@ -321,7 +334,9 @@ void main() {
         offerSignIn(first, session, SubsonicApi(phone.server, wrong)),
         throwsA(isA<PairingRefused>().having((e) => e.error, 'error', PairingError.wrongCredentials)),
       );
+
       final second = pairing.invite.value;
+
       expect(shown, 1);
       expect((second.address, second.name), (first.address, first.name));
       expect(second.id, isNot(first.id));
@@ -360,6 +375,7 @@ void main() {
     }
 
     final sealed = await someoneElses.seal(invite);
+
     expect(
       await offerSignIn(invite, session, api, client: MockClient((_) async => http.Response.bytes(sealed, 202))),
       'TV',
@@ -371,6 +387,7 @@ void main() {
     expect(PairingOffer.of(phone).api, Api.subsonic);
     const credentials = JellyfinCredentials(username: 'alice', userId: 'u1', token: 'phone-token');
     final jellyfin = Session(server: phone.server, credentials: credentials, deviceId: 'phone', deviceName: 'Phone');
+
     expect(PairingOffer.of(jellyfin).toJson(), {'server': 'https://music.example', 'api': 'jellyfin'});
   });
 }
