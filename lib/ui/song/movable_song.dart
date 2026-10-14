@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../widgets/directional_navigation.dart';
+import '../widgets/touch_screen.dart';
 
 /// A list's songs that move (the queue's from the one on top, a playlist's), as a sliver: dragged, on a touch screen
 /// once held a moment, since a drag scrolls the list, and with a mouse at once; on a TV, which has no drag, by the
@@ -51,23 +52,18 @@ class _MovableSongsState extends State<MovableSongs> {
       return _keyed(widget.keys, (context, i) => widget.itemBuilder(context, i, null));
     }
 
-    if (DirectionalNavigation.of(context)) {
+    if (context.television) {
       return _byRemote(onMove);
     }
 
     final keys = widget.keys;
     final theme = Theme.of(context);
-    final touch = switch (theme.platform) {
-      TargetPlatform.android || TargetPlatform.iOS || TargetPlatform.fuchsia => true,
-      TargetPlatform.linux || TargetPlatform.macOS || TargetPlatform.windows => false,
-    };
-
     return SliverReorderableList(
       itemCount: keys.length,
       itemBuilder: (context, i) {
         final song = widget.itemBuilder(context, i, null);
 
-        return touch
+        return context.touch
             ? ReorderableDelayedDragStartListener(key: keys[i], index: i, child: song)
             : ReorderableDragStartListener(key: keys[i], index: i, child: song);
       },

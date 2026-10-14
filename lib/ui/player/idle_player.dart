@@ -41,7 +41,7 @@ class _IdlePlayerState extends State<IdlePlayer> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final connect = DirectionalNavigation.of(context) ? ServicesScope.of(context).connect : null;
+    final connect = context.television ? ServicesScope.of(context).connect : null;
 
     if (connect == _connect) {
       return;

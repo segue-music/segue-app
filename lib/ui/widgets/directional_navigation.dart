@@ -9,9 +9,6 @@ class DirectionalNavigation extends StatelessWidget {
   final bool enabled;
   final Widget child;
 
-  /// Whether the remote drives the app where [context] is, as on a TV; not where no [MediaQuery] is above it.
-  static bool of(BuildContext context) => MediaQuery.maybeNavigationModeOf(context) == NavigationMode.directional;
-
   @override
   Widget build(BuildContext context) => enabled
       ? MediaQuery(
@@ -19,4 +16,11 @@ class DirectionalNavigation extends StatelessWidget {
           child: child,
         )
       : child;
+}
+
+extension TelevisionContext on BuildContext {
+  /// Whether the remote drives the app here, as on a TV: the navigation mode [DirectionalNavigation] sets, read from
+  /// the tree rather than asked of the platform, so that a test's tree, or a screenshot's, says it for itself. Not where
+  /// no [MediaQuery] is above.
+  bool get television => MediaQuery.maybeNavigationModeOf(this) == NavigationMode.directional;
 }

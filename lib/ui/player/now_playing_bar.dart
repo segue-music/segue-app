@@ -73,7 +73,7 @@ class NowPlayingBar extends StatelessWidget {
     final wide = MediaQuery.sizeOf(context).width >= wideFrom;
     final lyrics = this.lyrics;
 
-    if (PageArea.holds(context) || DirectionalNavigation.of(context)) {
+    if (PageArea.holds(context) || context.television) {
       return const SizedBox.shrink();
     }
 

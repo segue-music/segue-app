@@ -21,7 +21,7 @@ class SignInTvPage extends StatefulWidget {
   /// TV, which signs in that way itself.
   static bool available(BuildContext context) =>
       (defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS) &&
-      !DirectionalNavigation.of(context);
+      !context.television;
 
   @override
   State<SignInTvPage> createState() => _SignInTvPageState();

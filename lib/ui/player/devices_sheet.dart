@@ -9,6 +9,7 @@ import '../widgets/directional_navigation.dart';
 import '../widgets/equalizer.dart';
 import '../widgets/errors.dart';
 import '../widgets/themed_icon.dart';
+import '../widgets/touch_screen.dart';
 
 /// The device picker: pick where the music plays.
 Future<void> showDevicesSheet(BuildContext context) =>
@@ -81,21 +82,19 @@ class _DevicesSheet extends StatelessWidget {
     );
   }
 
-  /// What this device is: a TV, which the remote drives; a phone or a tablet, by its touch screen and how wide it
-  /// is (600 across or more, as Material counts, a tablet); or else a computer. Of the other devices the protocol
-  /// says nothing of the kind, so they are all speakers.
+  /// What this device is: a TV, which the remote drives; a phone, or else a tablet, by its touch screen
+  /// ([TouchScreenContext]); or else a computer. Of the other devices the protocol says nothing of the kind, so they
+  /// are all speakers.
   static HugeIconData _thisDeviceIcon(BuildContext context) {
-    if (DirectionalNavigation.of(context)) {
+    if (context.television) {
       return HugeIcons.strokeRoundedTv01;
     }
 
-    return switch (Theme.of(context).platform) {
-      TargetPlatform.android || TargetPlatform.iOS || TargetPlatform.fuchsia =>
-        MediaQuery.sizeOf(context).shortestSide >= 600
-            ? HugeIcons.strokeRoundedTablet01
-            : HugeIcons.strokeRoundedSmartphone,
-      TargetPlatform.linux || TargetPlatform.macOS || TargetPlatform.windows => HugeIcons.strokeRoundedComputer,
-    };
+    if (context.phone) {
+      return HugeIcons.strokeRoundedSmartphone;
+    }
+
+    return context.touch ? HugeIcons.strokeRoundedTablet01 : HugeIcons.strokeRoundedComputer;
   }
 
   /// Whether a device plays (equalizer) and whether the app controls it (check).

@@ -171,7 +171,7 @@ class _PlayerPageState extends State<PlayerPage> with SingleTickerProviderStateM
       // On a TV, play, in its controls, takes the focus instead, the remote starting from it. Out of the arrows' and
       // Tab's way: as wide as the page, it would be where the remote went up from the bar, with nothing to show it.
       child: Focus(
-        autofocus: !DirectionalNavigation.of(context),
+        autofocus: !context.television,
         skipTraversal: true,
         child: _DragToClose(
           enabled: !wide,
@@ -186,7 +186,7 @@ class _PlayerPageState extends State<PlayerPage> with SingleTickerProviderStateM
                 final device = now.device;
                 final strings = AppLocalizations.of(context);
 
-                if (DirectionalNavigation.of(context)) {
+                if (context.television) {
                   return Scaffold(
                     // The cover's color, rather than the theme's.
                     backgroundColor: Colors.transparent,

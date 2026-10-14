@@ -8,6 +8,7 @@ import '../widgets/directional_navigation.dart';
 import '../widgets/errors.dart';
 import '../widgets/spinner.dart';
 import '../widgets/themed_icon.dart';
+import '../widgets/touch_screen.dart';
 import 'release_types.dart';
 
 /// A button that plays an album from its first song without opening it, in the middle of its cover,
@@ -64,23 +65,13 @@ class _AlbumPlayButtonState extends State<AlbumPlayButton> {
 
   @override
   Widget build(BuildContext context) {
-    // By the platform, not by whether a mouse is connected: on a computer the system says the mouse is
-    // gone whenever the pointer leaves the window.
-    final touch = switch (Theme.of(context).platform) {
-      TargetPlatform.android || TargetPlatform.iOS || TargetPlatform.fuchsia => true,
-      TargetPlatform.linux || TargetPlatform.macOS || TargetPlatform.windows => false,
-    };
-    // A TV, or a phone: a touch screen less than 600 across, as Material counts (the devices sheet's too).
-    final television = DirectionalNavigation.of(context);
-    final phone = touch && MediaQuery.sizeOf(context).shortestSide < 600;
-
-    if (television || phone) {
+    if (context.television || context.phone) {
       return const SizedBox.shrink();
     }
 
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 150),
-      child: touch
+      child: context.touch
           ? Center(child: _button(context))
           : widget.hovered || _loading
           // The shade comes and goes with the button, in the same fade, rounded as the thumbnail's or the

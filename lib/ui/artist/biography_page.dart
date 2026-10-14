@@ -155,12 +155,11 @@ class BiographyPage extends StatelessWidget {
   /// [place], where the artist comes from, as a link to it on a map ([showOnMap]); plain text on a TV.
   Widget _place(BuildContext context, String place) {
     final theme = Theme.of(context);
-    final television = DirectionalNavigation.of(context);
 
     return TextLink(
       place,
       tooltip: AppLocalizations.of(context).showOnMap,
-      onTap: television ? null : () => showOnMap(place, platform: theme.platform),
+      onTap: context.television ? null : () => showOnMap(place, platform: theme.platform),
       style: theme.textTheme.bodyLarge?.copyWith(color: Colors.white70),
       maxLines: 2,
     );

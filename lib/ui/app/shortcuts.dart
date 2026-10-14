@@ -104,7 +104,7 @@ class TextFieldArrowShortcuts extends StatelessWidget {
         TraversalDirection.down,
         ignoreTextFields: false,
       ),
-      if (DirectionalNavigation.of(context)) ...const {
+      if (context.television) ...const {
         SingleActivator(LogicalKeyboardKey.arrowLeft): DirectionalFocusIntent(
           TraversalDirection.left,
           ignoreTextFields: false,
@@ -145,7 +145,7 @@ class _ListShortcutsState extends State<ListShortcuts> {
       _ => null,
     };
 
-    if ((down == null && key != LogicalKeyboardKey.goBack) || !DirectionalNavigation.of(context)) {
+    if ((down == null && key != LogicalKeyboardKey.goBack) || !context.television) {
       return KeyEventResult.ignored;
     }
 
@@ -240,7 +240,7 @@ class _BackAction extends Action<_BackIntent> {
   /// instead, and a sheet, a menu or a dialog has none: Esc goes on to close them, as ever.
   ModalRoute<Object?>? _page(_BackIntent intent) {
     final focused = FocusManager.instance.primaryFocus?.context;
-    if (focused == null || _inTextField(focused) || (!intent.onTelevision && DirectionalNavigation.of(focused))) {
+    if (focused == null || _inTextField(focused) || (!intent.onTelevision && focused.television)) {
       return null;
     }
 
@@ -302,7 +302,7 @@ class _HistoryAction extends Action<_HistoryIntent> {
   bool isEnabled(_HistoryIntent intent) {
     final focused = FocusManager.instance.primaryFocus?.context;
 
-    if (focused == null || _inTextField(focused) || (!intent.onTelevision && DirectionalNavigation.of(focused))) {
+    if (focused == null || _inTextField(focused) || (!intent.onTelevision && focused.television)) {
       return false;
     }
 

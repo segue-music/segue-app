@@ -443,7 +443,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     };
     // Shown in another's place, as the window changes width, a section loads too.
     _opened.add(shown);
-    final television = DirectionalNavigation.of(context);
+    final television = context.television;
     // On a phone, as wide as the top bar leaves it; on a wide screen, at most 600 and two fifths of the window, which on
     // a TV's (960 wide) leaves the top bar more than the search.
     final searchWidth = narrow ? width : min(600.0, width * 0.4);

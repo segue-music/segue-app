@@ -75,7 +75,7 @@ class _QueuePageState extends State<QueuePage> {
     final strings = AppLocalizations.of(context);
     // On a TV the remote starts on the current track. Elsewhere the page itself takes the focus, so
     // that Esc closes it, and no track looks focused.
-    final television = DirectionalNavigation.of(context);
+    final television = context.television;
 
     void close() => Navigator.of(context).maybePop();
 

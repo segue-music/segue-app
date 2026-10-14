@@ -128,7 +128,7 @@ class LyricsView extends StatefulWidget {
   /// Whether they show as karaoke, sung along to from across the room: on a TV. There the line that plays is bigger
   /// than the rest, growing as it comes, and in the middle; the lines to come are fainter, and those gone by fainter
   /// still. The full-screen player opens with them, and gives them more of the screen.
-  static bool karaoke(BuildContext context) => DirectionalNavigation.of(context);
+  static bool karaoke(BuildContext context) => context.television;
 
   /// How long the line that plays, as karaoke, takes to grow, and the one before to shrink.
   static const _grow = Duration(milliseconds: 300);

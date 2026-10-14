@@ -49,7 +49,7 @@ class _FocusRingState extends State<FocusRing> {
   /// sideways: a row of cards keeps the one with the focus in its first one's place (`TileRow`), and a grid doesn't
   /// scroll that way.
   void _showGrown() {
-    if (!widget.grows || !DirectionalNavigation.of(context)) {
+    if (!widget.grows || !context.television) {
       return;
     }
 
@@ -75,7 +75,7 @@ class _FocusRingState extends State<FocusRing> {
   @override
   Widget build(BuildContext context) {
     final shown = _focused && FocusManager.instance.highlightMode == FocusHighlightMode.traditional;
-    final grown = shown && widget.grows && DirectionalNavigation.of(context);
+    final grown = shown && widget.grows && context.television;
 
     return Focus(
       canRequestFocus: false,

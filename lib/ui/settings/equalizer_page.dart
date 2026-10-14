@@ -143,7 +143,7 @@ class _EqualizerBandState extends State<EqualizerBand> {
   }
 
   /// Whether up and down move it, rather than the focus: always, but on a TV until the center button takes it.
-  bool get _keysMove => widget.onChanged != null && (_taken || !DirectionalNavigation.of(context));
+  bool get _keysMove => widget.onChanged != null && (_taken || !context.television);
 
   void _move(int gain) {
     final clamped = gain.clamp(-maxBandGain, maxBandGain);
@@ -182,7 +182,6 @@ class _EqualizerBandState extends State<EqualizerBand> {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final enabled = widget.onChanged != null;
-    final television = DirectionalNavigation.of(context);
     final gain = widget.gain;
     final frequency = widget.frequency;
     final label = theme.textTheme.labelSmall?.copyWith(
@@ -215,7 +214,7 @@ class _EqualizerBandState extends State<EqualizerBand> {
         actions: {
           _MoveIntent: _MoveAction(this),
           // The center button, or Enter, takes it and lets it go.
-          if (television)
+          if (context.television)
             ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: (_) => setState(() => _taken = !_taken)),
         },
         child: ExcludeSemantics(

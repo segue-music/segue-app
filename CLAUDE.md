@@ -474,9 +474,9 @@ Running two app instances on one machine as different devices:
   they wait, its handler running in the test's clock.
 - Android TV: the remote drives the app through focus. That it does is Flutter's navigation mode, directional
   (`DirectionalNavigation`, `lib/ui/widgets/directional_navigation.dart`, which `TelevisionScreen` turns on), which
-  the pages ask with `DirectionalNavigation.of`, not the platform. A widget laid out otherwise for the remote throughout
-  is two, sharing the rest (`TileRow`: `_PointerTileRow`, `_TelevisionTileRow`), rather than one asking it at every
-  turn. `segueTheme` (`lib/ui/app/theme.dart`) gives
+  the pages ask with `context.television` (`TelevisionContext`), not the platform. A widget laid out otherwise for the
+  remote throughout is two, sharing the rest (`TileRow`: `_PointerTileRow`, `_TelevisionTileRow`), rather than one
+  asking it at every turn. `segueTheme` (`lib/ui/app/theme.dart`) gives
   focused buttons a ring and everything else a strong tint, and `FocusRing` draws a ring on tiles
   whose image hides the tint, and grows a card (`grows`: an album's, an artist's, a mix's) by 6% there, a row of
   them (`TileRow`) having the room above and below for it, and the page scrolling as far as shows it grown, ring and

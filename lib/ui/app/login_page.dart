@@ -62,7 +62,7 @@ class _LoginPageState extends State<LoginPage> {
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    if (!_pairingStarted && DirectionalNavigation.of(context)) {
+    if (!_pairingStarted && context.television) {
       _pairingStarted = true;
       unawaited(_startPairing());
     }

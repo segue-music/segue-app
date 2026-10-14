@@ -9,6 +9,7 @@ import 'directional_navigation.dart';
 import 'focus_ring.dart';
 import 'text_link.dart';
 import 'themed_icon.dart';
+import 'touch_screen.dart';
 
 /// A titled row of tiles (albums, artists), which scrolls sideways: dragged, by the remote going along its tiles, or,
 /// on a computer, by the arrows in its right corner.
@@ -54,11 +55,10 @@ class TileRow extends StatelessWidget {
 
   /// How much further in than the page's margin a row starts, its title and its tiles alike: on a TV, the room the card
   /// with the focus grows into ([_TelevisionTileRow]); elsewhere, none. What lines up with the rows starts there too.
-  static double startOf(BuildContext context) => DirectionalNavigation.of(context) ? _TelevisionTileRow._grownSide : 0;
+  static double startOf(BuildContext context) => context.television ? _TelevisionTileRow._grownSide : 0;
 
   @override
-  Widget build(BuildContext context) =>
-      DirectionalNavigation.of(context) ? _TelevisionTileRow(this) : _PointerTileRow(this);
+  Widget build(BuildContext context) => context.television ? _TelevisionTileRow(this) : _PointerTileRow(this);
 }
 
 /// A row that a finger drags, on a touch screen, or, on a computer, that the arrows in its corner scroll, the keyboard
@@ -105,19 +105,12 @@ class _PointerTileRowState extends State<_PointerTileRow> {
   Widget build(BuildContext context) {
     final row = widget.row;
     final tiles = row.tiles;
-    // By the platform, not by whether a mouse is connected: on a computer the system says the mouse is
-    // gone whenever the pointer leaves the window.
-    final touch = switch (Theme.of(context).platform) {
-      TargetPlatform.android || TargetPlatform.iOS || TargetPlatform.fuchsia => true,
-      TargetPlatform.linux || TargetPlatform.macOS || TargetPlatform.windows => false,
-    };
-
     return _TitledRow(
       row: row,
       // As tall with the arrows as without them.
       titleHeight: 48,
       // None on a touch screen, where a finger drags the row.
-      trailing: touch ? null : _arrows(),
+      trailing: context.touch ? null : _arrows(),
       strip: tiles == null
           ? null
           : NotificationListener<ScrollMetricsNotification>(
