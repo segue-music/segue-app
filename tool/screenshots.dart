@@ -23,6 +23,7 @@ import 'package:segue/player/player.dart';
 import 'package:segue/player/sleep_timer.dart';
 import 'package:segue/segue/client.dart';
 import 'package:segue/segue/protocol.dart';
+import 'package:segue/server/server.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
@@ -94,25 +95,46 @@ void main() {
     await _save(tester, _Device.tv);
     await tester.pumpWidget(const SizedBox());
   }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
+  testWidgets('a phone: the device picker, the music on the TV', (tester) async {
+    // Nothing plays here: the TV plays the song of the TV's picture, and the app follows it there; the kitchen speaker
+    // has another paused.
+    final hub = (await _pumpApp(tester, _Device.phone)).connect.client!;
+
+    _report(hub, 'tv', 'kite-1', PlaybackStatus.playing);
+    _report(hub, 'speaker', 'varanda-2', PlaybackStatus.paused);
+    await _settle(tester);
+    await tester.tap(find.descendant(of: find.byTooltip(_strings.openPlayer), matching: find.byType(Cover)));
+    await _settle(tester);
+    await tester.tap(find.byTooltip(_strings.devices).last);
+    await _settle(tester);
+    await _save(tester, _Device.phone, name: 'devices');
+    await tester.pumpWidget(const SizedBox());
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 }
 
 final _strings = lookupAppLocalizations(_language);
 final _screen = GlobalKey();
 
-/// The devices the pictures are of: each picture is named after its device, which it shows in its frame ([_frame]).
+/// The devices the pictures are of: each picture is named after its device, which it shows in its frame ([_frame]),
+/// or, the second of a device, after what it shows ([_save]).
 enum _Device {
-  phone(Size(393, 852), 3, statusBar: 32, gestureBar: 20),
-  tablet(Size(1194, 834), 2, brightness: Brightness.light, statusBar: 24, gestureBar: 20),
-  desktop(Size(1440, 900), 2),
-  tv(Size(960, 540), 2);
+  phone('Phone', Size(393, 852), 3, statusBar: 32, gestureBar: 20),
+  tablet('Tablet', Size(1194, 834), 2, brightness: Brightness.light, statusBar: 24, gestureBar: 20),
+  desktop('Desktop', Size(1440, 900), 2),
+  tv('TV', Size(960, 540), 2);
 
   const _Device(
+    this.label,
     this.size,
     this.pixelRatio, {
     this.brightness = Brightness.dark,
     this.statusBar = 0,
     this.gestureBar = 0,
   });
+
+  /// Its name, as the device picker shows it.
+  final String label;
 
   /// The screen's size, in logical pixels.
   final Size size;
@@ -130,19 +152,23 @@ enum _Device {
 }
 
 /// The app signed in to the made-up library, its hub connected, on [device]'s screen, playing here the first song of
-/// [album] (its id), a minute in, its pictures loaded; its services, for a picture to set up further.
-Future<Services> _pumpApp(WidgetTester tester, _Device device, {required String album}) async {
+/// [album] (its id), a minute in, where there is one, its pictures loaded; its services, for a picture to set up
+/// further.
+Future<Services> _pumpApp(WidgetTester tester, _Device device, {String? album}) async {
   final api = SubsonicApi(_server, _credentials, client: MockClient((request) async => _answer(request)));
   final player = PlayerController(FakeEngine(), api);
-  final (_, songs) = await api.album(album);
 
-  await player.playQueue(songs, position: const Duration(seconds: 64), play: false);
+  if (album != null) {
+    final (_, songs) = await api.album(album);
+
+    await player.playQueue(songs, position: const Duration(seconds: 64), play: false);
+  }
 
   final services = Services(
-    Session(server: _server, credentials: _credentials, deviceId: 'this', deviceName: 'This device'),
+    Session(server: _server, credentials: _credentials, deviceId: 'this', deviceName: device.label),
     api,
     player,
-    ConnectController(player: player, client: _hub()),
+    ConnectController(player: player, client: _hub(device)),
     // As Services.start gives one: without it, the player shows no button for the timer.
     sleepTimer: SleepTimer(player),
   );
@@ -185,22 +211,25 @@ Future<Services> _pumpApp(WidgetTester tester, _Device device, {required String 
     ),
   );
   await _settle(tester);
-  await player.play();
-  await _settle(tester);
+
+  if (album != null) {
+    await player.play();
+    await _settle(tester);
+  }
 
   return services;
 }
 
 /// A hub that sees the user's other devices, which play nothing; never connected, but said to be, so that the top bar
-/// shows Connect working.
-SegueClient _hub() {
+/// shows Connect working. [device] is this one.
+SegueClient _hub(_Device device) {
   final client = SegueClient(
     url: Uri.parse('ws://unused'),
     auth: Auth.subsonic(username: _credentials.username, token: _credentials.token, salt: _credentials.salt),
-    device: const DeviceInfo(
+    device: DeviceInfo(
       id: 'this',
-      name: 'This device',
-      client: 'segue',
+      name: device.label,
+      client: clientName,
       api: Api.subsonic,
       roles: [Role.player, Role.controller],
       capabilities: CommandAction.values,
@@ -212,7 +241,7 @@ SegueClient _hub() {
       info: DeviceInfo(
         id: id,
         name: name,
-        client: 'segue',
+        client: clientName,
         api: Api.subsonic,
         roles: const [Role.player, Role.controller],
         capabilities: CommandAction.values,
@@ -224,6 +253,26 @@ SegueClient _hub() {
   return client;
 }
 
+/// Has [hub] say, as a hub's `state` message would, that the device [id] plays or has paused (as [status] says) the
+/// song [song] (its id) of the made-up library, a minute in, now.
+void _report(SegueClient hub, String id, String song, PlaybackStatus status) {
+  final (album, track) = _songs[song]!;
+  final (title, seconds) = album.songs[track];
+
+  hub.devices[id]!.state = StampedState(
+    status: status,
+    positionMs: 64000,
+    at: hub.hubNow,
+    index: 0,
+    queue: [
+      QueueItem(id: song, title: title, artist: _artistOf(album).name, album: album.name, durationMs: seconds * 1000),
+    ],
+  );
+  // As SegueClient says it, on a message.
+  // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
+  hub.notifyListeners();
+}
+
 /// Lets the pictures load: their bytes come at once, but the engine decodes them for real, outside the test's fake
 /// time, which only goes on as the test pumps.
 Future<void> _settle(WidgetTester tester) async {
@@ -233,10 +282,10 @@ Future<void> _settle(WidgetTester tester) async {
   }
 }
 
-/// Saves the screen as [device]'s picture, in its frame: whole, as PNG, which the README links to, and at half its
-/// width, as WebP, which the README shows, a tenth as heavy, as sharp as the page shows it on a screen of 2 pixels per
-/// point.
-Future<void> _save(WidgetTester tester, _Device device) async {
+/// Saves the screen as [device]'s picture, or as the one [name]d, in its frame: whole, as PNG, which the README links
+/// to, and at half its width, as WebP, which the README shows, a tenth as heavy, as sharp as the page shows it on a
+/// screen of 2 pixels per point.
+Future<void> _save(WidgetTester tester, _Device device, {String? name}) async {
   final screen = _screen.currentContext!.findRenderObject()! as RenderRepaintBoundary;
 
   await tester.runAsync(() async {
@@ -248,7 +297,7 @@ Future<void> _save(WidgetTester tester, _Device device) async {
     image.dispose();
     framed.dispose();
 
-    final file = File('$_folder/${device.name}.png');
+    final file = File('$_folder/${name ?? device.name}.png');
 
     await file.parent.create(recursive: true);
     await file.writeAsBytes(png!.buffer.asUint8List());
@@ -259,7 +308,7 @@ Future<void> _save(WidgetTester tester, _Device device) async {
       ...['-q', '88', '-alpha_q', '100'],
       ...['-resize', '${width ~/ 2}', '0'],
       file.path,
-      ...['-o', '$_folder/${device.name}.webp'],
+      ...['-o', '$_folder/${name ?? device.name}.webp'],
     ]);
 
     if (webp.exitCode != 0) {
@@ -303,7 +352,14 @@ class _PictureClient extends Fake implements HttpClient {
   bool autoUncompress = true;
 
   @override
-  Future<HttpClientRequest> getUrl(Uri url) async => _PictureRequest(_pictures[url.queryParameters['id']]);
+  Future<HttpClientRequest> getUrl(Uri url) async => _PictureRequest(_pictures[_coverOf(url.queryParameters['id'])]);
+
+  /// The id of the picture [id] asks for: itself, or, for a song's id (the cover of a song another device plays), its
+  /// album's cover's, as Navidrome answers.
+  static String? _coverOf(String? id) => switch (_songs[id]) {
+    (final album, _)? => 'al-${album.id}',
+    null => id,
+  };
 }
 
 class _PictureRequest extends Fake implements HttpClientRequest {
