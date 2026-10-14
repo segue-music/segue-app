@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:ui' show AppExitResponse;
+import 'dart:ui' show AppExitResponse, AppExitType;
 
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -145,13 +145,22 @@ class _SegueAppState extends State<SegueApp> {
     await services.dispose();
   }
 
-  /// The window closed on a computer: the app closes ([_close]) before Flutter ends it. Ended with mpv still playing,
-  /// it aborted, often: mpv went on calling the Dart that had ended (media_kit's wakeup callback), which disposing its
-  /// players stops. A close that takes too long, the hub not answering, doesn't keep the window open.
+  /// The window closed on a computer: the app closes ([_close]), and then ends ([_end]), rather than Flutter ending it.
+  /// Ended with mpv still playing, it aborted, often: mpv went on calling the Dart that had ended (media_kit's wakeup
+  /// callback), which disposing its players stops. Flutter's exit is cancelled, rather than waited on: closing takes the
+  /// pages away, and with them their text fields' lifecycle listeners, which Flutter, asking each listener it had in
+  /// turn, then asked, disposed (an assertion, in debug).
   Future<AppExitResponse> _exit() async {
-    await _close().timeout(const Duration(seconds: 3), onTimeout: () {});
+    unawaited(_end());
 
-    return AppExitResponse.exit;
+    return AppExitResponse.cancel;
+  }
+
+  /// Closes the app and ends it, asking nothing more of the listeners. A close that takes too long, the hub not
+  /// answering, doesn't keep the window open.
+  Future<void> _end() async {
+    await _close().timeout(const Duration(seconds: 3), onTimeout: () {});
+    await WidgetsBinding.instance.exitApplication(AppExitType.required);
   }
 
   /// The app closed by [_close] opens again, its screen showing or for a play from the system's media controls: it starts

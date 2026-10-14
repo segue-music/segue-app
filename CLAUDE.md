@@ -119,10 +119,12 @@ Running two app instances on one machine as different devices:
   `PlayerController` → `ConnectController`, plus a `SegueClient` for the hub last found next to the server, or, where
   none was, the one discovered after (`ConnectController.attach`; with none, the app only plays locally). `ServicesScope` hands this down the tree. It sits in
   `MaterialApp.builder` (`app.dart`), above the navigator, so pages, sheets and the keyboard
-  shortcuts all see it. A window closed on a computer disposes them before Flutter ends the app (`_exit`, through
+  shortcuts all see it. A window closed on a computer disposes them before the app ends (`_exit`, through
   `AppLifecycleListener.onExitRequested`), the player before the hub's connection, whose close can wait on the network:
   ended with mpv still playing, the process aborted, often, mpv calling media_kit's wakeup callback after the Dart that
-  it called had gone ("Callback invoked after it has been deleted").
+  it called had gone ("Callback invoked after it has been deleted"). `_exit` cancels Flutter's exit and the app ends
+  itself once closed (`exitApplication`, `AppExitType.required`): Flutter, waiting on the close, went on to ask the
+  other lifecycle listeners it had, those of the pages' text fields too, which the close had disposed.
 - `Settings` (`lib/settings.dart`) holds what the user picks, each choice (`ThemeChoice`, `QualityChoice`, ...) kept in
   the preferences: this device's, across sign-outs. `main` loads them all at once; `Services.start` gives the player and
   the downloads theirs, and `SettingsScope`, beside `ServicesScope` but there before a sign-in too, hands them to the
