@@ -35,7 +35,6 @@ http.Response subsonic(Map<String, Object?> body) => http.Response(
 /// lists asked for, and of the songs at random.
 http.Response server(http.Request request, List<Map<String, String>> asked, {bool played = true}) {
   final path = request.url.path;
-  final query = request.url.queryParameters;
 
   if (path.endsWith('getGenres.view')) {
     return subsonic({
@@ -49,6 +48,8 @@ http.Response server(http.Request request, List<Map<String, String>> asked, {boo
       },
     });
   }
+
+  final query = request.url.queryParameters;
 
   if (path.endsWith('getAlbumList2.view')) {
     asked.add(query);

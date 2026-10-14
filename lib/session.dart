@@ -42,9 +42,11 @@ class Session {
   static Future<Session?> load() async {
     final server = await _prefs.getString('server');
     final username = await _prefs.getString('username');
-    // Sessions saved before the app spoke Jellyfin say no API: they are Subsonic's.
-    final api = await _prefs.getString('api') ?? Api.subsonic.name;
-    final userId = await _prefs.getString('userId');
+
+    if (server == null || username == null) {
+      return null;
+    }
+
     final String? token, salt, apiKey;
 
     try {
@@ -56,10 +58,9 @@ class Session {
       return null;
     }
 
-    if (server == null || username == null) {
-      return null;
-    }
-
+    // Sessions saved before the app spoke Jellyfin say no API: they are Subsonic's.
+    final api = await _prefs.getString('api') ?? Api.subsonic.name;
+    final userId = await _prefs.getString('userId');
     final Credentials credentials;
 
     if (api == Api.jellyfin.name && userId != null && token != null) {

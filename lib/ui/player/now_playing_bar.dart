@@ -58,6 +58,10 @@ class NowPlayingBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (PageArea.holds(context) || context.television) {
+      return const SizedBox.shrink();
+    }
+
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     // The song's title and artist, a line each, and its cover as tall as the two, which sets the bar's height.
@@ -72,10 +76,6 @@ class NowPlayingBar extends StatelessWidget {
     // full-screen player).
     final wide = MediaQuery.sizeOf(context).width >= wideFrom;
     final lyrics = this.lyrics;
-
-    if (PageArea.holds(context) || context.television) {
-      return const SizedBox.shrink();
-    }
 
     return NowPlayingBuilder(
       builder: (context, connect, now) {

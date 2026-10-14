@@ -25,12 +25,13 @@ class MixRow extends StatelessWidget {
     future: mixes.mixes,
     initialData: mixes.keptMixes,
     builder: (context, snapshot) {
-      final strings = AppLocalizations.of(context);
       final suggested = snapshot.data;
 
       if (snapshot.hasError || suggested == null || suggested.isEmpty) {
         return const SizedBox.shrink();
       }
+
+      final strings = AppLocalizations.of(context);
 
       return TileRow(
         title: strings.mixes,

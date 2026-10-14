@@ -42,6 +42,13 @@ class AlbumRow extends StatelessWidget {
     future: albums,
     initialData: initialAlbums,
     builder: (context, snapshot) {
+      // While new albums come (the home pulled down to list them again), the ones before, where they were.
+      final albums = snapshot.data;
+
+      if (empty == null && !snapshot.hasError && (albums?.isEmpty ?? false)) {
+        return const SizedBox.shrink();
+      }
+
       final text = Theme.of(context).textTheme;
       final strings = AppLocalizations.of(context);
       final tileSize = AlbumRow.tileSize(context);
@@ -50,13 +57,6 @@ class AlbumRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Text(message, style: text.bodyMedium),
       );
-
-      // While new albums come (the home pulled down to list them again), the ones before, where they were.
-      final albums = snapshot.data;
-
-      if (empty == null && !snapshot.hasError && (albums?.isEmpty ?? false)) {
-        return const SizedBox.shrink();
-      }
 
       return TileRow(
         // The new ones from the first, rather than where the ones before were scrolled to.

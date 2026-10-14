@@ -49,12 +49,12 @@ class Starred {
   bool down = false;
 
   Future<http.Response> answer(http.Request request) async {
-    final endpoint = request.url.pathSegments.last;
-    final params = request.url.queryParameters;
-
     if (down) {
       return http.Response('', 502);
     }
+
+    final endpoint = request.url.pathSegments.last;
+    final params = request.url.queryParameters;
 
     switch (endpoint) {
       case 'getStarred2.view':

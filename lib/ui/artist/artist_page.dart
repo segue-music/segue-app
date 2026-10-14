@@ -751,9 +751,6 @@ class _ArtistSongsState extends State<_ArtistSongs> {
     builder: (context, mostPlayed) => FutureBuilder(
       future: _popular,
       builder: (context, popular) {
-        final text = Theme.of(context).textTheme;
-        final strings = AppLocalizations.of(context);
-
         if (mostPlayed.connectionState != ConnectionState.done) {
           return widget.builder(null, const []);
         }
@@ -767,6 +764,8 @@ class _ArtistSongsState extends State<_ArtistSongs> {
           return widget.builder(null, const []);
         }
 
+        final text = Theme.of(context).textTheme;
+        final strings = AppLocalizations.of(context);
         final shown = lists.containsKey(_picked) ? _picked! : lists.keys.first;
         final snapshot = lists[shown]!;
         final songs = snapshot.data ?? const <Song>[];

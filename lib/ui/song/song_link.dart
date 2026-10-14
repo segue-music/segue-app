@@ -131,7 +131,6 @@ class _SongLinkState extends State<SongLink> {
   Widget build(BuildContext context) {
     final now = widget.now;
     final songId = now.songId;
-    final strings = AppLocalizations.of(context);
 
     if (widget._part == _Part.artist) {
       return FutureBuilder(
@@ -151,6 +150,8 @@ class _SongLinkState extends State<SongLink> {
         ),
       );
     }
+
+    final strings = AppLocalizations.of(context);
 
     return TextLink(
       widget._part == _Part.title ? now.title ?? strings.nothingPlaying : now.album ?? '',

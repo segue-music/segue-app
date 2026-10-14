@@ -158,7 +158,6 @@ class BrowseTree {
     };
 
     final focus = said(_focusKey);
-    final (artist, album, title) = (said(_artistKey), said(_albumKey), said(_titleKey));
     final words = query.trim();
 
     if (focus == _playlistFocus || said(_playlistKey) != null) {
@@ -168,6 +167,8 @@ class BrowseTree {
     if (focus == _genreFocus || said(_genreKey) != null) {
       return _genreNamed(said(_genreKey) ?? words);
     }
+
+    final (artist, album, title) = (said(_artistKey), said(_albumKey), said(_titleKey));
 
     if (focus == _albumFocus || (album != null && title == null)) {
       return _albumNamed(album ?? words, by: artist);

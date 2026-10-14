@@ -123,12 +123,12 @@ class _PlayerPageState extends State<PlayerPage> with SingleTickerProviderStateM
     }
 
     final song = lyricsSongOf(now);
-    final first = _askedFor == null;
 
     if (song == _askedFor) {
       return;
     }
 
+    final first = _askedFor == null;
     _askedFor = song;
 
     // Not animated as the player opens: built for the first time, the lyrics have yet to show.
@@ -182,11 +182,6 @@ class _PlayerPageState extends State<PlayerPage> with SingleTickerProviderStateM
               builder: (context, _, now) {
                 _askForLyrics(now);
 
-                final lyrics = widget._lyrics.value;
-                final colors = Theme.of(context).colorScheme;
-                final device = now.device;
-                final strings = AppLocalizations.of(context);
-
                 if (context.television) {
                   return Scaffold(
                     // The cover's color, rather than the theme's.
@@ -210,6 +205,11 @@ class _PlayerPageState extends State<PlayerPage> with SingleTickerProviderStateM
                     ),
                   );
                 }
+
+                final lyrics = widget._lyrics.value;
+                final colors = Theme.of(context).colorScheme;
+                final device = now.device;
+                final strings = AppLocalizations.of(context);
 
                 return Scaffold(
                   appBar: AppBar(

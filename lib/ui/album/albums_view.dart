@@ -216,7 +216,6 @@ class _AlbumsViewState extends State<AlbumsView> {
     }
 
     final generation = over ? ++_generation : _generation;
-    final api = ServicesScope.of(context).api;
 
     // The downloaded, all at once: they are on the device.
     if (widget.shown == AlbumsShown.downloaded) {
@@ -236,6 +235,8 @@ class _AlbumsViewState extends State<AlbumsView> {
       await _loadFavorites(generation);
       return;
     }
+
+    final api = ServicesScope.of(context).api;
 
     setState(() {
       _loading = true;

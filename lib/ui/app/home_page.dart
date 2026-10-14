@@ -497,11 +497,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         ),
       ),
     );
-    final logo = IconButton(
-      tooltip: _Section.home.label(strings),
-      icon: Image.asset('assets/logo.png', width: 32, height: 32),
-      onPressed: () => _pick(_Section.home),
-    );
     // The theme, the language, the quality, the volume's normalization, the equalizer and signing out are in the
     // settings, a page of their own, whose button comes after the hub's status, which stays in sight: signing out, which
     // forgets the token, two clicks away rather than one in the corner.
@@ -672,6 +667,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       padding: const EdgeInsets.all(4),
       minimumSize: const Size.square(arrow),
       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    );
+    final logo = IconButton(
+      tooltip: _Section.home.label(strings),
+      icon: Image.asset('assets/logo.png', width: 32, height: 32),
+      onPressed: () => _pick(_Section.home),
     );
     final sections = Stack(
       fit: StackFit.expand,
@@ -1159,11 +1159,11 @@ class _HubStatus extends StatelessWidget {
     return ListenableBuilder(
       listenable: Listenable.merge([connect, ?reachability]),
       builder: (context, _) {
-        final client = connect.client;
-
         if (reachability != null && !reachability.value) {
           return status(strings.serverUnreachable, HugeIcons.strokeRoundedWifiDisconnected02);
         }
+
+        final client = connect.client;
 
         if (client == null) {
           return status(strings.noHub, HugeIcons.strokeRoundedUnlink02);

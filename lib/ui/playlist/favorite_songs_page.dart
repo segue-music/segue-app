@@ -101,11 +101,12 @@ class _FavoriteSongsPageState extends State<FavoriteSongsPage> {
       ScrollMetricsNotification(depth: 0, :final metrics) => metrics.pixels,
       _ => null,
     };
-    final width = MediaQuery.sizeOf(context).width;
 
     if (offset == null) {
       return false;
     }
+
+    final width = MediaQuery.sizeOf(context).width;
 
     if (width < 600) {
       final picture = min(width - 2 * 16, 280);

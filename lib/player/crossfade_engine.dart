@@ -344,7 +344,6 @@ class CrossfadeEngine implements AudioEngine {
     double level = 1,
     bool opened = false,
   }) async {
-    final deck = _current;
     final track = _trackAt(_index);
     final starts = ++_starts;
 
@@ -352,6 +351,8 @@ class CrossfadeEngine implements AudioEngine {
       _starting = false;
       return;
     }
+
+    final deck = _current;
 
     _starting = play;
     _updateTicks();

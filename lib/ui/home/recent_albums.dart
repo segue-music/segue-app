@@ -39,14 +39,15 @@ class RecentAlbums extends StatelessWidget {
     future: albums,
     initialData: initialAlbums,
     builder: (context, snapshot) {
-      final strings = AppLocalizations.of(context);
       final albums = snapshot.data ?? const <Album>[];
-      // Lined up with the rows under them, a TV's further in.
-      final start = 16 + TileRow.startOf(context);
 
       if (snapshot.hasError || albums.isEmpty) {
         return const SizedBox.shrink();
       }
+
+      final strings = AppLocalizations.of(context);
+      // Lined up with the rows under them, a TV's further in.
+      final start = 16 + TileRow.startOf(context);
 
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -57,7 +57,6 @@ http.Response subsonic(Map<String, Object?> body) => http.Response(
 /// Ramones is the user's favorite artist. Cheap Trick's radio is Big Eyes, then Blitzkrieg Bop, by Ramones.
 http.Response server(http.Request request, {bool played = true}) {
   final path = request.url.path;
-  final id = request.url.queryParameters['id'];
 
   if (path.endsWith('getStarred2.view')) {
     return subsonic({
@@ -72,6 +71,8 @@ http.Response server(http.Request request, {bool played = true}) {
   if (path.endsWith('star.view') || path.endsWith('unstar.view')) {
     return subsonic({});
   }
+
+  final id = request.url.queryParameters['id'];
 
   if (path.endsWith('getSimilarSongs2.view') && id == 'ar2') {
     return subsonic({

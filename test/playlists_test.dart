@@ -116,10 +116,7 @@ class Library {
 
   http.Response answer(http.Request request) {
     final endpoint = request.url.pathSegments.last;
-    final params = request.method == 'POST'
-        ? Uri(query: request.body).queryParametersAll
-        : request.url.queryParametersAll;
-    String? param(String name) => params[name]?.single;
+
     asked.add(endpoint);
 
     if (refuses && const {'createPlaylist.view', 'updatePlaylist.view', 'deletePlaylist.view'}.contains(endpoint)) {
@@ -128,6 +125,12 @@ class Library {
         'error': {'code': 50, 'message': 'not allowed'},
       });
     }
+
+    final params = request.method == 'POST'
+        ? Uri(query: request.body).queryParametersAll
+        : request.url.queryParametersAll;
+
+    String? param(String name) => params[name]?.single;
 
     switch (endpoint) {
       case 'getPlaylists.view':

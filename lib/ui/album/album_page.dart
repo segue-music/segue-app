@@ -144,11 +144,12 @@ class _AlbumPageState extends State<AlbumPage> {
       ScrollMetricsNotification(depth: 0, :final metrics) => metrics.pixels,
       _ => null,
     };
-    final width = MediaQuery.sizeOf(context).width;
 
     if (offset == null) {
       return false;
     }
+
+    final width = MediaQuery.sizeOf(context).width;
 
     if (width < 600) {
       // The cover is as wide as the page less its margins, up to 280, under a gap of 8 (_header).

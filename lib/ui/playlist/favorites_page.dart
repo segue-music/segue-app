@@ -97,11 +97,12 @@ class _FavoritesPageState extends State<FavoritesPage> {
         listenable: favorites,
         builder: (context, _) {
           final error = _error;
-          final (songs, albums, artists) = (favorites.songs, favorites.albums, favorites.artists);
 
           if (!favorites.loaded) {
             return Center(child: error == null ? const Spinner() : Text(strings.couldNotListFavorites('$error')));
           }
+
+          final (songs, albums, artists) = (favorites.songs, favorites.albums, favorites.artists);
 
           if (songs.isEmpty && albums.isEmpty && artists.isEmpty) {
             return Center(

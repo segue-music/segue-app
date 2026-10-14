@@ -602,6 +602,13 @@ Running two app instances on one machine as different devices:
   `unawaited(reachability.check());`, `await player.stop();`), whichever comes first. A comment
   above a statement or a group belongs to it, so the blank line goes above the comment. `dart
   format` keeps blank lines but never adds them, so this is by hand.
+- A local variable is declared where it is first needed, below the `return`s (or `throw`s, `continue`s) that leave
+  without it, so that leaving there computes nothing it won't use: `Session.load` reads the server and the user's
+  name, returns where there are none, and only then reads the token. It stays above them where the order matters:
+  what reads the `BuildContext` before an `await` (`ScaffoldMessenger.of(context)`), a value kept before the code
+  between changes it (`final from = _from;` then `_from = null;`), or one whose computing has to happen either way
+  (`++_seeks`, a request awaited before the check). A pattern taking several fields at once
+  (`final (:done, :failed, :total) = ...`) stays whole.
 - Dart design follows Effective Dart's guidelines (https://dart.dev/effective-dart/design). The ones
   a lint can check are on in `analysis_options.yaml`; the rest (terms used consistently, no
   abbreviations, noun phrases for values, verbs for side effects, no `get` prefix, ...) are by hand.
