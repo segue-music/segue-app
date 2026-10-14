@@ -7,6 +7,8 @@ import 'package:http/testing.dart';
 import 'package:segue/player/engine.dart';
 import 'package:segue/segue/protocol.dart';
 import 'package:segue/subsonic/api.dart';
+import 'package:url_launcher_platform_interface/link.dart';
+import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
 /// An engine with no audio: a queue and a clock, like the real one. Its clock is [clock], so that a test
 /// in fake time (fake_async) plays in it. A deck too, of a track as long as [duration], at [level].
@@ -360,4 +362,28 @@ class FileServer {
     const SubsonicCredentials(username: 'a', token: 't', salt: 's'),
     client: client,
   );
+}
+
+/// What opens URLs out of the app, as url_launcher asks the platform: it notes them, and the modes they open in, and
+/// opens those that [opens] says.
+class FakeUrlLauncher extends UrlLauncherPlatform {
+  final launched = <String>[];
+  final modes = <PreferredLaunchMode>[];
+  bool Function(String url) opens = (_) => true;
+
+  void clear() {
+    launched.clear();
+    modes.clear();
+  }
+
+  @override
+  LinkDelegate? get linkDelegate => null;
+
+  @override
+  Future<bool> launchUrl(String url, LaunchOptions options) async {
+    launched.add(url);
+    modes.add(options.mode);
+
+    return opens(url);
+  }
 }

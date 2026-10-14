@@ -448,7 +448,11 @@ Running two app instances on one machine as different devices:
   has the credentials the media server's addresses (a stream's, a cover's, which an error or mpv may quote) and the
   requests carry (`redacted`). `SegueClient` says as the hub's connection comes and goes, or is refused, and
   `MediaKitEngine` passes mpv's warnings and errors on, not its info, which would bury them under each track's
-  address. Tests print what is logged (`test/flutter_test_config.dart`), but write no file.
+  address. Tests print what is logged (`test/flutter_test_config.dart`), but write no file. `main` hands the
+  `LogFile` down to the settings, as it does the version, where `LogTile` (`lib/ui/settings/log_tile.dart`, under
+  "Sobre") takes it out of the app: on a phone or a tablet, through the system's share sheet (share_plus), both files
+  as one (`LogFile.read`), named for the device and the time (`logName`); on a computer, opening its folder
+  (url_launcher). Not on a TV, whose share sheet has nowhere to send it: `adb pull` takes it there.
 - The app's words are in `lib/l10n/`'s ARB files, one per language (Portuguese, English, Spanish),
   from which gen-l10n makes `AppLocalizations` (`l10n.yaml`). `LanguageChoice`
   (`lib/language_choice.dart`) is the language shown: the system's, of those the app has the first

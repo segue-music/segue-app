@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
@@ -11,17 +12,19 @@ import 'package:path_provider/path_provider.dart';
 final _uncaught = Logger('uncaught');
 
 /// Has what the loggers say printed ([printRecord]) and written down in the log file ([LogFile]), with the errors no
-/// code caught. Its first line says which build wrote what follows ([packageInfo]).
-Future<void> startLogging(PackageInfo packageInfo) async {
+/// code caught. Its first line says which build wrote what follows ([packageInfo]). Gives the file, where it could open
+/// one.
+Future<LogFile?> startLogging(PackageInfo packageInfo) async {
   Logger.root.onRecord.listen((record) {
     if (record.loggerName != _uncaught.name) {
       printRecord(record);
     }
   });
 
-  try {
-    final file = await LogFile.open(await logDirectory());
+  LogFile? file;
 
+  try {
+    file = await LogFile.open(await logDirectory());
     Logger.root.onRecord.listen(file.write);
   } on Object catch (e) {
     Logger('LogFile').warning('no log file', e);
@@ -41,6 +44,8 @@ Future<void> startLogging(PackageInfo packageInfo) async {
     '${packageInfo.version} (${packageInfo.buildNumber}) on ${Platform.operatingSystem} '
     '${Platform.operatingSystemVersion}',
   );
+
+  return file;
 }
 
 /// Where the log file is: the app's support folder, or on Android its folder in the shared storage, which `adb pull`
@@ -78,7 +83,7 @@ final _credential = RegExp(
 /// past [limit] bytes becomes `segue.1.log`, the one before going. A record goes straight to the file, through no
 /// buffer of the app's, so that an app that aborts right after has written it.
 class LogFile {
-  LogFile._(this._directory, this.limit, this._file, this._length);
+  LogFile._(this.directory, this.limit, this._file, this._length);
 
   /// Opens the log in [directory], after what it has.
   static Future<LogFile> open(Directory directory, {int limit = 1 << 20}) async {
@@ -92,10 +97,12 @@ class LogFile {
   static const _name = 'segue.log';
   static const _previousName = 'segue.1.log';
 
+  /// Where its files are.
+  final Directory directory;
+
   /// The bytes the file takes before it makes way for a new one.
   final int limit;
 
-  final Directory _directory;
   RandomAccessFile? _file;
   int _length;
 
@@ -112,8 +119,8 @@ class LogFile {
     try {
       if (_length > 0 && _length + line.length > limit) {
         file.closeSync();
-        File('${_directory.path}/$_name').renameSync('${_directory.path}/$_previousName');
-        file = _file = File('${_directory.path}/$_name').openSync(mode: FileMode.append);
+        File('${directory.path}/$_name').renameSync('${directory.path}/$_previousName');
+        file = _file = File('${directory.path}/$_name').openSync(mode: FileMode.append);
         _length = 0;
       }
 
@@ -123,6 +130,20 @@ class LogFile {
       // A log that can't be written (a full disk) stops, rather than fail what logged.
       _file = null;
     }
+  }
+
+  /// What the log has, the file before first, as one.
+  Future<Uint8List> read() async {
+    final previous = File('${directory.path}/$_previousName');
+    final bytes = BytesBuilder(copy: false);
+
+    if (await previous.exists()) {
+      bytes.add(await previous.readAsBytes());
+    }
+
+    bytes.add(await File('${directory.path}/$_name').readAsBytes());
+
+    return bytes.takeBytes();
   }
 
   /// Closes the file, after which what comes goes nowhere.

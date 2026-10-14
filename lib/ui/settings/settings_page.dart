@@ -5,6 +5,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../../crossfade_choice.dart';
 import '../../download_choice.dart';
 import '../../l10n/app_localizations.dart';
+import '../../log_file.dart';
 import '../../quality_choice.dart';
 import '../../replay_gain_choice.dart';
 import '../../services.dart';
@@ -15,6 +16,7 @@ import 'downloads_page.dart';
 import 'equalizer_page.dart';
 import 'language_button.dart';
 import 'licenses_page.dart';
+import 'log_tile.dart';
 import '../app/page_area.dart';
 import '../app/theme.dart';
 import '../app/theme_fade.dart';
@@ -22,18 +24,22 @@ import '../widgets/themed_icon.dart';
 import 'sign_in_tv_page.dart';
 
 /// What the user picks for the app, and signing out, in groups under their names: the appearance (the theme, its colors
-/// and its contrast, the language), the playback (the quality, the volume's normalization, the equalizer's page, the crossfade, autoplay) and
-/// the app itself (its version, the licenses' page); a line between the groups, and after the last, signing out, under
-/// the account it signs out of. Each choice is a line that says the option picked, which opens a sheet of them all ([_Choice]), or, on
-/// or off, a switch. In the page area, from the top bar's button; with no settings (SettingsScope), no choice's line,
-/// nor a group left with none, and with no version, no line of it.
+/// and its contrast, the language), the playback (the quality, the volume's normalization, the equalizer's page, the
+/// crossfade, autoplay) and the app itself (its version, its log, the licenses' page); a line between the groups, and
+/// after the last, signing out, under the account it signs out of. Each choice is a line that says the option picked,
+/// which opens a sheet of them all ([_Choice]), or, on or off, a switch. In the page area, from the top bar's button;
+/// with no settings (SettingsScope), no choice's line, nor a group left with none, and with no version or no log, no
+/// line of it.
 class SettingsPage extends StatelessWidget {
-  const SettingsPage({required this.onSignOut, this.packageInfo, super.key});
+  const SettingsPage({required this.onSignOut, this.packageInfo, this.log, super.key});
 
   final VoidCallback onSignOut;
 
   /// The app's version and build number, as the build stamped them.
   final PackageInfo? packageInfo;
+
+  /// The app's log, which a line shares or opens the folder of ([LogTile]).
+  final LogFile? log;
 
   @override
   Widget build(BuildContext context) {
@@ -42,6 +48,7 @@ class SettingsPage extends StatelessWidget {
     final downloads = ServicesScope.of(context).downloads;
     final settings = SettingsScope.maybeOf(context);
     final packageInfo = this.packageInfo;
+    final log = this.log;
 
     return Scaffold(
       appBar: AppBar(
@@ -253,7 +260,8 @@ class SettingsPage extends StatelessWidget {
                   ),
               ],
             ),
-            // The app's version, and its licenses and those of what it is made with, a page of their own in the page area.
+            // The app's version, its log, and its licenses and those of what it is made with, a page of their own in the page
+            // area.
             (
               strings.about,
               [
@@ -263,6 +271,7 @@ class SettingsPage extends StatelessWidget {
                     title: Text(strings.appVersion),
                     subtitle: Text(strings.appVersionNumber(packageInfo.version, packageInfo.buildNumber)),
                   ),
+                if (log != null && LogTile.available(context)) LogTile(log, deviceName: session.deviceName),
                 ListTile(
                   leading: const ThemedIcon(HugeIcons.strokeRoundedLicense),
                   title: Text(strings.openSourceLicenses),

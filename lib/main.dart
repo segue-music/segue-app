@@ -15,9 +15,9 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final packageInfo = await PackageInfo.fromPlatform();
-
   // Before anything else, so that the log has what goes wrong as the app starts.
-  await startLogging(packageInfo);
+  final log = await startLogging(packageInfo);
+
   MediaKit.ensureInitialized();
   addLibmpvLicenses();
 
@@ -35,6 +35,7 @@ Future<void> main() async {
       interruptions: interruptions,
       television: television,
       packageInfo: packageInfo,
+      log: log,
     ),
   );
 }

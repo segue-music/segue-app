@@ -356,12 +356,18 @@ What iOS does differently:
 The app writes down what goes wrong, a release build too, in `segue.log`: what it couldn't do, the hub's connection
 coming and going, mpv's warnings and errors, and the errors no code caught, each line as it comes. Past 1 MB the file
 becomes `segue.1.log` and a new one starts, so the two hold the latest. Neither has a password, token or API key: the
-addresses and requests that carry one are written without it. They are in a `logs` folder:
+addresses and requests that carry one are written without it.
+
+The settings, under "About" ("Sobre"), take the log out of the app: on a phone or a tablet, "Share the log"
+("Compartilhar o log") sends both as one file through the system's share sheet (an e-mail, a chat, the files), named
+for the device and the time; on a computer, "Open the log's folder" ("Abrir a pasta do log") opens the `logs` folder
+where they are:
 
 - Linux: `~/.local/share/io.github.mateusguilherme.segue/logs/`
 - Windows: `%APPDATA%\io.github.mateusguilherme\Segue\logs\`
-- Android, a TV too: `/sdcard/Android/data/io.github.mateusguilherme.segue/files/logs/`, which `adb pull` takes
-- iOS: the app's Application Support, which nothing reaches yet from a TestFlight build
+- Android: `/sdcard/Android/data/io.github.mateusguilherme.segue/files/logs/`, which `adb pull` takes. A TV's
+  settings have no line for the log, its share sheet having nowhere to send it: `adb pull` is the way there.
+- iOS: the app's Application Support.
 
 ## Releases
 
@@ -421,8 +427,9 @@ tool/package-linux.sh
 ```
 
 `tool/flutter.sh run` opens the app in your desktop (Wayland or X11): the container gets the display, the GPU, the
-sound and the session bus. Its settings are its own, in `~/.cache/segue-flutter`, but its token goes to the same
-keyring as an installed copy's (the app id is the same), so signing out in one signs the other out too.
+sound and the session bus. Its settings, downloads and log are its own, in `~/.cache/segue-flutter` (the log in
+`.local/share/io.github.mateusguilherme.segue/logs/` there), but its token goes to the same keyring as an installed
+copy's (the app id is the same), so signing out in one signs the other out too.
 
 For Android, a second image adds the JDK and the Android SDK and NDK to the first:
 

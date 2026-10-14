@@ -1039,6 +1039,22 @@
       }
     }
   },
+  "shareLog": "Compartilhar o log",
+  "@shareLog": {
+    "description": "The settings' item, on a phone or a tablet, that sends the app's log (what went wrong in it) through the system's share sheet: an e-mail, a chat, the files."
+  },
+  "openLogFolder": "Abrir a pasta do log",
+  "@openLogFolder": {
+    "description": "The settings' item, on a computer, that opens the folder of the app's log (what went wrong in it) in the file manager."
+  },
+  "logDetail": "O que deu errado no app. Tem o endereço do servidor e o seu usuário, mas nenhuma senha.",
+  "@logDetail": {
+    "description": "Under the settings' item of the app's log: what it is, and what of the user's it has and hasn't, for whoever sends it."
+  },
+  "logFailed": "Não deu para abrir o log.",
+  "@logFailed": {
+    "description": "The app's log that couldn't be shared, or whose folder couldn't open."
+  },
   "openSourceLicenses": "Licenças de código aberto",
   "@openSourceLicenses": {
     "description": "The settings' item that opens the licenses: the app's and those of the software it is made with."

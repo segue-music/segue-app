@@ -61,6 +61,19 @@ void main() {
     expect(directory.listSync(), hasLength(2));
   });
 
+  test('read, the log is the file before, then the one now', () async {
+    final log = await LogFile.open(directory, limit: 200);
+
+    expect(utf8.decode(await log.read()), isEmpty);
+
+    for (var i = 0; i < 4; i++) {
+      log.write(LogRecord(Level.INFO, 'line $i of the log', 'Segue'));
+    }
+
+    expect(utf8.decode(await log.read()).split('\n'), [for (var i = 0; i < 4; i++) endsWith('line $i of the log'), '']);
+    await log.close();
+  });
+
   test('a record goes in the file as it comes, before the log closes', () async {
     final log = await LogFile.open(directory);
 

@@ -38,12 +38,15 @@ dependencies:
   intl: ^0.20.2
   # Whether the device is on mobile data or not, for the automatic quality (lib/mobile_data.dart).
   connectivity_plus: ^7.3.1
-  # Opens what is outside the app: where an artist comes from, on a map (lib/ui/artist/maps.dart).
+  # Opens what is outside the app: where an artist comes from, on a map (lib/ui/artist/maps.dart), and on a computer
+  # the log's folder (lib/ui/settings/log_tile.dart).
   url_launcher: ^6.3.3
   # The app's version and build number, as the build stamped them, which the settings show.
   package_info_plus: ^10.2.2
   # What each part of the app says, by its name, which the console and the log file take (lib/log_file.dart).
   logging: ^1.3.0
+  # The system's share sheet, which takes the log away from a phone (lib/ui/settings/log_tile.dart).
+  share_plus: ^13.3.0
   # Signing a TV in from a phone (lib/pairing/pairing.dart): the phone's camera reads the QR code the TV shows, which
   # qr_flutter draws, and the sign-in goes to the TV sealed with the key it carries (AES-GCM).
   mobile_scanner: ^7.4.2
@@ -58,6 +61,7 @@ dev_dependencies:
   image: ^4.10.1
   shared_preferences_platform_interface: ^2.4.2
   url_launcher_platform_interface: ^2.3.2
+  share_plus_platform_interface: ^7.2.0
 
 flutter:
   uses-material-design: true

@@ -173,6 +173,12 @@ if [ "$tool $command" = "flutter run" ]; then
   mkdir -p /tmp/segue-covers
   set -- -v /tmp/segue-covers:/tmp/segue-covers "$@"
 
+  # The settings open the log's folder (lib/ui/settings/log_tile.dart) through this desktop's portal, which refuses a
+  # folder by a path only the container has (/home/dev/...). So the app's data, in XDG_DATA_HOME, where path_provider
+  # puts its support folder, are where they were, in the container's home, but reached by this machine's path to them.
+  mkdir -p "$cache/.local/share"
+  set -- -v "$cache/.local/share:$cache/.local/share" -e XDG_DATA_HOME="$cache/.local/share" "$@"
+
   [ -S "$runtime/at-spi/bus" ] && set -- -v "$runtime/at-spi/bus:$runtime/at-spi/bus" "$@"
 
   # The app shows this desktop's language, which Flutter reads from the first of LANGUAGE, LC_ALL,

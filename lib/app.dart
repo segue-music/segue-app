@@ -6,6 +6,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import 'l10n/app_localizations.dart';
 import 'language_choice.dart';
+import 'log_file.dart';
 import 'player/audio_interruptions.dart';
 import 'player/media_controls.dart';
 import 'services.dart';
@@ -29,6 +30,7 @@ class SegueApp extends StatefulWidget {
     this.interruptions,
     this.television = false,
     this.packageInfo,
+    this.log,
     super.key,
   });
 
@@ -49,6 +51,9 @@ class SegueApp extends StatefulWidget {
 
   /// The app's version and build number, which the settings show; none, no line of them.
   final PackageInfo? packageInfo;
+
+  /// The app's log, which the settings share or open the folder of; none, no line of it.
+  final LogFile? log;
 
   @override
   State<SegueApp> createState() => _SegueAppState();
@@ -250,7 +255,7 @@ class _SegueAppState extends State<SegueApp> {
         return mediaControls == null ? app : _MediaControlsStrings(controls: mediaControls, child: app);
       },
       home: services != null
-          ? HomePage(onSignOut: _signOut, packageInfo: widget.packageInfo)
+          ? HomePage(onSignOut: _signOut, packageInfo: widget.packageInfo, log: widget.log)
           // Starting, a moment, as nothing there waits for the network (Services.start), or closed, out of sight: the
           // theme's background alone, rather than a spinner that would flash.
           : _starting || _closed != null

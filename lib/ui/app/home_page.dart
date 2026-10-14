@@ -9,6 +9,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../connect/connect.dart';
 import '../../l10n/app_localizations.dart';
+import '../../log_file.dart';
 import '../../segue/client.dart';
 import '../../segue/protocol.dart';
 import '../../server/models.dart';
@@ -36,12 +37,15 @@ import '../widgets/scroll_focus.dart';
 import '../widgets/themed_icon.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({required this.onSignOut, this.packageInfo, super.key});
+  const HomePage({required this.onSignOut, this.packageInfo, this.log, super.key});
 
   final VoidCallback onSignOut;
 
   /// The app's version and build number, in the settings; none, no line of them.
   final PackageInfo? packageInfo;
+
+  /// The app's log, in the settings; none, no line of it.
+  final LogFile? log;
 
   /// How long typing in the search bar has to stop before the search goes out, so that it isn't one
   /// per key.
@@ -196,7 +200,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     _pages.currentState?.push(
       MaterialPageRoute<void>(
         settings: _settings,
-        builder: (_) => SettingsPage(packageInfo: widget.packageInfo, onSignOut: widget.onSignOut),
+        builder: (_) => SettingsPage(packageInfo: widget.packageInfo, log: widget.log, onSignOut: widget.onSignOut),
       ),
     );
   }
