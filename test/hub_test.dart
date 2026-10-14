@@ -572,6 +572,22 @@ void main() {
     expect(phone.connect.nowPlaying?.device, isNull);
   });
 
+  test('a transfer that names no source moves the last playback from the device that plays it', () async {
+    final user = newUser();
+    final laptop = await App(user, 'laptop').start();
+    final phone = await App(user, 'phone').start();
+
+    await laptop.player.playQueue(songs, index: 1, position: const Duration(seconds: 30));
+    await until(() => phone.client.devices['laptop']?.state?.status == PlaybackStatus.playing, 'the laptop playing');
+
+    expect((await phone.client.transfer(null, 'phone')).ok, isTrue);
+    expect(phone.player.queue.map((song) => song.id), songs.map((song) => song.id));
+    expect(phone.player.index, 1);
+    expect(phone.player.playing, isTrue);
+    expect(phone.player.position.inMilliseconds, greaterThanOrEqualTo(30000));
+    expect(laptop.player.status, PlaybackStatus.stopped);
+  });
+
   test('the music moved here plays on repeating as it did, shuffled in the same order, which shuffle going off takes '
       'back here too', () async {
     final user = newUser();

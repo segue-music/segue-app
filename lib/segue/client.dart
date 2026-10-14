@@ -205,9 +205,11 @@ class SegueClient extends ChangeNotifier {
   );
 
   /// Moves [from]'s queue, at its current position, to [to] (often this device: "continue here").
-  Future<Result> transfer(String from, String to, {bool play = true}) => _logged(
-    _ask({'type': 'transfer', 'from': from, 'to': to, 'play': play}),
-    'moving the music from ${_nameOf(from)} to ${_nameOf(to)}',
+  /// Without [from], the last playback moves, from the device that holds it or from the hub's own
+  /// record of it (SPEC.md, section 6).
+  Future<Result> transfer(String? from, String to, {bool play = true}) => _logged(
+    _ask({'type': 'transfer', 'from': ?from, 'to': to, 'play': play}),
+    'moving ${from == null ? 'the last playback' : 'the music from ${_nameOf(from)}'} to ${_nameOf(to)}',
   );
 
   /// [result], which the log has where it failed, as [asked] failing.
