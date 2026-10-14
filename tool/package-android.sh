@@ -1,7 +1,7 @@
 #!/bin/sh
 # Builds the Android version (phones and Android TV) with tool/flutter.sh on the Android image, as
 # build/segue-android.apk: one APK for every ABI, to install by hand (adb install), signed with the app's key where
-# android/key.properties names it (README.md, "Releases"), else with a debug key. Build the image first:
+# android/key.properties names it (docs/building.md, "Releases"), else with a debug key. Build the image first:
 # docker build -t segue-flutter-android -f tool/android.Dockerfile tool
 set -e
 cd "$(dirname "$0")/.."

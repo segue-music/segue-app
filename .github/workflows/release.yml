@@ -1,6 +1,6 @@
 # Builds the Linux, Android and Windows packages on GitHub's machines, with tool/package-*.sh and
-# tool/package-windows.ps1, and, for a tag v<version>, puts them in a release (README.md, "Releases"). Run by hand
-# (Actions, "Run workflow"), it only builds them, as the run's artifacts. The iOS version is Codemagic's
+# tool/package-windows.ps1, and, for a tag v<version>, puts them in a release (docs/building.md, "Releases"). Run
+# by hand (Actions, "Run workflow"), it only builds them, as the run's artifacts. The iOS version is Codemagic's
 # (codemagic.yaml).
 name: Release
 
@@ -102,7 +102,7 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
 
-      # The fanart.tv key, and the app's key, which signs the APK (README.md, "Releases").
+      # The fanart.tv key, and the app's key, which signs the APK (docs/building.md, "Releases").
       - name: Keys
         env:
           FANART_TV_KEY: ${{ secrets.FANART_TV_KEY }}

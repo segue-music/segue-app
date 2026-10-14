@@ -1,4 +1,4 @@
-# Builds the Windows version with the Flutter installed here (README.md, "Flutter installed") and packs it as
+# Builds the Windows version with the Flutter installed here (docs/building.md, "Flutter installed") and packs it as
 # build\segue-windows-x64.zip, to run on another computer without Flutter: unzipped, segue\segue.exe runs as it is.
 $ErrorActionPreference = 'Stop'
 $app = Split-Path $PSScriptRoot

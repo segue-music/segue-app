@@ -36,7 +36,7 @@ migrate_working_dir/
 # The app's words, generated from lib/l10n's ARB files (l10n.yaml) on pub get and on every build
 /lib/l10n/app_localizations*.dart
 
-# The keys of the services the app asks, which tool/flutter.sh gives the app as it's built (README.md, "Keys")
+# The keys of the services the app asks, which tool/flutter.sh gives the app as it's built (docs/building.md, "Keys")
 /keys.json
 
 # Symbolication related

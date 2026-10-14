@@ -59,7 +59,7 @@ for a tag `v<version>` (pubspec's version, and `appVersion`'s in `lib/server/ser
 against it), put in a release: `git tag v<version> && git push origin v<version>`.
 There `tool/flutter.sh` runs the Flutter installed (`SEGUE_FLUTTER_IMAGE=none`), the images not fitting, and the keys
 come from the repository's secrets. The APK is signed with the app's key (`android/key.properties` naming
-`android/release.jks`, which git ignores; README.md, "Releases"), every build where it is, so that `flutter run`
+`android/release.jks`, which git ignores; docs/building.md, "Releases"), every build where it is, so that `flutter run`
 installs over a released APK instead of uninstalling it.
 
 The builds (iOS, Android, Linux's and Windows's packages) number themselves with `tool/build-number.sh`: the commit
@@ -83,7 +83,7 @@ never deletes it, and Windows gives an id again, whose file then points at anoth
 The keys of the services the app asks (fanart.tv's, `FANART_TV_KEY`) aren't in git: `tool/flutter.sh`
 gives `run` and `build` the `keys.json` at the top of this folder (`--dart-define-from-file`), which
 git ignores, and Codemagic its environment variables' group `keys`. A build without them runs without
-those services (README.md, "Keys").
+those services (docs/building.md, "Keys").
 
 The tests are two suites, run apart: the code's, `tool/flutter.sh test` (everything in `test/`), and the README's
 pictures', `tool/flutter.sh test tool/screenshots.dart`, which makes them again in `docs/screenshots/` (`git status
@@ -611,7 +611,7 @@ Running two app instances on one machine as different devices:
   or a kind is one message, with a `plural` or a `select` (`albumCount`, `playRelease`), not pieces
   put together. The Dart code (`lib/l10n/app_localizations*.dart`, not in git) comes from the ARB
   files on `pub get` and on every build, but not on `test` or `analyze`: after editing one,
-  `tool/flutter.sh gen-l10n`. Code, comments and `README.md` are in English. Error codes from the
+  `tool/flutter.sh gen-l10n`. Code, comments, `README.md` and `docs/building.md` are in English. Error codes from the
   hub and players become messages in `describeError` (`lib/ui/widgets/errors.dart`), so a new error string
   needs an entry there.
 - Commit messages are in Portuguese: a short title and a body explaining the behaviour and why.

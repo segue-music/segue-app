@@ -6,8 +6,8 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-// The app's own key (README.md, "Releases"), where android/key.properties, which git ignores, names it: Android refuses
-// an update signed with another key than the installed app's, and a debug key is only this computer's.
+// The app's own key (docs/building.md, "Releases"), where android/key.properties, which git ignores, names it: Android
+// refuses an update signed with another key than the installed app's, and a debug key is only this computer's.
 val releaseKey =
     rootProject.file("key.properties").takeIf { it.exists() }?.let { file ->
         Properties().apply { file.inputStream().use { load(it) } }

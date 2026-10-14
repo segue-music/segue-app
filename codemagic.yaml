@@ -1,6 +1,6 @@
 # Codemagic builds the iOS version on its Macs, signs it and uploads it to App Store Connect, where
-# it reaches TestFlight's internal testers. The setup it needs, once, is in README.md ("Running on
-# iOS"). A build starts from Codemagic's page, or by pushing a tag: git tag ios-1 && git push origin ios-1
+# it reaches TestFlight's internal testers. The setup it needs, once, is in docs/building.md
+# ("iOS"). A build starts from Codemagic's page, or by pushing a tag: git tag ios-1 && git push origin ios-1
 workflows:
   ios:
     name: iOS to TestFlight
@@ -17,7 +17,7 @@ workflows:
         distribution_type: app_store
         bundle_identifier: io.github.mateusguilherme.segue
       # The keys of the services the app asks, which aren't in git: FANART_TV_KEY, in this group of the
-      # app's environment variables (README.md, "Running on iOS").
+      # app's environment variables (docs/building.md, "iOS").
       groups:
         - keys
     triggering:
