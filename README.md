@@ -521,7 +521,13 @@ fanart.tv's page for one (fanart.tv/get-an-api-key), as a project's.
 
 Connect needs the hub, from [segue-music/segue](https://github.com/segue-music/segue). Published at `/connect` on the
 media server's address, it is found by itself, with nothing to type at sign-in. To try it without that, run it on your
-computer, pointing at the media server (with Go, in a clone of that repository):
+computer, pointing at the media server, from its image:
+
+```sh
+docker run --rm -p 127.0.0.1:8480:8480 -e SEGUE_UPSTREAM=https://navidrome.example ghcr.io/segue-music/segue-hub
+```
+
+or with Go, in a clone of that repository:
 
 ```sh
 cd segue/hub
