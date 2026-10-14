@@ -25,14 +25,21 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # The tag says the version the app shows in its settings, pubspec.yaml's: checked before the builds, so that a
-      # wrong tag fails in seconds.
+      # The tag says the version the app shows in its settings, pubspec.yaml's, and the one it gives the media server,
+      # the hub and the services it asks (appVersion): checked before the builds, so that a wrong tag, or a version
+      # changed in one place only, fails in seconds.
       - if: github.ref_type == 'tag'
         run: |
           version=$(sed -n 's/^version: *\([^+]*\).*/\1/p' pubspec.yaml)
+          app_version=$(sed -n "s/^const appVersion = '\(.*\)';/\1/p" lib/server/server.dart)
 
           if [ "$GITHUB_REF_NAME" != "v$version" ]; then
             echo "::error::The tag is $GITHUB_REF_NAME, but pubspec.yaml's version is $version"
+            exit 1
+          fi
+
+          if [ "$app_version" != "$version" ]; then
+            echo "::error::lib/server/server.dart's appVersion is $app_version, but pubspec.yaml's version is $version"
             exit 1
           fi
 

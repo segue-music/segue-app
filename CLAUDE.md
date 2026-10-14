@@ -55,7 +55,8 @@ ios-<n>`. Nothing iOS-specific can run here: `Info.plist` and the Xcode project 
 that build.
 
 The Linux, Android and Windows packages are also built on GitHub's machines (`.github/workflows/release.yml`), and,
-for a tag `v<version>` (pubspec's version), put in a release: `git tag v<version> && git push origin v<version>`.
+for a tag `v<version>` (pubspec's version, and `appVersion`'s in `lib/server/server.dart`, which the release checks
+against it), put in a release: `git tag v<version> && git push origin v<version>`.
 There `tool/flutter.sh` runs the Flutter installed (`SEGUE_FLUTTER_IMAGE=none`), the images not fitting, and the keys
 come from the repository's secrets. The APK is signed with the app's key (`android/key.properties` naming
 `android/release.jks`, which git ignores; README.md, "Releases"), every build where it is, so that `flutter run`

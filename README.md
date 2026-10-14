@@ -376,7 +376,8 @@ where they are:
 `.github/workflows/release.yml` builds the Linux, Android and Windows packages on GitHub's machines, with the scripts
 above, and for a tag `v<version>` puts them in a release of this repository, with their SHA-256 (`SHA256SUMS`). The
 tag says pubspec.yaml's version, which the app shows in its settings: for a new one, change `version` there (the build
-number after the `+` is the commit count's, whatever it says), commit, and
+number after the `+` is the commit count's, whatever it says) and `appVersion` in `lib/server/server.dart`, the one the
+app gives the media server, the hub and the services it asks, which the release checks against it, commit, and
 
 ```sh
 git tag v0.2.0 && git push origin v0.2.0
