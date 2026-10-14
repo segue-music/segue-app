@@ -4,7 +4,6 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
-import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import 'protocol.dart';
@@ -50,10 +49,14 @@ class SegueClient extends ChangeNotifier {
     this.onCommand,
     this.onConnected,
     WebSocketChannel Function(Uri url)? channelFactory,
-    // A connection that died without a close (the hub crashed, the network went away), which a proxy keeps open on this
-    // side, is noticed within twice this, rather than by the next message failing (SPEC.md, section 9).
-    Duration pingInterval = const Duration(seconds: 15),
-  }) : _channelFactory = channelFactory ?? ((url) => IOWebSocketChannel.connect(url, pingInterval: pingInterval));
+    this.answerTimeout = const Duration(seconds: 25),
+  }) : _channelFactory = channelFactory ?? WebSocketChannel.connect;
+
+  /// How long a command or a transfer waits for the hub's answer. The hub answers a command within 10 s and a transfer
+  /// within 20 s, so none by then means a connection that died without a close (the hub crashed, the network went
+  /// away), which a proxy can keep open on this side: it is closed, and made again. The app sends no pings to notice it
+  /// sooner, which would cost a phone battery for a case that is rare (SPEC.md, section 9).
+  final Duration answerTimeout;
 
   /// The hub's WebSocket URL; a new one is where the next connection goes.
   Uri url;
@@ -296,10 +299,21 @@ class SegueClient extends ChangeNotifier {
 
     final id = 'r${++_seq}';
     final answer = Completer<Result>();
+    final channel = _channel;
     _waiting[id] = answer;
     _send({...msg, 'id': id});
 
-    return answer.future;
+    return answer.future.timeout(
+      answerTimeout,
+      onTimeout: () {
+        _log.warning('no answer from $url in ${answerTimeout.inSeconds} s: the connection is dead');
+        _waiting.remove(id);
+        // The close finishes alone, nothing answering it, and [start] connects again.
+        unawaited(channel?.sink.close());
+
+        return const Result(ok: false, error: 'closed');
+      },
+    );
   }
 
   void _send(Map<String, Object?> msg) {

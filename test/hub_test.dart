@@ -124,6 +124,48 @@ Future<int> freePort() async {
   return port;
 }
 
+/// A proxy in front of the hub, as an app finds one where the connection behind it died: once [silence] is called,
+/// nothing gets through the connections it has, and nothing closes them. Those that come after go through.
+Future<({Uri url, void Function() silence})> proxyToHub() async {
+  final proxy = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+  final sockets = <Socket>[];
+  final silencers = <void Function()>[];
+
+  addTearDown(() async {
+    await proxy.close();
+
+    for (final socket in sockets) {
+      socket.destroy();
+    }
+  });
+  proxy.listen((app) async {
+    final toHub = await Socket.connect(hubUrl.host, hubUrl.port);
+    var silent = false;
+
+    sockets.addAll([app, toHub]);
+    silencers.add(() => silent = true);
+    app.listen((data) {
+      if (!silent) {
+        toHub.add(data);
+      }
+    }, onDone: toHub.destroy);
+    toHub.listen((data) {
+      if (!silent) {
+        app.add(data);
+      }
+    }, onDone: app.destroy);
+  });
+
+  return (
+    url: Uri.parse('ws://127.0.0.1:${proxy.port}/v1/ws'),
+    silence: () {
+      for (final silence in silencers) {
+        silence();
+      }
+    },
+  );
+}
+
 void main() {
   if (!File(hubBin).existsSync()) {
     test('against the hub', () {}, skip: 'needs the hub binary, $hubBin');
@@ -431,40 +473,36 @@ void main() {
     );
   });
 
-  test('a connection that died without a close is noticed by its pings, and made again', () async {
-    // Between the app and the hub, a proxy that can go silent, as one does where the connection behind it died: nothing
-    // gets through any more, and nothing closes.
-    final proxy = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
-    final sockets = <Socket>[];
-    final silencers = <void Function()>[];
+  test('a play for a device out of reach fails, and its music comes here, for the next play to play it', () async {
+    final user = newUser();
+    final proxy = await proxyToHub();
+    final laptop = await App(user, 'laptop').start();
+    final phone = await App(user, 'phone', url: proxy.url).start();
 
-    addTearDown(() async {
-      await proxy.close();
+    await phone.player.playQueue(songs, index: 1, position: const Duration(seconds: 30));
+    await phone.player.toggle();
+    await until(
+      () => laptop.connect.activeId == 'phone' && laptop.connect.nowPlaying?.playing == false,
+      'the laptop to follow the phone, paused',
+    );
 
-      for (final socket in sockets) {
-        socket.destroy();
-      }
-    });
-    proxy.listen((app) async {
-      final toHub = await Socket.connect(hubUrl.host, hubUrl.port);
-      var silent = false;
+    // Airplane mode: the phone's connection goes silent, and nothing closes it. The hub, which pings the phone with
+    // the command, finds it gone within 5 s.
+    proxy.silence();
 
-      sockets.addAll([app, toHub]);
-      silencers.add(() => silent = true);
-      app.listen((data) {
-        if (!silent) {
-          toHub.add(data);
-        }
-      }, onDone: toHub.destroy);
-      toHub.listen((data) {
-        if (!silent) {
-          app.add(data);
-        }
-      }, onDone: app.destroy);
-    });
+    expect((await laptop.connect.play()).error, 'offline');
+    await until(() => laptop.player.queue.isNotEmpty, 'the music on the laptop');
+    expect(laptop.connect.activeId, isNull);
+    expect(laptop.connect.nowPlaying?.title, 'Other');
+    expect(laptop.player.playing, isFalse);
+    expect((await laptop.connect.play()).ok, isTrue);
+    expect(laptop.player.playing, isTrue);
+  });
 
+  test('a request with no answer takes the connection for dead, and makes it again', () async {
+    final proxy = await proxyToHub();
     final client = SegueClient(
-      url: Uri.parse('ws://127.0.0.1:${proxy.port}/v1/ws'),
+      url: proxy.url,
       auth: Auth.subsonic(username: newUser(), token: '-', salt: '-'),
       device: const DeviceInfo(
         id: 'laptop',
@@ -474,18 +512,24 @@ void main() {
         roles: [Role.controller],
         capabilities: [],
       ),
-      pingInterval: const Duration(milliseconds: 100),
+      answerTimeout: const Duration(milliseconds: 300),
     );
 
     unawaited(client.start());
     addTearDown(client.close);
     await until(() => client.status == HubStatus.connected, 'connected');
 
-    for (final silence in silencers) {
-      silence();
-    }
+    proxy.silence();
 
-    await until(() => client.status != HubStatus.connected, 'the dead connection noticed');
+    // Nothing says the connection died, and the app pings nothing: the command finds out.
+    final result = await client.command('tv', const Command(CommandAction.play));
+
+    expect(result.error, 'closed');
+    await until(
+      () => client.status != HubStatus.connected,
+      'the dead connection closed',
+      timeout: const Duration(seconds: 10),
+    );
     await until(() => client.status == HubStatus.connected, 'connected again', timeout: const Duration(seconds: 5));
   });
 
