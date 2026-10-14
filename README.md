@@ -22,12 +22,22 @@ Segue's protocol and its hub, which runs next to the media server, are in
 > **Vibe-coded.** The app was written by Claude (through Claude Code), with a person deciding what
 > to build and trying it on real devices. Every commit says so.
 
-**Status: not released.** The Android APK is in no store, the Linux and Windows builds are only a tarball and a zip, all
-three in this repository's releases ("Releases"), and the iOS one reaches only TestFlight's internal group. The
-Android build has been tried on a tablet and on an Android TV, the iOS build on an iPhone, with CarPlay's Now Playing
-screen, and the Windows build on Windows 11. macOS has no package yet.
+**Status: early.** The app is in no store yet: the builds for Android (an APK), Linux (a tarball) and Windows (a zip)
+are in the [latest release](https://github.com/segue-music/segue-app/releases/latest), and the iOS one reaches only
+TestFlight's internal group. The Android build has been tried on a tablet and on an Android TV, the iOS build on an
+iPhone and in a car, with CarPlay's Now Playing screen, and the Windows build on Windows 11. macOS has no package yet.
 
 ## Features
+
+### Connect
+
+- The hub is found next to the server, or typed at sign-in, under "Advanced". The device picker lists the user's other
+  devices that are online, with what they play, and picking one makes the app control it.
+- Picking this device again moves the music here, at the same point, in the same modes. If the device it controls
+  closes, its music stays here, paused. If its queue ends there, the player goes, and the app controls this device
+  again, until another queue plays there.
+- When another device starts playing, music left paused here goes, so that no device is listed paused with music that
+  now plays elsewhere. An app opened when nothing plays anywhere picks up where the music was.
 
 ### Signing in
 
@@ -35,29 +45,29 @@ screen, and the Windows build on Windows 11. macOS has no package yet.
   the server speaks Subsonic (Navidrome, other OpenSubsonic servers) or Jellyfin: a Jellyfin server, or Navidrome's
   Jellyfin API at `/jellyfin`, experimental since Navidrome 0.64 and turned on with `ND_JELLYFIN_ENABLED=true`.
 - Or, on an OpenSubsonic server that takes them (LMS, which takes nothing else; Navidrome from the release after
-  0.64.2), an API key made there, in place of the user and password ("Entrar com uma chave de API"): the server says
-  whose it is, and it can be taken back there without changing the password. A server that takes keys alone refuses
-  the password, and the sign-in asks for a key.
+  0.64.2), an API key made there, in place of the user and password ("Sign in with an API key"): the server says whose
+  it is, and it can be taken back there without changing the password. A server that takes keys alone refuses the
+  password, and the sign-in asks for a key.
 - The password isn't kept: the system's secure storage gets a Subsonic token, an API key, or Jellyfin's access
   token. Signing out, at the end of the settings, ends a Jellyfin server's token; Navidrome's lasts until the
   password changes, and an API key until it is taken back on the server.
 
 ### Library
 
-- **Home**, where the app opens: the albums played last (once any has played), as small tiles in a grid, to go back
-  to one at a glance; a row of mixes; then rows of the latest added, the latest released and the most played. A
-  row's title opens the albums tab in that order. Dragging the home down from its top loads it again. As the app
-  opens, the home shows at once what it showed the time before, covers too, kept on the device, while it loads
-  again; its mixes are those picked the time before. On a phone, its top bar has two chips: "Aleatório", which plays
-  the whole library at random, and "Favoritos", which opens the favorites. On a computer, a tablet or a TV,
-  "Aleatório" is in the top bar, over every page, and the favorites in the side rail.
-- **Mixes**: 100 songs of the library at random, of a genre ("Rock") or of a decade ("Anos 70"), from the genres and
-  decades the user plays most (before anything has played, the genres with the most albums). They are picked again
-  each time the home loads, the more played the likelier. A mix plays the first songs its tile shows, and autoplay
-  goes on after its last. Out of the server's reach, there are no mixes.
+- **Home**, where the app opens: the albums played last (once any has played), as small tiles in a grid, to go back to
+  one at a glance; a row of mixes; then rows of the latest added, the latest released and the most played. A row's title
+  opens the albums tab in that order. Dragging the home down from its top loads it again. As the app opens, the home
+  shows at once what it showed the time before, covers too, kept on the device, while it loads again; its mixes are
+  those picked the time before. On a phone, its top bar has two chips: "Shuffle", which plays the whole library at
+  random, and "Favorites", which opens the favorites. On a computer, a tablet or a TV, "Shuffle" is in the top bar, over
+  every page, and the favorites in the side rail.
+- **Mixes**: 100 songs of the library at random, of a genre ("Rock") or of a decade ("1970s"), from the genres and
+  decades the user plays most (before anything has played, the genres with the most albums). They are picked again each
+  time the home loads, the more played the likelier. A mix plays the first songs its tile shows, and autoplay goes on
+  after its last. Out of the server's reach, there are no mixes.
 - **Radios**: 100 songs like a song (the song first), an album or an artist, as the server finds them (Navidrome's
   getSimilarSongs2, from its agents and the item's own songs; Jellyfin's instant mix): from a song's menu, an album's
-  menu ("Mais opções") and a button on an artist's page. Autoplay goes on after the last, on the device that plays
+  menu ("More options") and a button on an artist's page. Autoplay goes on after the last, on the device that plays
   them.
 - **Albums**: by name, latest released, most played, played last or latest added. Wherever albums are listed, the
   album's artist opens their page, and on a computer or a tablet a button on the cover plays the album. By name,
@@ -76,23 +86,22 @@ screen, and the Windows build on Windows 11. macOS has no package yet.
 ### Album and artist pages
 
 - **Album**: its cover (which opens full screen), what kind of release it is (album, EP, single, compilation), its
-  artist, year, songs (numbered as their tags have them, under each disc's number and title where it has several)
-  and how long they last, and at the end its release date, its record labels and a row of the artist's other albums
-  ("Mais de Aerosmith"). Where the server doesn't say the date, the labels or the kind, MusicBrainz fills them in:
-  by the album's MusicBrainz id, or, for the date and the kind only, by its name, artist and year.
+  artist, year, songs (numbered as their tags have them, under each disc's number and title where it has several) and
+  how long they last, and at the end its release date, its record labels and a row of the artist's other albums ("More
+  by Aerosmith"). Where the server doesn't say the date, the labels or the kind, MusicBrainz fills them in: by the
+  album's MusicBrainz id, or, for the date and the kind only, by its name, artist and year.
 - **Credits**, from a button on the album's page: who performed it (with what they played or sang), wrote it and
-  produced it, one a line, with the songs where it isn't all of them ("voz principal, gaita (faixa 2)"). The
-  server's credits (OpenSubsonic's contributors, which Navidrome reads from the tags; Jellyfin's people), or, where
-  it has none, MusicBrainz's. MusicBrainz also says where the album was recorded, mixed and mastered, and who made
-  its cover and booklet, which the media servers never say.
+  produced it, one a line, with the songs where it isn't all of them ("lead vocals, harmonica (track 2)"). The server's
+  credits (OpenSubsonic's contributors, which Navidrome reads from the tags; Jellyfin's people), or, where it has none,
+  MusicBrainz's. MusicBrainz also says where the album was recorded, mixed and mastered, and who made its cover and
+  booklet, which the media servers never say.
 - **Artist**: their picture, their genres, their albums (or, picked above them, their singles and EPs), five of their
   songs (the ones the user plays most, or the popular ones, which a Subsonic server learns from Last.fm) and a row of
   the library's artists like them. Where the server has no picture (Navidrome since 0.64), the one fanart.tv's users
   like most, by the artist's MusicBrainz id.
 - **Biography**, from a button on the artist's page, where the server has one (Navidrome's comes from Last.fm): a
   gallery of pictures (the server's and up to three from fanart.tv), and from MusicBrainz a band's years together
-  ("desde 1991") and members, and where the artist comes from ("Boston, Estados Unidos"), a link to a map (not on a
-  TV).
+  ("since 1991") and members, and where the artist comes from ("Boston, United States"), a link to a map (not on a TV).
 - In the player, a song's title opens its album, and each of its artists their page. In an album's or a playlist's
   songs the artists link too, but not on a phone, where a finger on the song would often land on them.
 
@@ -151,11 +160,11 @@ knows nothing of them, and another device plays as it has them.
   or a smart one, can only be played next or added to the queue.
 - A song's menu is the button after its duration, the menu key or Shift+F10, a right click, or OK held on a TV's
   remote.
-- **Favorites**: a heart on a song, an album or an artist (Subsonic's star, Jellyfin's favorite). They have a page
-  of their own ("Favoritos", first among the playlists, in the side rail, and on a phone a chip on the home): the
-  songs, a line that plays them or opens them as a playlist, then a row of the albums and one of the artists. A row's
-  title opens the albums or artists tab with its "Favoritos" chip, which shows them alone. On a Subsonic server the
-  latest come first; on Jellyfin, which doesn't say when, by name.
+- **Favorites**: a heart on a song, an album or an artist (Subsonic's star, Jellyfin's favorite). They have a page of
+  their own ("Favorites", first among the playlists, in the side rail, and on a phone a chip on the home): the songs, a
+  line that plays them or opens them as a playlist, then a row of the albums and one of the artists. A row's title opens
+  the albums or artists tab with its "Favorites" chip, which shows them alone. On a Subsonic server the latest come
+  first; on Jellyfin, which doesn't say when, by name.
 - Each change shows at once and goes to the server as it's made. One the server refuses goes back, and says so.
 
 ### Downloads and offline
@@ -165,7 +174,7 @@ knows nothing of them, and another device plays as it has them.
   settings pick for downloads, with their covers, lyrics and artists' pictures.
 - On a device with mobile data, downloads go over Wi-Fi or a cable alone, unless the settings let them go over mobile
   data too. What failed comes again as the server is back, or from the button.
-- The library's "Baixados" chip shows the downloaded albums, and the playlists' "Baixadas" chip the downloaded
+- The library's "Downloaded" chip shows the downloaded albums, and the playlists' "Downloaded" chip the downloaded
   playlists. The settings list the downloads, with the room they take.
 - With the server out of reach, the top bar says so and the app shows what was downloaded: the home, the library,
   search and their pages, which play from the files. The plays made meanwhile count as the server is back, at the
@@ -173,16 +182,6 @@ knows nothing of them, and another device plays as it has them.
 - Navidrome 0.64 gave its songs, albums and playlists new ids: the downloads made before take them as the server
   answers, their files kept rather than downloaded again, and what the app kept from before (the plays made out of
   reach, the home's last albums and mixes, the last playback the hub kept) finds its songs all the same.
-
-### Connect
-
-- The hub is found next to the server, or typed at sign-in, under "Avançado". The device picker lists the user's
-  other devices that are online, with what they play, and picking one makes the app control it.
-- Picking this device again moves the music here, at the same point, in the same modes. If the device it controls
-  closes, its music stays here, paused. If its queue ends there, the player goes, and the app controls this device
-  again, until another queue plays there.
-- When another device starts playing, music left paused here goes, so that no device is listed paused with music that
-  now plays elsewhere. An app opened when nothing plays anywhere picks up where the music was.
 
 ### Devices
 
@@ -195,25 +194,26 @@ knows nothing of them, and another device plays as it has them.
   from section to section; the home or the library picked again there goes back to its start. Pages open over the
   rest, and a swipe to the right from anywhere goes back.
 - **Sign-in on a TV with a phone**: the TV's sign-in shows a QR code, which the app on a phone signed in reads
-  (Settings, "Entrar numa TV"), signing the TV in with no typing on the remote. Over the local network, sealed with
-  a key the code carries (AES-GCM): on Subsonic the phone's credentials; on Jellyfin the TV signs in by Quick Connect,
+  (Settings, "Sign in on a TV"), signing the TV in with no typing on the remote. Over the local network, sealed with a
+  key the code carries (AES-GCM): on Subsonic the phone's credentials; on Jellyfin the TV signs in by Quick Connect,
   which the phone authorizes, and gets a sign-in of its own (Navidrome's Jellyfin API has Quick Connect too, since
-  0.64.1, but it hasn't been tried there). The phone sends it only to an address on the local network, after naming
-  the TV and its address, which the TV shows under the code; the TV's answer is sealed too, and a code is good for one
+  0.64.1, but it hasn't been tried there). The phone sends it only to an address on the local network, after naming the
+  TV and its address, which the TV shows under the code; the TV's answer is sealed too, and a code is good for one
   sign-in, the TV showing another after.
 - **TV**: the remote drives the app, a white ring showing where it is, and an album, an artist or a mix it is on a
   little bigger. The text is a bit bigger than on a phone, and everything keeps out of the screen's edges, which some
   TVs cut off, but for the rows of albums, which run on to the side as they scroll, as Google TV's do. No player bar
   under the pages: the side rail's first button, while something plays, opens the full-screen player, as a video player:
   the controls showing as a key is pressed and going after a few seconds, back hiding them first, on the color of the
-  cover. The screen stays on while the music plays. Left alone for three minutes while the TV plays, the app opens
-  the full-screen player by itself, as a screen saver would come, the screen staying on; with the controls hidden,
-  what it shows moves slowly about, a few pixels in minutes, for an OLED screen not to keep a mark of it. The keyboard opens on the search bar with the center button, and with it open the remote's
-  microphone, held, types what is said. OK held opens a menu, and a song of the queue or of a playlist moves by the
-  remote ("Mover" in its menu, then the arrows and OK). The remote's play/pause, next and previous buttons drive
-  playback. Through a long list, its channel buttons go a page down or up, and back, far down a list, goes back to its
-  top before it leaves the page. Google TV's Assistant doesn't reach the app: music asked for by name ("toca Aerosmith
-  no Segue" too) it plays on YouTube, and away from the keyboard the microphone is its own.
+  cover. The screen stays on while the music plays. Left alone for three minutes while the TV plays, the app opens the
+  full-screen player by itself, as a screen saver would come, the screen staying on; with the controls hidden, what it
+  shows moves slowly about, a few pixels in minutes, for an OLED screen not to keep a mark of it. The keyboard opens on
+  the search bar with the center button, and with it open the remote's microphone, held, types what is said. OK held
+  opens a menu, and a song of the queue or of a playlist moves by the remote ("Move" in its menu, then the arrows and
+  OK). The remote's play/pause, next and previous buttons drive playback. Through a long list, its channel buttons go a
+  page down or up, and back, far down a list, goes back to its top before it leaves the page. Google TV's Assistant
+  doesn't reach the app: music asked for by name ("play Aerosmith on Segue" too) it plays on YouTube, and away from the
+  keyboard the microphone is its own.
 - **The system's media controls** show and command what the player bar shows, the device it follows included: on
   Linux (MPRIS) the media keys, the desktop's player widget and KDE Connect; on iOS the lock screen, Control Center,
   the headphones' buttons and CarPlay's Now Playing; on Android the notification, the lock screen and the
@@ -222,7 +222,7 @@ knows nothing of them, and another device plays as it has them.
   window does on a computer: this device's music pauses, and another device's plays on. Playing pauses another app's
   music, and another app playing pauses this one.
 - **Android Auto**: the home (mixes and albums), the playlists, the albums and the artists, with their radios first,
-  search, and what is said ("Ok Google, toca Aerosmith no Segue"). What the car plays, it plays on the phone, and a
+  search, and what is said ("Hey Google, play Aerosmith on Segue"). What the car plays, it plays on the phone, and a
   device the app was controlling stops. Android's media controls offer the last song to resume.
 - **iOS** plays in the background and with the silent switch on.
 - On iOS and Android, a call pauses the music, which plays again after it, and leaving the car or unplugging the
@@ -247,8 +247,9 @@ knows nothing of them, and another device plays as it has them.
 
 ## Running on Linux
 
-`tool/package-linux.sh` builds the Linux version (see "Development") and packs it as `build/segue-linux-x64.tar.gz`.
-The computer that runs it needs glibc 2.38 or newer, GTK 3, libsecret and libmpv, all runtime packages. On Fedora:
+`segue-linux-x64.tar.gz`, from the [latest release](https://github.com/segue-music/segue-app/releases/latest) or built
+by `tool/package-linux.sh` (in `build/`, see "Development"), runs on a computer with glibc 2.38 or newer, GTK 3,
+libsecret and libmpv, all runtime packages. On Fedora:
 
 ```sh
 sudo dnf install gtk3 libsecret mpv-libs
@@ -262,22 +263,24 @@ moving the folder). On Wayland the window takes its icon from that file, so with
 
 ## Running on Windows
 
-`tool\package-windows.ps1`, in PowerShell, builds the Windows version (see "Flutter installed") and packs it as
-`build\segue-windows-x64.zip`. The computer that runs it needs only 64-bit Windows 10 or 11: the zip carries Visual
-C++'s runtime beside the app. Unzip it anywhere and open `segue\segue.exe`. The app isn't signed, so Windows may stop
-it the first time when the zip came from the internet: "More info", then "Run anyway".
+`segue-windows-x64.zip`, from the [latest release](https://github.com/segue-music/segue-app/releases/latest) or built by
+`tool\package-windows.ps1` in PowerShell (in `build\`, see "Flutter installed"), needs only 64-bit Windows 10 or 11: the
+zip carries Visual C++'s runtime beside the app. Unzip it anywhere and open `segue\segue.exe`. The app isn't signed, so
+Windows may stop it the first time when the zip came from the internet: "More info", then "Run anyway".
 
 ## Running on Android and Android TV
 
-`tool/package-android.sh` builds `build/segue-android.apk` (see "Development"): one APK for every processor, to
-install by hand with adb (`android-tools` on Fedora), signed with the app's key where this folder has it ("Releases"),
-else with a debug key. An APK signed with another key than the installed app's doesn't install over it: the app has to
-be uninstalled first, its sign-in and downloads with it. The device has to reach the media server (and the hub) at the
-address used to sign in.
+`segue-android.apk`, from the [latest release](https://github.com/segue-music/segue-app/releases/latest), is one APK for
+every processor. On a phone or a tablet, open it there, from the browser's downloads or the files app; Android first
+asks to let that app install apps ("Allow from this source"). `tool/package-android.sh` builds the same APK (in
+`build/`, see "Development"), signed with the app's key where this folder has it ("Releases"), else with a debug key. An
+APK signed with another key than the installed app's doesn't install over it: the app has to be uninstalled first, its
+sign-in and downloads with it. The device has to reach the media server (and the hub) at the address used to sign in.
 
-On a phone or a tablet, turn on wireless debugging (Settings > About: press "Build number" seven times, then
-Developer options > Wireless debugging). Its main screen shows the address and port for `adb connect`; "Pair device
-with pairing code" shows another port, and the code, for `adb pair`, once per computer:
+From a computer, adb (`android-tools` on Fedora) installs it too, and it is the way onto a TV. On a phone or a tablet,
+turn on wireless debugging (Settings > About: press "Build number" seven times, then Developer options > Wireless
+debugging). Its main screen shows the address and port for `adb connect`; "Pair device with pairing code" shows another
+port, and the code, for `adb pair`, once per computer:
 
 ```sh
 adb pair <address>:<pairing port> <code>
@@ -285,8 +288,8 @@ adb connect <address>:<port>
 adb install -r segue-android.apk
 ```
 
-The port changes each time wireless debugging is turned on, and the address can change too when the device rejoins
-the network. Over a slow Wi-Fi link, copying the APK to the device and opening it there does the same.
+The port changes each time wireless debugging is turned on, and the address can change too when the device rejoins the
+network.
 
 On an Android TV, turn on the developer options (Settings > Device Preferences > About: press "Build" seven times)
 and, in them, network debugging; then `adb connect <TV address>` and `adb install`. Newer Google TVs offer wireless
@@ -355,15 +358,14 @@ What iOS does differently:
 
 The app writes down what goes wrong, a release build too, in `segue.log`: what it couldn't do, mpv's warnings and
 errors, the errors no code caught, and around them what says why: the build and the system, as it opens; which media
-server it speaks to; the server going out of reach and coming back; the hub's connection coming and going; and a
-Connect command that failed, here or on another device. Each line goes in as it comes, at its time with its offset
-from UTC. Past 1 MB the file becomes `segue.1.log` and a new one starts, so the two hold the latest. Neither has a password, token or API key: the
-addresses and requests that carry one are written without it.
+server it speaks to; the server going out of reach and coming back; the hub's connection coming and going; and a Connect
+command that failed, here or on another device. Each line goes in as it comes, at its time with its offset from UTC.
+Past 1 MB the file becomes `segue.1.log` and a new one starts, so the two hold the latest. Neither has a password, token
+or API key: the addresses and requests that carry one are written without it.
 
-The settings, under "About" ("Sobre"), take the log out of the app: on a phone or a tablet, "Share the log"
-("Compartilhar o log") sends both as one file through the system's share sheet (an e-mail, a chat, the files), named
-for the device and the time; on a computer, "Open the log's folder" ("Abrir a pasta do log") opens the `logs` folder
-where they are:
+The settings, under "About", take the log out of the app: on a phone or a tablet, "Share the log" sends both as one file
+through the system's share sheet (an e-mail, a chat, the files), named for the device and the time; on a computer, "Open
+the log's folder" opens the `logs` folder where they are:
 
 - Linux: `~/.local/share/io.github.mateusguilherme.segue/logs/`
 - Windows: `%APPDATA%\io.github.mateusguilherme\Segue\logs\`
@@ -509,9 +511,10 @@ shows an artist's biography with the media server's picture alone, and a person 
 }
 ```
 
-With Flutter installed, the same file goes in by hand (`flutter run -d linux --dart-define-from-file=keys.json`),
-except in `tool\package-windows.ps1`, which gives it to the build itself. Codemagic takes the key from its environment
-variables ("Running on iOS"), and the release workflow from the repository's secrets ("Releases"). A key comes from fanart.tv's page for one (fanart.tv/get-an-api-key), as a project's.
+With Flutter installed, the same file goes in by hand (`flutter run -d linux --dart-define-from-file=keys.json`), except
+in `tool\package-windows.ps1`, which gives it to the build itself. Codemagic takes the key from its environment
+variables ("Running on iOS"), and the release workflow from the repository's secrets ("Releases"). A key comes from
+fanart.tv's page for one (fanart.tv/get-an-api-key), as a project's.
 
 ### Trying Connect
 
@@ -525,8 +528,8 @@ go build -o segue-hub ./cmd/segue-hub
 env SEGUE_UPSTREAM=https://navidrome.example ./segue-hub
 ```
 
-and at sign-in, under "Advanced" ("Avançado"), put `http://127.0.0.1:8480` as the hub's address. The hub's binary is
-static, so one built on another computer runs as it is.
+and at sign-in, under "Advanced", put `http://127.0.0.1:8480` as the hub's address. The hub's binary is static, so one
+built on another computer runs as it is.
 
 To see two devices on one computer, start a second copy of the app as another device:
 
