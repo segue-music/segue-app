@@ -181,6 +181,10 @@ class _SegueAppState extends State<SegueApp> {
 
   @override
   void dispose() {
+    widget.mediaControls
+      ?..close = null
+      ..open = null;
+
     if (widget.settings == null) {
       _settings.dispose();
     }
