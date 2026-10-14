@@ -29,7 +29,8 @@ DART=1 tool/flutter.sh format lib test        # page width 120 (analysis_options
 tool/flutter.sh test
 tool/flutter.sh test test/player_test.dart    # one file
 tool/flutter.sh test --plain-name 'a refused hello is a final HubClosed'
-tool/flutter.sh run -d linux                  # the app in this desktop (display, GPU, sound, session bus, language)
+tool/flutter.sh run -d linux                  # the app in this desktop (display, GPU, sound, session bus, language,
+                                              # time zone)
 tool/package-linux.sh                         # release build → build/segue-linux-x64.tar.gz
 DART=1 tool/flutter.sh run tool/icons.dart    # every icon (Android, TV banner, notification, Linux, iOS, macOS, Windows) from tool/icon.png
 tool/flutter.sh test tool/screenshots.dart    # the README's pictures (docs/screenshots), of a made-up library
@@ -133,7 +134,9 @@ Running two app instances on one machine as different devices:
   `media_kit_engine_test.dart` against the real libmpv. It tracks the current index itself, since
   media_kit's `state.playlist.index` briefly drops to 0 on every open. It keeps the position it
   commanded (seek, jump, open) until media_kit's catches up, so the report right after isn't stale.
-  It reapplies shuffle after each open, since media_kit turns it off. It starts the current track
+  It reapplies shuffle after each open, since media_kit turns it off. It turns mpv's cache on disk off, which
+  media_kit turns on, in a folder libmpv, with no config, hasn't: each stream failed to make its file, and kept its
+  cache in memory, as it now does from the start. It starts the current track
   over itself on a jump to it, which mpv ignores. It reports when a track starts over on repeat. It
   stops on a track that fails to load (`failed`), paused where it was, where mpv would move on to the
   next and, with a media server that fails them all, through the whole queue in a moment; mpv's log
@@ -443,12 +446,18 @@ Running two app instances on one machine as different devices:
   its own (package:logging). `startLogging`, the first thing `main` does, prints each record on the console and
   writes it to `segue.log` (`LogFile`: in the app's support folder, or on Android its folder in the shared storage,
   which `adb pull` reaches in a release build), a line as it comes, with no buffer, so that one written just before
-  the app aborts is there; past 1 MB the file becomes `segue.1.log`. The errors no code caught
-  (`FlutterError.onError`, `PlatformDispatcher.onError`) go to the file only, Flutter printing them itself. Neither
-  has the credentials the media server's addresses (a stream's, a cover's, which an error or mpv may quote) and the
-  requests carry (`redacted`). `SegueClient` says as the hub's connection comes and goes, or is refused, and
-  `MediaKitEngine` passes mpv's warnings and errors on, not its info, which would bury them under each track's
-  address. Tests print what is logged (`test/flutter_test_config.dart`), but write no file. `main` hands the
+  the app aborts is there; past 1 MB the file becomes `segue.1.log`. Each line has its time with its offset from UTC
+  (`logTime`). The errors no code caught (`FlutterError.onError`, `PlatformDispatcher.onError`) go to the file only,
+  Flutter printing them itself. Neither has the credentials the media server's addresses (a stream's, a cover's, which
+  an error or mpv may quote) and the requests carry (`redacted`). Besides what fails: the first line of each launch,
+  the build and the system (and a TV's own line, from `main`); which media server it is, as its first answer says it
+  (`SubsonicApi`: OpenSubsonic's `type` and `serverVersion`; `JellyfinApi`, whose ping asks `System/Info/Public`
+  for it); the media server going out of reach, with why, and coming back (`Reachability`); the hub's connection
+  coming and going, refused, closed by the hub with its code, or left as the app closes it (`SegueClient`); a Connect
+  command failing, on the device that turned it down and on the one that sent it (`SegueClient`, `ConnectController`
+  for this device's); and mpv's warnings and errors (`MediaKitEngine`), not its info, which would bury them under each
+  track's address, nor its notice as it reads the queue media_kit hands it in a file (`loadlist`). Tests print what
+  is logged (`test/flutter_test_config.dart`), but write no file. `main` hands the
   `LogFile` down to the settings, as it does the version, where `LogTile` (`lib/ui/settings/log_tile.dart`, under
   "Sobre") takes it out of the app: on a phone or a tablet, through the system's share sheet (share_plus), both files
   as one (`LogFile.read`), named for the device and the time (`logName`); on a computer, opening its folder

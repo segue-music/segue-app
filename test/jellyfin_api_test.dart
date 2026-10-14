@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:logging/logging.dart';
 import 'package:segue/jellyfin/api.dart';
 import 'package:segue/server/models.dart';
 import 'package:segue/server/server.dart';
@@ -73,6 +74,25 @@ const artist = {
 };
 
 void main() {
+  test('a ping asks for the server\'s public information, which says in the log which server it is, once', () async {
+    final asked = <http.Request>[];
+    final records = <LogRecord>[];
+    final subscription = Logger.root.onRecord.listen(records.add);
+    final api = jellyfin((_) => json({'ProductName': 'Jellyfin Server', 'Version': '10.10.7', 'Id': 'abc'}), asked);
+
+    addTearDown(subscription.cancel);
+    await api.ping();
+    await api.ping();
+    expect(
+      [for (final request in asked) request.url.path],
+      ['/jellyfin/System/Info/Public', '/jellyfin/System/Info/Public'],
+    );
+    expect(
+      [for (final record in records) '${record.loggerName}: ${record.message}'],
+      ['JellyfinApi: music.test: Jellyfin Server 10.10.7'],
+    );
+  });
+
   test('requests carry the token in the Authorization header, as this device', () async {
     final asked = <http.Request>[];
 

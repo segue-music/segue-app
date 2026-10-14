@@ -4,6 +4,7 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:logging/logging.dart';
 import 'package:segue/server/models.dart';
 import 'package:segue/server/server.dart';
 import 'package:segue/subsonic/api.dart';
@@ -19,6 +20,36 @@ void main() {
 
     expect(fresh.token, md5.convert(utf8.encode('sesame${fresh.salt}')).toString());
     expect(md5.convert(utf8.encode('sesamec19b2d')).toString(), credentials.token);
+  });
+
+  test('the first answer says in the log which server it is, and only a server that changes says it again', () async {
+    final records = <LogRecord>[];
+    final subscription = Logger.root.onRecord.listen(records.add);
+    var answer = {
+      'status': 'ok',
+      'version': '1.16.1',
+      'type': 'navidrome',
+      'serverVersion': '0.58.0 (13af8ed4)',
+      'openSubsonic': true,
+    };
+    final api = SubsonicApi(
+      Uri.parse('https://music.test:4533'),
+      credentials,
+      client: MockClient((_) async => subsonic(answer)),
+    );
+
+    addTearDown(subscription.cancel);
+    await api.ping();
+    await api.ping();
+    answer = {'status': 'ok', 'version': '1.16.1'};
+    await api.ping();
+    expect(
+      [for (final record in records) '${record.loggerName}: ${record.message}'],
+      [
+        'SubsonicApi: music.test: navidrome 0.58.0 (13af8ed4), API 1.16.1, OpenSubsonic',
+        'SubsonicApi: music.test: a Subsonic server, API 1.16.1',
+      ],
+    );
   });
 
   test('requests carry the token, never the password, under the app name', () async {

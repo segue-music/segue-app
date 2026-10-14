@@ -2,11 +2,14 @@ import 'dart:async';
 
 import 'package:clock/clock.dart';
 import 'package:flutter/foundation.dart';
+import 'package:logging/logging.dart';
 
 import '../player/player.dart';
 import '../segue/client.dart';
 import '../segue/protocol.dart';
 import '../server/models.dart';
+
+final _log = Logger('ConnectController');
 
 /// What plays, wherever it plays: what the now-playing bar shows, and which song the lists mark.
 class NowPlaying {
@@ -258,6 +261,7 @@ class ConnectController extends ChangeNotifier {
       await player.playQueue(songs, index: index);
       return const Result(ok: true);
     } on CommandFailed catch (e) {
+      _log.warning('playing here failed', e);
       return Result(ok: false, error: e.message);
     }
   }
@@ -363,6 +367,8 @@ class ConnectController extends ChangeNotifier {
       await here();
       return const Result(ok: true);
     } on CommandFailed catch (e) {
+      // Another device's failures are the hub client's to log.
+      _log.warning('${command.action.name} failed', e);
       return Result(ok: false, error: e.message);
     }
   }

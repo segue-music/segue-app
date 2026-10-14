@@ -187,6 +187,11 @@ if [ "$tool $command" = "flutter run" ]; then
   # with LANG set to another, GTK warned and fell back to C as the app started.
   language=${LANGUAGE:-${LC_ALL:-${LC_MESSAGES:-$LANG}}}
   [ -n "$language" ] && set -- -e LANGUAGE="$language" "$@"
+
+  # The app's times (its log's) in this desktop's time zone, rather than the container's, UTC: TZ, or the zone
+  # /etc/localtime links to, which the image's tzdata has.
+  zone=${TZ:-$(realpath /etc/localtime 2> /dev/null | sed -n 's|.*/zoneinfo/||p')}
+  [ -n "$zone" ] && set -- -e TZ="$zone" "$@"
 fi
 
 exec docker run --rm -i --user "$(id -u):$(id -g)" --network host \

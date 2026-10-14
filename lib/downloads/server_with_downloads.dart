@@ -70,7 +70,7 @@ class ServerWithDownloads implements MediaServer {
         rethrow;
       }
 
-      reachability.lost();
+      reachability.lost(error);
       return downloaded();
     }
   }

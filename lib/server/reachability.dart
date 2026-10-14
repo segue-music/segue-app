@@ -3,6 +3,9 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:logging/logging.dart';
+
+final _log = Logger('Reachability');
 
 /// Whether the media server answers: true until a request to it fails for the network (no route to it, no answer, a
 /// connection cut short), and from then false, until a ping, one every [retry], gets an answer. Any answer counts, a
@@ -42,7 +45,7 @@ class Reachability extends ValueNotifier<bool> {
       _set(true);
     } on Object catch (error) {
       if (isNetworkFailure(error)) {
-        lost();
+        lost(error);
       } else {
         _set(true);
       }
@@ -51,9 +54,9 @@ class Reachability extends ValueNotifier<bool> {
     return value;
   }
 
-  /// A request to the server failed for the network: it is out of reach until a ping gets an answer.
-  void lost() {
-    _set(false);
+  /// A request to the server failed for the network, with [error]: it is out of reach until a ping gets an answer.
+  void lost([Object? error]) {
+    _set(false, error);
     _again?.cancel();
 
     if (!_disposed) {
@@ -61,10 +64,19 @@ class Reachability extends ValueNotifier<bool> {
     }
   }
 
-  void _set(bool reachable) {
-    if (!_disposed) {
-      value = reachable;
+  /// [value], which the log has as it changes, when the server went, with why ([error]), and when it came back.
+  void _set(bool reachable, [Object? error]) {
+    if (_disposed) {
+      return;
     }
+
+    if (reachable && !value) {
+      _log.info('media server back in reach');
+    } else if (!reachable && value) {
+      _log.warning('media server out of reach', error);
+    }
+
+    value = reachable;
   }
 
   @override

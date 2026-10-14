@@ -353,9 +353,11 @@ What iOS does differently:
 
 ## Logs
 
-The app writes down what goes wrong, a release build too, in `segue.log`: what it couldn't do, the hub's connection
-coming and going, mpv's warnings and errors, and the errors no code caught, each line as it comes. Past 1 MB the file
-becomes `segue.1.log` and a new one starts, so the two hold the latest. Neither has a password, token or API key: the
+The app writes down what goes wrong, a release build too, in `segue.log`: what it couldn't do, mpv's warnings and
+errors, the errors no code caught, and around them what says why: the build and the system, as it opens; which media
+server it speaks to; the server going out of reach and coming back; the hub's connection coming and going; and a
+Connect command that failed, here or on another device. Each line goes in as it comes, at its time with its offset
+from UTC. Past 1 MB the file becomes `segue.1.log` and a new one starts, so the two hold the latest. Neither has a password, token or API key: the
 addresses and requests that carry one are written without it.
 
 The settings, under "About" ("Sobre"), take the log out of the app: on a phone or a tablet, "Share the log"

@@ -199,6 +199,9 @@ class MediaKitEngine implements Deck {
     final native = _player.platform as NativePlayer;
     _ready = Future.wait([
       native.setProperty('prefetch-playlist', 'yes'),
+      // media_kit turns the cache on disk on, in a folder libmpv, with no config of its own, hasn't: each stream failed
+      // to make its file ("Failed to create file cache"), and kept its cache in memory, as it now does from the start.
+      native.setProperty('cache-on-disk', 'no'),
       if (audioFile != null) _writeAudioTo(native, audioFile) else if (silent) native.setProperty('ao', 'null'),
     ]);
     native.onLoadHooks.add(_pointAtStream);
@@ -1009,12 +1012,14 @@ class MediaKitEngine implements Deck {
 
   /// Follows mpv's loads, and their failures: a stream that fails to open is the loading track's where it is the track's
   /// name or the stream the on_load hook gave it; another is one mpv opened ahead. Its warnings and errors go to the
-  /// app's log, not its info, which every track's address would bury them in.
+  /// app's log, not its info, which every track's address would bury them in, nor its warning as it reads the queue
+  /// from the file media_kit writes it to (`loadlist`), each time it opens one.
   void _logged(PlayerLog log) {
-    if (log.level == 'warn') {
-      _log.warning('mpv ${log.prefix}: ${log.text}');
-    } else if (log.level == 'error' || log.level == 'fatal') {
-      _log.severe('mpv ${log.prefix}: ${log.text}');
+    switch (log.level) {
+      case 'warn' when !(log.prefix == 'playlist' && log.text == 'Reading plaintext playlist.'):
+        _log.warning('mpv ${log.prefix}: ${log.text}');
+      case 'error' || 'fatal':
+        _log.severe('mpv ${log.prefix}: ${log.text}');
     }
 
     if (log.prefix == 'cplayer' && log.text.startsWith('Playing: ')) {

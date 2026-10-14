@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:logging/logging.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -26,6 +27,10 @@ Future<void> main() async {
   // audio_service drops, unanswered, what the car asks before there is a handler.
   final controls = await MediaControls.start();
   final interruptions = await AudioInterruptions.start();
+
+  if (television) {
+    Logger('Segue').info('on a TV');
+  }
 
   runApp(
     SegueApp(

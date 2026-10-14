@@ -16,6 +16,9 @@ void main() {
 
   List<String> linesOf(String name) => File('${directory.path}/$name').readAsLinesSync();
 
+  // A record's time ([logTime]).
+  const time = r'\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}[+-]\d\d:\d\d';
+
   test('a record is a line, at its time and level, with its error, then its stack trace', () async {
     final log = await LogFile.open(directory);
 
@@ -25,10 +28,26 @@ void main() {
     await log.close();
 
     expect(linesOf('segue.log'), [
-      matches(r'^\d{4}-\d\d-\d\dT[\d:.]+ WARNING Downloads: downloads unavailable: Exception: no room$'),
-      matches(r'^\d{4}-\d\d-\d\dT[\d:.]+ SEVERE uncaught: uncaught: Bad state: no song$'),
+      matches('^$time WARNING Downloads: downloads unavailable: Exception: no room\$'),
+      matches('^$time SEVERE uncaught: uncaught: Bad state: no song\$'),
       '#0 main',
     ]);
+  });
+
+  test('a record\'s time is to the millisecond, with its offset from UTC', () {
+    expect(logTime(DateTime.utc(2026, 10, 14, 12, 9, 48, 789, 831)), '2026-10-14T12:09:48.789+00:00');
+    expect(logTime(DateTime.utc(2026, 1, 2, 3, 4, 5, 6)), '2026-01-02T03:04:05.006+00:00');
+
+    final now = DateTime.now();
+    final offset = now.timeZoneOffset;
+
+    expect(
+      logTime(now),
+      endsWith(
+        '${offset.isNegative ? '-' : '+'}${'${offset.inHours.abs()}'.padLeft(2, '0')}:'
+        '${'${offset.inMinutes.abs() % 60}'.padLeft(2, '0')}',
+      ),
+    );
   });
 
   test('a log opened again goes on after what it had', () async {

@@ -334,7 +334,7 @@ class Downloads extends ChangeNotifier {
           _failed.add(missing.key);
 
           if (isNetworkFailure(error)) {
-            _reachability?.lost();
+            _reachability?.lost(error);
           }
         }
 

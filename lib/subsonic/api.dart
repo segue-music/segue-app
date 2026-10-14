@@ -4,11 +4,14 @@ import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
+import 'package:logging/logging.dart';
 
 import '../segue/protocol.dart';
 import '../server/models.dart';
 import '../server/server.dart';
 import 'navidrome_ids.dart';
+
+final _log = Logger('SubsonicApi');
 
 /// What a Subsonic server knows the user by: a token of their password ([SubsonicToken]), or, on an OpenSubsonic server
 /// with apiKeyAuthentication, a key they made there ([SubsonicApiKey]), which they can take back there without changing
@@ -66,6 +69,9 @@ class SubsonicApi implements MediaServer {
 
   // Whether the server gives its items the ids Navidrome 0.64 gave them ([hasCanonicalIds]), as its last answer said.
   bool _canonicalIds = false;
+
+  // Which server it is, as the log last had it ([_kindOf]).
+  String? _kind;
 
   @override
   Api get api => Api.subsonic;
@@ -633,6 +639,19 @@ class SubsonicApi implements MediaServer {
     return _decode(response);
   }
 
+  /// Which server an answer ([body]) is from, as it says: its name and version, where OpenSubsonic's tell them, and the
+  /// API's (`navidrome 0.58.0 (13af8ed4), API 1.16.1, OpenSubsonic`).
+  static String _kindOf(Map<String, dynamic> body) {
+    final name = body['type'] as String? ?? 'a Subsonic server';
+    final version = body['serverVersion'] as String?;
+
+    return [
+      if (version == null) name else '$name $version',
+      if (body['version'] case final String api) 'API $api',
+      if (body['openSubsonic'] == true) 'OpenSubsonic',
+    ].join(', ');
+  }
+
   /// The errors that refuse the credentials: a wrong user or password (40), a server that takes no token of a password
   /// (41), or not what the app sent at all (42), only an API key, say; a wrong API key (44).
   static const _authCodes = {40, 41, 42, 44};
@@ -647,6 +666,14 @@ class SubsonicApi implements MediaServer {
             as Map<String, dynamic>;
     // Every answer says it, a refusal's too.
     _canonicalIds = hasCanonicalIds(type: body['type'] as String?, version: body['serverVersion'] as String?);
+
+    final kind = _kindOf(body);
+
+    // In the log once, as the first answer says it, for whoever reads it to know which server the app spoke to.
+    if (kind != _kind) {
+      _kind = kind;
+      _log.info('${server.host}: $kind');
+    }
 
     if (body['status'] != 'ok') {
       final error = body['error'] as Map<String, dynamic>?;

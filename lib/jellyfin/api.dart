@@ -2,10 +2,13 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
+import 'package:logging/logging.dart';
 
 import '../segue/protocol.dart';
 import '../server/models.dart';
 import '../server/server.dart';
+
+final _log = Logger('JellyfinApi');
 
 /// A Jellyfin sign-in: the access token the server gave this device for the user. The password
 /// isn't kept.
@@ -172,6 +175,9 @@ class JellyfinApi implements MediaServer {
 
   // The request under way for the user's most played songs with their genres ([_mostPlayedSongsWithGenres]).
   Future<List<Map<String, dynamic>>>? _mostPlayedRequest;
+
+  // Which server it is, as the log last had it ([ping]).
+  String? _kind;
 
   @override
   Api get api => Api.jellyfin;
@@ -656,9 +662,20 @@ class JellyfinApi implements MediaServer {
     return response.bodyBytes;
   }
 
-  /// System/Ping, which answers without a sign-in.
+  /// System/Info/Public, which answers without a sign-in, as System/Ping does, and says which server it is, for the log,
+  /// once (`Jellyfin Server 10.10.7`).
   @override
-  Future<void> ping() => _get('System/Ping', const {});
+  Future<void> ping() async {
+    final info = await _get('System/Info/Public', const {});
+    final kind = info is Map<String, dynamic>
+        ? [info['ProductName'] ?? 'a Jellyfin server', ?info['Version']].join(' ')
+        : 'a Jellyfin server';
+
+    if (kind != _kind) {
+      _kind = kind;
+      _log.info('${server.host}: $kind');
+    }
+  }
 
   /// [id] itself: Jellyfin's stay, and Navidrome's Jellyfin API came with its new ones.
   @override

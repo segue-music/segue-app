@@ -95,7 +95,16 @@ class SegueClient extends ChangeNotifier {
         _log.info('connected to $url');
         backoff = const Duration(seconds: 1);
         await closed;
-        _log.info('disconnected from $url', lastClose);
+
+        // This device leaving ([close]), or the hub closing the connection, with its code, or it ending with none: the
+        // network, or the hub gone.
+        if (!_running) {
+          _log.info('left $url');
+        } else if (lastClose?.code case final code?) {
+          _log.info('disconnected from $url: $code ${lastClose?.reason ?? ''}'.trimRight());
+        } else {
+          _log.info('disconnected from $url');
+        }
 
         // Closed by the hub after accepting us: the same device connected elsewhere (4003)
         // must not reconnect, or the two would take turns kicking each other out.
@@ -190,12 +199,30 @@ class SegueClient extends ChangeNotifier {
   /// Reports this device's playback. Send it on every change; the hub stamps the time.
   void sendState(PlayerState state) => _send({'type': 'state', 'state': state.toJson()});
 
-  Future<Result> command(String target, Command command) =>
-      _ask({'type': 'command', 'target': target, 'command': command.toJson()});
+  Future<Result> command(String target, Command command) => _logged(
+    _ask({'type': 'command', 'target': target, 'command': command.toJson()}),
+    '${command.action.name} on ${_nameOf(target)}',
+  );
 
   /// Moves [from]'s queue, at its current position, to [to] (often this device: "continue here").
-  Future<Result> transfer(String from, String to, {bool play = true}) =>
-      _ask({'type': 'transfer', 'from': from, 'to': to, 'play': play});
+  Future<Result> transfer(String from, String to, {bool play = true}) => _logged(
+    _ask({'type': 'transfer', 'from': from, 'to': to, 'play': play}),
+    'moving the music from ${_nameOf(from)} to ${_nameOf(to)}',
+  );
+
+  /// [result], which the log has where it failed, as [asked] failing.
+  static Future<Result> _logged(Future<Result> result, String asked) async {
+    final answer = await result;
+
+    if (!answer.ok) {
+      _log.warning('$asked failed: ${answer.error}');
+    }
+
+    return answer;
+  }
+
+  /// The name of the device whose id is [id], this one too, as the log says it: its id, where it isn't known.
+  String _nameOf(String id) => id == device.id ? device.name : devices[id]?.info.name ?? id;
 
   /// Where a device's playback is now.
   int? positionMs(String deviceId) => devices[deviceId]?.state?.positionAt(hubNow);
@@ -249,7 +276,9 @@ class SegueClient extends ChangeNotifier {
 
       await handler(command, from);
       _send({'type': 'result', 're': id, 'ok': true});
-    } catch (e) {
+    } catch (e, stackTrace) {
+      // With where it came from, but for a command this device turned down.
+      _log.warning('${command.action.name} from ${_nameOf(from)} failed', e, e is CommandFailed ? null : stackTrace);
       _send({'type': 'result', 're': id, 'ok': false, 'error': '$e'});
     }
   }

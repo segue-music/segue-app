@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:logging/logging.dart';
 import 'package:segue/server/reachability.dart';
 import 'package:segue/server/server.dart';
 
@@ -51,6 +52,36 @@ void main() {
       time.elapse(const Duration(minutes: 5));
       expect(pings, 3);
       reachability.dispose();
+    });
+  });
+
+  test('the log says as the server goes out of reach, with why, and as it comes back, once each', () {
+    fakeAsync((time) {
+      var reachable = false;
+      final said = <String>[];
+      final subscription = Logger.root.onRecord.listen(
+        (record) =>
+            said.add('${record.level.name} ${record.message}${record.error == null ? '' : ': ${record.error}'}'),
+      );
+      final reachability = Reachability(() async {
+        if (!reachable) {
+          throw const SocketException('no route to host');
+        }
+      }, retry: const Duration(seconds: 30));
+
+      unawaited(reachability.check());
+      time.elapse(const Duration(minutes: 2));
+      reachability.lost(const SocketException('connection reset'));
+      reachable = true;
+      time.elapse(const Duration(seconds: 30));
+      unawaited(reachability.check());
+      time.flushMicrotasks();
+      expect(said, [
+        'WARNING media server out of reach: SocketException: no route to host',
+        'INFO media server back in reach',
+      ]);
+      reachability.dispose();
+      unawaited(subscription.cancel());
     });
   });
 

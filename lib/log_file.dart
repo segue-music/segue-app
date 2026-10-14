@@ -40,9 +40,14 @@ Future<LogFile?> startLogging(PackageInfo packageInfo) async {
     // The engine's own then prints it, as it did before.
     return false;
   };
+
+  final system = Platform.operatingSystem;
+  final version = Platform.operatingSystemVersion;
+
+  // The system's version, which may start with its name (Linux's "Linux 7.2.10 ..."), or not (iOS's "Version 17.0 ...").
   Logger('Segue').info(
-    '${packageInfo.version} (${packageInfo.buildNumber}) on ${Platform.operatingSystem} '
-    '${Platform.operatingSystemVersion}',
+    '${packageInfo.version} (${packageInfo.buildNumber}) on '
+    '${version.toLowerCase().startsWith(system) ? version : '$system $version'}',
   );
 
   return file;
@@ -77,6 +82,19 @@ final _credential = RegExp(
   r'|(?<="(?:token|salt|apiKey|password|Pw|AccessToken)"\s*:\s*")[^"]*'
   r'|(?<=\bToken=")[^"]*',
 );
+
+/// [time] as the log has it: to the millisecond, and with its offset from UTC, so that a log read elsewhere, or written
+/// where the time zone isn't the reader's, says when.
+String logTime(DateTime time) {
+  String digits(int number, [int width = 2]) => '$number'.padLeft(width, '0');
+
+  final offset = time.timeZoneOffset;
+  final minutes = offset.inMinutes.abs();
+
+  return '${digits(time.year, 4)}-${digits(time.month)}-${digits(time.day)}'
+      'T${digits(time.hour)}:${digits(time.minute)}:${digits(time.second)}.${digits(time.millisecond, 3)}'
+      '${offset.isNegative ? '-' : '+'}${digits(minutes ~/ 60)}:${digits(minutes % 60)}';
+}
 
 /// The app's log, which a problem leaves behind where no console was (a release build, a TV, a phone away from its
 /// cable): a line for each record, at its time and level, and its stack trace where it has one, in `segue.log`, which
@@ -157,7 +175,7 @@ class LogFile {
   /// [record] as the file has it: its time, its level and what it says, then its stack trace, where it has one.
   static String _line(LogRecord record) {
     final stackTrace = record.stackTrace;
-    final line = '${record.time.toIso8601String()} ${record.level.name} ${_said(record)}\n';
+    final line = '${logTime(record.time)} ${record.level.name} ${_said(record)}\n';
 
     return stackTrace == null ? line : '$line${'$stackTrace'.trimRight()}\n';
   }

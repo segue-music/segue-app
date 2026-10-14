@@ -8,6 +8,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:logging/logging.dart';
 import 'package:segue/connect/connect.dart';
 import 'package:segue/jellyfin/api.dart';
 import 'package:segue/l10n/app_localizations.dart';
@@ -649,6 +650,63 @@ void main() {
       expect(laptop.player.queue, isEmpty);
     },
   );
+
+  test('the log says the connection coming and going: closed by the hub, with its code, as another copy takes the '
+      'device\'s place, and left as the app closes it', () async {
+    final user = newUser();
+    final messages = <String>[];
+    final subscription = Logger.root.onRecord
+        .where((record) => record.loggerName == 'SegueClient')
+        .listen((record) => messages.add(record.message));
+    final first = App(user, 'laptop');
+    final second = App(user, 'laptop');
+
+    addTearDown(subscription.cancel);
+    addTearDown(first.client.close);
+    addTearDown(second.client.close);
+    unawaited(first.client.start());
+    await until(() => first.client.status == HubStatus.connected, 'the first copy');
+    unawaited(second.client.start());
+    await until(() => first.client.status == HubStatus.rejected, 'the first copy to give up');
+    await until(() => second.client.status == HubStatus.connected, 'the second copy');
+    await second.client.close();
+    await until(() => messages.length == 4, 'the second copy to leave');
+    expect(
+      messages,
+      unorderedMatches([
+        'connected to $hubUrl',
+        'connected to $hubUrl',
+        startsWith('disconnected from $hubUrl: ${CloseCode.replaced}'),
+        'left $hubUrl',
+      ]),
+    );
+    expect(messages.last, 'left $hubUrl');
+  });
+
+  test('a command that fails, on another device or on this one, is in the log of both', () async {
+    final user = newUser();
+    final said = <String>[];
+    final subscription = Logger.root.onRecord.listen(
+      (record) => said.add('${record.loggerName}: ${record.message}${record.error == null ? '' : ': ${record.error}'}'),
+    );
+
+    addTearDown(subscription.cancel);
+    await App(user, 'laptop').start();
+
+    final phone = await App(user, 'phone').start();
+
+    await until(() => phone.connect.devices.any((d) => d.id == 'laptop'), 'the laptop');
+    await phone.connect.switchTo('laptop');
+    // No queue there, nor here.
+    expect((await phone.connect.jump(5)).ok, isFalse);
+    await phone.connect.switchTo(null);
+    expect((await phone.connect.jump(5)).ok, isFalse);
+    expect(said, [
+      'SegueClient: jump from phone failed: no such track',
+      'SegueClient: jump on laptop failed: no such track',
+      'ConnectController: jump failed: no such track',
+    ]);
+  });
 
   test('a closed app leaves the list of devices to play on', () async {
     final user = newUser();

@@ -7,6 +7,7 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:logging/logging.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:segue/player/crossfade_engine.dart';
 import 'package:segue/player/engine.dart';
@@ -552,6 +553,25 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 500));
     expect(engine.playing, isTrue);
     expect(engine.duration, Duration.zero);
+  }, skip: hasLibmpv ? false : 'needs libmpv');
+
+  test('files and streams play with nothing in the log: no cache on disk, which libmpv had nowhere to make, nor the '
+      'queue read from the file media_kit writes it to', () async {
+    final server = await TrackServer.start();
+    final records = <LogRecord>[];
+    final subscription = Logger.root.onRecord.listen(records.add);
+
+    addTearDown(server.close);
+    addTearDown(subscription.cancel);
+    await engine.open(
+      [tone(dir, 0), server.track('ok1'), server.track('ok2')],
+      index: 1,
+      position: Duration.zero,
+      play: true,
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 1500));
+    expect(engine.playing, isTrue);
+    expect([for (final record in records) record.message], isEmpty);
   }, skip: hasLibmpv ? false : 'needs libmpv');
 
   test('opened shuffled in an order given, it plays in that order, which shuffle off takes back to theirs', () async {
