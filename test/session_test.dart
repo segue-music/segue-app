@@ -9,13 +9,15 @@ import 'package:shared_preferences_platform_interface/in_memory_shared_preferenc
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 void main() {
+  // A session loaded asks the system for the device's name, through a platform channel.
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   final prefs = InMemorySharedPreferencesAsync.empty();
 
   setUpAll(() => SharedPreferencesAsyncPlatform.instance = prefs);
   setUp(() async {
     await SharedPreferencesAsync().clear();
     await SharedPreferencesAsync().setString('deviceId', 'd1');
-    await SharedPreferencesAsync().setString('deviceName', 'laptop');
     FlutterSecureStorage.setMockInitialValues({});
   });
 

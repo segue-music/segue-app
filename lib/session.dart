@@ -163,8 +163,7 @@ class Session {
   }
 
   /// The name other devices see: the one the system gives this device (not the system's own).
-  static Future<String> thisDeviceName() async =>
-      Platform.environment['SEGUE_DEVICE_NAME'] ?? await _prefs.getString('deviceName') ?? await systemDeviceName();
+  static Future<String> thisDeviceName() async => Platform.environment['SEGUE_DEVICE_NAME'] ?? await systemDeviceName();
 }
 
 /// What the user typed as the server, as a URL: https unless they said otherwise.

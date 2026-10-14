@@ -18,7 +18,6 @@ import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/app/television_screen.dart';
 import 'package:segue/ui/app/login_page.dart';
 import 'package:segue/ui/widgets/spinner.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
@@ -41,8 +40,13 @@ Future<void> fillIn(WidgetTester tester, {required String server}) async {
 void main() {
   SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
   FlutterSecureStorage.setMockInitialValues({});
-  // The system's name for the device comes from a platform channel, which doesn't answer here.
-  setUpAll(() => SharedPreferencesAsync().setString('deviceName', 'laptop'));
+  // The system's name for the device, which a TV shows and sends a phone, comes from a platform channel.
+  setUp(
+    () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('segue/device'),
+      (call) async => call.method == 'deviceName' ? 'laptop' : null,
+    ),
+  );
 
   testWidgets('on a TV, the sign-in shows a QR code, with which a phone signed in signs the TV in: the remote types '
       'nothing', (tester) async {
