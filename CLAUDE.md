@@ -448,8 +448,8 @@ Running two app instances on one machine as different devices:
   `BuildContext` reaches, the words come in: `describeError` takes them, and `MediaControls` gets
   them from a widget under `MaterialApp` (`app.dart`), again as the language changes.
 - `Session` keeps the token (Subsonic's, with its salt, an API key, or Jellyfin's access token) in secure
-  storage and everything else in `shared_preferences`, with the API under `api` (none: a session
-  saved before Jellyfin, so Subsonic). The password itself is never stored. `SubsonicCredentials` is a token of the
+  storage and everything else in `shared_preferences`, with the API under `api`. The password itself is never
+  stored. `SubsonicCredentials` is a token of the
   password (`SubsonicToken`) or an API key (`SubsonicApiKey`, OpenSubsonic's apiKeyAuthentication), which the requests
   carry alone (`apiKey`, the user's name with it an error, 43) and the hub's hello as its `apiKey` scheme (SPEC.md,
   section 2): `signInWithApiKey` (`lib/server/sign_in.dart`) asks the server whose it is (tokenInfo), and a sign-in

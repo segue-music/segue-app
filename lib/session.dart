@@ -58,8 +58,7 @@ class Session {
       return null;
     }
 
-    // Sessions saved before the app spoke Jellyfin say no API: they are Subsonic's.
-    final api = await _prefs.getString('api') ?? Api.subsonic.name;
+    final api = await _prefs.getString('api');
     final userId = await _prefs.getString('userId');
     final Credentials credentials;
 

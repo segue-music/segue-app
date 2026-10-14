@@ -65,16 +65,6 @@ void main() {
     },
   );
 
-  test('a sign-in saved before Jellyfin came is a Subsonic one', () async {
-    await SharedPreferencesAsync().setString('server', 'https://music.test');
-    await SharedPreferencesAsync().setString('username', 'alice');
-    FlutterSecureStorage.setMockInitialValues({'token': 't', 'salt': 's'});
-
-    final credentials = (await Session.load())?.credentials;
-
-    expect(credentials, isA<SubsonicToken>().having((c) => c.token, 'token', 't'));
-  });
-
   test('signing out forgets the sign-in, not the device', () async {
     await session(const JellyfinCredentials(username: 'alice', userId: 'u1', token: 't1')).save();
     await Session.clear();
