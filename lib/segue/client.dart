@@ -4,6 +4,7 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
+import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import 'protocol.dart';
@@ -49,7 +50,10 @@ class SegueClient extends ChangeNotifier {
     this.onCommand,
     this.onConnected,
     WebSocketChannel Function(Uri url)? channelFactory,
-  }) : _channelFactory = channelFactory ?? WebSocketChannel.connect;
+    // A connection that died without a close (the hub crashed, the network went away), which a proxy keeps open on this
+    // side, is noticed within twice this, rather than by the next message failing (SPEC.md, section 9).
+    Duration pingInterval = const Duration(seconds: 15),
+  }) : _channelFactory = channelFactory ?? ((url) => IOWebSocketChannel.connect(url, pingInterval: pingInterval));
 
   /// The hub's WebSocket URL; a new one is where the next connection goes.
   Uri url;

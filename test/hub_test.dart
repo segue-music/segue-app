@@ -45,10 +45,10 @@ int users = 0;
 
 /// One app: a fake engine, the player, the hub client and the Connect controller.
 class App {
-  App(String user, this.name)
+  App(String user, this.name, {Uri? url})
     : engine = FakeEngine(),
       client = SegueClient(
-        url: hubUrl,
+        url: url ?? hubUrl,
         auth: Auth.subsonic(username: user, token: '-', salt: '-'),
         device: DeviceInfo(
           id: name,
@@ -80,8 +80,8 @@ class App {
   }
 }
 
-Future<void> until(bool Function() condition, String what) async {
-  final deadline = DateTime.now().add(const Duration(seconds: 2));
+Future<void> until(bool Function() condition, String what, {Duration timeout = const Duration(seconds: 2)}) async {
+  final deadline = DateTime.now().add(timeout);
 
   while (!condition()) {
     if (DateTime.now().isAfter(deadline)) {
@@ -92,6 +92,38 @@ Future<void> until(bool Function() condition, String what) async {
   }
 }
 
+/// Starts a hub that takes any device (SEGUE_AUTH=none), on [port] (0: any free one), keeping the last playbacks in
+/// [state] if there is one, and returns it with its WebSocket's URL.
+Future<(Process, Uri)> startHub({int port = 0, String? state}) async {
+  final process = await Process.start(
+    hubBin,
+    [],
+    environment: {'SEGUE_AUTH': 'none', 'SEGUE_LISTEN': '127.0.0.1:$port', 'SEGUE_STATE': ?state},
+  );
+  final listening = Completer<Uri>();
+
+  process.stdout.transform(utf8.decoder).transform(const LineSplitter()).listen((line) {
+    final match = RegExp(r'msg="hub listening" url=http://(\S+)').firstMatch(line);
+
+    if (match != null && !listening.isCompleted) {
+      listening.complete(Uri.parse('ws://${match[1]}/v1/ws'));
+    }
+  });
+  unawaited(process.stderr.drain<void>());
+
+  return (process, await listening.future.timeout(const Duration(seconds: 10)));
+}
+
+/// A port no one listens on now.
+Future<int> freePort() async {
+  final socket = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+  final port = socket.port;
+
+  await socket.close();
+
+  return port;
+}
+
 void main() {
   if (!File(hubBin).existsSync()) {
     test('against the hub', () {}, skip: 'needs the hub binary, $hubBin');
@@ -99,18 +131,10 @@ void main() {
   }
 
   setUpAll(() async {
-    hub = await Process.start(hubBin, [], environment: {'SEGUE_AUTH': 'none', 'SEGUE_LISTEN': '127.0.0.1:0'});
-    final listening = Completer<Uri>();
+    final (process, url) = await startHub();
 
-    hub.stdout.transform(utf8.decoder).transform(const LineSplitter()).listen((line) {
-      final match = RegExp(r'msg="hub listening" url=http://(\S+)').firstMatch(line);
-
-      if (match != null && !listening.isCompleted) {
-        listening.complete(Uri.parse('ws://${match[1]}/v1/ws'));
-      }
-    });
-    unawaited(hub.stderr.drain<void>());
-    hubUrl = await listening.future.timeout(const Duration(seconds: 10));
+    hub = process;
+    hubUrl = url;
   });
   tearDownAll(() async {
     hub.kill();
@@ -364,6 +388,105 @@ void main() {
     expect(again.connect.nowPlaying?.device, isNull);
     await Future<void>.delayed(const Duration(milliseconds: 100));
     expect(phone.connect.nowPlaying?.device, isNull);
+  });
+
+  test('when the hub restarts and the device it follows does not come back, its music stays here, paused', () async {
+    final user = newUser();
+    final folder = await Directory.systemTemp.createTemp('segue');
+    final state = '${folder.path}/last.json';
+    final port = await freePort();
+    final (first, url) = await startHub(port: port, state: state);
+    final laptop = App(user, 'laptop', url: url);
+    // Connected once, with no reconnecting: it won't come back.
+    final phone = await App(user, 'phone', url: url).start();
+
+    addTearDown(() => folder.delete(recursive: true));
+    addTearDown(first.kill);
+    unawaited(laptop.client.start());
+    addTearDown(laptop.client.close);
+    await until(() => laptop.client.status == HubStatus.connected, 'the laptop connected');
+    await phone.player.playQueue(songs, index: 1, position: const Duration(seconds: 30));
+    await phone.player.toggle();
+    await until(
+      () => laptop.connect.activeId == 'phone' && laptop.connect.nowPlaying?.playing == false,
+      'the laptop to follow the phone, paused',
+    );
+
+    // The hub shuts down, telling the devices (1001), and comes back: the phone isn't in its list any more.
+    first.kill();
+    await first.exitCode;
+
+    final (second, _) = await startHub(port: port, state: state);
+
+    addTearDown(second.kill);
+    await until(() => laptop.player.queue.isNotEmpty, 'the music on the laptop', timeout: const Duration(seconds: 10));
+    expect(laptop.client.lastClose?.code, CloseCode.goingAway);
+    expect(laptop.connect.activeId, isNull);
+    expect(laptop.connect.nowPlaying?.title, 'Other');
+    expect(laptop.player.playing, isFalse);
+    expect(
+      laptop.player.position.inMilliseconds,
+      phone.player.position.inMilliseconds,
+      reason: 'where the phone paused, as it reported it, in ms',
+    );
+  });
+
+  test('a connection that died without a close is noticed by its pings, and made again', () async {
+    // Between the app and the hub, a proxy that can go silent, as one does where the connection behind it died: nothing
+    // gets through any more, and nothing closes.
+    final proxy = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+    final sockets = <Socket>[];
+    final silencers = <void Function()>[];
+
+    addTearDown(() async {
+      await proxy.close();
+
+      for (final socket in sockets) {
+        socket.destroy();
+      }
+    });
+    proxy.listen((app) async {
+      final toHub = await Socket.connect(hubUrl.host, hubUrl.port);
+      var silent = false;
+
+      sockets.addAll([app, toHub]);
+      silencers.add(() => silent = true);
+      app.listen((data) {
+        if (!silent) {
+          toHub.add(data);
+        }
+      }, onDone: toHub.destroy);
+      toHub.listen((data) {
+        if (!silent) {
+          app.add(data);
+        }
+      }, onDone: app.destroy);
+    });
+
+    final client = SegueClient(
+      url: Uri.parse('ws://127.0.0.1:${proxy.port}/v1/ws'),
+      auth: Auth.subsonic(username: newUser(), token: '-', salt: '-'),
+      device: const DeviceInfo(
+        id: 'laptop',
+        name: 'laptop',
+        client: 'test',
+        api: Api.subsonic,
+        roles: [Role.controller],
+        capabilities: [],
+      ),
+      pingInterval: const Duration(milliseconds: 100),
+    );
+
+    unawaited(client.start());
+    addTearDown(client.close);
+    await until(() => client.status == HubStatus.connected, 'connected');
+
+    for (final silence in silencers) {
+      silence();
+    }
+
+    await until(() => client.status != HubStatus.connected, 'the dead connection noticed');
+    await until(() => client.status == HubStatus.connected, 'connected again', timeout: const Duration(seconds: 5));
   });
 
   test('when the device it follows comes back and plays, the music kept here goes', () async {

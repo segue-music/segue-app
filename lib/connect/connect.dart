@@ -121,6 +121,10 @@ class ConnectController extends ChangeNotifier {
 
   /// The other device the app controlled at the last update, where it had a song then; null, none.
   String? _activeWithSong;
+
+  /// The other device the app controlled at the last update, as the hub listed it then: what the app keeps of it where
+  /// the hub forgets it.
+  Device? _seen;
   bool _restored = false;
 
   /// The volume each device had as it went to none (null: this one), which [unmute] gives back.
@@ -446,10 +450,14 @@ class ConnectController extends ChangeNotifier {
     final active = activeDevice;
 
     if (_active != null && !(active?.online ?? false)) {
-      _active = null; // gone or offline
+      // Offline, or gone from the list without going offline first, as when the hub restarts and it doesn't come back:
+      // then its music is what the app last saw of it.
+      final left = active ?? (_seen?.id == _active ? _seen : null);
 
-      if (active != null) {
-        unawaited(_keepHere(active));
+      _active = null;
+
+      if (left != null) {
+        unawaited(_keepHere(left));
       }
     }
 
@@ -463,6 +471,7 @@ class ConnectController extends ChangeNotifier {
     }
 
     _activeWithSong = withSong ? _active : null;
+    _seen = activeDevice;
     notifyListeners();
 
     // Last, since stopping the player comes back here.
@@ -471,7 +480,7 @@ class ConnectController extends ChangeNotifier {
     }
   }
 
-  /// The device the app controlled went offline (closed, say): its music stays in the bar, here,
+  /// The device the app controlled went offline (closed, say), or the hub forgot it: its music stays in the bar, here,
   /// paused where it got to, instead of vanishing with it.
   Future<void> _keepHere(Device device) async {
     final state = device.state;

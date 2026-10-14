@@ -39,6 +39,7 @@ abstract final class CloseCode {
   static const badHello = 4002;
   static const replaced = 4003;
   static const unavailable = 1011;
+  static const goingAway = 1001; // the hub shutting down, a restart say
 }
 
 T _enum<T extends Enum>(List<T> values, Object? name) => values.firstWhere((v) => v.name == name);
