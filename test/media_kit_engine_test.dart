@@ -107,6 +107,14 @@ Uint8List _id3(Map<String, String> tags) {
 }
 
 /// A short tone as a WAV file, with [gain], and the ReplayGain [tags] where it has some.
+/// An MP3 of [seconds] of silence, at a constant 128 kbit/s and 44.1 kHz, with no frame that says its length (Xing's or
+/// VBRI's), as some encoders make them: MPEG-1 Layer III frames of 417 bytes, 1152 samples each, all but the header 0.
+Uint8List mp3({double seconds = 4}) {
+  final frame = Uint8List(417)..setAll(0, [0xFF, 0xFB, 0x90, 0x00]);
+
+  return Uint8List.fromList([for (var i = 0; i < (seconds * 44100 / 1152).ceil(); i++) ...frame]);
+}
+
 TrackSource tone(
   Directory dir,
   int n, {
@@ -573,6 +581,23 @@ void main() {
     expect(engine.playing, isTrue);
     expect([for (final record in records) record.message], isEmpty);
   }, skip: hasLibmpv ? false : 'needs libmpv');
+
+  test(
+    'an MP3 with no frame of its length plays with nothing in the log, its length worked out from its bitrate',
+    () async {
+      final records = <LogRecord>[];
+      final subscription = Logger.root.onRecord.listen(records.add);
+      final file = File('${dir.path}/silence.mp3')..writeAsBytesSync(mp3());
+
+      addTearDown(subscription.cancel);
+      await engine.open([TrackSource(file.uri)], index: 0, position: Duration.zero, play: true);
+      await Future<void>.delayed(const Duration(milliseconds: 1000));
+      expect(engine.playing, isTrue);
+      expect(engine.duration.inMilliseconds, closeTo(4000, 50));
+      expect([for (final record in records) record.message], isEmpty);
+    },
+    skip: hasLibmpv ? false : 'needs libmpv',
+  );
 
   test('opened shuffled in an order given, it plays in that order, which shuffle off takes back to theirs', () async {
     final tracks = [for (var i = 0; i < 4; i++) tone(dir, i)];

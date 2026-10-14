@@ -1010,13 +1010,22 @@ class MediaKitEngine implements Deck {
     await _player.play();
   }
 
+  /// mpv's warnings, by their prefix and text, that say nothing wrong, every time what they tell of happens: not for
+  /// the app's log.
+  static const _unremarkable = {
+    // As it reads the queue from the file media_kit writes it to (`loadlist`), each time it opens one.
+    ('playlist', 'Reading plaintext playlist.'),
+    // FFmpeg's, of an MP3 with no frame that says its length (Xing's or VBRI's), which some encoders leave out: the
+    // length it works out from the bitrate is right for a constant one.
+    ('ffmpeg/demuxer', 'mp3: Estimating duration from bitrate, this may be inaccurate'),
+  };
+
   /// Follows mpv's loads, and their failures: a stream that fails to open is the loading track's where it is the track's
   /// name or the stream the on_load hook gave it; another is one mpv opened ahead. Its warnings and errors go to the
-  /// app's log, not its info, which every track's address would bury them in, nor its warning as it reads the queue
-  /// from the file media_kit writes it to (`loadlist`), each time it opens one.
+  /// app's log, but those [_unremarkable], and not its info, which every track's address would bury them in.
   void _logged(PlayerLog log) {
     switch (log.level) {
-      case 'warn' when !(log.prefix == 'playlist' && log.text == 'Reading plaintext playlist.'):
+      case 'warn' when !_unremarkable.contains((log.prefix, log.text)):
         _log.warning('mpv ${log.prefix}: ${log.text}');
       case 'error' || 'fatal':
         _log.severe('mpv ${log.prefix}: ${log.text}');

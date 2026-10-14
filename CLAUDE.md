@@ -456,8 +456,8 @@ Running two app instances on one machine as different devices:
   coming and going, refused, closed by the hub with its code, or left as the app closes it (`SegueClient`); a Connect
   command failing, on the device that turned it down and on the one that sent it (`SegueClient`, `ConnectController`
   for this device's); and mpv's warnings and errors (`MediaKitEngine`), not its info, which would bury them under each
-  track's address, nor its notice as it reads the queue media_kit hands it in a file (`loadlist`). Tests print what
-  is logged (`test/flutter_test_config.dart`), but write no file. `main` hands the
+  track's address, nor its warnings that say nothing wrong (`_unremarkable`: as it reads the queue media_kit hands it
+  in a file, `loadlist`, and FFmpeg working out an MP3's length from its bitrate). Tests print what is logged (`test/flutter_test_config.dart`), but write no file. `main` hands the
   `LogFile` down to the settings, as it does the version, where `LogTile` (`lib/ui/settings/log_tile.dart`, under
   "Sobre") takes it out of the app: on a phone or a tablet, through the system's share sheet (share_plus), both files
   as one (`LogFile.read`), named for the device and the time (`logName`); on a computer, opening its folder
