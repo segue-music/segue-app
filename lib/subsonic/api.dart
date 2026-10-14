@@ -505,6 +505,30 @@ class SubsonicApi implements MediaServer {
     }
   }
 
+  @override
+  bool get canShare => true;
+
+  /// createShare, where getUser says the user may share (`shareRole`): on Navidrome, its `EnableSharing`, on unless
+  /// its admin turns it off, and then createShare answers HTTP 501. Asked each time, sharing being seldom.
+  @override
+  Future<Uri> share(String id) async {
+    final user = (await _get('getUser', {'username': credentials.username}))['user'] as Map<String, dynamic>?;
+
+    if (user?['shareRole'] != true) {
+      throw const SharingOff();
+    }
+
+    final body = await _get('createShare', {'id': id});
+    // A list of one, as OpenSubsonic's JSON has it, or the one itself.
+    final share = switch ((body['shares'] as Map<String, dynamic>?)?['share']) {
+      [final Map<String, dynamic> first, ...] => first,
+      final Map<String, dynamic> one => one,
+      _ => throw const ServerError('createShare gave no link'),
+    };
+
+    return Uri.parse(share['url'] as String);
+  }
+
   /// The artist whose id is [id] and their albums, as getArtist gives them. The artist page asks for the artist and for
   /// their most played songs at once, which both start here: a request under way answers both ([_shared]).
   Future<Map<String, dynamic>> _artistJson(String id) =>

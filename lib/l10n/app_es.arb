@@ -305,5 +305,14 @@
   "sleepTimerOff": "Desactivar el temporizador",
   "sleepTimerPausesIn": "{minutes, plural, =1{La música se pausa en 1 minuto} other{La música se pausa en {minutes} minutos}}",
   "sleepTimerPausesAtSongEnd": "La música se pausa cuando termine esta canción",
-  "jumpToLetter": "Saltar a {letter}"
+  "jumpToLetter": "Saltar a {letter}",
+  "share": "Compartir",
+  "copyLink": "Copiar el enlace",
+  "linkCopied": "Enlace copiado",
+  "sharingOff": "Este servidor no crea enlaces públicos.",
+  "couldNotShare": "No pude crear el enlace: {error}",
+  "publicLink": "Enlace público",
+  "publicLinkHint": "Apunta la cámara del móvil para abrirlo.",
+  "localLink": "Enlace de la red local",
+  "localLinkDetail": "El servidor creó el enlace con la dirección {host}, que solo abre en su red. Para enlaces que abran desde cualquier lugar, el admin del servidor puede darle una dirección pública (en Navidrome, ShareURL)."
 }

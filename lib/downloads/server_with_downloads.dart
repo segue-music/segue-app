@@ -348,6 +348,12 @@ class ServerWithDownloads implements MediaServer {
   Future<List<Song>> radioSongs(String id, {String? artistId, int size = 50}) =>
       _only(() => server.radioSongs(id, artistId: artistId, size: size));
 
+  @override
+  bool get canShare => server.canShare;
+
+  @override
+  Future<Uri> share(String id) => _only(() => server.share(id));
+
   /// The song's file, where it is downloaded, the server in reach or not: it plays as it is, whatever [maxBitRate].
   @override
   Uri streamUrl(String songId, {int? maxBitRate}) =>

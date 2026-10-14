@@ -26,6 +26,7 @@ import '../widgets/cover.dart';
 import '../widgets/errors.dart';
 import '../widgets/mix_button.dart';
 import '../widgets/segmented_choice.dart';
+import '../widgets/share_link.dart';
 import '../widgets/spinner.dart';
 import '../widgets/text_link.dart';
 import '../widgets/themed_icon.dart';
@@ -498,8 +499,8 @@ class _ArtistPageState extends State<ArtistPage> {
   }
 
   /// How many albums they have ([_count]), then, once the server has given their biography, a button that opens it
-  /// ([BiographyPage]), and the heart that makes them one of the user's favorites, beside it: at the end of the line,
-  /// where the page has it there ([end]).
+  /// ([BiographyPage]), and the heart that makes them one of the user's favorites and a button that shares a public
+  /// link to them, where the server makes them, beside it: at the end of the line, where the page has it there ([end]).
   Widget _counts(Artist artist, List<Album> albums, {bool end = false}) {
     final strings = AppLocalizations.of(context);
     final count = Text(
@@ -508,6 +509,7 @@ class _ArtistPageState extends State<ArtistPage> {
       textAlign: end ? TextAlign.end : null,
     );
     final favorite = FavoriteButton(FavoriteKind.artist, widget.artist.id, compact: true);
+    final share = ServicesScope.of(context).api.canShare ? ShareButton(widget.artist.id) : null;
 
     return FutureBuilder(
       future: _biography,
@@ -518,6 +520,7 @@ class _ArtistPageState extends State<ArtistPage> {
             Flexible(child: count),
             const SizedBox(width: 4),
             favorite,
+            ?share,
           ],
         ),
         final biography => Row(
@@ -526,6 +529,7 @@ class _ArtistPageState extends State<ArtistPage> {
             Flexible(child: count),
             const SizedBox(width: 4),
             favorite,
+            ?share,
             IconButton(
               tooltip: strings.showBiography,
               icon: const ThemedIcon(HugeIcons.strokeRoundedBookUser),

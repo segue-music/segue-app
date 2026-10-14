@@ -6,14 +6,15 @@ import '../../server/models.dart';
 import '../../services.dart';
 import '../song/song_menu.dart';
 import '../widgets/menu_item_label.dart';
+import '../widgets/share_link.dart';
 import 'playlist_dialogs.dart';
 
 /// What a playlist's menu does.
-enum PlaylistAction { playNext, addToQueue, rename, delete }
+enum PlaylistAction { playNext, addToQueue, share, rename, delete }
 
 /// The items of [playlist]'s menu, on its page and in the list of them: playing its songs next and adding them to the
-/// queue, where it has some ([hasSongs]) and the device the app controls takes it; renaming it and deleting it, where
-/// the user can change it. None, where none of these.
+/// queue, where it has some ([hasSongs]) and the device the app controls takes it; sharing a public link to it, where
+/// the server makes them; renaming it and deleting it, where the user can change it. None, where none of these.
 List<PopupMenuEntry<PlaylistAction>> playlistMenuItems(
   BuildContext context,
   Playlist playlist, {
@@ -32,6 +33,11 @@ List<PopupMenuEntry<PlaylistAction>> playlistMenuItems(
         child: MenuItemLabel(strings.addToQueue, icon: HugeIcons.strokeRoundedAddToList),
       ),
     ],
+    if (ServicesScope.of(context).api.canShare)
+      PopupMenuItem(
+        value: PlaylistAction.share,
+        child: MenuItemLabel(strings.share, icon: shareIcon),
+      ),
     if (playlist.editable) ...[
       PopupMenuItem(
         value: PlaylistAction.rename,
@@ -46,8 +52,8 @@ List<PopupMenuEntry<PlaylistAction>> playlistMenuItems(
 }
 
 /// Does [action] to [playlist]: plays its songs next, or adds them to the queue, those of its page ([songs]), or else
-/// as the server has them; or asks for its new name, or whether to delete it, then has the server do it. Says why not
-/// where it isn't done. Whether it was done.
+/// as the server has them; or shares a public link to it; or asks for its new name, or whether to delete it, then has
+/// the server do it. Says why not where it isn't done. Whether it was done.
 Future<bool> runPlaylistAction(
   BuildContext context,
   Playlist playlist,
@@ -84,6 +90,9 @@ Future<bool> runPlaylistAction(
       }
 
       return addToQueue(context, queued, next: action == PlaylistAction.playNext);
+
+    case PlaylistAction.share:
+      return shareLink(context, playlist.id);
 
     case PlaylistAction.rename:
       final name = await askPlaylistName(context, name: playlist.name);

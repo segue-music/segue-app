@@ -34,6 +34,15 @@ class ServerError implements Exception {
   String toString() => message;
 }
 
+/// The server makes no public links for the user ([MediaServer.share]): Jellyfin has none, and a Subsonic server's
+/// admin may turn them off (Navidrome's `EnableSharing`).
+class SharingOff implements Exception {
+  const SharingOff();
+
+  @override
+  String toString() => 'the server makes no public links';
+}
+
 /// Orders the library's albums come in.
 enum AlbumOrder {
   /// The latest added to the library first.
@@ -184,6 +193,15 @@ abstract interface class MediaServer {
   /// server that takes only an artist for it (a Subsonic one but Navidrome) is asked by [artistId], the item's artist,
   /// where given. Unlike [similarSongs], it needs the server: out of reach, it fails rather than give none.
   Future<List<Song>> radioSongs(String id, {String? artistId, int size = 50});
+
+  /// Whether the API has public links ([share]): Subsonic's (createShare); Jellyfin has none.
+  bool get canShare;
+
+  /// A public link to the song, album, artist or playlist whose id is [id]: a page of the server's that plays it to
+  /// whoever opens it, with no sign-in, until it expires (on Navidrome a year after, unless its admin set another
+  /// time). The server makes its address: Navidrome's is the one the app reached it at, unless its admin set
+  /// `ShareURL`. Throws [SharingOff] where the server makes none for the user.
+  Future<Uri> share(String id);
 
   /// Where a song's audio is, for the player: the URL carries the credentials. With [maxBitRate], in kbps, the server
   /// transcodes a song whose bitrate is higher, as it goes: on Subsonic a stream that can't seek ([transcodedStreamUrl]

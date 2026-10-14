@@ -595,6 +595,13 @@ class JellyfinApi implements MediaServer {
     for (final json in await _list('Items/${Uri.encodeComponent(id)}/InstantMix', {'Limit': '$size'})) _song(json),
   ];
 
+  /// Jellyfin has no public links.
+  @override
+  bool get canShare => false;
+
+  @override
+  Future<Uri> share(String id) async => throw const SharingOff();
+
   /// The file as it is (static), with the token in the URL: the player can't send headers. With [maxBitRate],
   /// Audio/{id}/universal, which sends the file as it is where its bitrate is within it, and otherwise transcodes it into
   /// AAC over HLS, which the player can seek in, unlike a stream transcoded as it goes.

@@ -1649,6 +1649,46 @@ void main() {
     await expectLater(api.radioSongs('al1'), throwsA(isA<ServerError>()), reason: 'no artist to ask by');
   });
 
+  test('a public link is createShare\'s, of the item\'s id, where getUser says the user may share; none where it '
+      'says not, createShare unasked', () async {
+    final asked = <Uri>[];
+    var shareRole = true;
+    final api = SubsonicApi(
+      Uri.parse('https://music.test'),
+      credentials,
+      client: MockClient((request) async {
+        asked.add(request.url);
+
+        return switch (request.url.pathSegments.last) {
+          'getUser.view' => subsonic({
+            'status': 'ok',
+            'user': {'username': 'alice', 'shareRole': shareRole},
+          }),
+          'createShare.view' => subsonic({
+            'status': 'ok',
+            'shares': {
+              'share': [
+                {'id': 'sh1', 'url': 'https://music.test/share/sh1', 'username': 'alice', 'visitCount': 0},
+              ],
+            },
+          }),
+          _ => http.Response('', 404),
+        };
+      }),
+    );
+
+    expect(api.canShare, isTrue);
+    expect(await api.share('al1'), Uri.parse('https://music.test/share/sh1'));
+    expect([for (final url in asked) url.path], ['/rest/getUser.view', '/rest/createShare.view']);
+    expect(asked.first.queryParameters, containsPair('username', 'alice'));
+    expect(asked.last.queryParameters, containsPair('id', 'al1'));
+
+    shareRole = false;
+    asked.clear();
+    await expectLater(api.share('al1'), throwsA(isA<SharingOff>()));
+    expect([for (final url in asked) url.path], ['/rest/getUser.view']);
+  });
+
   test('search asks for artists, albums and songs', () async {
     late Uri asked;
 

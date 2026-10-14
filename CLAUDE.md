@@ -359,6 +359,15 @@ Running two app instances on one machine as different devices:
   share one request for the 500 most played albums, and on Jellyfin one for the most played songs, while it's under
   way. A genre's page has a button that plays its mix (`MixButton`). The mix goes to the hub as any queue does: the
   protocol knows nothing of it.
+- Public links (`shareLink`, `lib/ui/widgets/share_link.dart`): "Compartilhar" in a song's, an album's and a
+  playlist's menu, and `ShareButton` beside an artist's heart, where the API has them (`MediaServer.canShare`:
+  Subsonic's, not Jellyfin's). `SubsonicApi.share` asks getUser whether the user may share (`shareRole`: Navidrome's
+  `EnableSharing`, where off createShare answering HTTP 501), else `SharingOff`, and then createShare, whose `url` the
+  server makes: Navidrome's from the address the app reached it at, unless its admin set `ShareURL`. A phone or a
+  tablet hands it to the share sheet (share_plus), a computer to the clipboard, and a TV shows it as a QR code
+  (`LinkDialog`, the words beside the code: a TV's screen is too short for both, one over the other). One whose host
+  is a private address or a local name (`isLocalLink`) opens only on the server's network, which the app says first
+  (on a TV, beside the code). Taking one back is Navidrome's own web page's.
 - `HomeCache` (`lib/home_cache.dart`, `Services.homeCache`) keeps what the home showed (`home.json`, in a folder of the
   app's cache for each user on each server, `Services.cacheDirectory`, deleted as they sign out): as the app opens,
   each row shows its albums the time before (`AlbumRow.initialAlbums`, and the grid of those played last at its top,

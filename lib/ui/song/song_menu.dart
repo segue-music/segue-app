@@ -11,11 +11,12 @@ import '../widgets/errors.dart';
 import '../widgets/menu_shortcuts.dart';
 import '../widgets/menu_item_label.dart';
 import '../widgets/mix_button.dart';
+import '../widgets/share_link.dart';
 import '../widgets/themed_icon.dart';
 import 'favorite_button.dart';
 
 /// What a menu of songs does: a song's, or an album's with all of its songs.
-enum SongAction { playNext, addToQueue, addToPlaylist, favorite, unfavorite, radio, move, remove }
+enum SongAction { playNext, addToQueue, addToPlaylist, favorite, unfavorite, radio, share, move, remove }
 
 /// The list a song's menu takes it out of ([SongAction.remove]).
 enum SongList { playlist, queue }
@@ -23,12 +24,14 @@ enum SongList { playlist, queue }
 /// The items of a menu of songs: playing them next and adding them to the queue, where the device the app controls
 /// takes it, and adding them to a playlist; a song's, with whether it is one of the user's favorites ([favorite]),
 /// making it one or no longer one, and, unless not [radio] (an album's songs, whose menu has the album's), playing its
-/// radio; where it is [movable], moving it in its list by the remote's arrows; with [removableFrom], taking the song out
-/// of that list.
+/// radio; unless not [share] (an album's songs again), sharing a public link to it, where the server makes them; where
+/// it is [movable], moving it in its list by the remote's arrows; with [removableFrom], taking the song out of that
+/// list.
 List<PopupMenuEntry<SongAction>> songMenuItems(
   BuildContext context, {
   bool? favorite,
   bool radio = true,
+  bool share = true,
   bool movable = false,
   SongList? removableFrom,
 }) {
@@ -63,6 +66,11 @@ List<PopupMenuEntry<SongAction>> songMenuItems(
       PopupMenuItem(
         value: SongAction.radio,
         child: MenuItemLabel(strings.songRadio, icon: HugeIcons.strokeRoundedRadio),
+      ),
+    if (share && ServicesScope.of(context).api.canShare)
+      PopupMenuItem(
+        value: SongAction.share,
+        child: MenuItemLabel(strings.share, icon: shareIcon),
       ),
     if (movable)
       PopupMenuItem(
@@ -101,6 +109,8 @@ void runSongAction(
       }
     case SongAction.radio:
       playMix(context, SongRadio(songs.single));
+    case SongAction.share:
+      shareLink(context, songs.single.id);
     case SongAction.move:
       onMove?.call();
     case SongAction.remove:
@@ -128,7 +138,7 @@ Future<bool> addToQueue(BuildContext context, List<Song> songs, {required bool n
 
 /// A song's menu, at the end of its line in a list, after its duration: what can be done with it besides playing it,
 /// playing it next, adding it to the queue or to a playlist, making it one of the user's favorites or no longer one,
-/// playing its radio, and, in a list that the user can change ([onRemove]), a playlist or the queue ([list]), taking it out, and on a TV
+/// playing its radio, sharing a public link to it, and, in a list that the user can change ([onRemove]), a playlist or the queue ([list]), taking it out, and on a TV
 /// moving it there ([onMove]). Its button takes no focus: for the keyboard and the remote the song stays one stop,
 /// where the menu key, Shift+F10, or OK held opens the menu ([MenuShortcuts]). [builder] makes the song's line, with
 /// the button ([SongMenu.width] wide) where it goes.

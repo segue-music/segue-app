@@ -1764,5 +1764,51 @@
         "type": "String"
       }
     }
+  },
+  "share": "Compartilhar",
+  "@share": {
+    "description": "The item of a song's, an album's and a playlist's menu, and the button beside the heart on an artist's page, that makes a public link to it (a page of the media server's that plays it to whoever opens it, with no sign-in) and shares it: through the system's share sheet on a phone or a tablet, to the clipboard on a computer, as a QR code on a TV. Also, on a phone or a tablet, the button that shares a link that opens only on the server's network all the same."
+  },
+  "copyLink": "Copiar o link",
+  "@copyLink": {
+    "description": "On a computer, the button that copies a public link that opens only on the media server's network to the clipboard all the same."
+  },
+  "linkCopied": "Link copiado",
+  "@linkCopied": {
+    "description": "On a computer, a public link to a song, an album, an artist or a playlist, now in the clipboard, to paste in a chat or an e-mail."
+  },
+  "sharingOff": "Este servidor não cria links públicos.",
+  "@sharingOff": {
+    "description": "The media server makes no public links for the user: its admin turned them off, or it has none."
+  },
+  "couldNotShare": "Não consegui criar o link: {error}",
+  "@couldNotShare": {
+    "description": "A public link that couldn't be made or shared, with the error.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "publicLink": "Link público",
+  "@publicLink": {
+    "description": "On a TV, the title of the dialog that shows a public link to a song, an album, an artist or a playlist as a QR code, for a phone to open; also what a screen reader says of the code."
+  },
+  "publicLinkHint": "Aponte a câmera do celular para abrir.",
+  "@publicLinkHint": {
+    "description": "On a TV, under the QR code of a public link: a phone's camera reads it and opens the link."
+  },
+  "localLink": "Link da rede local",
+  "@localLink": {
+    "description": "The title of the dialog that says a public link opens only on the media server's network, which asks whether to share it all the same."
+  },
+  "localLinkDetail": "O servidor fez o link com o endereço {host}, que só abre na rede dele. Para links que abram de qualquer lugar, o admin do servidor pode dar a ele um endereço público (no Navidrome, ShareURL).",
+  "@localLinkDetail": {
+    "description": "Why a public link opens only on the media server's network: the server made it with an address of that network ({host}, as 192.168.0.10); and what makes links that open anywhere (ShareURL, Navidrome's setting, is a name not to translate).",
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
   }
 }

@@ -908,9 +908,12 @@ void main() {
     expect(count.center.dy, moreOrLessEquals(choice.center.dy, epsilon: 1), reason: 'on the choice\'s line');
 
     final heart = tester.getRect(find.byTooltip('Adicionar aos favoritos'));
+    final share = tester.getRect(find.byTooltip('Compartilhar'));
 
     expect(heart.center.dy, moreOrLessEquals(choice.center.dy, epsilon: 1), reason: 'on the choice\'s line');
-    expect(heart.right, moreOrLessEquals(360 - 16, epsilon: 1), reason: 'at its end, the page\'s margin from the edge');
+    expect(share.center.dy, moreOrLessEquals(choice.center.dy, epsilon: 1), reason: 'on the choice\'s line');
+    expect(share.right, moreOrLessEquals(360 - 16, epsilon: 1), reason: 'at its end, the page\'s margin from the edge');
+    expect(heart.right, lessThanOrEqualTo(share.left), reason: 'the link after the heart');
     expect(count.right, lessThanOrEqualTo(heart.left), reason: 'the heart after it');
     expect(
       tester.getRect(find.text('I Want You to Want Me')).top,

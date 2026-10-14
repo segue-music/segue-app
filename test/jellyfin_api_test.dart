@@ -1007,6 +1007,15 @@ void main() {
     expect(asked.first.url.queryParameters, containsPair('Limit', '100'));
   });
 
+  test('Jellyfin makes no public links, and asks nothing for one', () async {
+    final asked = <http.Request>[];
+    final api = jellyfin((_) => http.Response('', 404), asked);
+
+    expect(api.canShare, isFalse);
+    await expectLater(api.share('al1'), throwsA(isA<SharingOff>()));
+    expect(asked, isEmpty);
+  });
+
   test('audio and covers come from URLs a player can open, the token in the stream\'s', () {
     final api = jellyfin((_) => http.Response('', 404));
     final stream = api.streamUrl('s1');

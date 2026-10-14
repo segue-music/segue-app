@@ -70,6 +70,13 @@ iPhone and in a car, with CarPlay's Now Playing screen, and the Windows build on
   getSimilarSongs2, from its agents and the item's own songs; Jellyfin's instant mix): from a song's menu, an album's
   menu ("More options") and a button on an artist's page. Autoplay goes on after the last, on the device that plays
   them.
+- **Public links**: "Share", in a song's, an album's and a playlist's menu and beside an artist's heart, has the server
+  make a link to them, a page of its own that plays them to anyone, with no sign-in, until it expires (on Navidrome a
+  year after, unless its admin sets another time, or turns links off). On a phone or a tablet the link goes to the
+  system's share sheet, on a computer to the clipboard, and on a TV it shows as a QR code for a phone to open. The
+  server makes it with its own address: Navidrome's is the one the app reached it at, unless its admin sets
+  `ShareURL`, so a link with an address of the local network opens only there, which the app says before it goes.
+  Navidrome's web page lists the links, to take one back. Jellyfin has none.
 - **Albums**: by name, latest released, most played, played last or latest added. Wherever albums are listed, the
   album's artist opens their page, and on a computer or a tablet a button on the cover plays the album. By name,
   they have their letters beside them, which scroll to where each starts: a letter pressed, or a finger slid along

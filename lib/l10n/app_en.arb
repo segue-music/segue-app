@@ -305,5 +305,14 @@
   "sleepTimerOff": "Turn off the timer",
   "sleepTimerPausesIn": "{minutes, plural, =1{The music pauses in 1 minute} other{The music pauses in {minutes} minutes}}",
   "sleepTimerPausesAtSongEnd": "The music pauses when this song ends",
-  "jumpToLetter": "Jump to {letter}"
+  "jumpToLetter": "Jump to {letter}",
+  "share": "Share",
+  "copyLink": "Copy the link",
+  "linkCopied": "Link copied",
+  "sharingOff": "This server makes no public links.",
+  "couldNotShare": "Couldn't make the link: {error}",
+  "publicLink": "Public link",
+  "publicLinkHint": "Point a phone's camera at it to open it.",
+  "localLink": "Local network link",
+  "localLinkDetail": "The server made the link with the address {host}, which opens only on its network. For links that open anywhere, the server's admin can give it a public address (in Navidrome, ShareURL)."
 }

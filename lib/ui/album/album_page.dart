@@ -25,6 +25,7 @@ import '../widgets/equalizer.dart';
 import '../widgets/errors.dart';
 import '../widgets/menu_item_label.dart';
 import '../widgets/mix_button.dart';
+import '../widgets/share_link.dart';
 import '../widgets/spinner.dart';
 import '../widgets/themed_icon.dart';
 import '../widgets/tile_row.dart';
@@ -36,7 +37,7 @@ import 'dates.dart';
 import 'release_types.dart';
 
 /// What the album's menu does besides what a song's menu does with its songs ([SongAction]).
-enum _AlbumAction { radio }
+enum _AlbumAction { radio, share }
 
 class AlbumPage extends StatefulWidget {
   const AlbumPage(this.album, {super.key});
@@ -278,20 +279,33 @@ class _AlbumPageState extends State<AlbumPage> {
       credits: _creditsButton(album, songs),
     );
     final play = _playButton(songs, type: type);
-    // What a song's menu does with the album's songs, and the album's radio rather than a song's.
+    // What a song's menu does with the album's songs, and the album's radio and link rather than a song's.
     final more = PopupMenuButton<Object>(
       tooltip: strings.moreOptions,
       enabled: songs.isNotEmpty,
       icon: const ThemedIcon(HugeIcons.strokeRoundedMoreVertical),
-      onSelected: (action) =>
-          action is SongAction ? runSongAction(context, action, songs) : playMix(context, AlbumRadio(album)),
+      onSelected: (action) {
+        switch (action) {
+          case SongAction():
+            runSongAction(context, action, songs);
+          case _AlbumAction.radio:
+            playMix(context, AlbumRadio(album));
+          case _AlbumAction.share:
+            shareLink(context, album.id);
+        }
+      },
       itemBuilder: (context) => [
-        ...songMenuItems(context, radio: false),
+        ...songMenuItems(context, radio: false, share: false),
         const PopupMenuDivider(),
         PopupMenuItem(
           value: _AlbumAction.radio,
           child: MenuItemLabel(strings.releaseRadio(releaseSelector(type)), icon: HugeIcons.strokeRoundedRadio),
         ),
+        if (ServicesScope.of(context).api.canShare)
+          PopupMenuItem(
+            value: _AlbumAction.share,
+            child: MenuItemLabel(strings.share, icon: shareIcon),
+          ),
       ],
     );
 
