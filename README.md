@@ -101,11 +101,11 @@ iPhone and in a car, with CarPlay's Now Playing screen, and the Windows build on
   how long they last, and at the end its release date, its record labels and a row of the artist's other albums ("More
   by Aerosmith"). Where the server doesn't say the date, the labels or the kind, MusicBrainz fills them in: by the
   album's MusicBrainz id, or, for the date and the kind only, by its name, artist and year.
-- **Credits**, from a button on the album's page: who performed it (with what they played or sang), wrote it and
-  produced it, one a line, with the songs where it isn't all of them ("lead vocals, harmonica (track 2)"). The server's
-  credits (OpenSubsonic's contributors, which Navidrome reads from the tags; Jellyfin's people), or, where it has none,
-  MusicBrainz's. MusicBrainz also says where the album was recorded, mixed and mastered, and who made its cover and
-  booklet, which the media servers never say.
+- **Credits**, from a button on the album's page (on a phone or a tablet, from its menu): who performed it (with what
+  they played or sang), wrote it and produced it, one a line, with the songs where it isn't all of them ("lead vocals,
+  harmonica (track 2)"). The server's credits (OpenSubsonic's contributors, which Navidrome reads from the tags;
+  Jellyfin's people), or, where it has none, MusicBrainz's. MusicBrainz also says where the album was recorded, mixed
+  and mastered, and who made its cover and booklet, which the media servers never say.
 - **Artist**: their picture, their genres, their albums (or, picked above them, their singles and EPs), five of their
   songs (the ones the user plays most, or the popular ones, which a Subsonic server learns from Last.fm) and a row of
   the library's artists like them. Where the server has no picture (Navidrome since 0.64), the one fanart.tv's users
@@ -206,8 +206,9 @@ knows nothing of them, and another device plays as it has them.
   swipe goes from section to section; the home or the library picked again there goes back to its start. Pages open
   over the rest, and a swipe to the right from anywhere goes back. On a tablet, or a phone turned, the two bars float
   side by side over the page, one bar's height at the bottom; on a tablet too narrow for that, they sit in the middle,
-  no wider than on a big phone. Turned, the full-screen player has the cover beside the song and its controls, the
-  lyrics coming in in the cover's place.
+  no wider than on a big phone. The queue has them too, a section picked there closing it and the player. Turned, the
+  full-screen player has the cover beside the song and its controls, the lyrics coming in in the cover's place, and a
+  drag down from anywhere closes it.
 - **Sign-in on a TV with a phone**: the TV's sign-in shows a QR code, which the app on a phone signed in reads
   (Settings, "Sign in on a TV"), signing the TV in with no typing on the remote. Over the local network, sealed with a
   key the code carries (AES-GCM): on Subsonic the phone's credentials; on Jellyfin the TV signs in by Quick Connect,

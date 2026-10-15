@@ -181,7 +181,10 @@ class _PlayerPageState extends State<PlayerPage> with SingleTickerProviderStateM
         skipTraversal: true,
         child: _DragToClose(
           enabled: !wide,
-          lyrics: _dragLyrics,
+          // Turned, the lyrics are beside the controls, with a button of their own: a drag down from anywhere closes the
+          // player, from a fifth of the way down, the controls being low on the screen, too low for a third.
+          lyrics: landscape ? null : _dragLyrics,
+          closesPast: landscape ? 1 / 5 : 1 / 3,
           builder: (context, scroll) => ListenableBuilder(
             listenable: widget._lyrics,
             builder: (context, _) => PlayingPageBuilder(
@@ -332,17 +335,7 @@ class PlayerRoute extends PageRouteBuilder<void> {
   PlayerRoute({bool lyrics = false, PageArea? area}) : this._(ValueNotifier(lyrics), area);
 
   PlayerRoute._(this.lyrics, this.area)
-    : super(
-        pageBuilder: (_, _, _) => area == null
-            ? PlayerPage(lyrics)
-            : PageArea(
-                navigator: area.navigator,
-                history: area.history,
-                underTopBar: area.underTopBar,
-                holdsPlayer: area.holdsPlayer,
-                child: PlayerPage(lyrics),
-              ),
-      );
+    : super(pageBuilder: (_, _, _) => area?.around(PlayerPage(lyrics)) ?? PlayerPage(lyrics));
 
   final ValueNotifier<bool> lyrics;
 
@@ -379,8 +372,9 @@ class PlayerRoute extends PageRouteBuilder<void> {
     return (dragged ? slide : slide.chain(CurveTween(curve: Curves.easeOutCubic))).animate(animation);
   }
 
-  /// Starts a drag of the player down, [height] pixels tall.
-  _CloseDrag _startClosing(double height) => _CloseDrag(this, controller!, height);
+  /// Starts a drag of the player down, [height] pixels tall, which closes it let go past [closesPast] of the way.
+  _CloseDrag _startClosing(double height, {double closesPast = 1 / 3}) =>
+      _CloseDrag(this, controller!, height, closesPast: closesPast);
 
   @override
   void dispose() {
@@ -488,7 +482,7 @@ abstract interface class _PlayerDrag {
 /// swipe: until the page has settled, its route slides it with no curve ([PlayerRoute.buildTransitions]), and the page
 /// under it shows.
 class _CloseDrag implements _PlayerDrag {
-  _CloseDrag(this._route, this._controller, this._height) : _navigator = _route.navigator! {
+  _CloseDrag(this._route, this._controller, this._height, {this.closesPast = 1 / 3}) : _navigator = _route.navigator! {
     _navigator.didStartUserGesture();
   }
 
@@ -500,6 +494,9 @@ class _CloseDrag implements _PlayerDrag {
 
   /// How tall the page is: how far down it goes to close.
   final double _height;
+
+  /// How far of the way down it closes, let go.
+  final double closesPast;
 
   /// How fast a fling down closes the page, however short, in pixels a second.
   static const _flingFrom = 700.0;
@@ -522,12 +519,12 @@ class _CloseDrag implements _PlayerDrag {
     return down - moving;
   }
 
-  /// Lets go of the page, moving at [velocity] pixels a second down (below zero, up): flung down, or let go past a
-  /// third of the way down, it closes; otherwise it goes back up.
+  /// Lets go of the page, moving at [velocity] pixels a second down (below zero, up): flung down, or let go past
+  /// [closesPast] of the way down, it closes; otherwise it goes back up.
   @override
   void end(double velocity) {
     final close = _route.isCurrent
-        ? moved && (velocity.abs() >= _flingFrom ? velocity > 0 : _controller.value < 2 / 3)
+        ? moved && (velocity.abs() >= _flingFrom ? velocity > 0 : _controller.value < 1 - closesPast)
         // Gone from the top meanwhile: closed, it goes on closing; under another page, it goes back up.
         : !_route.isActive;
 
@@ -685,7 +682,7 @@ class _FullScreenDrag implements _PlayerDrag {
 /// ([_LyricsDrag]); where they show, it opens them full screen ([_FullScreenDrag]). Where the player's page scrolls, the
 /// drag up starts at its bottom.
 class _DragToClose extends StatefulWidget {
-  const _DragToClose({required this.enabled, required this.builder, this.lyrics});
+  const _DragToClose({required this.enabled, required this.builder, this.lyrics, this.closesPast = 1 / 3});
 
   /// Whether a drag down closes the player, or takes its lyrics out, and one up brings them in, or full screen: on a
   /// phone.
@@ -693,6 +690,9 @@ class _DragToClose extends StatefulWidget {
 
   /// Starts a drag of the lyrics under the player, on a page `height` pixels tall, `down` or up, if one moves them.
   final _PlayerDrag? Function(double height, {required bool down})? lyrics;
+
+  /// How far of the way down the player closes, let go.
+  final double closesPast;
 
   /// The page, the player's scrolling with `scroll`, where it is taller than the screen.
   final Widget Function(BuildContext context, ScrollController scroll) builder;
@@ -722,7 +722,9 @@ class _DragToCloseState extends State<_DragToClose> {
 
     return switch (route) {
       PlayerRoute() when !route.secondaryAnimation!.isDismissed => null,
-      PlayerRoute() => widget.lyrics?.call(height, down: down) ?? (down ? route._startClosing(height) : null),
+      PlayerRoute() =>
+        widget.lyrics?.call(height, down: down) ??
+            (down ? route._startClosing(height, closesPast: widget.closesPast) : null),
       _LyricsRoute() when down => route._startClosing(height),
       _ => null,
     };

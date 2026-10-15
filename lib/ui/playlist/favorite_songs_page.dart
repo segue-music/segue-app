@@ -193,8 +193,8 @@ class _FavoriteSongsPageState extends State<FavoriteSongsPage> {
   }
 
   /// The top of the page, as a playlist's: on a wide screen the name beside the picture, the button under it; in a
-  /// phone's layout ([phoneLayout]) the name in the page's bar, over the picture, and how many songs they are under it, with the button
-  /// at the end of their line.
+  /// phone's layout ([phoneLayout]) the name in the page's bar, over the picture, and how many songs they are under it,
+  /// with the button at the end of their line.
   Widget _header(List<Song> songs, {required bool phoneLayout}) {
     final text = Theme.of(context).textTheme;
     final strings = AppLocalizations.of(context);

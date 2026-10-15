@@ -349,11 +349,11 @@ class _ArtistPageState extends State<ArtistPage> {
 
   /// The top of the page, down to the artist's [songs] and the choice of their lists, or its title ([heading]). On a
   /// wide screen the picture is round, the name beside it, with how many albums they have and their genres, and behind
-  /// them the picture again, blurred, across the page. In a phone's layout ([phoneLayout]) it goes across the page from the top
-  /// of the screen, under the page's bar (a [PageBar]) and the system's; the heading is over its bottom, with how many
-  /// albums they have at the end of its line, where it fades to the page's color (darker in the dark theme, lighter in
-  /// the light one), their genres over it, and their name over them, in bold, bigger than the bar has it ([_name]). The
-  /// picture is the server's or, where it has none, [otherPicture], fanart.tv's ([FanartPicture]).
+  /// them the picture again, blurred, across the page. In a phone's layout ([phoneLayout]) it goes across the page from
+  /// the top of the screen, under the page's bar (a [PageBar]) and the system's; the heading is over its bottom, with
+  /// how many albums they have at the end of its line, where it fades to the page's color (darker in the dark theme,
+  /// lighter in the light one), their genres over it, and their name over them, in bold, bigger than the bar has it
+  /// ([_name]). The picture is the server's or, where it has none, [otherPicture], fanart.tv's ([FanartPicture]).
   Widget _header(
     Artist artist,
     List<Album> albums,

@@ -24,6 +24,7 @@ import '../home/home_view.dart';
 import '../player/idle_player.dart';
 import '../player/now_playing_bar.dart';
 import 'page_area.dart';
+import 'phone_bars.dart';
 import '../player/player_page.dart';
 import '../playlist/favorites_page.dart';
 import '../playlist/playlists_view.dart';
@@ -150,21 +151,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   /// beside its buttons.
   static const _libraryTabPadding = 12.0;
 
-  /// How wide the bars at the bottom are at most, the player's and the sections', on a touch screen wider than a
-  /// phone's (a tablet's): across the whole of it, the destinations and the player's few buttons would be far apart.
-  static const _bottomBarsWidth = 560.0;
-
-  /// From how wide a touch screen is (a tablet's, a phone's turned), the player's bar goes beside the sections', rather
-  /// than over them: one bar's height taken from the page rather than two's, where the width has room for both.
-  static const _barsBesideFrom = 760.0;
-
-  /// How wide the player's bar is beside the sections': as on a big phone, the sections' taking the rest.
-  static const _playerBesideWidth = 400.0;
-
-  /// How far the bars at the bottom, floating over the page side by side, are from each other, from the screen's sides
-  /// and from the system's bar.
-  static const _barsGap = 8.0;
-
   /// On a wide screen, the page area's navigator, and the pages opened in it.
   final _pages = GlobalKey<NavigatorState>();
   final _history = PageHistory();
@@ -285,11 +271,22 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       return;
     }
 
-    _pick(switch (destination) {
-      _Destination.home => _Section.home,
-      _Destination.search => _Section.search,
-      _Destination.library => _Destination.libraryTabs[_libraryTabs.index],
-    });
+    _pick(_sectionOf(destination));
+  }
+
+  /// The section [destination] shows: the library's, on the tab picked last.
+  _Section _sectionOf(_Destination destination) => switch (destination) {
+    _Destination.home => _Section.home,
+    _Destination.search => _Section.search,
+    _Destination.library => _Destination.libraryTabs[_libraryTabs.index],
+  };
+
+  /// [destination] picked from a page of its own over everything that shows the sections too (the queue's): back to
+  /// the home, the page over it closed, and the full-screen player, on the section picked, as it was; picked again
+  /// there, it would go back to its start, or, the search, to its bar.
+  void _openFromAbove(_Destination destination) {
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    _select(_sectionOf(destination));
   }
 
   /// On a phone, a swipe at [page] of the sections side by side: the one at the closest page shown, the bar at the
@@ -575,16 +572,16 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     // and the queue cover everything.
     if (phoneLayout) {
       final destination = _Destination.of(shown);
-      final sectionsColor = Theme.of(context).colorScheme.surfaceContainer
-          .withValues(alpha: NowPlayingBar.phoneOpacity);
 
       // The sections' bar on [color], a bit lower than Material's 80, with less room above and below the icons and
-      // their names.
+      // their names; shown by a page over everything too (the queue's).
       NavigationBar sectionsBar(Color color) => NavigationBar(
         height: 68,
         backgroundColor: color,
         selectedIndex: destination.index,
-        onDestinationSelected: (index) => _open(_Destination.values[index]),
+        onDestinationSelected: (index) => Navigator.of(context).canPop()
+            ? _openFromAbove(_Destination.values[index])
+            : _open(_Destination.values[index]),
         destinations: [
           for (final destination in _Destination.values)
             NavigationDestination(icon: ThemedIcon(destination.icon), label: destination.label(strings)),
@@ -598,6 +595,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           history: _history,
           underTopBar: false,
           holdsPlayer: false,
+          sections: sectionsBar,
           child: IdlePlayer(
             child: Scaffold(
               // The pages go on behind the bars, showing through the gap between them; their lists end clear of them,
@@ -658,70 +656,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                   ),
                 ),
               ),
-              bottomNavigationBar: width >= _barsBesideFrom
-                  // Side by side, floating over the page, apart from each other, from the screen's sides and from the
-                  // system's bar, which they keep clear of, alike in color and corners: the sections' at the start, in
-                  // the room the player's leaves them, as tall as each other, their icons and names in the middle.
-                  // Nothing playing, the sections' alone.
-                  ? SafeArea(
-                      top: false,
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(_barsGap, 0, _barsGap, _barsGap),
-                        child: ListenableBuilder(
-                          listenable: services.connect,
-                          child: ClipRRect(
-                            borderRadius: const BorderRadius.all(NowPlayingBar.phoneCorner),
-                            child: ColoredBox(
-                              color: sectionsColor,
-                              child: Center(heightFactor: 1, child: sectionsBar(Colors.transparent)),
-                            ),
-                          ),
-                          builder: (context, sections) => IntrinsicHeight(
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Expanded(child: sections!),
-                                if (services.connect.nowPlaying != null) ...[
-                                  const SizedBox(width: _barsGap),
-                                  const SizedBox(width: _playerBesideWidth, child: NowPlayingBar()),
-                                ],
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    )
-                  // On a phone the player's over the sections', which go on to the bottom of the screen; on a tablet
-                  // too narrow for them side by side, in the middle, as wide as a phone's at most
-                  // ([_bottomBarsWidth]), the page showing at their sides.
-                  : Center(
-                      heightFactor: 1,
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: _bottomBarsWidth),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // Above the sections' bar, which keeps clear of the system's at the bottom of the screen:
-                            // the player's needn't, and a small gap sets the two apart, alike in color. Nothing
-                            // playing, there is no player to set apart.
-                            MediaQuery.removePadding(
-                              context: context,
-                              removeBottom: true,
-                              child: const NowPlayingBar(),
-                            ),
-                            ListenableBuilder(
-                              listenable: services.connect,
-                              builder: (context, _) => SizedBox(height: services.connect.nowPlaying == null ? 0 : 2),
-                            ),
-                            // Its top corners rounded as the player's, the page showing around them.
-                            ClipRRect(
-                              borderRadius: const BorderRadius.vertical(top: NowPlayingBar.phoneCorner),
-                              child: sectionsBar(sectionsColor),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+              bottomNavigationBar: PhoneBars(sections: sectionsBar),
             ),
           ),
         ),

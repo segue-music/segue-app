@@ -272,8 +272,8 @@ class _PlaylistPageState extends State<PlaylistPage> {
 
   /// The top of the page: the playlist's picture, its name, how many songs it has and how long they last (where it has
   /// any: an empty one says so under it), the button that plays it, and, where it has anything in it, its menu. On a
-  /// wide screen the name is beside the picture, under the word "Playlist", the buttons under them; in a phone's
-  /// layout ([phoneLayout]) the name is in the page's bar, over the picture, which is centered, and the songs and their length
+  /// wide screen the name is beside the picture, under the word "Playlist", the buttons under them; in a phone's layout
+  /// ([phoneLayout]) the name is in the page's bar, over the picture, which is centered, and the songs and their length
   /// under it, with the buttons at the end of their line, the play button last ([SongListTopLine]).
   Widget _header(Playlist playlist, List<Song> songs, {required bool phoneLayout}) {
     final text = Theme.of(context).textTheme;

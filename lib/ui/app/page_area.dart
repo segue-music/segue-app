@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../player/player_page.dart';
+import 'phone_bars.dart';
 
 /// The middle of the home, where pages open (an album, an artist, a genre), between bars that stay as they come and go.
 /// On a wide screen the bars are the top one, the side rail and the player's, and the full-screen player and the queue
@@ -8,7 +9,7 @@ import '../player/player_page.dart';
 /// own ([underTopBar]). A TV has no player bar: there the full-screen player, with controls of its own, and the queue
 /// cover everything, as on a phone. On a phone the bars are the player's and the sections', at the bottom; the pages
 /// keep their own top bar, with the back arrow, and the full-screen player and the queue cover everything, the bars
-/// too.
+/// too, the queue with bars of its own, the same ([sections]).
 ///
 /// Pages opened from in it find its navigator as [Navigator.of] does; [PageArea.navigatorOf] finds it from outside it
 /// too, as from the player bar. Pages that cover the whole window (the cover) and sheets open in the app's.
@@ -19,6 +20,7 @@ class PageArea extends InheritedWidget {
     required this.underTopBar,
     required this.holdsPlayer,
     required super.child,
+    this.sections,
     super.key,
   });
 
@@ -32,6 +34,21 @@ class PageArea extends InheritedWidget {
   /// Whether the full-screen player and the queue open in it, the player bar staying under them: a wide screen's, but
   /// a TV's.
   final bool holdsPlayer;
+
+  /// In a phone's layout, the home's sections' bar on a background color, which a page of its own over everything (the
+  /// queue's) shows too, under the player's, as the home does ([PhoneBars]).
+  final NavigationBar Function(Color background)? sections;
+
+  /// A copy of it around [child], a page over everything, out of it: its links open their pages in it all the same,
+  /// and it shows the home's sections ([sections]).
+  PageArea around(Widget child) => PageArea(
+    navigator: navigator,
+    history: history,
+    underTopBar: underTopBar,
+    holdsPlayer: holdsPlayer,
+    sections: sections,
+    child: child,
+  );
 
   /// The page area around [context], if any.
   static PageArea? maybeOf(BuildContext context) => context.getInheritedWidgetOfExactType<PageArea>();
@@ -64,7 +81,8 @@ class PageArea extends InheritedWidget {
       navigator != oldWidget.navigator ||
       history != oldWidget.history ||
       underTopBar != oldWidget.underTopBar ||
-      holdsPlayer != oldWidget.holdsPlayer;
+      holdsPlayer != oldWidget.holdsPlayer ||
+      sections != oldWidget.sections;
 }
 
 /// Keeps the arrows (a TV remote's) and Tab on the page on top of the page area, and on the bars around it: the pages

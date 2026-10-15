@@ -1573,7 +1573,8 @@ void main() {
         expect(button.left, greaterThanOrEqualTo(640), reason: tooltip);
       }
 
-      await tester.drag(onPage(find.byType(Slider)), const Offset(0, 300));
+      // From the buttons, low on the screen: past a fifth of the way down, short of a third.
+      await tester.drag(onPage(find.byTooltip('Fila')), const Offset(0, 220));
       await tester.pumpAndSettle();
       expect(find.byType(PlayerPage), findsNothing, reason: 'a drag down closes it, as on a phone');
 
@@ -1594,6 +1595,13 @@ void main() {
       await tester.pumpAndSettle();
       expect(playerCover, findsOneWidget);
       expect(onPage(find.byType(LyricsView)), findsNothing);
+
+      // With them, a drag down on the controls closes the player, rather than taking the lyrics out.
+      await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
+      await tester.pumpAndSettle();
+      await tester.drag(onPage(find.byTooltip('Fila')), const Offset(0, 220));
+      await tester.pumpAndSettle();
+      expect(find.byType(PlayerPage), findsNothing);
       await tester.pumpWidget(const SizedBox());
     },
   );
@@ -2307,12 +2315,12 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(AlbumPage), findsNothing);
 
-      // The queue opens over the player, out of the page area too.
+      // The queue opens over the player, out of the page area too, with the home's sections of its own.
       await openPlayer(tester);
       await tester.tap(onPage(find.byTooltip('Fila')));
       await tester.pumpAndSettle();
       expect(find.byType(QueuePage), findsOneWidget);
-      expect(sections.hitTestable(), findsNothing);
+      expect(find.descendant(of: find.byType(QueuePage), matching: sections).hitTestable(), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
     },
   );

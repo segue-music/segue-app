@@ -368,8 +368,14 @@ void main() {
         await tap(tester, find.text('Toys in the Attic').first);
         expect(find.byTooltip(strings.playRelease('album')), findsOneWidget);
         expect(find.textContaining(strings.trackCount(2)), findsOneWidget);
-        // Its credits, from the button after how many songs it has.
-        await tap(tester, find.byTooltip(strings.showCredits));
+        // Its credits: from the button after how many songs it has; on a phone, from its menu.
+        if (narrow) {
+          await tap(tester, find.byTooltip(strings.moreOptions).first);
+          await tap(tester, find.text(strings.showCredits));
+        } else {
+          await tap(tester, find.byTooltip(strings.showCredits));
+        }
+
         expect(find.text(strings.creditSection('performance')), findsOneWidget);
 
         // All on the first of its two songs.

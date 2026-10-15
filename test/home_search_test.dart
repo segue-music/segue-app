@@ -16,6 +16,9 @@ import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/app/home_page.dart';
 import 'package:segue/ui/home/home_chips.dart';
 import 'package:segue/ui/player/now_playing_bar.dart';
+import 'package:segue/ui/player/player_page.dart';
+import 'package:segue/ui/player/queue_page.dart';
+import 'package:segue/ui/widgets/cover.dart';
 
 import 'computer.dart';
 import 'fakes.dart';
@@ -363,6 +366,37 @@ void main() {
       expect((room.left, room.right, room.bottom), (8, 1272 - 400 - 8, bar.bottom));
       expect(tester.getCenter(sections).dy, room.center.dy);
       expect(find.byTooltip('Mostrar a letra'), findsNothing, reason: 'in the full-screen player, as on a phone');
+      await tester.pumpWidget(const SizedBox()); // stops the player bar's timer
+    },
+    variant: TargetPlatformVariant.mobile(),
+  );
+
+  testWidgets(
+    'on a tablet, the queue has the home\'s bars where the home has them, the sections\' too, which close it and the '
+    'player over the home',
+    (tester) async {
+      tester.view.padding = const FakeViewPadding(bottom: 56);
+
+      final (player, _) = await pumpHome(tester, const Size(1280, 800));
+
+      await player.playQueue(const [Song(id: 's1', title: 'Dream On')]);
+      await tester.pumpAndSettle();
+      await tester.tap(find.descendant(of: find.byTooltip('Abrir o player'), matching: find.byType(Cover)));
+      await tester.pumpAndSettle();
+      await tester.tap(find.descendant(of: find.byType(PlayerPage), matching: find.byTooltip('Fila')));
+      await tester.pumpAndSettle();
+
+      Finder inQueue(Finder finder) => find.descendant(of: find.byType(QueuePage), matching: finder);
+      final bar = tester.getRect(inQueue(find.byType(NowPlayingBar)));
+
+      expect(bar, Rect.fromLTRB(1272 - 400, bar.top, 1272, 800 - 56 - 8));
+      expect(tester.getRect(inQueue(find.byType(NavigationBar))).left, 8);
+
+      await tester.tap(inQueue(find.text('Biblioteca')));
+      await tester.pumpAndSettle();
+      expect(find.byType(QueuePage), findsNothing);
+      expect(find.byType(PlayerPage), findsNothing);
+      expect(tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex, 2, reason: 'the library');
       await tester.pumpWidget(const SizedBox()); // stops the player bar's timer
     },
     variant: TargetPlatformVariant.mobile(),

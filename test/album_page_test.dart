@@ -801,56 +801,53 @@ void main() {
   }, variant: computer);
 
   testWidgets(
-    'on a phone, the byline is under the cover, from the page\'s margin, the play button at the end of its line',
+    'on a phone, what the album is, with how long its songs last, is under the cover, in the middle; its artist under '
+    'that, from the page\'s margin, the play button at the end of their line',
     (tester) async {
       await pumpAlbum(tester, size: const Size(360, 640));
       await pushAlbum(tester);
 
       final cover = tester.getRect(find.byTooltip('Ver a capa'));
+      final details = tester.getRect(find.text('1975 · 2 faixas, 8 min'));
       // The artist with their picture, which the songs' have not.
       final artist = tester.getRect(find.ancestor(of: coverOf('ar-ar1'), matching: find.byTooltip('Abrir o artista')));
-      final details = tester.getRect(find.text('1975 · 2 faixas'));
       // Its round edge, without the room Material leaves around it on a touch screen.
       final play = tester.getRect(find.byTooltip('Tocar o álbum'));
 
-      expect(artist.top, greaterThanOrEqualTo(cover.bottom));
-      expect(details.top, greaterThanOrEqualTo(artist.bottom), reason: 'the year and the songs under the artist');
-      expect((artist.left, details.left), (16, 16), reason: 'from the page\'s margin, not the cover\'s');
+      expect(details.top, greaterThanOrEqualTo(cover.bottom));
+      expect(details.center.dx, moreOrLessEquals(180, epsilon: 1), reason: 'in the middle');
+      expect(artist.top, greaterThanOrEqualTo(details.bottom));
+      expect(artist.left, 16, reason: 'from the page\'s margin, not the cover\'s');
       expect(cover.left, greaterThan(16));
       expect(play.right, 360 - 16);
-
-      for (final text in [artist, details]) {
-        expect(play.left, greaterThanOrEqualTo(text.right));
-      }
-
-      expect(play.center.dy, moreOrLessEquals((artist.top + details.bottom) / 2, epsilon: 1));
+      expect(play.left, greaterThanOrEqualTo(artist.right));
+      expect(play.center.dy, moreOrLessEquals(artist.center.dy, epsilon: 1));
       expect(play.bottom, lessThan(tester.getRect(song('Walk This Way')).top));
       await tester.pumpWidget(const SizedBox());
     },
   );
 
-  testWidgets('on a phone, how long the album\'s songs last ends the list, between its release date and its labels: '
-      'the line under the artist, with how many they are, has no room for it', (tester) async {
-    await pumpAlbum(
-      tester,
-      releaseDate: {'year': 1975, 'month': 4, 'day': 8},
-      recordLabels: ['Columbia'],
-      size: const Size(360, 640),
-    );
+  testWidgets(
+    'on a phone, the list ends with the album\'s release date and its labels; how long its songs last is under '
+    'its cover',
+    (tester) async {
+      await pumpAlbum(
+        tester,
+        releaseDate: {'year': 1975, 'month': 4, 'day': 8},
+        recordLabels: ['Columbia'],
+        size: const Size(360, 640),
+      );
 
-    final (date, length, labels) = (
-      tester.getRect(find.text('8 de abril de 1975')),
-      tester.getRect(find.text('8 min')),
-      tester.getRect(find.text('Columbia')),
-    );
+      final (date, labels) = (tester.getRect(find.text('8 de abril de 1975')), tester.getRect(find.text('Columbia')));
 
-    expect(date.top, greaterThan(tester.getRect(song('Sweet Emotion')).bottom));
-    expect(length.top, greaterThanOrEqualTo(date.bottom));
-    expect(labels.top, greaterThanOrEqualTo(length.bottom));
-    expect((length.left, labels.left), (date.left, date.left));
-    expect(find.text('1975 · 2 faixas'), findsOneWidget, reason: 'the year and the songs under the artist');
-    await tester.pumpWidget(const SizedBox());
-  });
+      expect(date.top, greaterThan(tester.getRect(song('Sweet Emotion')).bottom));
+      expect(labels.top, greaterThanOrEqualTo(date.bottom));
+      expect(labels.left, date.left);
+      expect(find.text('8 min'), findsNothing);
+      expect(find.text('1975 · 2 faixas, 8 min'), findsOneWidget, reason: 'under the cover');
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
 
   testWidgets('on a phone, the cover is centered, as wide as the page less its margins, up to 280', (tester) async {
     for (final (width, side) in [(300.0, 300.0 - 2 * 16), (360.0, 280.0)]) {
@@ -1075,9 +1072,9 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   }, variant: computer);
 
-  testWidgets('on a phone, the album\'s type is before its year, under the artist', (tester) async {
+  testWidgets('on a phone, the album\'s type is before its year, under the cover', (tester) async {
     await pumpAlbum(tester, releaseTypes: ['EP'], size: const Size(360, 640));
-    expect(find.text('EP · 1975 · 2 faixas'), findsOneWidget);
+    expect(find.text('EP · 1975 · 2 faixas, 8 min'), findsOneWidget);
     expect(find.text('EP'), findsNothing, reason: 'not above the name too');
     expect(find.byTooltip('Tocar o EP'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
@@ -1167,27 +1164,29 @@ void main() {
   });
 
   for (final (screen, size) in [('a wide screen', const Size(1000, 700)), ('a phone', const Size(360, 640))]) {
-    testWidgets('on $screen, a button at the end of the album\'s byline opens its credits over the window, under its '
-        'cover: who performed it, wrote it and produced it, one a line, what they did beside them; an album without '
-        'any has no button', (tester) async {
+    testWidgets('on $screen, a button at the end of the album\'s byline (on a phone, its menu) opens its credits over '
+        'the window, under its cover: who performed it, wrote it and produced it, one a line, what they did beside '
+        'them; an album without any has none', (tester) async {
       final narrow = size.width < 600;
 
       await pumpAlbum(tester, contributors: serverCredits, size: size);
 
       final button = find.byTooltip('Ver os créditos');
-      final details = narrow ? find.text('1975 · 2 faixas') : find.textContaining('2 faixas, 8 min');
+      final details = find.textContaining('2 faixas, 8 min');
 
       if (narrow) {
-        // At the end of the line under the artist.
-        expect(tester.getCenter(button).dy, moreOrLessEquals(tester.getCenter(details).dy, epsilon: 1));
-        expect(tester.getCenter(button).dx, greaterThan(tester.getRect(details).right));
+        // In the album's menu: the line under the artist has no room for their button.
+        expect(button, findsNothing);
+        await tester.tap(albumMenu);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Ver os créditos'));
       } else {
         // At the end of the byline, beside the cover.
         expect(tester.getRect(details).contains(tester.getCenter(button)), isTrue);
         expect(tester.getCenter(button).dx, greaterThan(tester.getCenter(details).dx));
+        await tester.tap(button);
       }
 
-      await tester.tap(button);
       await tester.pumpAndSettle();
 
       final page = find.byType(CreditsPage);
@@ -1240,7 +1239,14 @@ void main() {
 
       await tester.pumpWidget(const SizedBox());
       await pumpAlbum(tester, size: size);
+
+      if (narrow) {
+        await tester.tap(albumMenu);
+        await tester.pumpAndSettle();
+      }
+
       expect(find.byTooltip('Ver os créditos'), findsNothing);
+      expect(find.text('Ver os créditos'), findsNothing);
       await tester.pumpWidget(const SizedBox());
     }, variant: platformFor(size));
   }
@@ -1262,7 +1268,7 @@ void main() {
     expect(find.byType(ArtistPage), findsOneWidget);
     expect(tester.widget<ArtistPage>(find.byType(ArtistPage)).artist.id, 'ar3');
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets(
     'where the server credits no one, MusicBrainz does, by the album\'s MusicBrainz id: the button comes with '
@@ -1344,6 +1350,7 @@ void main() {
       );
       await tester.pumpWidget(const SizedBox());
     },
+    variant: computer,
   );
 
   testWidgets('MusicBrainz\'s credits fill the sections the server has none in, as they come, also on the page open', (
@@ -1376,7 +1383,7 @@ void main() {
     expect(inPage('letra (faixa 1)'), findsNothing, reason: 'not MusicBrainz\'s');
     expect(inPage('Com dados do MusicBrainz'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   /// One of Aerosmith's albums, [name], whose id is [id], from [year], of [releaseTypes].
   Map<String, Object?> aerosmithAlbum(String id, String name, int year, {List<String>? releaseTypes}) => {

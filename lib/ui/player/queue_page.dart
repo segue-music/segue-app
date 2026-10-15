@@ -9,11 +9,13 @@ import '../../server/models.dart';
 import '../../services.dart';
 import '../../settings.dart';
 import '../app/page_area.dart';
+import '../app/phone_bars.dart';
 import '../song/movable_song.dart';
 import '../song/song_list_header.dart';
 import '../song/song_menu.dart';
 import '../widgets/cover.dart';
 import '../widgets/directional_navigation.dart';
+import '../widgets/touch_screen.dart';
 import 'autoplay_switch.dart';
 import 'now_playing_bar.dart';
 import 'player_controls.dart';
@@ -30,10 +32,19 @@ class QueuePage extends StatefulWidget {
   /// a page again with its settings).
   static const _settings = RouteSettings(name: 'queue');
 
-  /// Opens it over the current page: on a wide screen, in the page area; on a phone, over everything.
-  static Future<void> open(BuildContext context) =>
-      PageArea.playerNavigatorOf(context)
-          .push(MaterialPageRoute<void>(settings: _settings, builder: (_) => const QueuePage()));
+  /// Opens it over the current page: on a wide screen, in the page area; on a phone, over everything, the area around it
+  /// all the same ([PageArea.around]), with the home's sections. In the area, it has the area as it is, which changes as
+  /// the window is narrowed or widened.
+  static Future<void> open(BuildContext context) {
+    final area = PageArea.maybeOf(context);
+
+    return PageArea.playerNavigatorOf(context).push(
+      MaterialPageRoute<void>(
+        settings: _settings,
+        builder: (_) => area == null || area.holdsPlayer ? const QueuePage() : area.around(const QueuePage()),
+      ),
+    );
+  }
 
   /// Opens it, or, with it open on top of the page area (a wide screen's, where the player bar stays under it), goes
   /// back from it instead, as the top bar's arrow does, rather than opening it again over itself.
@@ -141,7 +152,13 @@ class _QueuePageState extends State<QueuePage> {
                   final device => strings.queueOn(device),
                 }),
               ),
-              bottomNavigationBar: const NowPlayingBar(),
+              // In a phone's layout, over everything, the home's bars, the sections' too, as the home has them: a section
+              // picked closes the queue, and the player under it. In the page area (a window narrowed with it open), the
+              // home's own stay under it.
+              bottomNavigationBar: switch (PageArea.maybeOf(context)?.sections) {
+                final sections? when context.phoneLayout && !PageArea.holds(context) => PhoneBars(sections: sections),
+                _ => const NowPlayingBar(),
+              },
               body: tracks.isEmpty
                   ? Center(child: Text(strings.queueEmpty))
                   // The header stays over the tracks, which go up from the one on top as much as down from it.

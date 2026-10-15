@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -41,7 +42,7 @@ import 'release_types.dart';
 final _log = Logger('AlbumPage');
 
 /// What the album's menu does besides what a song's menu does with its songs ([SongAction]).
-enum _AlbumAction { radio, share }
+enum _AlbumAction { radio, credits, share }
 
 class AlbumPage extends StatefulWidget {
   const AlbumPage(this.album, {super.key});
@@ -246,7 +247,6 @@ class _AlbumPageState extends State<AlbumPage> {
                               _song(songs, i, phoneLayout: phoneLayout),
                               album: album,
                               release: _release!,
-                              length: phoneLayout ? songsLength(strings, songs) : null,
                             )
                           else
                             _song(songs, i, phoneLayout: phoneLayout),
@@ -273,24 +273,16 @@ class _AlbumPageState extends State<AlbumPage> {
   /// The top of the page: the album's cover, its type (album, EP, ...), its name and byline, and the buttons that play
   /// it, make it one of the user's favorites, and more (its menu: to the queue, to a playlist, its radio). On a wide
   /// screen the name is beside the cover, the type above it, the buttons under them; in a phone's layout
-  /// ([phoneLayout]) the name is in the page's bar (a [PageBar]), over the cover, which is centered, and the byline under the cover, from
-  /// the page's margin as the songs are, with the buttons at the end of its line, the play button last
-  /// ([SongListTopLine]), and the type before the year.
+  /// ([phoneLayout]) the name is in the page's bar (a [PageBar]), over the cover, which is centered, and the byline
+  /// under the cover, from the page's margin as the songs are, with the buttons at the end of its line, the play button
+  /// last ([SongListTopLine]), and the type before the year.
   Widget _header(Album album, List<Song> songs, {required ReleaseType? type, required bool phoneLayout}) {
     final text = Theme.of(context).textTheme;
     final strings = AppLocalizations.of(context);
-    final byline = _Byline(
-      album,
-      songs,
-      artist: _artist!,
-      type: phoneLayout ? type : null,
-      style: text.bodyMedium,
-      stacked: phoneLayout,
-      credits: _creditsButton(album, songs),
-    );
     final play = _playButton(songs, type: type);
-    // What a song's menu does with the album's songs, and the album's radio and link rather than a song's.
-    final more = PopupMenuButton<Object>(
+    // What a song's menu does with the album's songs, and the album's radio and link rather than a song's; on a phone,
+    // its [credits] too, where it has any.
+    PopupMenuButton<Object> more({AlbumCredits? credits}) => PopupMenuButton<Object>(
       tooltip: strings.moreOptions,
       enabled: songs.isNotEmpty,
       icon: const ThemedIcon(HugeIcons.strokeRoundedMoreVertical),
@@ -300,6 +292,8 @@ class _AlbumPageState extends State<AlbumPage> {
             runSongAction(context, action, songs);
           case _AlbumAction.radio:
             playMix(context, AlbumRadio(album));
+          case _AlbumAction.credits:
+            unawaited(_openCredits(album, credits!));
           case _AlbumAction.share:
             shareLink(context, album.id);
         }
@@ -311,6 +305,11 @@ class _AlbumPageState extends State<AlbumPage> {
           value: _AlbumAction.radio,
           child: MenuItemLabel(strings.releaseRadio(releaseSelector(type)), icon: HugeIcons.strokeRoundedRadio),
         ),
+        if (credits != null && !credits.isEmpty)
+          PopupMenuItem(
+            value: _AlbumAction.credits,
+            child: MenuItemLabel(strings.showCredits, icon: HugeIcons.strokeRoundedBookUser),
+          ),
         if (ServicesScope.of(context).api.canShare)
           PopupMenuItem(
             value: _AlbumAction.share,
@@ -320,6 +319,8 @@ class _AlbumPageState extends State<AlbumPage> {
     );
 
     if (phoneLayout) {
+      final details = _Byline.detailsOf(strings, album, songs, type: type);
+
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -334,11 +335,30 @@ class _AlbumPageState extends State<AlbumPage> {
               ),
             ),
           ),
+          // Under the cover, in the middle, what the album is, with how long its songs last; under that, its artist,
+          // on the line of its buttons, which left it too little room beside them. Its credits are in its menu.
+          if (details.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: Text(
+                details,
+                style: text.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                textAlign: TextAlign.center,
+              ),
+            ),
           SongListTopLine(
-            details: byline,
+            details: _Byline.linkOf(album, _artist!, style: text.bodyMedium) ?? const SizedBox.shrink(),
             button: Row(
               mainAxisSize: MainAxisSize.min,
-              children: [FavoriteButton(FavoriteKind.album, album.id), DownloadButton.album(album, songs), more],
+              children: [
+                FavoriteButton(FavoriteKind.album, album.id),
+                DownloadButton.album(album, songs),
+                FutureBuilder(
+                  future: _credits,
+                  initialData: AlbumCredits.of(songs),
+                  builder: (context, snapshot) => more(credits: snapshot.requireData),
+                ),
+              ],
             ),
             play: play,
           ),
@@ -348,6 +368,13 @@ class _AlbumPageState extends State<AlbumPage> {
 
     // Asked of the server as the phone's, which a screen of more than one pixel per point needs at this size.
     const size = _wideCover;
+    final byline = _Byline(
+      album,
+      songs,
+      artist: _artist!,
+      style: text.bodyMedium,
+      credits: _creditsButton(album, songs),
+    );
 
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -374,7 +401,7 @@ class _AlbumPageState extends State<AlbumPage> {
                       play,
                       const SizedBox(width: 8),
                       FavoriteButton(FavoriteKind.album, album.id),
-                      more,
+                      more(),
                       DownloadButton.album(album, songs),
                     ],
                   ),
@@ -398,18 +425,20 @@ class _AlbumPageState extends State<AlbumPage> {
         tooltip: AppLocalizations.of(context).showCredits,
         icon: const ThemedIcon(HugeIcons.strokeRoundedBookUser),
         visualDensity: VisualDensity.compact,
-        onPressed: () => CreditsPage.open(
-          context,
-          album,
-          credits: _credits!,
-          initialCredits: credits,
-          inLibrary: _artistsInLibrary(),
-          // Over this page, as the credits close.
-          onOpenArtist: (artist) =>
-              Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ArtistPage(artist))),
-        ),
+        onPressed: () => _openCredits(album, credits),
       ),
     },
+  );
+
+  /// Opens the album's credits, [credits] those known so far.
+  Future<void> _openCredits(Album album, AlbumCredits credits) => CreditsPage.open(
+    context,
+    album,
+    credits: _credits!,
+    initialCredits: credits,
+    inLibrary: _artistsInLibrary(),
+    // Over this page, as the credits close.
+    onOpenArtist: (artist) => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ArtistPage(artist))),
   );
 
   /// The library's artists, by their ids on the server and their MusicBrainz ids: those credited on the album link to
@@ -568,15 +597,7 @@ class _DiscHeader extends StatelessWidget {
 /// beside the cover; or, [stacked], the artist on a line of their own and the rest under them, but how long the songs
 /// last, which a phone's line has no room for: that ends the list ([_LastSong]).
 class _Byline extends StatelessWidget {
-  const _Byline(
-    this.album,
-    this.songs, {
-    required this.artist,
-    required this.credits,
-    this.type,
-    this.style,
-    this.stacked = false,
-  });
+  const _Byline(this.album, this.songs, {required this.artist, required this.credits, this.style});
 
   final Album album;
   final List<Song> songs;
@@ -584,44 +605,28 @@ class _Byline extends StatelessWidget {
   /// The artist, for their picture.
   final Future<Artist?> artist;
 
-  /// The album's type, before its year; null where the page doesn't show it here.
-  final ReleaseType? type;
-
   final TextStyle? style;
-
-  /// Whether the type, the year and the songs are under the artist, rather than after them, with how long they last.
-  final bool stacked;
 
   /// The button that opens the album's credits, at the end.
   final Widget credits;
 
+  /// What the album is: its [type], where the page shows it here, its year, and its songs, with how long they last.
+  static String detailsOf(AppLocalizations strings, Album album, List<Song> songs, {ReleaseType? type}) => [
+    if (type case final type?) releaseTypeName(strings, type),
+    if (album.year case final year?) '$year',
+    if (songs.isNotEmpty) songCountAndLength(strings, songs),
+  ].join(' · ');
+
+  /// The album's artist, a link to their page, after their [artist]'s picture where the server says who they are; none
+  /// where it names none.
+  static Widget? linkOf(Album album, Future<Artist?> artist, {TextStyle? style}) => album.artist == null
+      ? null
+      : ArtistLink.album(album, style: style, picture: album.artistId == null ? null : _ArtistPicture(artist));
+
   @override
   Widget build(BuildContext context) {
-    final strings = AppLocalizations.of(context);
-    final details = [
-      if (type case final type?) releaseTypeName(strings, type),
-      if (album.year case final year?) '$year',
-      if (songs.isNotEmpty) stacked ? strings.trackCount(songs.length) : songCountAndLength(strings, songs),
-    ].join(' · ');
-    final link = album.artist == null
-        ? null
-        : ArtistLink.album(album, style: style, picture: album.artistId == null ? null : _ArtistPicture(artist));
-
-    if (stacked) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ?link,
-          Row(
-            children: [
-              if (details.isNotEmpty) Flexible(child: Text(details, style: style)),
-              const SizedBox(width: 4),
-              credits,
-            ],
-          ),
-        ],
-      );
-    }
+    final details = detailsOf(AppLocalizations.of(context), album, songs);
+    final link = linkOf(album, artist, style: style);
 
     return Text.rich(
       TextSpan(
@@ -688,19 +693,15 @@ class _ReleaseType extends StatelessWidget {
   );
 }
 
-/// The album's last song, with what is known of its release under it, ending the list: its date, on a phone how long
-/// its songs last ([length]), and the labels that put it out. The media server's first, then with
-/// what MusicBrainz adds, as it comes. The keyboard and the remote stop at the songs only, so as the focus comes to the
-/// last one the list scrolls on to show these too.
+/// The album's last song, with what is known of its release under it, ending the list: its date and the labels that put
+/// it out. The media server's first, then with what MusicBrainz adds, as it comes. The keyboard and the remote stop at
+/// the songs only, so as the focus comes to the last one the list scrolls on to show these too.
 class _LastSong extends StatelessWidget {
-  const _LastSong(this.song, {required this.album, required this.release, this.length});
+  const _LastSong(this.song, {required this.album, required this.release});
 
   final Widget song;
   final Album album;
   final Future<AlbumRelease> release;
-
-  /// How long the album's songs last, between its date and its labels; null where that's under its name.
-  final String? length;
 
   @override
   Widget build(BuildContext context) {
@@ -714,7 +715,6 @@ class _LastSong extends StatelessWidget {
         final (:date, :labels, type: _) = snapshot.requireData;
         final lines = [
           if (date != null) formatDate(AppLocalizations.of(context), date),
-          ?length,
           if (labels.isNotEmpty) labels.join(', '),
         ];
 

@@ -313,8 +313,10 @@ class _Song extends StatelessWidget {
       child: ClipRRect(borderRadius: BorderRadius.circular(4), child: Cover(now.coverArt, size: 96, gapless: true)),
     );
 
-    // Closed from the navigator it opened in: the page area's, or where it covers everything, the app's.
-    void openOrClose() => lyrics == null ? PlayerPage.open(context) : PageArea.playerNavigatorOf(context).maybePop();
+    // Closed from the navigator it opened in: the page area's, or where it covers everything, the app's. Under a page
+    // over the player (the queue), back to it, rather than another over the page, whose links would open their pages
+    // under both.
+    void openOrClose() => lyrics == null ? PlayerPage.show(context) : PageArea.playerNavigatorOf(context).maybePop();
 
     if (wide) {
       return MenuShortcuts(

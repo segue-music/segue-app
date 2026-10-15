@@ -142,13 +142,19 @@ void main() {
     await services.connect.setRepeat(Repeat.one);
     await pump(tester, services, const AlbumPage(album));
 
-    await tester.tap(tile('Dream On')); // the song that repeats: it goes on repeating
-    await settle(tester);
+    // Under the player bar, until the list scrolls.
+    Future<void> tapSong(String title) async {
+      await tester.ensureVisible(tile(title));
+      await settle(tester);
+      await tester.tap(tile(title));
+      await settle(tester);
+    }
+
+    await tapSong('Dream On'); // the song that repeats: it goes on repeating
     expect(player.current?.title, 'Dream On');
     expect(player.repeat, Repeat.one);
 
-    await tester.tap(tile('Make It'));
-    await settle(tester);
+    await tapSong('Make It');
     expect(player.current?.title, 'Make It');
     expect(player.repeat, Repeat.all);
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
