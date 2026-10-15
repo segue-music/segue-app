@@ -6,7 +6,7 @@ import 'models.dart';
 /// How the app introduces itself, to the media server and to the hub. The version is pubspec.yaml's, which a release
 /// checks (.github/workflows/release.yml).
 const clientName = 'Segue';
-const appVersion = '0.2.0';
+const appVersion = '0.3.0';
 
 /// What the app keeps of a sign-in, to talk to the media server again without the password.
 abstract interface class Credentials {
