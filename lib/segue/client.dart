@@ -126,6 +126,12 @@ class SegueClient extends ChangeNotifier {
         }
       } on HubClosed catch (e) {
         lastClose = e;
+
+        // This device leaving ([close]) as it connected.
+        if (!_running) {
+          break;
+        }
+
         _log.warning('refused by $url', e);
 
         if (e.isFinal) {
@@ -163,6 +169,13 @@ class SegueClient extends ChangeNotifier {
     final channel = _channelFactory(url);
     _channel = channel;
     await channel.ready;
+
+    // Closed as it opened ([close]): this device leaves before it says hello.
+    if (!identical(_channel, channel)) {
+      await channel.sink.close(1000);
+      throw const HubClosed(1000, 'closed as it opened');
+    }
+
     _open = true;
     final welcomed = Completer<void>();
     final ended = _ended = Completer<void>();
@@ -205,7 +218,15 @@ class SegueClient extends ChangeNotifier {
 
   Future<void> close() async {
     _running = false;
-    await _channel?.sink.close(1000);
+    final channel = _channel;
+
+    if (_open) {
+      await channel?.sink.close(1000);
+    } else {
+      // A connection still opening, or that never opened (the hub out of reach), never finishes closing:
+      // web_socket_channel takes the close only once it is open. [connect] closes it then, if it opens.
+      _channel = null;
+    }
   }
 
   /// Reports this device's playback. Send it on every change; the hub stamps the time.
