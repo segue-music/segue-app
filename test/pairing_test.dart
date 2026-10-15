@@ -4,9 +4,12 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:segue/downloads/downloads.dart';
+import 'package:segue/downloads/server_with_downloads.dart';
 import 'package:segue/jellyfin/api.dart';
 import 'package:segue/pairing/pairing.dart';
 import 'package:segue/segue/protocol.dart';
+import 'package:segue/server/reachability.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
 
@@ -278,6 +281,26 @@ void main() {
       signedIn.single.credentials,
       isA<JellyfinCredentials>().having((c) => (c.userId, c.token), 'credentials', ('u1', 'tv-token')),
     );
+  });
+
+  test('a phone authorizes the TV\'s Quick Connect code too, its media server coming with its downloads', () async {
+    final server = JellyfinServer();
+    final pairing = await tv(server.client, []);
+    const credentials = JellyfinCredentials(username: 'alice', userId: 'u1', token: 'phone-token');
+    final session = Session(server: phone.server, credentials: credentials, deviceId: 'phone', deviceName: 'Phone');
+    final api = JellyfinApi(phone.server, credentials, deviceId: 'phone', deviceName: 'Phone', client: server.client);
+    final directory = await Directory.systemTemp.createTemp('segue-pairing');
+    final reachability = Reachability(api.ping);
+    final downloads = await Downloads.open(directory, api, client: server.client, reachability: reachability);
+
+    addTearDown(() => directory.delete(recursive: true));
+    addTearDown(reachability.dispose);
+    addTearDown(downloads.dispose);
+
+    final device = await offerSignIn(pairing.invite.value, session, ServerWithDownloads(api, downloads, reachability));
+
+    expect(device, 'TV');
+    expect(server.authorized, isTrue);
   });
 
   test('a Jellyfin server with Quick Connect off signs the TV in nowhere, which the phone hears', () async {

@@ -8,6 +8,7 @@ import 'package:cryptography/cryptography.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
+import '../downloads/server_with_downloads.dart';
 import '../jellyfin/api.dart';
 import '../segue/protocol.dart';
 import '../server/server.dart';
@@ -565,11 +566,14 @@ Future<String> offerSignIn(PairingInvite invite, Session session, MediaServer ap
       case SignedIn(:final device):
         return device;
       case QuickConnectCode(:final code, :final device):
-        if (api is! JellyfinApi) {
+        // On a phone, the media server comes with the downloads.
+        final server = api is ServerWithDownloads ? api.server : api;
+
+        if (server is! JellyfinApi) {
           throw const PairingRefused(PairingError.unreadable);
         }
 
-        await api.authorizeQuickConnect(code);
+        await server.authorizeQuickConnect(code);
         return device;
       case final PairingRefused refused:
         throw refused;
