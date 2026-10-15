@@ -244,7 +244,13 @@ class _PlaylistPageState extends State<PlaylistPage> {
           right: false,
           sliver: SliverMainAxisGroup(
             slivers: [
-              SliverToBoxAdapter(child: _header(playlist, songs, narrow: narrow)),
+              SliverToBoxAdapter(
+                // Built again as the device the app controls changes: its menu follows what that device takes.
+                child: ListenableBuilder(
+                  listenable: ServicesScope.of(context).connect,
+                  builder: (context, _) => _header(playlist, songs, narrow: narrow),
+                ),
+              ),
               if (songs.isEmpty)
                 SliverToBoxAdapter(
                   child: Padding(padding: const EdgeInsets.all(16), child: Text(strings.playlistEmpty)),
@@ -265,16 +271,20 @@ class _PlaylistPageState extends State<PlaylistPage> {
   }
 
   /// The top of the page: the playlist's picture, its name, how many songs it has and how long they last (where it has
-  /// any: an empty one says so under it), the button that plays it, and, where it has songs or the user can change it,
-  /// its menu. On a wide screen the name is beside the picture, under the word "Playlist", the buttons under them; on a
-  /// narrow one ([narrow]) the name is in the page's bar, over the picture, which is centered, and the songs and their
-  /// length under it, with the buttons at the end of their line, the play button last ([SongListTopLine]).
+  /// any: an empty one says so under it), the button that plays it, and, where it has anything in it, its menu. On a
+  /// wide screen the name is beside the picture, under the word "Playlist", the buttons under them; on a narrow one
+  /// ([narrow]) the name is in the page's bar, over the picture, which is centered, and the songs and their length
+  /// under it, with the buttons at the end of their line, the play button last ([SongListTopLine]).
   Widget _header(Playlist playlist, List<Song> songs, {required bool narrow}) {
     final text = Theme.of(context).textTheme;
     final strings = AppLocalizations.of(context);
     final details = songs.isEmpty ? null : Text(songCountAndLength(strings, songs), style: text.bodyMedium);
     final play = _playButton(songs);
-    final menu = songs.isNotEmpty || playlist.editable ? _menu(playlist, songs) : null;
+    // None where it would have nothing: another user's playlist, with no public links (Jellyfin), while the app
+    // controls a device that takes nothing added to its queue.
+    final menu = playlistMenuItems(context, playlist, hasSongs: songs.isNotEmpty).isEmpty
+        ? null
+        : _menu(playlist, songs);
     // Asked of the server as an album's cover is.
     final picture = CoverButton(playlist.coverArt, size: 800, icon: HugeIcons.strokeRoundedPlaylist01);
 
