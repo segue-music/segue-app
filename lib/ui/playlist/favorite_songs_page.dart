@@ -150,7 +150,9 @@ class _FavoriteSongsPageState extends State<FavoriteSongsPage> {
               onNotification: _followScroll,
               child: _songs(favorites.songs, narrow: narrow),
             ),
-            false when error != null => Center(child: Text(strings.couldNotListFavorites('$error'))),
+            false when error != null => Center(
+              child: Text(strings.couldNotListFavorites(describeFailure(strings, error))),
+            ),
             false => const Center(child: Spinner()),
           },
           extendBody: true,

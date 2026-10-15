@@ -141,7 +141,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
     _version++;
     setState(change);
     edit(_editor!).catchError((Object error) {
-      messenger.showSnackBar(SnackBar(content: Text(strings.couldNotChangePlaylist('$error'))));
+      messenger.showSnackBar(SnackBar(content: Text(strings.couldNotChangePlaylist(describeFailure(strings, error)))));
     });
   }
 
@@ -218,7 +218,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
           onNotification: _followScroll,
           child: _songs(playlist, entries, narrow: narrow),
         ),
-        _ when error != null => Center(child: Text(strings.couldNotOpenPlaylist('$error'))),
+        _ when error != null => Center(child: Text(strings.couldNotOpenPlaylist(describeFailure(strings, error)))),
         _ => const Center(child: Spinner()),
       },
       // The songs go on behind the player bar; in the page area the home's bars stay under the page instead, with the

@@ -757,9 +757,13 @@ class JellyfinApi implements MediaServer {
 
     switch (response.statusCode) {
       case 401:
-        throw const ServerError('the server refused the sign-in', isAuth: true);
+        throw const ServerError(
+          'the server refused the sign-in',
+          isAuth: true,
+          reason: ServerErrorReason.signInRefused,
+        );
       case 403:
-        throw const ServerError('the server doesn\'t let this user change it');
+        throw const ServerError('the server doesn\'t let this user change it', reason: ServerErrorReason.notAllowed);
       case < 200 || >= 300:
         throw ServerError('${server.host}: HTTP ${response.statusCode}', statusCode: response.statusCode);
     }
@@ -769,7 +773,7 @@ class JellyfinApi implements MediaServer {
 
   static Object? _decode(Uri server, http.Response response) {
     if (response.statusCode == 401 || response.statusCode == 403) {
-      throw const ServerError('the server refused the sign-in', isAuth: true);
+      throw const ServerError('the server refused the sign-in', isAuth: true, reason: ServerErrorReason.signInRefused);
     }
 
     if (response.statusCode != 200) {

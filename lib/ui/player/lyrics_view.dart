@@ -13,6 +13,7 @@ import '../widgets/directional_navigation.dart';
 import '../widgets/spinner.dart';
 import '../widgets/themed_icon.dart';
 import 'player_controls.dart';
+import '../widgets/errors.dart';
 
 /// The lyrics of [now]'s song: the media server's, or, where it has none, or fails, LRCLIB's, with a blank line for an
 /// intro (a part with no singing). A failure shows only if neither has them: the server's, or else LRCLIB's
@@ -326,7 +327,9 @@ class _LyricsViewState extends State<LyricsView> {
 
         if (snapshot.error case final error?) {
           return _Message(
-            error is _LrclibFailed ? strings.couldNotFetchLyrics : strings.couldNotFetchLyricsError('$error'),
+            error is _LrclibFailed
+                ? strings.couldNotFetchLyrics
+                : strings.couldNotFetchLyricsError(describeFailure(strings, error)),
             style: style,
           );
         }

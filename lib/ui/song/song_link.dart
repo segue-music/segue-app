@@ -10,6 +10,7 @@ import '../album/album_page.dart';
 import '../app/page_area.dart';
 import '../artist/artist_link.dart';
 import '../artist/artist_page.dart';
+import '../widgets/errors.dart';
 import '../widgets/text_link.dart';
 
 /// The title or the album of the song that plays, a link to the album, or its artists, each a link to
@@ -102,9 +103,9 @@ class _SongLinkState extends State<SongLink> {
 
     final message = switch ((widget._part, error)) {
       (_Part.artist, null) => strings.couldNotOpenArtist,
-      (_Part.artist, final error?) => strings.couldNotOpenArtistError('$error'),
+      (_Part.artist, final error?) => strings.couldNotOpenArtistError(describeFailure(strings, error)),
       (_, null) => strings.couldNotOpenAlbum,
-      (_, final error?) => strings.couldNotOpenAlbumError('$error'),
+      (_, final error?) => strings.couldNotOpenAlbumError(describeFailure(strings, error)),
     };
 
     messenger.showSnackBar(SnackBar(content: Text(message)));

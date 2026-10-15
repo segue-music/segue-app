@@ -66,7 +66,7 @@ class ServerWithDownloads implements MediaServer {
   }
 
   /// What a request needing the server fails with while it is out of reach.
-  static const unreachable = ServerError('no connection to the media server');
+  static const unreachable = ServerError('no connection to the media server', reason: ServerErrorReason.unreachable);
 
   /// [request] of the server, in reach; out of reach, or as a request fails for the network, [downloaded].
   Future<T> _either<T>(Future<T> Function() request, FutureOr<T> Function() downloaded) async {

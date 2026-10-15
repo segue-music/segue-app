@@ -6,6 +6,7 @@ import '../../l10n/app_localizations.dart';
 import '../../server/models.dart';
 import '../../services.dart';
 import '../widgets/cover.dart';
+import '../widgets/errors.dart';
 import '../widgets/spinner.dart';
 import '../widgets/themed_icon.dart';
 
@@ -119,7 +120,7 @@ Future<void> addToPlaylist(BuildContext context, List<Song> songs) async {
       await editor.create(name, songIds: ids);
       messenger.showSnackBar(SnackBar(content: Text(strings.addedToPlaylist(songs.length, name))));
     } on Object catch (error) {
-      messenger.showSnackBar(SnackBar(content: Text(strings.couldNotCreatePlaylist('$error'))));
+      messenger.showSnackBar(SnackBar(content: Text(strings.couldNotCreatePlaylist(describeFailure(strings, error)))));
     }
 
     return;
@@ -129,7 +130,7 @@ Future<void> addToPlaylist(BuildContext context, List<Song> songs) async {
     await editor.add(playlist.id, ids);
     messenger.showSnackBar(SnackBar(content: Text(strings.addedToPlaylist(songs.length, playlist.name))));
   } on Object catch (error) {
-    messenger.showSnackBar(SnackBar(content: Text(strings.couldNotChangePlaylist('$error'))));
+    messenger.showSnackBar(SnackBar(content: Text(strings.couldNotChangePlaylist(describeFailure(strings, error)))));
   }
 }
 
@@ -194,7 +195,7 @@ class _PlaylistPickerState extends State<_PlaylistPicker> {
           builder: (context, snapshot) => switch (snapshot) {
             AsyncSnapshot(hasError: true, :final error) => Padding(
               padding: const EdgeInsets.all(16),
-              child: Text(strings.couldNotListPlaylists('$error')),
+              child: Text(strings.couldNotListPlaylists(describeFailure(strings, error))),
             ),
             AsyncSnapshot(:final data?) => Column(
               mainAxisSize: MainAxisSize.min,
@@ -252,7 +253,7 @@ class NewPlaylistTile extends StatelessWidget {
     try {
       await editor.create(name);
     } on Object catch (error) {
-      messenger.showSnackBar(SnackBar(content: Text(strings.couldNotCreatePlaylist('$error'))));
+      messenger.showSnackBar(SnackBar(content: Text(strings.couldNotCreatePlaylist(describeFailure(strings, error)))));
     }
   }
 

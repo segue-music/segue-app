@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../server/models.dart';
+import '../widgets/errors.dart';
 import '../widgets/spinner.dart';
 import '../widgets/tile_row.dart';
 import 'albums_view.dart';
@@ -71,7 +72,7 @@ class AlbumRow extends StatelessWidget {
             ? null
             : [for (final album in albums.take(maxAlbums)) AlbumTile(album)],
         instead: switch (albums) {
-          _ when snapshot.hasError => note(strings.couldNotListAlbums('${snapshot.error}')),
+          _ when snapshot.hasError => note(strings.couldNotListAlbums(describeFailure(strings, snapshot.error))),
           null => SizedBox(
             height: tileSize.height,
             child: const Center(child: Spinner()),

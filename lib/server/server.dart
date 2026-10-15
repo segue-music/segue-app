@@ -16,8 +16,10 @@ abstract interface class Credentials {
 
 /// The media server refused a request, or answered with something the app can't use.
 class ServerError implements Exception {
-  const ServerError(this.message, {this.isAuth = false, this.code, this.statusCode});
+  const ServerError(this.message, {this.isAuth = false, this.code, this.statusCode, this.reason});
 
+  /// In the server's words, or the app's, in English: the log's. The UI says those the app words itself in the user's
+  /// language, by their [reason].
   final String message;
 
   /// The server doesn't take the credentials: a wrong user or password, or a sign-in it forgot.
@@ -30,6 +32,9 @@ class ServerError implements Exception {
   /// The HTTP status the server answered with, where that was the error.
   final int? statusCode;
 
+  /// What the error is, where the app words it, rather than the server.
+  final ServerErrorReason? reason;
+
   /// Whether the server refused the password, taking API keys instead.
   bool get wantsApiKey => code == 41 || code == 42;
 
@@ -39,6 +44,18 @@ class ServerError implements Exception {
 
   @override
   String toString() => message;
+}
+
+/// What an error the app words itself is ([ServerError.reason]), which the UI says in the user's language.
+enum ServerErrorReason {
+  /// The media server out of reach, with nothing downloaded in its place.
+  unreachable,
+
+  /// The server no longer takes the sign-in.
+  signInRefused,
+
+  /// The server doesn't let this user change it.
+  notAllowed,
 }
 
 /// The server makes no public links for the user ([MediaServer.share]): Jellyfin has none, and a Subsonic server's

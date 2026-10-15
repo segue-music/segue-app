@@ -5,6 +5,7 @@ import '../../server/favorites.dart';
 import '../../server/models.dart';
 import '../../services.dart';
 import '../widgets/cover.dart';
+import '../widgets/errors.dart';
 import '../widgets/focus_ring.dart';
 import '../widgets/letter_bar.dart';
 import '../widgets/order_chips.dart';
@@ -157,7 +158,7 @@ class _ArtistsViewState extends State<ArtistsView> {
             future: _artists,
             builder: (context, snapshot) {
               if (snapshot.hasError) {
-                return Center(child: Text(strings.couldNotListArtists('${snapshot.error}')));
+                return Center(child: Text(strings.couldNotListArtists(describeFailure(strings, snapshot.error))));
               }
 
               final artists = snapshot.data;

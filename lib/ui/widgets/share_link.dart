@@ -11,6 +11,7 @@ import '../../l10n/app_localizations.dart';
 import '../../server/server.dart';
 import '../../services.dart';
 import 'directional_navigation.dart';
+import 'errors.dart';
 import 'themed_icon.dart';
 import 'touch_screen.dart';
 
@@ -43,7 +44,7 @@ Future<bool> shareLink(BuildContext context, String id) async {
     return false;
   } on Object catch (error) {
     _log.warning('link not made', error);
-    messenger.showSnackBar(SnackBar(content: Text(strings.couldNotShare('$error'))));
+    messenger.showSnackBar(SnackBar(content: Text(strings.couldNotShare(describeFailure(strings, error)))));
     return false;
   }
 
@@ -71,7 +72,7 @@ Future<bool> shareLink(BuildContext context, String id) async {
     return true;
   } on Object catch (e) {
     _log.warning('link not shared', e);
-    messenger.showSnackBar(SnackBar(content: Text(strings.couldNotShare('$e'))));
+    messenger.showSnackBar(SnackBar(content: Text(strings.couldNotShare(describeFailure(strings, e)))));
     return false;
   }
 }

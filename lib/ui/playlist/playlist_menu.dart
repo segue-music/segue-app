@@ -5,6 +5,7 @@ import '../../l10n/app_localizations.dart';
 import '../../server/models.dart';
 import '../../services.dart';
 import '../song/song_menu.dart';
+import '../widgets/errors.dart';
 import '../widgets/menu_item_label.dart';
 import '../widgets/share_link.dart';
 import 'playlist_dialogs.dart';
@@ -75,7 +76,9 @@ Future<bool> runPlaylistAction(
         try {
           (_, queued) = await services.api.playlist(playlist.id);
         } on Object catch (error) {
-          messenger.showSnackBar(SnackBar(content: Text(strings.couldNotOpenPlaylist('$error'))));
+          messenger.showSnackBar(
+            SnackBar(content: Text(strings.couldNotOpenPlaylist(describeFailure(strings, error)))),
+          );
           return false;
         }
       }
@@ -115,7 +118,7 @@ Future<bool> runPlaylistAction(
     await change();
     return true;
   } on Object catch (error) {
-    messenger.showSnackBar(SnackBar(content: Text(strings.couldNotChangePlaylist('$error'))));
+    messenger.showSnackBar(SnackBar(content: Text(strings.couldNotChangePlaylist(describeFailure(strings, error)))));
     return false;
   }
 }

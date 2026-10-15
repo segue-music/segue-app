@@ -4,6 +4,7 @@ import 'package:hugeicons/hugeicons.dart';
 import '../../l10n/app_localizations.dart';
 import '../../server/models.dart';
 import '../../services.dart';
+import '../widgets/errors.dart';
 import '../widgets/themed_icon.dart';
 
 /// Hugeicons' heart filled, for a favorite, where the heart alone ([HugeIcons.strokeRoundedFavourite]) is one to make:
@@ -25,7 +26,7 @@ Future<void> setFavorite(BuildContext context, FavoriteKind kind, String id, {re
   try {
     await ServicesScope.of(context).favorites.set(kind, id, favorite: favorite);
   } on Object catch (error) {
-    messenger?.showSnackBar(SnackBar(content: Text(strings.couldNotChangeFavorites('$error'))));
+    messenger?.showSnackBar(SnackBar(content: Text(strings.couldNotChangeFavorites(describeFailure(strings, error)))));
   }
 }
 

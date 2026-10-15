@@ -37,7 +37,7 @@ class SearchResultsList extends StatelessWidget {
       final strings = AppLocalizations.of(context);
 
       if (snapshot.hasError) {
-        return Center(child: Text(strings.couldNotSearch('${snapshot.error}')));
+        return Center(child: Text(strings.couldNotSearch(describeFailure(strings, snapshot.error))));
       }
 
       final results = snapshot.data;

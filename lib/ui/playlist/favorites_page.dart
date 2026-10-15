@@ -99,7 +99,11 @@ class _FavoritesPageState extends State<FavoritesPage> {
           final error = _error;
 
           if (!favorites.loaded) {
-            return Center(child: error == null ? const Spinner() : Text(strings.couldNotListFavorites('$error')));
+            return Center(
+              child: error == null
+                  ? const Spinner()
+                  : Text(strings.couldNotListFavorites(describeFailure(strings, error))),
+            );
           }
 
           final (songs, albums, artists) = (favorites.songs, favorites.albums, favorites.artists);

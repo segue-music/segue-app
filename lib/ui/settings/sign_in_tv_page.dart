@@ -12,6 +12,7 @@ import '../../server/server.dart';
 import '../../services.dart';
 import '../../session.dart';
 import '../widgets/directional_navigation.dart';
+import '../widgets/errors.dart';
 import '../widgets/spinner.dart';
 
 final _log = Logger('SignInTvPage');
@@ -90,7 +91,7 @@ class _SignInTvPageState extends State<SignInTvPage> {
       messenger.showSnackBar(
         SnackBar(
           content: Text(switch (e.error) {
-            final ServerError error => strings.serverRefused('$error'),
+            final ServerError error => strings.serverRefused(describeFailure(strings, error)),
             final error => strings.couldNotReachServer(session.server.host, '$error'),
           }),
         ),

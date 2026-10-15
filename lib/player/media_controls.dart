@@ -471,7 +471,7 @@ class MediaControls extends BaseAudioHandler with SeekHandler {
         _fail(describeError(strings, result.error));
       }
     } on Object catch (e) {
-      _fail(describeError(strings, '$e'));
+      _fail(describeFailure(strings, e));
     }
   }
 

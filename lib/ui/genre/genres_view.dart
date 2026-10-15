@@ -6,6 +6,7 @@ import '../../services.dart';
 import '../artist/artists_view.dart';
 import '../widgets/spinner.dart';
 import 'genre_page.dart';
+import '../widgets/errors.dart';
 
 /// The library's genres, by name, each with how many albums it has, under those the user listens to
 /// most. Those with no albums, which a server may list for their songs alone, are left out: they would
@@ -51,7 +52,7 @@ class _GenresViewState extends State<GenresView> {
       final strings = AppLocalizations.of(context);
 
       if (snapshot.hasError) {
-        return Center(child: Text(strings.couldNotListGenres('${snapshot.error}')));
+        return Center(child: Text(strings.couldNotListGenres(describeFailure(strings, snapshot.error))));
       }
 
       final genres = snapshot.data;

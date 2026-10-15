@@ -198,7 +198,12 @@ class _AlbumPageState extends State<AlbumPage> {
           extendBodyBehindAppBar: narrow && data != null,
           body: switch (data) {
             _ when snapshot.hasError => Center(
-              child: Text(strings.couldNotOpenRelease(releaseSelector(widget.album.releaseType), '${snapshot.error}')),
+              child: Text(
+                strings.couldNotOpenRelease(
+                  releaseSelector(widget.album.releaseType),
+                  describeFailure(strings, snapshot.error),
+                ),
+              ),
             ),
             null => const Center(child: Spinner()),
             (final album, final songs) => NotificationListener(

@@ -46,8 +46,8 @@ Future<void> playMix(BuildContext context, Mix mix, {List<Song> first = const []
     messenger.showSnackBar(
       SnackBar(
         content: Text(switch (mix) {
-          RandomMix() => strings.couldNotPlayMix('$error'),
-          RadioMix() => strings.couldNotPlayRadio('$error'),
+          RandomMix() => strings.couldNotPlayMix(describeFailure(strings, error)),
+          RadioMix() => strings.couldNotPlayRadio(describeFailure(strings, error)),
         }),
       ),
     );

@@ -161,7 +161,9 @@ class _ArtistPageState extends State<ArtistPage> {
             // On a phone the picture goes on under the bar and the system's, to the top of the screen.
             extendBodyBehindAppBar: narrow && data != null,
             body: switch (data) {
-              _ when snapshot.hasError => Center(child: Text(strings.couldNotOpenArtistError('${snapshot.error}'))),
+              _ when snapshot.hasError => Center(
+                child: Text(strings.couldNotOpenArtistError(describeFailure(strings, snapshot.error))),
+              ),
               null => const Center(child: Spinner()),
               (final artist, final albums) => NotificationListener(
                 onNotification: _followScroll,
@@ -803,7 +805,10 @@ class _ArtistSongsState extends State<_ArtistSongs> {
             if (snapshot.hasError)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Text(strings.couldNotListSongs('${snapshot.error}'), style: text.bodyMedium),
+                child: Text(
+                  strings.couldNotListSongs(describeFailure(strings, snapshot.error)),
+                  style: text.bodyMedium,
+                ),
               ),
             for (final (i, song) in songs.indexed)
               CurrentSong(

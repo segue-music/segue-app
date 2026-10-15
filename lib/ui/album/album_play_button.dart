@@ -56,7 +56,9 @@ class _AlbumPlayButtonState extends State<AlbumPlayButton> {
         messenger.showSnackBar(SnackBar(content: Text(describeError(strings, result.error))));
       }
     } on Object catch (error) {
-      messenger.showSnackBar(SnackBar(content: Text(strings.couldNotPlayRelease(type, '$error'))));
+      messenger.showSnackBar(
+        SnackBar(content: Text(strings.couldNotPlayRelease(type, describeFailure(strings, error)))),
+      );
     } finally {
       if (mounted) {
         setState(() => _loading = false);

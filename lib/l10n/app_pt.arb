@@ -93,6 +93,18 @@
   "@errorClosed": {
     "description": "A command sent while the connection to the hub was down."
   },
+  "errorServerUnreachable": "sem conexão com o servidor de música",
+  "@errorServerUnreachable": {
+    "description": "Why something failed, inside a sentence that says what (couldNotPlayRadio): the media server out of reach, with nothing downloaded in its place."
+  },
+  "errorSignInRefused": "o servidor não aceita mais este login",
+  "@errorSignInRefused": {
+    "description": "Why something failed, inside a sentence that says what: the media server no longer takes the sign-in."
+  },
+  "errorNotAllowed": "o servidor não deixa este usuário mudar isso",
+  "@errorNotAllowed": {
+    "description": "Why something failed, inside a sentence that says what (couldNotChangePlaylist): the media server doesn't let this user change it."
+  },
   "errorUnknown": "Algo deu errado.",
   "@errorUnknown": {
     "description": "A command that failed without saying why."
@@ -1330,6 +1342,20 @@
   "downloads": "Downloads",
   "@downloads": {
     "description": "The settings' entry, and the page it opens, listing the albums and playlists downloaded to the device."
+  },
+  "megabytes": "{size} MB",
+  "@megabytes": {
+    "description": "A size in megabytes, the number already in the language's form, as \"850\" (formatSize).",
+    "placeholders": {
+      "size": {"type": "String"}
+    }
+  },
+  "gigabytes": "{size} GB",
+  "@gigabytes": {
+    "description": "A size in gigabytes, the number already in the language's form, as \"1,2\" (formatSize).",
+    "placeholders": {
+      "size": {"type": "String"}
+    }
   },
   "downloadsSize": "{size} no aparelho",
   "@downloadsSize": {

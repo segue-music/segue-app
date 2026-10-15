@@ -12,6 +12,7 @@ import '../../server/server.dart';
 import '../../services.dart';
 import '../artist/artist_link.dart';
 import '../widgets/cover.dart';
+import '../widgets/errors.dart';
 import '../widgets/focus_ring.dart';
 import '../widgets/letter_bar.dart';
 import '../widgets/order_chips.dart';
@@ -419,7 +420,7 @@ class _AlbumsViewState extends State<AlbumsView> {
 
     if (_albums.isEmpty) {
       if (error != null) {
-        return Center(child: _Retry(strings.couldNotListAlbums('$error'), onRetry: _retry));
+        return Center(child: _Retry(strings.couldNotListAlbums(describeFailure(strings, error)), onRetry: _retry));
       }
 
       if (!_done) {
@@ -436,7 +437,7 @@ class _AlbumsViewState extends State<AlbumsView> {
           gridKey: _grid,
           header: widget.header,
           footer: error != null
-              ? _Retry(strings.couldNotListMoreAlbums('$error'), onRetry: _retry)
+              ? _Retry(strings.couldNotListMoreAlbums(describeFailure(strings, error)), onRetry: _retry)
               : _loading
               ? const Padding(
                   padding: EdgeInsets.only(bottom: 16),

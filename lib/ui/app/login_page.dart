@@ -13,6 +13,7 @@ import '../../session.dart';
 import '../../settings.dart';
 import '../settings/language_button.dart';
 import '../widgets/directional_navigation.dart';
+import '../widgets/errors.dart';
 import '../widgets/spinner.dart';
 
 /// Server, user and password: the media server's own account, nothing else to create. Whether the
@@ -202,7 +203,7 @@ class _LoginPageState extends State<LoginPage> {
       try {
         await session.save();
       } on Exception catch (e) {
-        _fail(strings.couldNotSaveSignIn('$e'));
+        _fail(strings.couldNotSaveSignIn(describeFailure(strings, e)));
         return;
       }
 
@@ -220,7 +221,7 @@ class _LoginPageState extends State<LoginPage> {
       } else if (e.isAuth) {
         _fail(_withApiKey ? strings.wrongApiKey : strings.wrongCredentials);
       } else {
-        _fail(strings.serverRefused('$e'));
+        _fail(strings.serverRefused(describeFailure(strings, e)));
       }
     } on Exception catch (e) {
       _fail(strings.couldNotReachServer(server.host, '$e'));

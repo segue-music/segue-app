@@ -8,6 +8,7 @@ import '../../server/models.dart';
 import '../../server/playlist_editor.dart';
 import '../../services.dart';
 import '../widgets/cover.dart';
+import '../widgets/errors.dart';
 import '../widgets/menu_shortcuts.dart';
 import '../widgets/order_chips.dart';
 import '../widgets/spinner.dart';
@@ -123,7 +124,7 @@ class _PlaylistsViewState extends State<PlaylistsView> {
       final strings = AppLocalizations.of(context);
 
       if (snapshot.hasError) {
-        return Center(child: Text(strings.couldNotListPlaylists('${snapshot.error}')));
+        return Center(child: Text(strings.couldNotListPlaylists(describeFailure(strings, snapshot.error))));
       }
 
       final playlists = snapshot.data;
