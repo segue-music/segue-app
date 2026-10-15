@@ -34,6 +34,9 @@ iPhone and in a car, with CarPlay's Now Playing screen, and the Windows build on
 
 - The hub is found next to the server, or typed at sign-in, under "Advanced". The device picker lists the user's other
   devices that are online, with what they play, and picking one makes the app control it.
+- An icon in the top bar, before the settings' button, says how Connect is: connected to the hub, connecting, offline
+  (trying again), refused (this device connected again elsewhere, say), or no hub found, the app playing here alone;
+  and, with the media server out of reach, that the app shows only what was downloaded.
 - Picking this device again moves the music here, at the same point, in the same modes. If the device it controls
   closes, its music stays here, paused. If its queue ends there, the player goes, and the app controls this device
   again, until another queue plays there.
@@ -116,8 +119,8 @@ iPhone and in a car, with CarPlay's Now Playing screen, and the Windows build on
 ### Playback
 
 - **Player**: a bar that stays from page to page, and a full-screen player that the song in the bar opens. Seek,
-  shuffle, repeat (the queue, or the track). On a phone, a swipe on the cover goes to the next or the previous song,
-  and a drag down closes the player.
+  shuffle, repeat (the queue, or the track). A swipe on the cover (with a mouse, a drag) goes to the next or the
+  previous song, and on a phone a drag down closes the player.
 - **Volume**, on a computer, at the end of the bar: a button that mutes and gives the volume back, over which an
   upright slider opens as the pointer comes to it (or the keyboard's focus, whose up and down arrows move it). The
   mouse's wheel moves it over either. It is the volume of whichever device the app controls; this device's own the next
@@ -193,11 +196,11 @@ knows nothing of them, and another device plays as it has them.
 
 ### Devices
 
-- **Computer and tablet**: the top bar, the side rail (albums, artists, genres, playlists, favorites) and the player
-  bar stay, and pages open between them. Arrows beside the app's icon, and the keyboard's left and right, go back and
-  forward through them, as a browser's do. `/` goes to the search bar, and Esc takes the focus off what has it. A
-  section's button in the side rail, picked again, takes it back to its start. On a computer the window opens maximized
-  and gets no narrower than 960.
+- **Computer and tablet**: the top bar, the side rail (albums, artists, genres, playlists, favorites) and the player bar
+  stay, and pages open between them. Arrows beside the app's icon, and the keyboard's left and right, go back and
+  forward through them, as a browser's do. `/` goes to the search bar, Esc takes the focus off what has it, and space
+  plays or pauses (not while typing). A section's button in the side rail, picked again, takes it back to its start. On
+  a computer the window opens maximized and gets no narrower than 960.
 - **Phone**: the player bar and a bar with the home, the search and the library stay at the bottom, and a swipe goes
   from section to section; the home or the library picked again there goes back to its start. Pages open over the
   rest, and a swipe to the right from anywhere goes back.
