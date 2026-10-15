@@ -310,6 +310,17 @@ void main() {
     expect(downloads.progressOf(downloads.ofAlbum('al1')!), (done: 2, failed: 0, total: 2));
   });
 
+  test('a song the server refuses with its error in place of the song, as a Subsonic server does, fails to come rather '
+      'than comes as its error', () async {
+    final downloads = await open();
+
+    server.refused.add('s2');
+    await downloads.addAlbum(album, songs);
+    await settled(downloads);
+    expect(downloads.progressOf(downloads.ofAlbum('al1')!), (done: 1, failed: 1, total: 2));
+    expect(downloads.songFile('s2'), isNull);
+  });
+
   test('with the server out of reach, nothing comes until it is back', () async {
     final reachability = Reachability(() async {
       if (!server.reachable) {

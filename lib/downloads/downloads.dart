@@ -428,6 +428,16 @@ class Downloads extends ChangeNotifier {
       throw ServerError('HTTP ${response.statusCode}');
     }
 
+    final type = response.headers['content-type'] ?? '';
+
+    // A Subsonic server refuses with a 200 all the same, its error in place of the song (as JSON, which the app asks
+    // for), and a proxy may answer with a page of its own: neither is a song to keep.
+    if (type.contains('json') || type.contains('xml') || type.startsWith('text/')) {
+      final answer = utf8.decode(await http.ByteStream(response.stream.timeout(_wait)).toBytes(), allowMalformed: true);
+
+      throw ServerError('no song for ${song.id}: ${answer.length > 200 ? answer.substring(0, 200) : answer}');
+    }
+
     final part = File('${directory.path}/$file.part');
 
     try {

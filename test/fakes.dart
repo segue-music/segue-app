@@ -306,6 +306,9 @@ class FileServer {
   final requests = <String>[];
   final urls = <Uri>[];
   final failing = <String>{};
+
+  /// The songs whose stream the server refuses as a Subsonic server does: with a 200, its error in place of the song.
+  final refused = <String>{};
   final held = <String, Completer<void>>{};
   final artists = <String, Map<String, Object?>>{};
   bool reachable = true;
@@ -345,6 +348,16 @@ class FileServer {
     );
 
     return switch (endpoint) {
+      'stream.view' when refused.contains(id) => http.Response(
+        jsonEncode({
+          'subsonic-response': {
+            'status': 'failed',
+            'error': {'code': 70, 'message': 'Song not found'},
+          },
+        }),
+        200,
+        headers: {'content-type': 'application/json'},
+      ),
       'stream.view' => http.Response.bytes(utf8.encode('audio of $id'), 200),
       'getCoverArt.view' => http.Response.bytes(
         utf8.encode('image of $id'),
