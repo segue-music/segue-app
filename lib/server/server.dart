@@ -34,8 +34,8 @@ class ServerError implements Exception {
   bool get wantsApiKey => code == 41 || code == 42;
 
   /// Whether the server failed to answer, rather than refused: an HTTP 5xx, as a proxy answers while the server behind
-  /// it restarts. Asked again later, it may answer.
-  bool get isTemporary => (statusCode ?? 0) >= 500;
+  /// it restarts. Asked again later, it may answer. Not a 501, a server that has no such thing, and never will.
+  bool get isTemporary => (statusCode ?? 0) >= 500 && statusCode != 501;
 
   @override
   String toString() => message;

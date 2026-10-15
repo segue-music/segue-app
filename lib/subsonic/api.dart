@@ -563,10 +563,11 @@ class SubsonicApi implements MediaServer {
       : null;
 
   /// Whether the server has the OpenSubsonic extension named [name]: their names asked once, unless they couldn't be (no
-  /// network), and then asked again the next time.
+  /// network, the server failing for now), and then asked again the next time.
   Future<bool> _has(String name) async => (await (_extensionNames ??= _extensions().catchError((Object e) {
-    // A server that answers with an error has no OpenSubsonic extensions; one that doesn't answer may.
-    if (e is! ServerError) {
+    // A server that answers with an error has no OpenSubsonic extensions; one that doesn't answer, or fails to for now
+    // (an HTTP 5xx, from its proxy as it restarts), may.
+    if (e is! ServerError || e.isTemporary) {
       _extensionNames = null;
     }
 

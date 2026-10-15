@@ -210,8 +210,10 @@ void main() {
     expect(asked, 1);
   });
 
-  test('a server without transcodeOffset starts no stream later; one that couldn\'t be asked is asked again', () async {
+  test('a server without transcodeOffset starts no stream later; one that couldn\'t be asked, for the network or as it '
+      'failed for now, is asked again', () async {
     var online = false;
+    var failing = true;
     var asked = 0;
     final api = SubsonicApi(
       Uri.parse('https://music.test'),
@@ -221,6 +223,11 @@ void main() {
 
         if (!online) {
           throw http.ClientException('no network');
+        }
+
+        if (failing) {
+          failing = false;
+          return http.Response('Bad Gateway', 502);
         }
 
         // A server with no OpenSubsonic extensions.
@@ -236,7 +243,26 @@ void main() {
     online = true;
     expect(await later(), isNull);
     expect(await later(), isNull);
-    expect(asked, 2, reason: 'again after no network, not after the server answered');
+    expect(await later(), isNull);
+    expect(asked, 3, reason: 'again after no network and after a 502, not after the server answered');
+  });
+
+  test('a server that has no such request (HTTP 501) has no extensions, asked once', () async {
+    var asked = 0;
+    final api = SubsonicApi(
+      Uri.parse('https://music.test'),
+      credentials,
+      client: MockClient((request) async {
+        asked++;
+        return http.Response('Not Implemented', 501);
+      }),
+    );
+
+    for (var i = 0; i < 3; i++) {
+      expect(await api.transcodedStreamUrl('s1', maxBitRate: 96, from: const Duration(seconds: 42)), isNull);
+    }
+
+    expect(asked, 1);
   });
 
   test('wrong credentials are an auth error', () async {
