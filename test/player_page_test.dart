@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -160,7 +161,7 @@ const sweetEmotion = Song(
 Future<PlayerController> pumpBar(
   WidgetTester tester, {
   SegueClient? client,
-  http.Response Function(http.Request request)? server,
+  FutureOr<http.Response> Function(http.Request request)? server,
   Lrclib? lrclib,
   Size size = const Size(360, 640),
   bool inHome = false,
@@ -171,7 +172,7 @@ Future<PlayerController> pumpBar(
   final api = SubsonicApi(
     Uri.parse('https://music.test'),
     credentials,
-    client: MockClient((request) async => server?.call(request) ?? http.Response('', 404)),
+    client: MockClient((request) async => await server?.call(request) ?? http.Response('', 404)),
   );
   final player = PlayerController(FakeEngine(), api);
 
@@ -1068,6 +1069,41 @@ void main() {
     expect(asked, ['s1']);
     await tester.pumpWidget(const SizedBox());
   });
+
+  testWidgets(
+    'while the next song\'s lyrics come, the lyrics wait for them, rather than say the song before\'s failed',
+    (tester) async {
+      final held = Completer<void>();
+      final player = await pumpBar(
+        tester,
+        server: (request) async {
+          if (request.url.queryParameters['id'] == sweetEmotion.id) {
+            return http.Response('', 500);
+          }
+
+          await held.future;
+
+          return withLyrics(verse)(request);
+        },
+        size: const Size(1280, 800),
+      );
+
+      await player.playQueue(const [sweetEmotion, dreamOn], play: false);
+      await openPlayer(tester);
+      await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
+      await tester.pumpAndSettle();
+      expect(onPage(find.textContaining('Não consegui buscar a letra')), findsOneWidget);
+
+      await player.next();
+      await tester.pump();
+      expect(onPage(find.textContaining('Não consegui buscar a letra')), findsNothing);
+
+      held.complete();
+      await tester.pumpAndSettle();
+      expect(onPage(find.text('You talk about things')), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
 
   testWidgets('a player opened with the lyrics shows them at once', (tester) async {
     await pumpBar(tester, server: withLyrics(verse), size: const Size(1280, 800));

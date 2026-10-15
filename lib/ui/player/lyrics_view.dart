@@ -319,15 +319,16 @@ class _LyricsViewState extends State<LyricsView> {
     final lyrics = FutureBuilder(
       future: _lyrics,
       builder: (context, snapshot) {
+        // First: while the next song's come, the snapshot keeps the song before's error.
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Center(child: Spinner());
+        }
+
         if (snapshot.error case final error?) {
           return _Message(
             error is _LrclibFailed ? strings.couldNotFetchLyrics : strings.couldNotFetchLyricsError('$error'),
             style: style,
           );
-        }
-
-        if (snapshot.connectionState != ConnectionState.done) {
-          return const Center(child: Spinner());
         }
 
         final lyrics = snapshot.data;
