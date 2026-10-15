@@ -38,6 +38,9 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
+/// The sides' padding of the button that switches between the password and an API key, Material's for a text button.
+const _linkPadding = 12.0;
+
 class _LoginPageState extends State<LoginPage> {
   final _form = GlobalKey<FormState>();
   final _server = TextEditingController();
@@ -256,14 +259,20 @@ class _LoginPageState extends State<LoginPage> {
                     onFieldSubmitted: (_) => _submit(),
                   ),
                 ],
+                // Its words in line with the fields' and "Advanced"'s, its padding out past their edge, where its
+                // highlight and focus ring keep room around them.
                 Align(
                   alignment: AlignmentDirectional.centerStart,
-                  child: TextButton(
-                    onPressed: () => setState(() {
-                      _withApiKey = !_withApiKey;
-                      _error = null;
-                    }),
-                    child: Text(_withApiKey ? strings.signInWithPassword : strings.signInWithApiKey),
+                  child: Transform.translate(
+                    offset: Offset(Directionality.of(context) == TextDirection.rtl ? _linkPadding : -_linkPadding, 0),
+                    child: TextButton(
+                      style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: _linkPadding)),
+                      onPressed: () => setState(() {
+                        _withApiKey = !_withApiKey;
+                        _error = null;
+                      }),
+                      child: Text(_withApiKey ? strings.signInWithPassword : strings.signInWithApiKey),
+                    ),
                   ),
                 ),
                 ExpansionTile(
