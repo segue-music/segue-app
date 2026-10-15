@@ -67,6 +67,7 @@ class Downloads extends ChangeNotifier {
     this._artists,
     this._files,
     this._renames,
+    this._kept,
     this._maxBitRate,
     this._hold,
     this._lyricsOf,
@@ -95,6 +96,7 @@ class Downloads extends ChangeNotifier {
     final downloads = <String, Download>{};
     final artists = <String, Artist>{};
     final renames = <String, String>{};
+    final kept = <String>{};
     var readable = true;
 
     if (await index.exists()) {
@@ -114,8 +116,12 @@ class Downloads extends ChangeNotifier {
         for (final MapEntry(key: from, value: to) in (json['renames'] as Map<String, dynamic>? ?? const {}).entries) {
           renames[from] = to as String;
         }
+
+        kept.addAll([for (final file in json['kept'] as List? ?? const []) file as String]);
+      } on FileSystemException {
+        // The disk, not what the index says: it may read the next time, and stays as it is, the downloads failing.
+        rethrow;
       } on Object catch (e) {
-        // Its files stay, rather than go as no download's.
         _log.warning('downloads index unreadable', e);
         readable = false;
       }
@@ -134,6 +140,10 @@ class Downloads extends ChangeNotifier {
       }
     }
 
+    if (!readable) {
+      kept.addAll(files);
+    }
+
     final opened = Downloads._(
       directory,
       server,
@@ -143,6 +153,7 @@ class Downloads extends ChangeNotifier {
       artists,
       files,
       renames,
+      kept,
       maxBitRate,
       hold,
       lyricsOf,
@@ -155,6 +166,10 @@ class Downloads extends ChangeNotifier {
     if (readable) {
       await opened._finishRenames();
       await opened._forget();
+    } else {
+      // It goes aside, rather than under the next index, and its files are kept in that one.
+      await index.rename('${directory.path}/$_unreadableIndexFile');
+      await opened._save();
     }
 
     unawaited(opened._fetch());
@@ -187,6 +202,11 @@ class Downloads extends ChangeNotifier {
   /// the one they take, until they have: in the index too, for the downloads to go on with them as they open again.
   final Map<String, String> _renames;
 
+  /// The files the downloads keep though none wants them: those of an index that couldn't be read (a newer app's,
+  /// say), rather than delete what it had, until a download wants one, which then goes with it. In the index too, for
+  /// the next time they open.
+  final Set<String> _kept;
+
   /// What failed to come since the server was last out of reach, by its key: a file's path, or an artist's
   /// (`artists/<key>`).
   final _failed = <String>{};
@@ -202,6 +222,7 @@ class Downloads extends ChangeNotifier {
   static const _lyricsFolder = 'lyrics';
   static const _folders = [_songsFolder, _coversFolder, _lyricsFolder];
   static const _indexFile = 'index.json';
+  static const _unreadableIndexFile = 'index.unreadable.json';
 
   /// Every download, the latest asked for first.
   List<Download> get all => _downloads.values.toList().reversed.toList();
@@ -611,9 +632,11 @@ class Downloads extends ChangeNotifier {
     ],
   };
 
-  /// Every file the downloads want, those still to take their new names too.
-  Set<String> _wanted() => {
-    ..._renames.keys,
+  /// Every file the downloads want, those still to take their new names and those kept too.
+  Set<String> _wanted() => {..._renames.keys, ..._kept, ..._wantedByDownloads()};
+
+  /// The files of the downloads and of their artists.
+  Set<String> _wantedByDownloads() => {
     for (final download in _downloads.values) ...[
       for (final song in download.songs) ...[_songFile(song.id), _lyricsFile(song.id)],
       for (final cover in download.covers) _coverFile(cover),
@@ -625,11 +648,13 @@ class Downloads extends ChangeNotifier {
   /// Forgets the artists no download has, and deletes the files none wants.
   Future<void> _forget() async {
     final artists = _wantedArtists();
-    final before = _artists.length;
+    final before = (_artists.length, _kept.length);
 
     _artists.removeWhere((id, _) => !artists.contains(id));
+    // A kept file a download wants is its own from now.
+    _kept.removeAll(_wantedByDownloads());
 
-    if (_artists.length != before) {
+    if ((_artists.length, _kept.length) != before) {
       await _save();
     }
 
@@ -661,6 +686,7 @@ class Downloads extends ChangeNotifier {
         'downloads': [for (final download in _downloads.values) _downloadJson(download)],
         'artists': [for (final artist in _artists.values) artist.toJson()],
         if (_renames.isNotEmpty) 'renames': _renames,
+        if (_kept.isNotEmpty) 'kept': _kept.toList(),
       }),
       flush: true,
     );

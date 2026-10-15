@@ -358,7 +358,8 @@ void main() {
     expect(downloads.progressOf(downloads.ofAlbum('al1')!).done, 0);
   });
 
-  test('an index that can\'t be read leaves the files there', () async {
+  test('an index that can\'t be read goes aside, and leaves its files there, downloads to come and the app opening '
+      'again too', () async {
     final first = await open();
 
     await first.addAlbum(album, songs);
@@ -369,7 +370,54 @@ void main() {
     final again = await open();
 
     expect(again.all, isEmpty);
+    expect(File('${directory.path}/index.unreadable.json').readAsStringSync(), '{not json');
     expect(Directory('${directory.path}/songs').listSync(), hasLength(2));
+
+    await again.addPlaylist(playlist, const [Song(id: 's3', title: 'Dream On', coverArt: 'al2')]);
+    await settled(again);
+    close(again);
+
+    final third = await open();
+
+    await settled(third);
+    expect(third.all.single.playlist?.id, 'p1');
+    expect(third.songFile('s1')?.readAsStringSync(), 'audio of s1');
+    expect(Directory('${directory.path}/songs').listSync(), hasLength(3));
+
+    // Downloaded again, the album has its files, which go with it.
+    await third.addAlbum(album, songs);
+    await settled(third);
+    await third.remove(third.ofAlbum('al1')!);
+    expect(third.songFile('s1'), isNull);
+    expect(Directory('${directory.path}/songs').listSync(), hasLength(1));
+  });
+
+  test('an index the disk fails to read stays as it is, and the downloads with it, to open the next time', () async {
+    final first = await open();
+
+    await first.addAlbum(album, songs);
+    await settled(first);
+    await close(first);
+
+    final index = File('${directory.path}/index.json');
+    final written = index.readAsStringSync();
+
+    await Process.run('chmod', ['000', index.path]);
+
+    try {
+      index.readAsStringSync();
+      await Process.run('chmod', ['644', index.path]);
+      markTestSkipped('the disk reads it all the same, for root');
+      return;
+    } on FileSystemException {
+      // as it should
+    }
+
+    await expectLater(open(), throwsA(isA<FileSystemException>()));
+    await Process.run('chmod', ['644', index.path]);
+    expect(index.readAsStringSync(), written);
+    expect(Directory('${directory.path}/songs').listSync(), hasLength(2));
+    expect((await open()).ofAlbum('al1'), isNotNull);
   });
 
   test('the songs come in the quality picked for downloads, as each comes', () async {
