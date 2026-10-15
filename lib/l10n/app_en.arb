@@ -165,7 +165,7 @@
   "signInTvConfirm": "Sign in on the TV?",
   "signInTvConfirmDetail": "{device} ({address}) will sign in as {user} on {server}.",
   "signedInTv": "{device} is signed in with your account.",
-  "pairingFailed": "{reason, select, wrongCredentials{The server refused the sign-in.} unreachable{The TV can't reach the server.} quickConnectOff{The server doesn't allow Quick Connect. Turn it on in Jellyfin, or sign in on the TV with the password.} busy{The TV is already signing in with another account.} notFound{The TV isn't on the network. Are the phone and the TV on the same network?} other{The TV didn't understand the code. Try again.}}",
+  "pairingFailed": "{reason, select, wrongCredentials{The server refused the sign-in.} unreachable{The TV can't reach the server.} quickConnectOff{The server doesn't allow Quick Connect. Turn it on in Jellyfin, or sign in on the TV with the password.} busy{The TV is already signing in with another account.} quickConnectEnded{The sign-in from the phone didn't finish. Try again.} notFound{The TV isn't on the network. Are the phone and the TV on the same network?} other{The TV didn't understand the code. Try again.}}",
   "noCameraAccess": "Segue has no access to the camera.",
   "signOut": "Sign out",
   "signedInAs": "{user} on {server}",

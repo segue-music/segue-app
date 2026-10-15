@@ -7,13 +7,17 @@ import 'dart:typed_data';
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:logging/logging.dart';
 
 import '../downloads/server_with_downloads.dart';
 import '../jellyfin/api.dart';
 import '../segue/protocol.dart';
+import '../server/reachability.dart';
 import '../server/server.dart';
 import '../session.dart';
 import '../subsonic/api.dart';
+
+final _log = Logger('Pairing');
 
 // Signing a TV in from a phone that is signed in, over the local network, the TV's remote typing nothing. The TV, as
 // its sign-in shows, listens for a while ([PairingServer]) and shows a QR code ([PairingInvite]): where it listens, and
@@ -237,6 +241,10 @@ enum PairingError {
 
   /// It is signing in already, with another sign-in.
   busy,
+
+  /// The Quick Connect ended without signing the TV in: the phone didn't authorize its code in time, or signing in
+  /// with it failed. Only the TV says it, the phone having had its answer.
+  quickConnectEnded,
 }
 
 /// What the TV made of a sign-in, which it tells the phone.
@@ -305,7 +313,7 @@ class PairingRefused extends PairingAnswer implements Exception {
   int get statusCode => switch (error) {
     PairingError.unreadable => HttpStatus.badRequest,
     PairingError.wrongCredentials => HttpStatus.forbidden,
-    PairingError.unreachable || PairingError.quickConnectOff => HttpStatus.badGateway,
+    PairingError.unreachable || PairingError.quickConnectOff || PairingError.quickConnectEnded => HttpStatus.badGateway,
     PairingError.busy => HttpStatus.conflict,
   };
 
@@ -427,12 +435,13 @@ class PairingServer {
 /// On the TV, what it does with a phone's [offer]: signs in with it, on Subsonic at once, answering [SignedIn], and
 /// gives [signedIn] the session; on Jellyfin, asks the server for a Quick Connect code, answering it
 /// ([QuickConnectCode]) for the phone to authorize, and then asks the server every [poll] whether it has, for
-/// [patience] at most, before signing in and giving [signedIn] the session.
+/// [patience] at most, before signing in and giving [signedIn] the session, or telling [failed] why it didn't.
 Future<PairingAnswer> takeOffer(
   PairingOffer offer, {
   required String deviceId,
   required String deviceName,
   required FutureOr<void> Function(Session session) signedIn,
+  void Function(PairingError error)? failed,
   http.Client? client,
   Duration poll = const Duration(seconds: 2),
   Duration patience = const Duration(minutes: 3),
@@ -468,17 +477,32 @@ Future<PairingAnswer> takeOffer(
       client: client,
     );
 
-    unawaited(
-      _awaitQuickConnect(
-        offer.server,
-        secret,
-        deviceId: deviceId,
-        deviceName: deviceName,
-        client: client,
-        poll: poll,
-        patience: patience,
-      ).then((credentials) => credentials == null ? null : signedIn(sessionOf(credentials)), onError: (Object _) {}),
-    );
+    Future<void> signInOnceAuthorized() async {
+      try {
+        final credentials = await _awaitQuickConnect(
+          offer.server,
+          secret,
+          deviceId: deviceId,
+          deviceName: deviceName,
+          client: client,
+          poll: poll,
+          patience: patience,
+        );
+
+        if (credentials == null) {
+          _log.warning('Quick Connect code not authorized in ${patience.inSeconds} s');
+          failed?.call(PairingError.quickConnectEnded);
+          return;
+        }
+
+        await signedIn(sessionOf(credentials));
+      } on Object catch (e) {
+        _log.warning('Quick Connect sign-in failed', e);
+        failed?.call(isNetworkFailure(e) ? PairingError.unreachable : PairingError.quickConnectEnded);
+      }
+    }
+
+    unawaited(signInOnceAuthorized());
 
     return QuickConnectCode(code, deviceName);
   } on ServerError catch (e) {

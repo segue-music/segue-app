@@ -61,6 +61,9 @@ class _LoginPageState extends State<LoginPage> {
   bool _signingInWithPhone = false;
   PairingError? _phoneError;
 
+  /// How many phones' sign-ins have come: a Quick Connect ending after another sign-in came is that one's no longer.
+  int _offers = 0;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -88,6 +91,8 @@ class _LoginPageState extends State<LoginPage> {
 
   /// A phone's sign-in: the TV signs in with it, and goes on as with the form's.
   Future<PairingAnswer> _takeOffer(PairingOffer offer) async {
+    final taken = ++_offers;
+
     setState(() {
       _signingInWithPhone = true;
       _phoneError = null;
@@ -99,22 +104,39 @@ class _LoginPageState extends State<LoginPage> {
       deviceName: await Session.thisDeviceName(),
       client: widget.client,
       signedIn: (session) async {
+        // Signed in with the form meanwhile, while a Quick Connect waited.
+        if (!mounted) {
+          return;
+        }
+
         await session.save();
 
         if (mounted) {
           widget.onSignedIn(session);
         }
       },
+      failed: (error) {
+        if (taken == _offers) {
+          _phoneSignInFailed(error);
+        }
+      },
     );
 
-    if (mounted && answer is PairingRefused) {
-      setState(() {
-        _signingInWithPhone = false;
-        _phoneError = answer.error;
-      });
+    if (answer case PairingRefused(:final error)) {
+      _phoneSignInFailed(error);
     }
 
     return answer;
+  }
+
+  /// The phone's sign-in came to nothing: the code shows again, and why.
+  void _phoneSignInFailed(PairingError error) {
+    if (mounted) {
+      setState(() {
+        _signingInWithPhone = false;
+        _phoneError = error;
+      });
+    }
   }
 
   @override

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -301,6 +302,46 @@ void main() {
 
     expect(device, 'TV');
     expect(server.authorized, isTrue);
+  });
+
+  test('a Quick Connect that ends without a sign-in, the phone not authorizing its code in time or the server failing '
+      'meanwhile, signs the TV in nowhere, and the TV hears why', () async {
+    const credentials = JellyfinCredentials(username: 'alice', userId: 'u1', token: 'phone-token');
+    final offer = PairingOffer.of(
+      Session(server: phone.server, credentials: credentials, deviceId: 'phone', deviceName: 'Phone'),
+    );
+    final signedIn = <Session>[];
+
+    Future<PairingError> failure(http.Client server) async {
+      final failed = Completer<PairingError>();
+      final answer = await takeOffer(
+        offer,
+        deviceId: 'tv',
+        deviceName: 'TV',
+        client: server,
+        poll: const Duration(milliseconds: 10),
+        patience: const Duration(milliseconds: 50),
+        signedIn: signedIn.add,
+        failed: failed.complete,
+      );
+
+      expect(answer, isA<QuickConnectCode>());
+
+      return failed.future;
+    }
+
+    expect(await failure(JellyfinServer().client), PairingError.quickConnectEnded, reason: 'not authorized');
+
+    final unreachable = MockClient((request) async {
+      if (request.url.path.endsWith('QuickConnect/Initiate')) {
+        return http.Response(jsonEncode({'Code': '123456', 'Secret': 'qc-secret', 'Authenticated': false}), 200);
+      }
+
+      throw const SocketException('no route');
+    });
+
+    expect(await failure(unreachable), PairingError.unreachable);
+    expect(signedIn, isEmpty);
   });
 
   test('a Jellyfin server with Quick Connect off signs the TV in nowhere, which the phone hears', () async {

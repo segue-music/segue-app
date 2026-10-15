@@ -992,7 +992,7 @@
       }
     }
   },
-  "pairingFailed": "{reason, select, wrongCredentials{O servidor recusou o login.} unreachable{A TV não alcança o servidor.} quickConnectOff{O servidor não permite o Quick Connect. Ative-o no Jellyfin, ou entre na TV com a senha.} busy{A TV já está entrando com outro login.} notFound{Não achei a TV na rede. O celular e a TV estão na mesma rede?} other{A TV não entendeu o código. Tente de novo.}}",
+  "pairingFailed": "{reason, select, wrongCredentials{O servidor recusou o login.} unreachable{A TV não alcança o servidor.} quickConnectOff{O servidor não permite o Quick Connect. Ative-o no Jellyfin, ou entre na TV com a senha.} busy{A TV já está entrando com outro login.} quickConnectEnded{O login pelo celular não terminou. Tente de novo.} notFound{Não achei a TV na rede. O celular e a TV estão na mesma rede?} other{A TV não entendeu o código. Tente de novo.}}",
   "@pairingFailed": {
     "description": "Why a TV couldn't sign in with the phone's sign-in, on the phone and on the TV.",
     "placeholders": {

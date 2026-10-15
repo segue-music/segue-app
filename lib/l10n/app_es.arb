@@ -165,7 +165,7 @@
   "signInTvConfirm": "¿Iniciar sesión en la TV?",
   "signInTvConfirmDetail": "{device} ({address}) iniciará sesión como {user} en {server}.",
   "signedInTv": "{device} inició sesión con tu cuenta.",
-  "pairingFailed": "{reason, select, wrongCredentials{El servidor rechazó el inicio de sesión.} unreachable{La TV no llega al servidor.} quickConnectOff{El servidor no permite Quick Connect. Actívalo en Jellyfin o inicia sesión en la TV con la contraseña.} busy{La TV ya está iniciando sesión con otra cuenta.} notFound{No encontré la TV en la red. ¿El móvil y la TV están en la misma red?} other{La TV no entendió el código. Inténtalo de nuevo.}}",
+  "pairingFailed": "{reason, select, wrongCredentials{El servidor rechazó el inicio de sesión.} unreachable{La TV no llega al servidor.} quickConnectOff{El servidor no permite Quick Connect. Actívalo en Jellyfin o inicia sesión en la TV con la contraseña.} busy{La TV ya está iniciando sesión con otra cuenta.} quickConnectEnded{El inicio de sesión desde el móvil no terminó. Inténtalo de nuevo.} notFound{No encontré la TV en la red. ¿El móvil y la TV están en la misma red?} other{La TV no entendió el código. Inténtalo de nuevo.}}",
   "noCameraAccess": "Segue no tiene acceso a la cámara.",
   "signOut": "Cerrar sesión",
   "signedInAs": "{user} en {server}",
