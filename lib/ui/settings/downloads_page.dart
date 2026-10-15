@@ -111,6 +111,11 @@ class DownloadsSize extends StatefulWidget {
 class _DownloadsSizeState extends State<DownloadsSize> {
   int? _bytes;
 
+  /// How many times the room has been reckoned, and the latest of them the line shows: one that ends after a later one
+  /// did is stale, and one that ends while later ones are under way shows, for the line not to wait while files come.
+  int _reckonings = 0;
+  int _shown = 0;
+
   @override
   void initState() {
     super.initState();
@@ -125,9 +130,11 @@ class _DownloadsSizeState extends State<DownloadsSize> {
   }
 
   Future<void> _reckon() async {
+    final reckoning = ++_reckonings;
     final bytes = await widget.downloads.size();
 
-    if (mounted) {
+    if (mounted && reckoning > _shown) {
+      _shown = reckoning;
       setState(() => _bytes = bytes);
     }
   }

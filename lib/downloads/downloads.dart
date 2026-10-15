@@ -314,6 +314,11 @@ class Downloads extends ChangeNotifier {
     notifyListeners();
     await _save();
     await _forget();
+
+    // Its files gone too, which the room they took says ([size]).
+    if (!_disposed) {
+      notifyListeners();
+    }
   }
 
   /// How much room the downloads take, in bytes.

@@ -314,6 +314,19 @@ void main() {
     },
   );
 
+  test('a download taken off says so again once its files are gone, for the room they took to show', () async {
+    final downloads = await open();
+
+    await downloads.addAlbum(album, songs);
+    await settled(downloads);
+
+    final songsThere = <int>[];
+
+    downloads.addListener(() => songsThere.add(Directory('${directory.path}/songs').listSync().length));
+    await downloads.remove(downloads.ofAlbum('al1')!);
+    expect(songsThere.last, 0);
+  });
+
   test('a song that fails to come is tried again, as asked', () async {
     final downloads = await open();
 
