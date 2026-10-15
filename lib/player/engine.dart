@@ -941,6 +941,12 @@ class MediaKitEngine implements Deck {
 
     await load();
 
+    // Stopped, or another load or a jump came, as it loaded: what it would have waited for is no longer its.
+    if (loads != _loads) {
+      loaded?.ignore();
+      return;
+    }
+
     if (loaded != null) {
       await Future.any([loaded, failure.future]).timeout(const Duration(seconds: 10), onTimeout: () => null);
 

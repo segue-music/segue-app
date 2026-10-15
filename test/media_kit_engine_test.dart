@@ -291,6 +291,31 @@ void main() {
     expect(engine.playing, isTrue);
   }, skip: hasLibmpv ? false : 'needs libmpv');
 
+  test('stopped as it opens to play, it stays stopped', () async {
+    await engine.setRepeat(Repeat.off); // once it is ready, for the open to start at once
+    final opening = engine.open([tone(dir, 0)], index: 0, position: Duration.zero, play: true);
+
+    await Future<void>.delayed(Duration.zero);
+    await engine.stop();
+    await opening;
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    expect(engine.playing, isFalse);
+  }, skip: hasLibmpv ? false : 'needs libmpv');
+
+  test('stopped as it opens paused, and then gone, it leaves nothing failing', () async {
+    final stopping = MediaKitEngine(silent: true);
+
+    await stopping.setRepeat(Repeat.off); // once it is ready, for the open to start at once
+
+    final opening = stopping.open([tone(dir, 0)], index: 0, position: const Duration(seconds: 2), play: false);
+
+    await Future<void>.delayed(Duration.zero);
+    await stopping.stop();
+    await opening;
+    await stopping.dispose();
+    await Future<void>.delayed(const Duration(milliseconds: 100)); // for an error that would come as it goes
+  }, skip: hasLibmpv ? false : 'needs libmpv');
+
   test('a jump to the current track starts it over', () async {
     final tracks = [for (var i = 0; i < 2; i++) tone(dir, i, seconds: 20)];
 
