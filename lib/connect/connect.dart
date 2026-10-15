@@ -335,7 +335,7 @@ class ConnectController extends ChangeNotifier {
   Future<Result> unmute() => setVolume(_unmuted.remove(_active) ?? 100);
 
   /// Makes [deviceId] (null: this device) the one the app controls, moving the music there if the
-  /// current one has any.
+  /// current one has any: playing, or paused, as it was.
   Future<Result> switchTo(String? deviceId) async {
     final hub = client;
 
@@ -347,7 +347,7 @@ class ConnectController extends ChangeNotifier {
     final hasMusic = _active == null ? player.queue.isNotEmpty : (activeDevice?.state?.queue?.isNotEmpty ?? false);
 
     if (hasMusic) {
-      final result = await hub.transfer(_active ?? me, deviceId ?? me);
+      final result = await hub.transfer(_active ?? me, deviceId ?? me, play: nowPlaying?.playing ?? false);
 
       if (!result.ok) {
         return result;

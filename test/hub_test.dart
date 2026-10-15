@@ -768,6 +768,29 @@ void main() {
     expect(phone.connect.nowPlaying?.device, isNull);
   });
 
+  test('music paused where it was moves paused, to another device and back here', () async {
+    final user = newUser();
+    final laptop = await App(user, 'laptop').start();
+    final phone = await App(user, 'phone').start();
+
+    await phone.player.playQueue(songs, index: 1, position: const Duration(seconds: 30));
+    await phone.player.pause();
+    await until(() => laptop.client.devices['phone']?.state?.status == PlaybackStatus.paused, 'the phone paused');
+
+    expect((await phone.connect.switchTo('laptop')).ok, isTrue);
+    expect(laptop.player.index, 1);
+    expect(laptop.player.playing, isFalse);
+    expect(laptop.player.position.inMilliseconds, greaterThanOrEqualTo(30000));
+    expect(phone.player.queue, isEmpty);
+    await until(() => phone.client.devices['laptop']?.state?.current != null, 'the laptop\'s queue on the phone');
+
+    expect((await phone.connect.switchTo(null)).ok, isTrue);
+    expect(phone.player.index, 1);
+    expect(phone.player.playing, isFalse);
+    expect(phone.player.position.inMilliseconds, greaterThanOrEqualTo(30000));
+    expect(laptop.player.queue, isEmpty);
+  });
+
   test('a transfer that names no source moves the last playback from the device that plays it', () async {
     final user = newUser();
     final laptop = await App(user, 'laptop').start();
