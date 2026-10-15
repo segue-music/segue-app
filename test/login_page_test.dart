@@ -386,9 +386,41 @@ void main() {
     expect(find.text('Não achei um servidor Subsonic nem Jellyfin em example.test.'), findsOneWidget);
   });
 
+  testWidgets('an address that is none, its port not a number, says so, rather than sign in', (tester) async {
+    var asked = false;
+    final client = MockClient((_) async {
+      asked = true;
+      return http.Response('', 404);
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: const [Locale('pt')],
+        home: LoginPage(onSignedIn: (_) {}, client: client),
+      ),
+    );
+    await fillIn(tester, server: 'music.example:abc');
+    expect(find.text('O endereço do servidor não é válido.'), findsOneWidget);
+    expect(find.byType(Spinner), findsNothing);
+    expect(asked, isFalse);
+
+    await tester.enterText(find.widgetWithText(TextFormField, 'Servidor'), 'music.example');
+    await tester.tap(find.text('Avançado'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextFormField, 'Endereço do hub (opcional)'), 'hub.example:4533x');
+    await tester.ensureVisible(find.text('Entrar'));
+    await tester.tap(find.text('Entrar'));
+    await tester.pumpAndSettle();
+    expect(find.text('O endereço do hub não é válido.'), findsOneWidget);
+    expect(asked, isFalse);
+  });
+
   test('a server typed without a scheme is https', () {
     expect(normalizeServer(' music.test:4533 ').toString(), 'https://music.test:4533');
     expect(normalizeServer('http://127.0.0.1:8480').toString(), 'http://127.0.0.1:8480');
+    expect(normalizeServer('[::1'), isNull);
+    expect(normalizeServer('https://'), isNull);
   });
 }
 

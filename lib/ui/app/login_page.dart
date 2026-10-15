@@ -155,13 +155,20 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
+    final strings = AppLocalizations.of(context);
+    final server = normalizeServer(_server.text);
+    final typedHub = _hub.text.trim();
+    final hub = typedHub.isEmpty ? null : normalizeServer(typedHub);
+
+    if (server == null || (typedHub.isNotEmpty && hub == null)) {
+      setState(() => _error = server == null ? strings.invalidServerAddress : strings.invalidHubAddress);
+      return;
+    }
+
     setState(() {
       _busy = true;
       _error = null;
     });
-
-    final strings = AppLocalizations.of(context);
-    final server = normalizeServer(_server.text);
 
     MediaServer? api;
 
@@ -178,13 +185,12 @@ class _LoginPageState extends State<LoginPage> {
               deviceName: deviceName,
               client: widget.client,
             );
-      final hub = _hub.text.trim();
       final session = Session(
         server: server,
         credentials: api.credentials,
         deviceId: deviceId,
         deviceName: deviceName,
-        hub: hub.isEmpty ? null : normalizeServer(hub),
+        hub: hub,
       );
 
       try {

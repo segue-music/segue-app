@@ -144,6 +144,8 @@
   "signIn": "Iniciar sesión",
   "couldNotSaveSignIn": "Sesión iniciada, pero no pude guardarla en el llavero del sistema: {error}",
   "notAMediaServer": "No encontré un servidor Subsonic ni Jellyfin en {host}.",
+  "invalidServerAddress": "La dirección del servidor no es válida.",
+  "invalidHubAddress": "La dirección del hub no es válida.",
   "wrongCredentials": "Usuario o contraseña incorrectos.",
   "apiKey": "Clave de API",
   "apiKeyHelp": "Créala en tu servidor de música.",

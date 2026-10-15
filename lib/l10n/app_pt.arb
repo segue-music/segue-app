@@ -863,6 +863,14 @@
       }
     }
   },
+  "invalidServerAddress": "O endereço do servidor não é válido.",
+  "@invalidServerAddress": {
+    "description": "A sign-in whose server's address isn't one: no host, or a port that isn't a number."
+  },
+  "invalidHubAddress": "O endereço do hub não é válido.",
+  "@invalidHubAddress": {
+    "description": "A sign-in whose hub's address (in Advanced) isn't one: no host, or a port that isn't a number."
+  },
   "wrongCredentials": "Usuário ou senha errados.",
   "@wrongCredentials": {
     "description": "A sign-in the media server refused for its username or password."

@@ -168,9 +168,11 @@ class Session {
   static Future<String> thisDeviceName() async => Platform.environment['SEGUE_DEVICE_NAME'] ?? await systemDeviceName();
 }
 
-/// What the user typed as the server, as a URL: https unless they said otherwise.
-Uri normalizeServer(String input) {
+/// What the user typed as the server, as a URL: https unless they said otherwise. Null where it is no address: no host,
+/// or a port that isn't a number.
+Uri? normalizeServer(String input) {
   final text = input.trim();
+  final url = Uri.tryParse(text.contains('://') ? text : 'https://$text');
 
-  return Uri.parse(text.contains('://') ? text : 'https://$text');
+  return url == null || url.host.isEmpty ? null : url;
 }
