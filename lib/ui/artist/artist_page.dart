@@ -114,7 +114,8 @@ class _ArtistPageState extends State<ArtistPage> {
 
     final api = ServicesScope.of(context).api;
     _artist ??= api.artist(widget.artist.id);
-    _mostPlayed ??= api.mostPlayedSongs(widget.artist.id, size: _ArtistSongs.count);
+    // Shown with the artist alone: failing with them, as it does, nothing else is there to hear it.
+    _mostPlayed ??= api.mostPlayedSongs(widget.artist.id, size: _ArtistSongs.count)..ignore();
     // A biography the server can't give is one it doesn't have: the page goes on without its button.
     _biography ??= api.biography(widget.artist.id).catchError((Object _) => null);
     // Artists like them the server can't give are none, as with a biography.

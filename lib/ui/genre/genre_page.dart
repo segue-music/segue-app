@@ -27,7 +27,9 @@ class _GenrePageState extends State<GenrePage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _mostPlayed ??= ServicesScope.of(context).api.mostPlayedAlbums(size: AlbumRow.maxAlbums, genre: widget.genre.id);
+    // Shown over the genre's albums alone: failing with them, or before they come, nothing is there to hear it.
+    _mostPlayed ??= ServicesScope.of(context).api.mostPlayedAlbums(size: AlbumRow.maxAlbums, genre: widget.genre.id)
+      ..ignore();
   }
 
   @override

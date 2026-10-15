@@ -773,6 +773,46 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('an artist the server no longer has says so, and nothing else fails unheard', (tester) async {
+    const credentials = SubsonicCredentials(username: 'a', token: 't', salt: 's');
+    // A server that has nothing of it any more.
+    final api = SubsonicApi(
+      Uri.parse('https://music.test'),
+      credentials,
+      client: MockClient(
+        (_) async => http.Response(
+          jsonEncode({
+            'subsonic-response': {
+              'status': 'failed',
+              'error': {'code': 70, 'message': 'not found'},
+            },
+          }),
+          200,
+          headers: {'content-type': 'application/json'},
+        ),
+      ),
+    );
+    final player = PlayerController(FakeEngine(), api);
+    final services = Services(
+      Session(server: Uri.parse('https://music.test'), credentials: credentials, deviceId: 'me', deviceName: 'me'),
+      api,
+      player,
+      ConnectController(player: player),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: const [Locale('pt')],
+        builder: (context, child) => ServicesScope(services: services, child: child!),
+        home: const ArtistPage(Artist(id: 'gone', name: 'Gone')),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Não consegui abrir o artista'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('an artist with no albums has no title for them', (tester) async {
     await pumpHome(tester, const Size(1000, 700));
     await tester.tap(find.byTooltip('Artistas'));
