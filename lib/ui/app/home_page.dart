@@ -430,11 +430,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     super.dispose();
   }
 
-  /// On a TV, the full-screen player comes as the remote is left alone.
   @override
-  Widget build(BuildContext context) => IdlePlayer(child: _home(context));
-
-  Widget _home(BuildContext context) {
+  Widget build(BuildContext context) {
     final services = ServicesScope.of(context);
     final strings = AppLocalizations.of(context);
     final results = _results;
@@ -572,90 +569,95 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           history: _history,
           underTopBar: false,
           holdsPlayer: false,
-          child: Scaffold(
-            // The pages go on behind the bars, showing through the gap between them; their lists end clear of them, by
-            // the room MediaQuery says they take.
-            extendBody: true,
-            body: pageArea(
-              Scaffold(
-                // In each section, what there is to use there, rather than its name, or the app's: the bar at the
-                // bottom says where it is.
-                appBar: AppBar(
-                  // Each destination's controls keep their own room at their sides, which stays as they come and go.
-                  titleSpacing: 0,
-                  title: _TopBarControls(
-                    shown: destination.index,
-                    controls: [
-                      for (final destination in _Destination.values)
-                        switch (destination) {
-                          // The chips from the edge, which they scroll to, the first one 16 from it.
-                          _Destination.home => HomeChips(onFavorites: _openFavorites),
-                          // The search bar 16 from the edge, lined up with what the search shows under it.
-                          _Destination.search => Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: searchBar,
-                          ),
-                          // The first tab's name 16 from the edge, past the room around it. As wide as their names,
-                          // from the left, scrolling sideways where they don't fit; with no line under them across the
-                          // bar, which has none.
-                          _Destination.library => Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16 - _libraryTabPadding),
-                            child: TabBar(
-                              controller: _libraryTabs,
-                              isScrollable: true,
-                              tabAlignment: TabAlignment.start,
-                              padding: EdgeInsets.zero,
-                              labelPadding: const EdgeInsets.symmetric(horizontal: _libraryTabPadding),
-                              dividerHeight: 0,
-                              tabs: [for (final section in _Destination.libraryTabs) Tab(text: section.label(strings))],
-                              onTap: (index) => _pick(_Destination.libraryTabs[index]),
+          child: IdlePlayer(
+            child: Scaffold(
+              // The pages go on behind the bars, showing through the gap between them; their lists end clear of them,
+              // by the room MediaQuery says they take.
+              extendBody: true,
+              body: pageArea(
+                Scaffold(
+                  // In each section, what there is to use there, rather than its name, or the app's: the bar at the
+                  // bottom says where it is.
+                  appBar: AppBar(
+                    // Each destination's controls keep their own room at their sides, which stays as they come and go.
+                    titleSpacing: 0,
+                    title: _TopBarControls(
+                      shown: destination.index,
+                      controls: [
+                        for (final destination in _Destination.values)
+                          switch (destination) {
+                            // The chips from the edge, which they scroll to, the first one 16 from it.
+                            _Destination.home => HomeChips(onFavorites: _openFavorites),
+                            // The search bar 16 from the edge, lined up with what the search shows under it.
+                            _Destination.search => Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              child: searchBar,
                             ),
-                          ),
-                        },
+                            // The first tab's name 16 from the edge, past the room around it. As wide as their names,
+                            // from the left, scrolling sideways where they don't fit; with no line under them across
+                            // the bar, which has none.
+                            _Destination.library => Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16 - _libraryTabPadding),
+                              child: TabBar(
+                                controller: _libraryTabs,
+                                isScrollable: true,
+                                tabAlignment: TabAlignment.start,
+                                padding: EdgeInsets.zero,
+                                labelPadding: const EdgeInsets.symmetric(horizontal: _libraryTabPadding),
+                                dividerHeight: 0,
+                                tabs: [
+                                  for (final section in _Destination.libraryTabs) Tab(text: section.label(strings)),
+                                ],
+                                onTap: (index) => _pick(_Destination.libraryTabs[index]),
+                              ),
+                            ),
+                          },
+                      ],
+                    ),
+                    actions: actions,
+                  ),
+                  // A swipe goes from a section to the next, as the bar at the bottom and the library's tabs line them
+                  // up.
+                  body: _SwipedSections(
+                    page: _Destination.sections.indexOf(shown),
+                    onSwiped: _swiped,
+                    children: [
+                      // Off the page shown, a section takes no focus, which would scroll its page into sight.
+                      for (final section in _Destination.sections)
+                        ExcludeFocus(excluding: section != shown, child: view(section)),
                     ],
                   ),
-                  actions: actions,
-                ),
-                // A swipe goes from a section to the next, as the bar at the bottom and the library's tabs line them up.
-                body: _SwipedSections(
-                  page: _Destination.sections.indexOf(shown),
-                  onSwiped: _swiped,
-                  children: [
-                    // Off the page shown, a section takes no focus, which would scroll its page into sight.
-                    for (final section in _Destination.sections)
-                      ExcludeFocus(excluding: section != shown, child: view(section)),
-                  ],
                 ),
               ),
-            ),
-            bottomNavigationBar: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Above the sections' bar, which keeps clear of the system's at the bottom of the screen: the player's
-                // needn't, and a small gap sets the two apart, alike in color. Nothing playing, there is no player to set
-                // apart.
-                MediaQuery.removePadding(context: context, removeBottom: true, child: const NowPlayingBar()),
-                ListenableBuilder(
-                  listenable: services.connect,
-                  builder: (context, _) => SizedBox(height: services.connect.nowPlaying == null ? 0 : 2),
-                ),
-                // Its top corners rounded as the player's, the section showing around them.
-                ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: NowPlayingBar.phoneCorner),
-                  child: NavigationBar(
-                    // A bit lower than Material's 80, with less room above and below the icons and their names.
-                    height: 68,
-                    backgroundColor: Theme.of(context).colorScheme.surfaceContainer
-                        .withValues(alpha: NowPlayingBar.phoneOpacity),
-                    selectedIndex: destination.index,
-                    onDestinationSelected: (index) => _open(_Destination.values[index]),
-                    destinations: [
-                      for (final destination in _Destination.values)
-                        NavigationDestination(icon: ThemedIcon(destination.icon), label: destination.label(strings)),
-                    ],
+              bottomNavigationBar: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Above the sections' bar, which keeps clear of the system's at the bottom of the screen: the
+                  // player's needn't, and a small gap sets the two apart, alike in color. Nothing playing, there is no
+                  // player to set apart.
+                  MediaQuery.removePadding(context: context, removeBottom: true, child: const NowPlayingBar()),
+                  ListenableBuilder(
+                    listenable: services.connect,
+                    builder: (context, _) => SizedBox(height: services.connect.nowPlaying == null ? 0 : 2),
                   ),
-                ),
-              ],
+                  // Its top corners rounded as the player's, the section showing around them.
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(top: NowPlayingBar.phoneCorner),
+                    child: NavigationBar(
+                      // A bit lower than Material's 80, with less room above and below the icons and their names.
+                      height: 68,
+                      backgroundColor: Theme.of(context).colorScheme.surfaceContainer
+                          .withValues(alpha: NowPlayingBar.phoneOpacity),
+                      selectedIndex: destination.index,
+                      onDestinationSelected: (index) => _open(_Destination.values[index]),
+                      destinations: [
+                        for (final destination in _Destination.values)
+                          NavigationDestination(icon: ThemedIcon(destination.icon), label: destination.label(strings)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -710,93 +712,97 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             // On a TV, which has no player bar, the full-screen player covers everything, with controls of its own, the
             // rail opening it.
             holdsPlayer: !television,
-            child: Scaffold(
-              // Left and right along its buttons, rather than to a card scrolled under it.
-              appBar: PreferredSize(
-                preferredSize: const Size.fromHeight(kToolbarHeight),
-                child: FocusTraversalGroup(
-                  policy: BarTraversalPolicy.top,
-                  child: AppBar(
-                    // The app's icon, over the side rail, which opens the home, and the arrows beside it. A TV has
-                    // none: its remote's back closes the page on top, and the arrows would only be two more stops for
-                    // the focus on the way to the icon, with a forward no TV app has.
-                    leading: television
-                        ? logo
-                        : ListenableBuilder(
-                            listenable: _history,
-                            builder: (context, _) => Row(
-                              children: [
-                                SizedBox.square(dimension: kToolbarHeight, child: logo),
-                                IconButton(
-                                  tooltip: strings.back,
-                                  style: arrows,
-                                  icon: const ThemedIcon(HugeIcons.strokeRoundedArrowLeft02),
-                                  onPressed: _history.canGoBack ? _history.back : null,
-                                ),
-                                IconButton(
-                                  tooltip: strings.forward,
-                                  style: arrows,
-                                  icon: const ThemedIcon(HugeIcons.strokeRoundedArrowRight02),
-                                  onPressed: _history.canGoForward ? _history.forward : null,
-                                ),
-                              ],
+            // On a TV, the full-screen player comes as the remote is left alone: in the page area, which its links open
+            // their pages in.
+            child: IdlePlayer(
+              child: Scaffold(
+                // Left and right along its buttons, rather than to a card scrolled under it.
+                appBar: PreferredSize(
+                  preferredSize: const Size.fromHeight(kToolbarHeight),
+                  child: FocusTraversalGroup(
+                    policy: BarTraversalPolicy.top,
+                    child: AppBar(
+                      // The app's icon, over the side rail, which opens the home, and the arrows beside it. A TV has
+                      // none: its remote's back closes the page on top, and the arrows would only be two more stops for
+                      // the focus on the way to the icon, with a forward no TV app has.
+                      leading: television
+                          ? logo
+                          : ListenableBuilder(
+                              listenable: _history,
+                              builder: (context, _) => Row(
+                                children: [
+                                  SizedBox.square(dimension: kToolbarHeight, child: logo),
+                                  IconButton(
+                                    tooltip: strings.back,
+                                    style: arrows,
+                                    icon: const ThemedIcon(HugeIcons.strokeRoundedArrowLeft02),
+                                    onPressed: _history.canGoBack ? _history.back : null,
+                                  ),
+                                  IconButton(
+                                    tooltip: strings.forward,
+                                    style: arrows,
+                                    icon: const ThemedIcon(HugeIcons.strokeRoundedArrowRight02),
+                                    onPressed: _history.canGoForward ? _history.forward : null,
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                    leadingWidth: television ? kToolbarHeight : kToolbarHeight + 2 * arrow,
-                    // The search bar is the title, which the app bar centers on the window, moving it aside where the
-                    // middle has no room for it.
-                    title: searchBar,
-                    centerTitle: true,
-                    // The library at random, from any page, as the phone's home's top bar has it.
-                    actions: [
-                      const Center(child: ShuffleLibraryChip()),
-                      const SizedBox(width: 8),
-                      ...actions,
-                    ],
+                      leadingWidth: television ? kToolbarHeight : kToolbarHeight + 2 * arrow,
+                      // The search bar is the title, which the app bar centers on the window, moving it aside where the
+                      // middle has no room for it.
+                      title: searchBar,
+                      centerTitle: true,
+                      // The library at random, from any page, as the phone's home's top bar has it.
+                      actions: [
+                        const Center(child: ShuffleLibraryChip()),
+                        const SizedBox(width: 8),
+                        ...actions,
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              // The rail away from the screen's side, where the system has it keep out (a phone's notch, turned; a TV's
-              // edges, which it may cut off), as the bars are: the top bar and the player's keep out of them themselves.
-              // The pages go on to the other side, a row of tiles running off it as it scrolls, and keep out of it what
-              // has to stay in view (a row's title, its arrows and its last tile; the full-screen player): the left's
-              // room is the rail's, not theirs.
-              body: Row(
-                children: [
-                  SafeArea(
-                    top: false,
-                    right: false,
-                    bottom: false,
-                    child: ListenableBuilder(
-                      listenable: _history,
-                      builder: (context, _) => _SideRail(
-                        selected: _favoritesShown ? null : shown,
-                        onSelected: _pick,
-                        favorites: _favoritesShown,
-                        onFavorites: _goToFavorites,
-                        opensPlayer: television,
+                // The rail away from the screen's side, where the system has it keep out (a phone's notch, turned; a
+                // TV's edges, which it may cut off), as the bars are: the top bar and the player's keep out of them
+                // themselves. The pages go on to the other side, a row of tiles running off it as it scrolls, and keep
+                // out of it what has to stay in view (a row's title, its arrows and its last tile; the full-screen
+                // player): the left's room is the rail's, not theirs.
+                body: Row(
+                  children: [
+                    SafeArea(
+                      top: false,
+                      right: false,
+                      bottom: false,
+                      child: ListenableBuilder(
+                        listenable: _history,
+                        builder: (context, _) => _SideRail(
+                          selected: _favoritesShown ? null : shown,
+                          onSelected: _pick,
+                          favorites: _favoritesShown,
+                          onFavorites: _goToFavorites,
+                          opensPlayer: television,
+                        ),
                       ),
                     ),
-                  ),
-                  const VerticalDivider(width: 1),
-                  Expanded(
-                    child: MediaQuery.removePadding(
-                      context: context,
-                      removeLeft: true,
-                      // A Material of its own for the lists' ink, which the page's transition would paint over.
-                      child: pageArea(Material(type: MaterialType.transparency, child: sections)),
+                    const VerticalDivider(width: 1),
+                    Expanded(
+                      child: MediaQuery.removePadding(
+                        context: context,
+                        removeLeft: true,
+                        // A Material of its own for the lists' ink, which the page's transition would paint over.
+                        child: pageArea(Material(type: MaterialType.transparency, child: sections)),
+                      ),
                     ),
+                  ],
+                ),
+                // Under the full-screen player, its lyrics button turns them on and off there, and its song closes it.
+                bottomNavigationBar: ListenableBuilder(
+                  listenable: _history,
+                  builder: (context, _) => NowPlayingBar(
+                    lyrics: switch (_history.current) {
+                      final PlayerRoute player => player.lyrics,
+                      _ => null,
+                    },
                   ),
-                ],
-              ),
-              // Under the full-screen player, its lyrics button turns them on and off there, and its song closes it.
-              bottomNavigationBar: ListenableBuilder(
-                listenable: _history,
-                builder: (context, _) => NowPlayingBar(
-                  lyrics: switch (_history.current) {
-                    final PlayerRoute player => player.lyrics,
-                    _ => null,
-                  },
                 ),
               ),
             ),

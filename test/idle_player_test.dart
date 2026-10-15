@@ -70,6 +70,18 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('on a TV, the player that comes takes the page area along, which its links open their pages in, as the '
+      'side rail\'s does', (tester) async {
+    final player = await pumpFullHdHome(tester);
+
+    await player.play();
+    await tester.pump();
+    await tester.pump(IdlePlayer.after);
+    await settle(tester);
+    expect((ModalRoute.of(tester.element(find.byType(PlayerPage)))! as PlayerRoute).area, isNotNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('on a TV, paused, or playing on another device, nothing comes, and the screen goes off as the system has '
       'it', (tester) async {
     watchScreen();
