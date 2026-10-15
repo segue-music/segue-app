@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -32,12 +33,15 @@ http.Response subsonic(Map<String, Object?> body) => http.Response(
 /// The home page over a library of [count] albums, "Album 000" on, each by an artist of its own,
 /// "Artist 000" (id "ar000") on, opened on the albums tab. By name they come in that order; latest
 /// added or released, the other way around; and none has played. An artist's page has one album,
-/// "Only by" their id. The server fails the page at [failing] once. The screen is [size]. Returns the album lists
-/// the tab asks for: their type, offset and size.
+/// "Only by" their id. The server fails the page at [failing] once, and holds those of 500 albums, a letter's, until
+/// [held] completes. With [favoritesFailing], the user's favorite album is Album 001, which the server fails to say
+/// that many times first. The screen is [size]. Returns the album lists the tab asks for: their type, offset and size.
 Future<List<String>> pumpAlbums(
   WidgetTester tester, {
   required int count,
   int? failing,
+  Completer<void>? held,
+  int? favoritesFailing,
   Size size = const Size(1000, 700),
 }) async {
   const credentials = SubsonicCredentials(username: 'a', token: 't', salt: 's');
@@ -62,11 +66,30 @@ Future<List<String>> pumpAlbums(
         });
       }
 
+      if (request.url.path.endsWith('getStarred2.view') && favoritesFailing != null) {
+        if (favoritesFailing! > 0) {
+          favoritesFailing = favoritesFailing! - 1;
+          return http.Response('', 500);
+        }
+
+        return subsonic({
+          'starred2': {
+            'album': [
+              {'id': 'Album 001', 'name': 'Album 001', 'artist': 'Artist 001', 'artistId': 'ar001'},
+            ],
+          },
+        });
+      }
+
       if (!request.url.path.endsWith('getAlbumList2.view')) {
         return http.Response('', 404);
       }
 
       asked.add('${query['type']} ${query['offset']} ${query['size']}');
+
+      if (query['size'] == '500') {
+        await held?.future;
+      }
 
       final offset = int.parse(query['offset']!);
 
@@ -279,6 +302,20 @@ void main() {
 
     expect(tester.getRect(last).bottom, lessThanOrEqualTo(tester.getRect(find.byType(NowPlayingBar)).top));
     await tester.pumpWidget(const SizedBox()); // stops the player bar's timers
+  });
+
+  testWidgets('favorite albums that fail to come say so, and come as asked again', (tester) async {
+    await pumpAlbums(tester, count: 3, favoritesFailing: 1);
+    await tester.ensureVisible(order('Favoritos'));
+    await tester.tap(order('Favoritos'));
+    await tester.pumpAndSettle();
+    expect(find.text('Tentar de novo'), findsOneWidget);
+
+    await tester.tap(find.text('Tentar de novo'));
+    await tester.pumpAndSettle();
+    expect(find.text('Album 001'), findsOneWidget);
+    expect(find.text('Tentar de novo'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
   });
 
   testWidgets('a page the server fails says so at the end, and is asked for again from there', (tester) async {

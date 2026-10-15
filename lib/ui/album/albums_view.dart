@@ -169,6 +169,14 @@ class _AlbumsViewState extends State<AlbumsView> {
     final favorites = _favorites;
 
     if (widget.shown == AlbumsShown.favorites && favorites != null && favorites.loaded) {
+      // Come after all, where they had failed to here.
+      if (_error != null) {
+        setState(() {
+          _error = null;
+          _done = true;
+        });
+      }
+
       _show(favorites.albums);
     }
   }
@@ -305,7 +313,8 @@ class _AlbumsViewState extends State<AlbumsView> {
         _error = error;
       }
 
-      _done = true;
+      // Not where they failed to come: asked again ([_retry]), they are.
+      _done = favorites.loaded;
       _loading = false;
     });
   }
