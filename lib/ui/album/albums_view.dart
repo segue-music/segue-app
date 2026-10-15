@@ -360,8 +360,9 @@ class _AlbumsViewState extends State<AlbumsView> {
 
   /// Asks for the next page when the grid nears its end: as it scrolls, and when it changes size.
   bool _scrolled(Notification notification) {
+    // The grid's own, not a row of tiles in its header (a genre's most played) going along.
     final metrics = switch (notification) {
-      ScrollNotification(:final metrics) || ScrollMetricsNotification(:final metrics) => metrics,
+      ScrollNotification(depth: 0, :final metrics) || ScrollMetricsNotification(depth: 0, :final metrics) => metrics,
       _ => null,
     };
 

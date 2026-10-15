@@ -31,9 +31,10 @@ http.Response subsonic(Map<String, Object?> body) => http.Response(
 
 /// A server whose genres come out of order, one of them only on songs. Rock has two albums, one of them
 /// among the most played (with [played]), with one of hard rock, played less; Blues has one, never
-/// played. Its songs at random are two of Rock's, and none of another genre. [asked] gets the queries of the album
-/// lists asked for, and of the songs at random.
-http.Response server(http.Request request, List<Map<String, String>> asked, {bool played = true}) {
+/// played. Its songs at random are two of Rock's, and none of another genre. With [rockAlbums], Rock has that many,
+/// more of its own after those two, a page at a time. [asked] gets the queries of the album lists asked for, and of the
+/// songs at random.
+http.Response server(http.Request request, List<Map<String, String>> asked, {bool played = true, int rockAlbums = 2}) {
   final path = request.url.path;
 
   if (path.endsWith('getGenres.view')) {
@@ -56,10 +57,12 @@ http.Response server(http.Request request, List<Map<String, String>> asked, {boo
     return subsonic({
       'albumList2': {
         'album': [
-          if (query['type'] == 'byGenre' && query['genre'] == 'Rock') ...[
-            {'id': 'a1', 'name': 'Rocks', 'artist': 'Aerosmith'},
-            {'id': 'a2', 'name': 'Toys in the Attic', 'artist': 'Aerosmith'},
-          ],
+          if (query['type'] == 'byGenre' && query['genre'] == 'Rock')
+            ...[
+              {'id': 'a1', 'name': 'Rocks', 'artist': 'Aerosmith'},
+              {'id': 'a2', 'name': 'Toys in the Attic', 'artist': 'Aerosmith'},
+              for (var i = 2; i < rockAlbums; i++) {'id': 'r$i', 'name': 'Rock $i', 'artist': 'Aerosmith'},
+            ].skip(int.parse(query['offset'] ?? '0')).take(int.parse(query['size'] ?? '500')),
           if (query['type'] == 'byGenre' && query['genre'] == 'Blues')
             {'id': 'b1', 'name': 'Honky Tonk Blues', 'artist': 'Aerosmith'},
           if (query['type'] == 'frequent' && played) ...[
@@ -119,13 +122,18 @@ http.Response server(http.Request request, List<Map<String, String>> asked, {boo
 
 /// The home page on a screen of [size], over the [server]; returns the queries of the album lists
 /// asked for.
-Future<List<Map<String, String>>> pumpHome(WidgetTester tester, Size size, {bool played = true}) async {
+Future<List<Map<String, String>>> pumpHome(
+  WidgetTester tester,
+  Size size, {
+  bool played = true,
+  int rockAlbums = 2,
+}) async {
   const credentials = SubsonicCredentials(username: 'a', token: 't', salt: 's');
   final asked = <Map<String, String>>[];
   final api = SubsonicApi(
     Uri.parse('https://music.test'),
     credentials,
-    client: MockClient((request) async => server(request, asked, played: played)),
+    client: MockClient((request) async => server(request, asked, played: played, rockAlbums: rockAlbums)),
   );
   final player = PlayerController(FakeEngine(), api);
   final services = Services(
@@ -302,6 +310,25 @@ void main() {
     expect(tester.getRect(row).top, greaterThan(mostPlayed.bottom));
     expect(all.top, greaterThan(tester.getRect(row).bottom));
     expect(tester.getRect(find.text('Rocks')).top, greaterThan(all.bottom));
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('a genre with more albums than a page asks for the next as its grid nears its end, not as its row of '
+      'the most played lays out', (tester) async {
+    final asked = await pumpHome(tester, const Size(1000, 700), rockAlbums: 450);
+
+    await tester.tap(find.byTooltip('Gêneros'));
+    await tester.pumpAndSettle();
+    asked.clear();
+    await tester.tap(tile('Rock'));
+    await tester.pumpAndSettle();
+    expect(
+      [
+        for (final query in asked)
+          if (query['type'] == 'byGenre') query['offset'],
+      ],
+      ['0'],
+    );
     await tester.pumpWidget(const SizedBox());
   });
 
