@@ -1053,24 +1053,37 @@ class MediaKitEngine implements Deck {
     await _withAudio(_player.play);
   }
 
-  /// mpv's warnings, by their prefix and text, that say nothing wrong, every time what they tell of happens: not for
-  /// the app's log.
+  /// mpv's warnings and errors, by their prefix and text, that say nothing wrong, every time what they tell of happens:
+  /// not for the app's log.
   static const _unremarkable = {
     // As it reads the queue from the file media_kit writes it to (`loadlist`), each time it opens one.
     ('playlist', 'Reading plaintext playlist.'),
     // FFmpeg's, of an MP3 with no frame that says its length (Xing's or VBRI's), which some encoders leave out: the
     // length it works out from the bitrate is right for a constant one.
     ('ffmpeg/demuxer', 'mp3: Estimating duration from bitrate, this may be inaccurate'),
+    // FFmpeg's, of an MP3 with its cover in its tags, which it takes for a video stream it can't tell the size of, and
+    // its advice that follows: the audio plays all the same.
+    ('ffmpeg/demuxer', 'mp3: Could not find codec parameters for stream 1 (Video: mjpeg, none): unspecified size'),
+    (
+      'ffmpeg/demuxer',
+      "Consider increasing the value for the 'analyzeduration' (500000) and 'probesize' (5000000) options",
+    ),
+    // media_kit's, as each player starts: where libmpv was built without Lua (Android's, iOS's), so without the
+    // on-screen controller it turns off, and where it is older than the subtitles' option it sets (Android's, mpv 0.35).
+    ('media_kit', 'error: property not found _setProperty(osc, 1)'),
+    ('media_kit', 'error: property not found _setProperty(subs-fallback, 1)'),
   };
 
   /// Follows mpv's loads, and their failures: a stream that fails to open is the loading track's where it is the track's
   /// name or the stream the on_load hook gave it; another is one mpv opened ahead. Its warnings and errors go to the
   /// app's log, but those [_unremarkable], and not its info, which every track's address would bury them in.
   void _logged(PlayerLog log) {
+    final remarkable = !_unremarkable.contains((log.prefix, log.text));
+
     switch (log.level) {
-      case 'warn' when !_unremarkable.contains((log.prefix, log.text)):
+      case 'warn' when remarkable:
         _log.warning('mpv ${log.prefix}: ${log.text}');
-      case 'error' || 'fatal':
+      case 'error' || 'fatal' when remarkable:
         _log.severe('mpv ${log.prefix}: ${log.text}');
     }
 
