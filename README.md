@@ -338,7 +338,7 @@ address, the hub is found by itself, with nothing to type at sign-in; anywhere e
 To try Connect without changing the server, run a hub on your computer, pointing at the media server:
 
 ```sh
-docker run --rm -p 127.0.0.1:8480:8480 -e SEGUE_UPSTREAM=https://navidrome.example ghcr.io/segue-music/segue-hub
+docker run --rm -p 127.0.0.1:8480:8480 -e SEGUE_MEDIA_SERVER_URL=https://navidrome.example ghcr.io/segue-music/segue-hub
 ```
 
 and at sign-in, under "Advanced", put `http://127.0.0.1:8480` as the hub's address.
