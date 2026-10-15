@@ -16,7 +16,7 @@ abstract interface class Credentials {
 
 /// The media server refused a request, or answered with something the app can't use.
 class ServerError implements Exception {
-  const ServerError(this.message, {this.isAuth = false, this.code});
+  const ServerError(this.message, {this.isAuth = false, this.code, this.statusCode});
 
   final String message;
 
@@ -27,8 +27,15 @@ class ServerError implements Exception {
   /// key (OpenSubsonic's apiKeyAuthentication).
   final int? code;
 
+  /// The HTTP status the server answered with, where that was the error.
+  final int? statusCode;
+
   /// Whether the server refused the password, taking API keys instead.
   bool get wantsApiKey => code == 41 || code == 42;
+
+  /// Whether the server failed to answer, rather than refused: an HTTP 5xx, as a proxy answers while the server behind
+  /// it restarts. Asked again later, it may answer.
+  bool get isTemporary => (statusCode ?? 0) >= 500;
 
   @override
   String toString() => message;

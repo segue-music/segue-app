@@ -761,7 +761,7 @@ class JellyfinApi implements MediaServer {
       case 403:
         throw const ServerError('the server doesn\'t let this user change it');
       case < 200 || >= 300:
-        throw ServerError('${server.host}: HTTP ${response.statusCode}');
+        throw ServerError('${server.host}: HTTP ${response.statusCode}', statusCode: response.statusCode);
     }
   }
 
@@ -773,7 +773,7 @@ class JellyfinApi implements MediaServer {
     }
 
     if (response.statusCode != 200) {
-      throw ServerError('${server.host}: HTTP ${response.statusCode}');
+      throw ServerError('${server.host}: HTTP ${response.statusCode}', statusCode: response.statusCode);
     }
 
     return jsonDecode(utf8.decode(response.bodyBytes));

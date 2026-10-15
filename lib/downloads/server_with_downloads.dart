@@ -31,6 +31,9 @@ class ServerWithDownloads implements MediaServer {
   /// The plays made out of reach; null, they go uncounted.
   final PendingPlays? pendingPlays;
 
+  /// When the plays go again, after the server failed at them for now.
+  Timer? _sendAgain;
+
   /// In reach again: the plays made meanwhile go to the server.
   void _reachabilityChanged() {
     final pendingPlays = this.pendingPlays;
@@ -46,11 +49,19 @@ class ServerWithDownloads implements MediaServer {
       return;
     }
 
-    if (!await pendingPlays.send((play) => server.scrobbleMissed(play.songId, time: play.time))) {
-      // Out of reach again, unless another send had them.
-      if (pendingPlays.plays.isNotEmpty) {
-        reachability.lost();
-      }
+    final failure = await pendingPlays.send((play) => server.scrobbleMissed(play.songId, time: play.time));
+
+    if (failure == null) {
+      return;
+    }
+
+    // Out of reach again; or, the server failing for now, as a proxy answers while it restarts (in reach all the same,
+    // for its pings), they go again in as long as those take.
+    if (isNetworkFailure(failure)) {
+      reachability.lost(failure);
+    } else {
+      _sendAgain?.cancel();
+      _sendAgain = Timer(reachability.retry, _reachabilityChanged);
     }
   }
 
@@ -404,6 +415,7 @@ class ServerWithDownloads implements MediaServer {
   @override
   void close() {
     reachability.removeListener(_reachabilityChanged);
+    _sendAgain?.cancel();
     server.close();
   }
 }

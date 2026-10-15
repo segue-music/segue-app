@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:logging/logging.dart';
 
 import '../server/reachability.dart';
+import '../server/server.dart';
 
 final _log = Logger('PendingPlays');
 
@@ -54,11 +55,12 @@ class PendingPlays {
   }
 
   /// Gives each play to [count], the first first, dropping it once counted, or once the server refused it (a song
-  /// gone from it, say); one that fails for the network stops them, the rest kept for the next time. Whether they all
-  /// went.
-  Future<bool> send(Future<void> Function(PendingPlay play) count) async {
+  /// gone from it, say); one that fails for the network, or that the server fails at for now ([ServerError.isTemporary]),
+  /// stops them, the rest kept for the next time. What stopped them, where something did; null once they all went, or
+  /// while another send has them.
+  Future<Object?> send(Future<void> Function(PendingPlay play) count) async {
     if (_sending) {
-      return false;
+      return null;
     }
 
     _sending = true;
@@ -68,8 +70,8 @@ class PendingPlays {
         try {
           await count(_plays.first);
         } on Object catch (error) {
-          if (isNetworkFailure(error)) {
-            return false;
+          if (isNetworkFailure(error) || (error is ServerError && error.isTemporary)) {
+            return error;
           }
 
           _log.warning('a play not counted', error);
@@ -79,7 +81,7 @@ class PendingPlays {
         await _save();
       }
 
-      return true;
+      return null;
     } finally {
       _sending = false;
     }

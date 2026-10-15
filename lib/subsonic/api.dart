@@ -682,7 +682,7 @@ class SubsonicApi implements MediaServer {
 
   Map<String, dynamic> _decode(http.Response response) {
     if (response.statusCode != 200) {
-      throw ServerError('${server.host}: HTTP ${response.statusCode}');
+      throw ServerError('${server.host}: HTTP ${response.statusCode}', statusCode: response.statusCode);
     }
 
     final body =

@@ -583,7 +583,7 @@ void main() {
       await pendingPlays.add('s3', DateTime.utc(2026));
 
       final counted = <String>[];
-      final sent = await pendingPlays.send((play) async {
+      final failure = await pendingPlays.send((play) async {
         switch (play.songId) {
           case 'gone':
             throw const ServerError('no such song');
@@ -594,9 +594,56 @@ void main() {
         counted.add(play.songId);
       });
 
-      expect(sent, isFalse);
+      expect(failure, isA<SocketException>());
       expect(counted, ['s1', 's2']);
       expect([for (final play in pendingPlays.plays) play.songId], ['s3']);
+    });
+
+    test('stop at a play the server fails at for now, as a proxy answers while it restarts: that one and the rest are '
+        'kept', () async {
+      final pendingPlays = await PendingPlays.open(File('${directory.path}/plays.json'));
+
+      await pendingPlays.add('s1', DateTime.utc(2026));
+      await pendingPlays.add('s2', DateTime.utc(2026));
+
+      final failure = await pendingPlays.send(
+        (_) => Future.error(const ServerError('music.test: HTTP 502', statusCode: 502)),
+      );
+
+      expect(failure, isA<ServerError>());
+      expect([for (final play in pendingPlays.plays) play.songId], ['s1', 's2']);
+      expect((await PendingPlays.open(pendingPlays.file)).plays, hasLength(2));
+    });
+
+    test('a server that fails at them for now, in reach all the same, has them again in a while', () async {
+      final reachability = Reachability(() async {}, retry: const Duration(milliseconds: 50));
+
+      addTearDown(reachability.dispose);
+      await reachability.check();
+
+      final downloads = await open(reachability: reachability);
+      final pendingPlays = await PendingPlays.open(File('${directory.path}/plays.json'));
+
+      await pendingPlays.add('s1', DateTime.utc(2026));
+      server.failing.add('s1');
+
+      final api = ServerWithDownloads(server.api, downloads, reachability, pendingPlays: pendingPlays);
+
+      addTearDown(api.close);
+      await Future<void>.delayed(const Duration(milliseconds: 30));
+      expect(pendingPlays.plays, hasLength(1), reason: 'the server failing for now');
+      server.failing.clear();
+
+      Future<bool> counted() async =>
+          pendingPlays.plays.isEmpty && (await PendingPlays.open(pendingPlays.file)).plays.isEmpty;
+
+      // Written on the device as each goes.
+      for (var i = 0; i < 100 && !await counted(); i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+      }
+
+      expect(await counted(), isTrue);
+      expect(reachability.value, isTrue);
     });
   });
 
