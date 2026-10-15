@@ -32,9 +32,23 @@ void main() {
   });
 
   test('a computer isn\'t asked, and has no mobile data', () async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+
+    final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    const methods = MethodChannel('dev.fluttercommunity.plus/connectivity');
+    var asked = false;
+
+    // A system that would say mobile data.
+    messenger.setMockMethodCallHandler(methods, (_) async {
+      asked = true;
+      return ['mobile'];
+    });
+    addTearDown(() => messenger.setMockMethodCallHandler(methods, null));
+
     final mobileData = await MobileData.watch();
 
     addTearDown(mobileData.dispose);
+    expect(asked, isFalse);
     expect(mobileData.value, isFalse);
   });
 
