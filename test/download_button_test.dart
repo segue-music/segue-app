@@ -327,4 +327,25 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Baixar com dados móveis'), findsNothing);
   });
+
+  testWidgets('a size shows in megabytes, and from a thousand of them as shown, in gigabytes', (tester) async {
+    late BuildContext context;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: const [Locale('pt')],
+        home: Builder(
+          builder: (built) {
+            context = built;
+
+            return const SizedBox();
+          },
+        ),
+      ),
+    );
+    expect(formatSize(context, 850 * 1000 * 1000), '850 MB');
+    expect(formatSize(context, 999600 * 1000), '1,0 GB');
+    expect(formatSize(context, 1200 * 1000 * 1000), '1,2 GB');
+  });
 }

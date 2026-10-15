@@ -107,9 +107,11 @@ Future<void> removeDownload(BuildContext context, Downloads downloads, Download 
 /// with a decimal ("1,2 GB"), as the systems count them, by thousands.
 String formatSize(BuildContext context, int bytes) {
   final locale = Localizations.localeOf(context).toLanguageTag();
+  final megabytes = (bytes / (1000 * 1000)).round();
 
-  if (bytes < 1000 * 1000 * 1000) {
-    return '${NumberFormat.decimalPattern(locale).format((bytes / (1000 * 1000)).round())} MB';
+  // By the megabytes shown: 999.6 of them are a thousand, "1,0 GB".
+  if (megabytes < 1000) {
+    return '${NumberFormat.decimalPattern(locale).format(megabytes)} MB';
   }
 
   return '${NumberFormat.decimalPatternDigits(locale: locale, decimalDigits: 1).format(bytes / (1000 * 1000 * 1000))} GB';
