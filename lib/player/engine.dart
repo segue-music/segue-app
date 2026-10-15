@@ -541,6 +541,12 @@ class MediaKitEngine implements Deck {
   @override
   Future<void> setShuffle(bool on) => _inTurn(() async {
     await _ready;
+
+    // As it is: media_kit's own check doesn't stop it, as an open in an order given leaves it thinking shuffle off.
+    if (on == _shuffle) {
+      return;
+    }
+
     _shuffle = on;
 
     if (_opened.isNotEmpty) {

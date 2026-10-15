@@ -137,9 +137,10 @@ Running two app instances on one machine as different devices:
   `media_kit_engine_test.dart` against the real libmpv. It tracks the current index itself, since
   media_kit's `state.playlist.index` briefly drops to 0 on every open. It keeps the position it
   commanded (seek, jump, open) until media_kit's catches up, so the report right after isn't stale.
-  It reapplies shuffle after each open, since media_kit turns it off. It turns mpv's cache on disk off, which
-  media_kit turns on, in a folder libmpv, with no config, hasn't: each stream failed to make its file, and kept its
-  cache in memory, as it now does from the start. It starts the current track
+  It reapplies shuffle after each open, since media_kit turns it off, and ignores shuffle set as it is, which media_kit's
+  own check, taking it for off after an open in an order given, lets through, reshuffling the queue. It turns mpv's
+  cache on disk off, which media_kit turns on, in a folder libmpv, with no config, hasn't: each stream failed to make
+  its file, and kept its cache in memory, as it now does from the start. It starts the current track
   over itself on a jump to it, which mpv ignores. It reports when a track starts over on repeat. It
   stops on a track that fails to load (`failed`), paused where it was, where mpv would move on to the
   next and, with a media server that fails them all, through the whole queue in a moment; mpv's log

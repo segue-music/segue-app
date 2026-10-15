@@ -673,6 +673,18 @@ void main() {
     expect(engine.position, greaterThan(const Duration(milliseconds: 500)), reason: 'not started over');
   }, skip: hasLibmpv ? false : 'needs libmpv');
 
+  test('shuffle on, turned on again (as a command from another device), keeps the play order it has', () async {
+    final tracks = [for (var i = 0; i < 8; i++) tone(dir, i)];
+    const order = [3, 1, 0, 2, 7, 5, 4, 6];
+
+    await engine.setShuffle(true);
+    await engine.open(tracks, index: 1, position: Duration.zero, play: true, order: order);
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+    await engine.setShuffle(true);
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    expect(engine.order, order);
+  }, skip: hasLibmpv ? false : 'needs libmpv');
+
   group('crossfading on two decks', () {
     late List<MediaKitEngine> decks;
     late CrossfadeEngine crossfading;
