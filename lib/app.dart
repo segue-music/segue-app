@@ -66,6 +66,11 @@ class _SegueAppState extends State<SegueApp> {
 
   /// The session of the app closed by [_close], which starts again as its screen shows again; null, it isn't closed.
   Session? _closed;
+
+  /// The services before going ([_close], [_signOut]), which the next ones ([_start]) wait for: both at once would
+  /// write the downloads' folder together, and the hub would have this device twice.
+  Future<void> _leaving = Future.value();
+
   late final AppLifecycleListener _lifecycle;
 
   /// [SegueApp.settings], or the app's own, each choice its default until a pick.
@@ -92,6 +97,9 @@ class _SegueAppState extends State<SegueApp> {
     });
 
     try {
+      // What failed there, the close or the sign-out has said.
+      await _leaving.catchError((Object _) {});
+
       final services = await Services.start(session, settings: _settings);
 
       if (!mounted) {
@@ -142,7 +150,7 @@ class _SegueAppState extends State<SegueApp> {
       });
     }
 
-    await services.dispose();
+    await (_leaving = services.dispose());
   }
 
   /// The window closed on a computer: the app closes ([_close]), and then ends ([_end]), rather than Flutter ending it.
@@ -183,14 +191,20 @@ class _SegueAppState extends State<SegueApp> {
     });
     widget.mediaControls?.attach(null, null);
     widget.interruptions?.attach(null);
-    await services?.api.signOut();
-    await services?.dispose();
+    await (_leaving = _signOutOf(services));
+  }
 
-    if (services != null) {
-      await Services.clearCache(services.session);
+  static Future<void> _signOutOf(Services? services) async {
+    // First, the login page showing: a sign-in made meanwhile saves its own after.
+    await Session.clear();
+
+    if (services == null) {
+      return;
     }
 
-    await Session.clear();
+    await services.api.signOut();
+    await services.dispose();
+    await Services.clearCache(services.session);
   }
 
   @override

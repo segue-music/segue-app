@@ -211,7 +211,12 @@ class Downloads extends ChangeNotifier {
   /// (`artists/<key>`).
   final _failed = <String>{};
 
-  bool _fetching = false;
+  /// The fetching under way ([_fetch]); null while there is none.
+  Future<void>? _fetching;
+
+  /// The last write of the index asked for ([_save]), done once it is, also where it failed.
+  Future<void> _lastSave = Future.value();
+
   bool _disposed = false;
 
   /// The covers' size, in pixels: as the largest the app asks the server for, a phone's player and an album's page.
@@ -328,46 +333,43 @@ class Downloads extends ChangeNotifier {
 
   /// Fetches what the downloads lack, one thing at a time, until nothing is left, the server is out of reach, the
   /// downloads are held or they close. What fails is skipped until the server is back in reach.
-  Future<void> _fetch() async {
-    if (_fetching) {
-      return;
+  Future<void> _fetch() => _fetching ??= _fetchMissing().whenComplete(() => _fetching = null);
+
+  Future<void> _fetchMissing() async {
+    // As the app opens, once the server is known to be in reach: it has then answered, saying which ids it gives.
+    if (await (_reachability?.settled ?? Future.value(true)) && !_disposed) {
+      await _renameIds();
     }
 
-    _fetching = true;
+    while (await (_reachability?.settled ?? Future.value(true)) && !_disposed && !held) {
+      final missing = _missingSong() ?? _missingCover() ?? _missingLyrics() ?? _missingArtist();
 
-    try {
-      // As the app opens, once the server is known to be in reach: it has then answered, saying which ids it gives.
-      if (await (_reachability?.settled ?? Future.value(true)) && !_disposed) {
-        await _renameIds();
+      if (missing == null) {
+        break;
       }
 
-      while (await (_reachability?.settled ?? Future.value(true)) && !_disposed && !held) {
-        final missing = _missingSong() ?? _missingCover() ?? _missingLyrics() ?? _missingArtist();
-
-        if (missing == null) {
-          break;
+      try {
+        await missing.fetch();
+      } on Object catch (error) {
+        // Closed meanwhile, its requests cut short ([close]).
+        if (_disposed) {
+          return;
         }
 
-        try {
-          await missing.fetch();
-        } on Object catch (error) {
-          _log.warning('download of ${missing.key}', error);
-          _failed.add(missing.key);
+        _log.warning('download of ${missing.key}', error);
+        _failed.add(missing.key);
 
-          if (isNetworkFailure(error)) {
-            _reachability?.lost(error);
-          }
-        }
-
-        // Taken off meanwhile.
-        await _forget();
-
-        if (!_disposed) {
-          notifyListeners();
+        if (isNetworkFailure(error)) {
+          _reachability?.lost(error);
         }
       }
-    } finally {
-      _fetching = false;
+
+      // Taken off meanwhile.
+      await _forget();
+
+      if (!_disposed) {
+        notifyListeners();
+      }
     }
   }
 
@@ -677,8 +679,17 @@ class Downloads extends ChangeNotifier {
     }
   }
 
-  /// Writes the index beside where it goes, and moves it there, so that one cut short never leaves half an index.
-  Future<void> _save() async {
+  /// Writes the index beside where it goes, and moves it there, so that one cut short never leaves half an index: after
+  /// the write before, so that two never write over each other.
+  Future<void> _save() {
+    final saved = _lastSave.then((_) => _writeIndex());
+
+    _lastSave = saved.catchError((Object _) {});
+
+    return saved;
+  }
+
+  Future<void> _writeIndex() async {
     final part = File('${directory.path}/$_indexFile.part');
 
     await part.writeAsString(
@@ -720,6 +731,16 @@ class Downloads extends ChangeNotifier {
 
   /// A file's name for an id, which may hold any character: base 64, as URLs have it, without its padding.
   static String _name(String id) => base64Url.encode(utf8.encode(id)).replaceAll('=', '');
+
+  /// Disposes of them ([dispose]), and completes once what was under way has stopped: the thing coming, which fails as
+  /// its requests are cut short (its client closed, and the media server's), and the index being written. Opened again
+  /// before, on the same folder, they would write over each other.
+  Future<void> close() async {
+    dispose();
+    // What failed there has said so already.
+    await _fetching?.catchError((Object _) {});
+    await _lastSave;
+  }
 
   @override
   void dispose() {

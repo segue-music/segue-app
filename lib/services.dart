@@ -347,11 +347,16 @@ class Services {
     // left playing as the app ends aborts it (app.dart, _exit).
     await player.dispose();
     await connect.client?.close();
+
+    // Before the clients of the media server and of the services the downloads ask: what comes then fails as these
+    // close, rather than wait for them.
+    final downloadsClosed = downloads?.close();
+
     api.close();
     lrclib?.close();
     musicBrainz?.close();
     fanartTv?.close();
-    downloads?.dispose();
+    await downloadsClosed;
     downloadHold?.dispose();
     reachability?.dispose();
     homeCache?.close();

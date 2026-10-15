@@ -109,9 +109,10 @@ void main() {
     return downloads;
   }
 
-  void close(Downloads downloads) {
+  Future<void> close(Downloads downloads) {
     opened.remove(downloads);
-    downloads.dispose();
+
+    return downloads.close();
   }
 
   test('an album downloaded has its songs as their files are and its covers on the device', () async {
@@ -145,7 +146,7 @@ void main() {
 
     await first.addAlbum(album, songs);
     await settled(first);
-    close(first);
+    await close(first);
     server.requests.clear();
 
     final again = await open();
@@ -203,7 +204,7 @@ void main() {
           song,
         ]);
         await settled(first);
-        close(first);
+        await close(first);
         server.requests.clear();
 
         server.version = '0.64.2 (1a2b3c4)';
@@ -237,7 +238,7 @@ void main() {
         expect((await again.lyrics(newSong))?.lines.single.text, 'Backstroke lover');
         expect(again.artist('ar1')?.coverArt, 'ar-ar1');
         expect(Directory('${directory.path}/songs').listSync(), hasLength(1));
-        close(again);
+        await close(again);
 
         final third = await open();
 
@@ -295,6 +296,23 @@ void main() {
     expect(Directory('${directory.path}/songs').listSync(), isEmpty);
     expect(Directory('${directory.path}/covers').listSync(), isEmpty);
   });
+
+  test(
+    'downloads asked for at once go in the index one after the other: both are there as the app opens again',
+    () async {
+      final downloads = await open();
+
+      await Future.wait([
+        downloads.addAlbum(album, songs),
+        downloads.addPlaylist(playlist, [songs[1]]),
+      ]);
+      await close(downloads);
+
+      final again = await open();
+
+      expect([for (final download in again.all) download.id], ['p1', 'al1']);
+    },
+  );
 
   test('a song that fails to come is tried again, as asked', () async {
     final downloads = await open();
@@ -364,7 +382,7 @@ void main() {
 
     await first.addAlbum(album, songs);
     await settled(first);
-    close(first);
+    await close(first);
     File('${directory.path}/index.json').writeAsStringSync('{not json');
 
     final again = await open();
@@ -375,7 +393,7 @@ void main() {
 
     await again.addPlaylist(playlist, const [Song(id: 's3', title: 'Dream On', coverArt: 'al2')]);
     await settled(again);
-    close(again);
+    await close(again);
 
     final third = await open();
 
@@ -476,7 +494,7 @@ void main() {
     expect(lyrics?.provider, 'LRCLIB');
     expect(await downloads.lyrics('s2'), isNull);
     expect(asked, 2);
-    close(downloads);
+    await close(downloads);
 
     final again = await open(lyricsOf: lyricsOf);
 
@@ -508,6 +526,14 @@ void main() {
   });
 
   group('plays made out of reach', () {
+    test('made at once are kept one after the other, all of them', () async {
+      final pendingPlays = await PendingPlays.open(File('${directory.path}/plays.json'));
+      final time = DateTime.utc(2026, 10, 10, 12);
+
+      await Future.wait([pendingPlays.add('s1', time), pendingPlays.add('s2', time)]);
+      expect([for (final play in (await PendingPlays.open(pendingPlays.file)).plays) play.songId], ['s1', 's2']);
+    });
+
     test('are kept, and counted at the time they were made as the server is back', () async {
       final reachability = Reachability(() async {
         if (!server.reachable) {

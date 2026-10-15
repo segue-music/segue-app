@@ -42,6 +42,9 @@ class PendingPlays {
   final List<PendingPlay> _plays;
   bool _sending = false;
 
+  /// The last write of [file] asked for ([_save]), done once it is, also where it failed.
+  Future<void> _lastSave = Future.value();
+
   List<PendingPlay> get plays => List.unmodifiable(_plays);
 
   /// Keeps a play of the song whose id is [songId], which started at [time].
@@ -82,8 +85,17 @@ class PendingPlays {
     }
   }
 
-  /// Writes them beside [file], and moves them over it, so that it is never half written.
-  Future<void> _save() async {
+  /// Writes them beside [file], and moves them over it, so that it is never half written: after the write before, so
+  /// that two never write over each other.
+  Future<void> _save() {
+    final saved = _lastSave.then((_) => _write());
+
+    _lastSave = saved.catchError((Object _) {});
+
+    return saved;
+  }
+
+  Future<void> _write() async {
     final part = File('${file.path}.part');
 
     await part.writeAsString(
