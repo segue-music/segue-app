@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:segue/app.dart';
 import 'package:segue/ui/app/theme.dart';
+import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 const channel = MethodChannel('segue/window');
 
@@ -46,13 +48,21 @@ void main() {
     expect(painted.last, titleBarColors(Brightness.light));
   });
 
-  testWidgets('the window is told the colors when they change, not on every frame', (tester) async {
+  testWidgets('the window is told the colors when they change, not on every frame, nor as the app is built again in '
+      'another language, its theme too', (tester) async {
     // The system in Portuguese, which the app follows.
     tester.platformDispatcher.localesTestValue = const [Locale('pt', 'BR')];
     addTearDown(tester.platformDispatcher.clearLocalesTestValue);
     await tester.pumpWidget(const SegueApp(session: null));
     await tester.enterText(find.widgetWithText(TextFormField, 'Servidor'), 'music.example');
     await tester.pumpAndSettle();
+    // Where the language picked is kept.
+    SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
+    await tester.tap(find.byTooltip('Idioma'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('English').last);
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(TextFormField, 'Server'), findsOneWidget);
     expect(painted, [titleBarColors(Brightness.light)]);
   });
 
