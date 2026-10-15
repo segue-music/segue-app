@@ -152,6 +152,19 @@ void main() {
     });
   });
 
+  test('LRC: lines that start together, as a line and its translation, stay in their order', () {
+    final lrc = [
+      for (var i = 0; i < 40; i++) ...['[00:${'${i + 10}'}.00] Line $i', '[00:${'${i + 10}'}.00] Translation $i'],
+    ].join('\n');
+
+    expect(
+      [for (final line in parseLrc(lrc)) line.text],
+      [
+        for (var i = 0; i < 40; i++) ...['Line $i', 'Translation $i'],
+      ],
+    );
+  });
+
   test('LRC: a line at several times comes at each, and the offset shifts them all, sooner', () {
     final lines = parseLrc('[ar:Aerosmith]\n[offset:+500]\n[00:10.00][00:20.00] Chorus\n[00:15.00] Verse\nNo time');
 

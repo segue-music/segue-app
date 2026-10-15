@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../server/models.dart';
@@ -133,7 +134,8 @@ List<LyricLine> parseLrc(String lrc) {
     }
   }
 
-  lines.sort((a, b) => a.start!.compareTo(b.start!));
+  // Stable: lines that start together (a line and its translation under it) stay in their order.
+  mergeSort(lines, compare: (a, b) => a.start!.compareTo(b.start!));
 
   return [for (final line in lines) LyricLine(line.text, start: line.start! - shift)];
 }
