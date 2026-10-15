@@ -344,6 +344,23 @@ void main() {
     expect(signedIn, isEmpty);
   });
 
+  test('a phone whose own server fails to authorize the TV\'s code hears that it is its server, not the TV', () async {
+    final server = JellyfinServer();
+    final pairing = await tv(server.client, []);
+    const credentials = JellyfinCredentials(username: 'alice', userId: 'u1', token: 'phone-token');
+    final session = Session(server: phone.server, credentials: credentials, deviceId: 'phone', deviceName: 'Phone');
+    final offline = MockClient((_) => throw const SocketException('no route to host'));
+
+    await expectLater(
+      offerSignIn(
+        pairing.invite.value,
+        session,
+        JellyfinApi(phone.server, credentials, deviceId: 'phone', deviceName: 'Phone', client: offline),
+      ),
+      throwsA(isA<QuickConnectNotAuthorized>().having((e) => e.error, 'error', isA<SocketException>())),
+    );
+  });
+
   test('a Jellyfin server with Quick Connect off signs the TV in nowhere, which the phone hears', () async {
     final server = JellyfinServer(quickConnect: false);
     final pairing = await tv(server.client, []);

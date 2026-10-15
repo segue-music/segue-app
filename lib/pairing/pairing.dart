@@ -321,6 +321,17 @@ class PairingRefused extends PairingAnswer implements Exception {
   String toString() => 'pairing refused: ${error.name}';
 }
 
+/// On the phone, its own media server failing to authorize the TV's Quick Connect code ([offerSignIn]), with
+/// [error]: the TV answered, and isn't the one to blame.
+class QuickConnectNotAuthorized implements Exception {
+  const QuickConnectNotAuthorized(this.error);
+
+  final Object error;
+
+  @override
+  String toString() => 'Quick Connect code not authorized: $error';
+}
+
 /// On the TV, for as long as its sign-in shows: listens on the local network for a phone's sign-in, at its [invite]'s
 /// address, and gives what comes to [onOffer], one at a time, which answers it.
 class PairingServer {
@@ -597,7 +608,12 @@ Future<String> offerSignIn(PairingInvite invite, Session session, MediaServer ap
           throw const PairingRefused(PairingError.unreadable);
         }
 
-        await server.authorizeQuickConnect(code);
+        try {
+          await server.authorizeQuickConnect(code);
+        } on Object catch (e) {
+          throw QuickConnectNotAuthorized(e);
+        }
+
         return device;
       case final PairingRefused refused:
         throw refused;

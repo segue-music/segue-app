@@ -2,14 +2,19 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:logging/logging.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../pairing/pairing.dart';
+import '../../server/reachability.dart';
+import '../../server/server.dart';
 import '../../services.dart';
 import '../../session.dart';
 import '../widgets/directional_navigation.dart';
 import '../widgets/spinner.dart';
+
+final _log = Logger('SignInTvPage');
 
 /// Signs a TV in with this device's sign-in: the camera reads the QR code the TV's sign-in shows ([PairingInvite]),
 /// and, once the user says so, the TV gets the sign-in ([offerSignIn]). Signed in, it goes, saying so; otherwise it
@@ -58,6 +63,7 @@ class _SignInTvPageState extends State<SignInTvPage> {
     final strings = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
+    final page = ModalRoute.of(context);
     final confirmed = await showDialog<bool>(context: context, builder: (context) => ConfirmSignInTv(invite, session));
 
     if (confirmed != true || !mounted) {
@@ -71,12 +77,32 @@ class _SignInTvPageState extends State<SignInTvPage> {
       final device = await offerSignIn(invite, session, services.api);
 
       messenger.showSnackBar(SnackBar(content: Text(strings.signedInTv(device))));
-      navigator.pop();
+
+      // Unless the user went back meanwhile: the page under it stays.
+      if (page?.isCurrent ?? false) {
+        navigator.pop();
+      }
     } on PairingRefused catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(strings.pairingFailed(e.error.name))));
-    } on Object {
-      // The TV's address answered nothing, or not in time: not on this network, or no longer listening.
-      messenger.showSnackBar(SnackBar(content: Text(strings.pairingFailed('notFound'))));
+    } on QuickConnectNotAuthorized catch (e) {
+      // This device's media server, authorizing the TV's Quick Connect code: refusing, or out of reach.
+      _log.warning('Quick Connect code not authorized', e.error);
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(switch (e.error) {
+            final ServerError error => strings.serverRefused('$error'),
+            final error => strings.couldNotReachServer(session.server.host, '$error'),
+          }),
+        ),
+      );
+    } on Object catch (e) {
+      _log.warning('sign-in not sent to the TV', e);
+
+      // For the network, the TV's address answered nothing, or not in time: not on this network, or no longer
+      // listening.
+      messenger.showSnackBar(
+        SnackBar(content: Text(strings.pairingFailed(isNetworkFailure(e) ? 'notFound' : 'other'))),
+      );
     } finally {
       _taking = false;
 
