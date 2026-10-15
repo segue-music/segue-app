@@ -7,29 +7,34 @@ import 'package:segue/subsonic/api.dart';
 /// A Subsonic server with a small library, as the car browses it: three albums, two of Aerosmith's (Toys in the Attic,
 /// a1, and Pump, a2) and one of Miles Davis's (Kind of Blue, a3), their songs (s1 to s4), the playlists Road trip (p1)
 /// and chill (p2), a favorite song (Love in an Elevator), the genres Rock and Jazz, and a search that finds by name.
-/// [asked] gets the endpoints asked for, with their queries.
-SubsonicApi musicLibrary({List<(String, Map<String, String>)>? asked}) => SubsonicApi(
-  Uri.parse('https://music.test'),
-  const SubsonicCredentials(username: 'a', token: 't', salt: 's'),
-  client: MockClient((request) async {
-    final endpoint = request.url.pathSegments.last.replaceAll('.view', '');
-    final query = request.url.queryParameters;
+/// [asked] gets the endpoints asked for, with their queries; those that [failing] says fail for the network.
+SubsonicApi musicLibrary({List<(String, Map<String, String>)>? asked, bool Function(String endpoint)? failing}) =>
+    SubsonicApi(
+      Uri.parse('https://music.test'),
+      const SubsonicCredentials(username: 'a', token: 't', salt: 's'),
+      client: MockClient((request) async {
+        final endpoint = request.url.pathSegments.last.replaceAll('.view', '');
+        final query = request.url.queryParameters;
 
-    asked?.add((endpoint, query));
+        asked?.add((endpoint, query));
 
-    final found = _answer(endpoint, query);
+        if (failing?.call(endpoint) ?? false) {
+          throw http.ClientException('no route to host', request.url);
+        }
 
-    return found == null
-        ? http.Response('', 404)
-        : http.Response(
-            jsonEncode({
-              'subsonic-response': {'status': 'ok', ...found},
-            }),
-            200,
-            headers: {'content-type': 'application/json'},
-          );
-  }),
-);
+        final found = _answer(endpoint, query);
+
+        return found == null
+            ? http.Response('', 404)
+            : http.Response(
+                jsonEncode({
+                  'subsonic-response': {'status': 'ok', ...found},
+                }),
+                200,
+                headers: {'content-type': 'application/json'},
+              );
+      }),
+    );
 
 const _artists = {
   'ar1': {'id': 'ar1', 'name': 'Aerosmith', 'coverArt': 'ar-ar1'},

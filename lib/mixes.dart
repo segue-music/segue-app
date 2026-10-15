@@ -180,7 +180,12 @@ class SuggestedMixes {
   static const _decadesToPickFrom = 6;
 
   /// The first songs of [mix], one of [mixes].
-  Future<List<Song>> firstSongs(RandomMix mix) => _firstSongs[mix] ??= mix.songs(_server, size: firstSize);
+  Future<List<Song>> firstSongs(RandomMix mix) =>
+      _firstSongs[mix] ??= mix.songs(_server, size: firstSize).catchError((Object error, StackTrace stackTrace) {
+        // Asked again the next time.
+        _firstSongs.remove(mix);
+        Error.throwWithStackTrace(error, stackTrace);
+      });
 
   /// [firstSongs], where [mix] was kept.
   List<Song>? keptFirstSongs(RandomMix mix) => _kept[mix]?.firstSongs;

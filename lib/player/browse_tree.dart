@@ -249,9 +249,12 @@ class BrowseTree {
     }
 
     final mixes = _mixes ??= SuggestedMixes(_server, random: _random);
-    // Each part says nothing where it fails, as the home's rows do.
+    // Each part says nothing where it fails, as the home's rows do; the mixes are picked again the next time.
     final (suggested, rows) = await (
-      mixes.mixes.catchError((Object _) => const <RandomMix>[]),
+      mixes.mixes.catchError((Object _) {
+        _mixes = null;
+        return const <RandomMix>[];
+      }),
       Future.wait([
         for (final order in _rows)
           _server.albums(order: order, size: _rowSize).catchError((Object _) => const <Album>[]),

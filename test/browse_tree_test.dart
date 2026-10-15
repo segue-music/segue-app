@@ -72,6 +72,30 @@ void main() {
     expect(home.last.artUri, Uri.parse('cover:al-a1'));
   });
 
+  test(
+    'mixes that fail to come, or their first songs, as the car starts the app with the network still coming up, come '
+    'the next time',
+    () async {
+      var failing = {'getAlbumList2', 'getRandomSongs'};
+      final browse = tree(api: musicLibrary(failing: (endpoint) => failing.contains(endpoint)));
+
+      List<MediaItem> mixesOf(List<MediaItem> home) =>
+          home.where((item) => item.extras?[groupTitle] == 'Mixes').toList();
+
+      expect(mixesOf(await browse.children(BrowseTree.home)), isEmpty);
+
+      failing = {'getRandomSongs'};
+
+      final mixes = mixesOf(await browse.children(BrowseTree.home));
+
+      expect(mixes, isNotEmpty);
+      expect(mixes.every((mix) => mix.artUri == null), isTrue, reason: 'without their first songs');
+
+      failing = {};
+      expect(mixesOf(await browse.children(BrowseTree.home)).every((mix) => mix.artUri != null), isTrue);
+    },
+  );
+
   test('out of reach, the home has the downloaded albums alone', () async {
     expect(titles(await tree(offline: true).children(BrowseTree.home)), [
       ('Kind of Blue', 'Baixados'),
