@@ -492,6 +492,63 @@ void main() {
         expect(loudestBySecond(heard).take(1), [withGain(0)], reason: 'at the track\'s own sample rate');
       });
     });
+
+    // On iOS mpv's audio output takes the audio session as it opens, stopping another app's music: the app opening on
+    // its last playback, paused, mustn't. Here the output is the file, which it makes as it opens.
+    group('with the audio output held', () {
+      late File held;
+      late MediaKitEngine holding;
+      late TrackServer server;
+
+      setUp(() async {
+        held = File('${dir.path}/held.raw');
+        holding = MediaKitEngine(audioFile: held.path, holdAudio: true);
+        server = await TrackServer.start();
+      });
+      tearDown(() async {
+        await holding.dispose();
+        await server.close();
+      });
+
+      /// How many seconds of the tones the output has written.
+      double secondsHeard() => held.existsSync() ? held.lengthSync() / (rate * 2) : 0;
+
+      test('opened paused, it opens the output only as it plays, from where it was opened', () async {
+        await holding.open([track(0, seconds: 4)], index: 0, position: const Duration(seconds: 1), play: false);
+        await Future<void>.delayed(const Duration(milliseconds: 500));
+        expect(held.existsSync(), isFalse);
+        await holding.play();
+        await Future<void>.delayed(const Duration(seconds: 1));
+        expect(secondsHeard(), closeTo(3, 0.5));
+        expect(loudestBySecond(held).take(2), [withGain(0), withGain(0)]);
+      });
+
+      test('a stream that can\'t seek, opened paused, plays from its start once the output opens', () async {
+        await holding.open([server.track('ok0')], index: 0, position: Duration.zero, play: false);
+        await Future<void>.delayed(const Duration(milliseconds: 500));
+        expect(held.existsSync(), isFalse);
+        await holding.play();
+        await Future<void>.delayed(const Duration(seconds: 1));
+        expect(secondsHeard(), closeTo(4, 0.5));
+      });
+
+      test('opened playing, or a jump, opens it at once', () async {
+        await holding.open([track(0, seconds: 2), track(1, seconds: 2)], index: 0, position: Duration.zero, play: true);
+        await Future<void>.delayed(const Duration(seconds: 1));
+        expect(secondsHeard(), closeTo(4, 0.5));
+      });
+
+      test('a pause while it opens leaves it paused', () async {
+        await holding.open([track(0, seconds: 4)], index: 0, position: Duration.zero, play: false);
+        final playing = holding.play();
+
+        await holding.pause();
+        await playing;
+        await Future<void>.delayed(const Duration(milliseconds: 500));
+        expect(holding.playing, isFalse);
+        expect(secondsHeard(), lessThan(1));
+      });
+    });
   }, skip: hasLibmpv ? false : 'needs libmpv');
 
   // The player reports its position to the hub right after each of these: a position still at the

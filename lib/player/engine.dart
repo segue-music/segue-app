@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
@@ -191,18 +192,28 @@ abstract interface class Deck implements AudioEngine {
 /// mpv opens the next track's stream as the one before plays (prefetch-playlist), so that it plays right after, with
 /// no gap, however late the media server answers. It opens the track's name, before the on_load hook, so a stream that
 /// is still the one the name says is opened ahead; one that changed (another quality) is opened as the track loads.
+///
+/// On iOS mpv's audio output stays closed until the engine first plays ([_withAudio]): there it (audiounit) takes the
+/// audio session as it opens, which stops another app's music, and it opens as a track loads, paused too, as the last
+/// playback does when the app opens.
 class MediaKitEngine implements Deck {
   /// [silent] sends the audio nowhere: for tests on a machine without sound. [audioFile] writes it to that file
   /// instead, as raw samples (16 bits, in the tracks' channels and sample rate), as fast as mpv decodes them: for tests
-  /// that listen to it.
-  MediaKitEngine({@visibleForTesting bool silent = false, @visibleForTesting String? audioFile}) {
+  /// that listen to it. [holdAudio] keeps the audio output closed until the engine first plays, as on iOS.
+  MediaKitEngine({
+    @visibleForTesting bool silent = false,
+    @visibleForTesting String? audioFile,
+    @visibleForTesting bool? holdAudio,
+  }) : _output = audioFile != null ? 'pcm' : (silent ? 'null' : ''),
+       _audioHeld = holdAudio ?? Platform.isIOS {
     final native = _player.platform as NativePlayer;
     _ready = Future.wait([
       native.setProperty('prefetch-playlist', 'yes'),
       // media_kit turns the cache on disk on, in a folder libmpv, with no config of its own, hasn't: each stream failed
       // to make its file ("Failed to create file cache"), and kept its cache in memory, as it now does from the start.
       native.setProperty('cache-on-disk', 'no'),
-      if (audioFile != null) _writeAudioTo(native, audioFile) else if (silent) native.setProperty('ao', 'null'),
+      if (audioFile != null) _writeAudioTo(native, audioFile),
+      if (_audioHeld || _output.isNotEmpty) native.setProperty('ao', _audioHeld ? 'null' : _output),
     ]);
     native.onLoadHooks.add(_pointAtStream);
 
@@ -291,7 +302,6 @@ class MediaKitEngine implements Deck {
 
   /// Has mpv write the audio to [file], for the constructor's audioFile.
   static Future<void> _writeAudioTo(NativePlayer native, String file) async {
-    await native.setProperty('ao', 'pcm');
     await native.setProperty('ao-pcm-file', file);
     await native.setProperty('ao-pcm-waveheader', 'no');
     // Each track after the one before, should mpv open the file again for one.
@@ -306,6 +316,15 @@ class MediaKitEngine implements Deck {
   late final List<StreamSubscription<Object?>> _subscriptions;
   late final Future<void> _ready;
   bool _disposed = false;
+
+  // mpv's audio output as it is to be ('pcm', 'null', or '' for mpv's own), and whether it is still held closed, and
+  // opening for the first play.
+  final String _output;
+  bool _audioHeld;
+  Future<void>? _audioOpening;
+
+  // Counts the pauses: one while the audio output opens leaves the play that opened it undone.
+  int _pauses = 0;
 
   // The current track, from the playlist events and our own calls. media_kit's
   // state.playlist.index can't be trusted: on every open it drops to 0 for a moment, unannounced,
@@ -935,8 +954,31 @@ class MediaKitEngine implements Deck {
     }
 
     if (!_failed && _playOnLoad) {
-      await _player.play();
+      await _withAudio(_player.play);
     }
+  }
+
+  /// Plays through [play], once mpv's audio output is open: where it was held, it opens first, and then plays unless a
+  /// pause or another load came meanwhile. mpv opening it on a track that has loaded seeks to where it is, which the
+  /// position hardly notices.
+  Future<void> _withAudio(Future<void> Function() play) async {
+    if (_audioHeld) {
+      final loads = _loads;
+      final pauses = _pauses;
+
+      await (_audioOpening ??= _openAudio());
+
+      if (loads != _loads || pauses != _pauses) {
+        return;
+      }
+    }
+
+    await play();
+  }
+
+  Future<void> _openAudio() async {
+    await (_player.platform as NativePlayer).setProperty('ao', _output);
+    _audioHeld = false;
   }
 
   /// Plays; a track still loading plays once it has, and a track that failed is tried again, from
@@ -954,12 +996,13 @@ class MediaKitEngine implements Deck {
       return _resume(_index, _held);
     }
 
-    return _player.play();
+    return _withAudio(_player.play);
   }
 
   @override
   Future<void> pause() {
     _playOnLoad = false;
+    _pauses++;
 
     return _player.pause();
   }
@@ -1000,14 +1043,14 @@ class MediaKitEngine implements Deck {
 
     if (!again) {
       _offset = Duration.zero;
-      return _player.jump(index); // which plays too
+      return _withAudio(() => _player.jump(index)); // which plays too
     }
 
     // mpv ignores a jump to the track it is on. Once the queue has ended, media_kit's jump is the one
     // that works, since its play would go back to the first track. A stream that starts later, or can't seek, loads
     // again from the start.
     await _seek(Duration.zero, play: true);
-    await _player.play();
+    await _withAudio(_player.play);
   }
 
   /// mpv's warnings, by their prefix and text, that say nothing wrong, every time what they tell of happens: not for
