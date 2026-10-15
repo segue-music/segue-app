@@ -326,7 +326,8 @@ Running two app instances on one machine as different devices:
   marked played then (`UserPlayedItems`). `Reachability` (`lib/server/reachability.dart`) says whether the server is in
   reach: `Services.start` pings it (`MediaServer.ping`), waiting a few seconds at most, since a request to a server out
   of reach can wait for minutes, and a request that fails for the network (`isNetworkFailure`) sets it out of reach,
-  from when it pings every 30 s. Only what asks the server waits for that first ping (`Reachability.settled`:
+  from when it pings every 30 s; a ping that answers past those seconds (a phone's VPN waking as the app opens) has it
+  in reach then. Only what asks the server waits for that first ping (`Reachability.settled`:
   `ServerWithDownloads`, the downloads), so that the app opens at once, out of reach too; `HomePage` builds its sections
   anew as it changes. The hub is the one last found next to the server (`Session.foundHub`), which `SegueClient`
   reaches once it can, as the app looks for it (`Services._discoverHub`): one found where none was known joins then

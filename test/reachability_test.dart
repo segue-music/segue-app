@@ -126,4 +126,57 @@ void main() {
       reachability.dispose();
     });
   });
+
+  test('a ping past its time that answers after all has the server in reach then, not at the next ping', () {
+    fakeAsync((time) {
+      var pings = 0;
+      final said = <String>[];
+      final subscription = Logger.root.onRecord.listen((record) => said.add('${record.level.name} ${record.message}'));
+      final reachability = Reachability(
+        () async {
+          pings++;
+          await Future<void>.delayed(const Duration(seconds: 12));
+        },
+        retry: const Duration(seconds: 30),
+        timeout: const Duration(seconds: 5),
+      );
+
+      unawaited(reachability.check());
+      time.elapse(const Duration(seconds: 5));
+      expect(reachability.value, isFalse);
+      time.elapse(const Duration(seconds: 7));
+      expect(reachability.value, isTrue);
+      expect(said, ['WARNING media server out of reach', 'INFO media server back in reach']);
+
+      // In reach, no ping 30 s after the first.
+      time.elapse(const Duration(minutes: 1));
+      expect(pings, 1);
+      reachability.dispose();
+      unawaited(subscription.cancel());
+    });
+  });
+
+  test('a ping past its time that then fails for the network leaves the server out of reach, until the next', () {
+    fakeAsync((time) {
+      var pings = 0;
+      final reachability = Reachability(
+        () async {
+          if (++pings == 1) {
+            await Future<void>.delayed(const Duration(seconds: 12));
+            throw const SocketException('connection reset');
+          }
+        },
+        retry: const Duration(seconds: 30),
+        timeout: const Duration(seconds: 5),
+      );
+
+      unawaited(reachability.check());
+      time.elapse(const Duration(seconds: 12));
+      expect(reachability.value, isFalse);
+      time.elapse(const Duration(seconds: 23));
+      expect(pings, 2);
+      expect(reachability.value, isTrue);
+      reachability.dispose();
+    });
+  });
 }

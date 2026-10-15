@@ -8,8 +8,8 @@ import 'package:logging/logging.dart';
 final _log = Logger('Reachability');
 
 /// Whether the media server answers: true until a request to it fails for the network (no route to it, no answer, a
-/// connection cut short), and from then false, until a ping, one every [retry], gets an answer. Any answer counts, a
-/// refusal too: the server is there.
+/// connection cut short), and from then false, until a ping, one every [retry], gets an answer, or one past its
+/// [timeout] gets one after all. Any answer counts, a refusal too: the server is there.
 class Reachability extends ValueNotifier<bool> {
   /// [ping] asks the server for as little as it can answer.
   Reachability(this._ping, {this.retry = const Duration(seconds: 30), this.timeout = const Duration(seconds: 5)})
@@ -40,9 +40,25 @@ class Reachability extends ValueNotifier<bool> {
   Future<bool> _check() async {
     _again?.cancel();
 
+    final ping = _ping();
+
     try {
-      await _ping().timeout(timeout);
+      await ping.timeout(timeout);
       _set(true);
+    } on TimeoutException catch (error) {
+      lost(error);
+      // The ping goes on, and an answer after all has the server in reach then, rather than at the next ping: as the
+      // app opens, a phone's VPN, waking, may take longer than [timeout] to let the first request through.
+      unawaited(
+        ping.then(
+          (_) => _answered(),
+          onError: (Object error) {
+            if (!isNetworkFailure(error)) {
+              _answered();
+            }
+          },
+        ),
+      );
     } on Object catch (error) {
       if (isNetworkFailure(error)) {
         lost(error);
@@ -52,6 +68,12 @@ class Reachability extends ValueNotifier<bool> {
     }
 
     return value;
+  }
+
+  /// A ping past its [timeout] got an answer.
+  void _answered() {
+    _again?.cancel();
+    _set(true);
   }
 
   /// A request to the server failed for the network, with [error]: it is out of reach until a ping gets an answer.
