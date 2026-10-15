@@ -276,10 +276,16 @@ void main() {
       final engine = crossfading(decks);
 
       unawaited(engine.open([track(0), track(1)], index: 0, position: const Duration(seconds: 20), play: false));
+      async.flushMicrotasks(); // opened on its deck
+
+      final opened = decks[0].opened;
+
       unawaited(engine.jump(0));
       async.elapse(const Duration(seconds: 1));
       expect(engine.playing, isTrue);
       expect(engine.position, const Duration(seconds: 1));
+      expect(decks[0].opened, same(opened), reason: 'started over, not opened again');
+      expect(decks[1].opened, isEmpty);
     });
   });
 
