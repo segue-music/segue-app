@@ -485,6 +485,17 @@ void main() {
     });
   }
 
+  testWidgets('a song\'s line in a list, right-clicked, opens its menu', (tester) async {
+    await pumpHome(tester, const Size(1000, 700));
+    await openPlaylist(tester, 'Road trip');
+    await tester.tap(find.text('Sweet Emotion'), buttons: kSecondaryButton);
+    await tester.pumpAndSettle();
+    expect(find.text('Adicionar à playlist'), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('the song in the player bar, right-clicked, held, or with OK held, opens its menu, which adds it to a '
       'playlist', (tester) async {
     final library = Library();

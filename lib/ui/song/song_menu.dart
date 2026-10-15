@@ -201,6 +201,10 @@ class _SongMenuState extends State<SongMenu> {
       ),
     );
 
-    return MenuShortcuts(onOpen: _open, child: widget.builder(context, button));
+    // A right click on the line opens it too, as on the song in the player bar.
+    return MenuShortcuts(
+      onOpen: _open,
+      child: GestureDetector(onSecondaryTap: _open, child: widget.builder(context, button)),
+    );
   }
 }
