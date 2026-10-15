@@ -312,6 +312,9 @@ class FileServer {
   final held = <String, Completer<void>>{};
   final artists = <String, Map<String, Object?>>{};
   bool reachable = true;
+
+  /// Whether fanart.tv's pictures can be reached, the server's things or not.
+  bool fanartReachable = true;
   String? version;
 
   late final client = MockClient((request) async {
@@ -322,6 +325,10 @@ class FileServer {
     urls.add(request.url);
 
     if (request.url.host == 'fanart.test') {
+      if (!fanartReachable) {
+        throw http.ClientException('no route to host', request.url);
+      }
+
       requests.add('fanart ${request.url.path}');
       return http.Response.bytes(utf8.encode('picture at ${request.url.path}'), 200);
     }

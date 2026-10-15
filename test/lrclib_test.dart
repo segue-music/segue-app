@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -136,6 +138,18 @@ void main() {
     final failing = Lrclib(client: MockClient((_) async => http.Response('', 500)));
 
     await expectLater(failing.find(title: 'Sweet Emotion', artist: 'Aerosmith'), throwsA(anything));
+  });
+
+  test('a server that doesn\'t answer fails in a while, rather than leave the lyrics waiting', () {
+    fakeAsync((async) {
+      Object? failure;
+
+      Lrclib(client: MockClient((_) => Completer<http.Response>().future))
+          .find(title: 'Sweet Emotion', artist: 'Aerosmith')
+          .then<void>((_) {}, onError: (Object error) => failure = error);
+      async.elapse(const Duration(seconds: 10));
+      expect(failure, isA<TimeoutException>());
+    });
   });
 
   test('LRC: a line at several times comes at each, and the offset shifts them all, sooner', () {

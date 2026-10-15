@@ -525,6 +525,37 @@ void main() {
     expect(downloads.coverFile('fanart:mb2'), isNull);
   });
 
+  test('the picture found elsewhere out of reach fails as anything else would, to come again, the server staying in '
+      'reach', () async {
+    final reachability = Reachability(() async {}, retry: const Duration(hours: 1));
+
+    addTearDown(reachability.dispose);
+    server
+      ..artists['ar2'] = {'id': 'ar2', 'name': 'Run-DMC', 'musicBrainzId': 'mb2'}
+      ..fanartReachable = false;
+
+    final downloads = await open(
+      reachability: reachability,
+      artistPicture: (artist) async => Uri.parse('https://fanart.test/${artist.musicBrainzId}.jpg'),
+    );
+
+    await downloads.addPlaylist(playlist, [
+      const Song(
+        id: 's9',
+        title: 'Walk This Way',
+        artists: [Artist(id: 'ar2', name: 'Run-DMC')],
+      ),
+    ]);
+    await settled(downloads);
+    expect(reachability.value, isTrue);
+    expect(downloads.artist('ar2'), isNull);
+
+    server.fanartReachable = true;
+    downloads.retry();
+    await settled(downloads);
+    expect(downloads.artist('ar2')?.coverArt, 'fanart:mb2');
+  });
+
   group('plays made out of reach', () {
     test('made at once are kept one after the other, all of them', () async {
       final pendingPlays = await PendingPlays.open(File('${directory.path}/plays.json'));

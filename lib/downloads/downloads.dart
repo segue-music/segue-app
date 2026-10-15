@@ -488,19 +488,8 @@ class Downloads extends ChangeNotifier {
       if (artist.coverArt case final cover?) {
         await _write(_coverFile(cover), () => _server.coverArt(cover, size: coverSize));
         picture = cover;
-      } else if ((artist.musicBrainzId, _artistPicture) case (final mbid?, final artistPicture?)) {
-        if (await artistPicture(artist).timeout(_wait) case final url?) {
-          picture = 'fanart:$mbid';
-          await _write(_coverFile(picture), () async {
-            final response = await _http.get(url).timeout(_wait);
-
-            if (response.statusCode != 200) {
-              throw ServerError('HTTP ${response.statusCode}');
-            }
-
-            return response.bodyBytes;
-          });
-        }
+      } else if ((artist.musicBrainzId, _artistPicture) case (final musicBrainzId?, final artistPicture?)) {
+        picture = await _fetchFoundPicture(artist, musicBrainzId, artistPicture);
       }
     } on ServerError catch (e) {
       _log.warning('no picture of ${artist.name}', e);
@@ -515,6 +504,43 @@ class Downloads extends ChangeNotifier {
       albumCount: artist.albumCount,
     );
     await _save();
+  }
+
+  /// The picture of [artist] that [artistPicture] finds (fanart.tv's), as the cover `fanart:` and their MusicBrainz id
+  /// ([musicBrainzId]); none where it finds none. Failing for the network, it fails as anything else would, to be asked
+  /// again, rather than as the media server out of reach: the picture comes from elsewhere.
+  Future<String?> _fetchFoundPicture(
+    Artist artist,
+    String musicBrainzId,
+    Future<Uri?> Function(Artist artist) artistPicture,
+  ) async {
+    try {
+      final url = await artistPicture(artist).timeout(_wait);
+
+      if (url == null) {
+        return null;
+      }
+
+      final picture = 'fanart:$musicBrainzId';
+
+      await _write(_coverFile(picture), () async {
+        final response = await _http.get(url).timeout(_wait);
+
+        if (response.statusCode != 200) {
+          throw ServerError('HTTP ${response.statusCode}');
+        }
+
+        return response.bodyBytes;
+      });
+
+      return picture;
+    } on Object catch (e) {
+      if (!isNetworkFailure(e)) {
+        rethrow;
+      }
+
+      throw Exception('picture of ${artist.name}: $e');
+    }
   }
 
   /// Gives what the downloads keep the ids the server has for it now ([MediaServer.currentId]), where it has given its

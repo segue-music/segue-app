@@ -18,6 +18,9 @@ class Lrclib {
   /// LRCLIB asks apps to say who they are.
   static const _userAgent = '$clientName $appVersion (https://github.com/segue-music/segue-app)';
 
+  /// How long a request may take: one LRCLIB doesn't answer fails, rather than leave the lyrics waiting.
+  static const _timeout = Duration(seconds: 10);
+
   /// How far from the song's length another of the same title can be and still be taken for it: LRCLIB has
   /// some songs twice, from an album and from a single a few seconds longer, with synced lyrics in one only.
   static const _lengthSlack = Duration(seconds: 5);
@@ -83,10 +86,9 @@ class Lrclib {
 
   /// The JSON at [path], or null for a 404: none there.
   Future<Object?> _get(String path, Map<String, String> query) async {
-    final response = await _http.get(
-      _base.resolve(path).replace(queryParameters: query),
-      headers: {'User-Agent': _userAgent},
-    );
+    final response = await _http
+        .get(_base.resolve(path).replace(queryParameters: query), headers: {'User-Agent': _userAgent})
+        .timeout(_timeout);
 
     if (response.statusCode == 404) {
       return null;
