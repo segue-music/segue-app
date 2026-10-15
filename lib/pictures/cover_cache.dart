@@ -67,7 +67,12 @@ class CoverCache {
         final codec = await decode(await ui.ImmutableBuffer.fromUint8List(await file.readAsBytes()));
 
         if (clock.now().difference(stat.modified) > refreshAfter) {
-          unawaited(fetch().then((bytes) => _keep(file, bytes), onError: (Object _) {}));
+          unawaited(
+            fetch().then(
+              (bytes) => _keep(file, bytes),
+              onError: (Object e) => _log.warning('picture not fetched again', e),
+            ),
+          );
         }
 
         return codec;

@@ -2,12 +2,15 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:audio_service/audio_service.dart';
+import 'package:logging/logging.dart';
 
 import '../l10n/app_localizations.dart';
 import '../mixes.dart';
 import '../server/favorites.dart';
 import '../server/models.dart';
 import '../server/server.dart';
+
+final _log = Logger('BrowseTree');
 
 /// The user's music as the system's media browsers find it: Android Auto, in the car. A tree of [MediaItem]s by their
 /// ids, at its root ([AudioService.browsableRootId]) four tabs: the home (its mixes, which play at once, and its rows
@@ -249,20 +252,17 @@ class BrowseTree {
     }
 
     final mixes = _mixes ??= SuggestedMixes(_server, random: _random);
-    // Each part says nothing where it fails, as the home's rows do; the mixes are picked again the next time.
+    // Each part says nothing where it fails, as the home's rows do, but in the log; the mixes are picked again the next
+    // time.
     final (suggested, rows) = await (
-      mixes.mixes.catchError((Object _) {
+      mixes.mixes.catchError((Object e) {
+        _log.warning('no mixes for the car', e);
         _mixes = null;
         return const <RandomMix>[];
       }),
-      Future.wait([
-        for (final order in _rows)
-          _server.albums(order: order, size: _rowSize).catchError((Object _) => const <Album>[]),
-      ]),
+      Future.wait([for (final order in _rows) _server.albums(order: order, size: _rowSize).catchError(_none<Album>)]),
     ).wait;
-    final first = await Future.wait([
-      for (final mix in suggested) mixes.firstSongs(mix).catchError((Object _) => const <Song>[]),
-    ]);
+    final first = await Future.wait([for (final mix in suggested) mixes.firstSongs(mix).catchError(_none<Song>)]);
     final shown = <String>{};
 
     List<MediaItem> row(int i) => [
@@ -310,6 +310,13 @@ class BrowseTree {
     ];
   }
 
+  /// None, for a part of what the car shows that failed to come, which the log says.
+  static List<T> _none<T>(Object error) {
+    _log.warning('part of what the car shows not had', error);
+
+    return const [];
+  }
+
   /// The favorite songs as the server has them now; none where it can't say.
   Future<List<Song>> _favoriteSongs() async {
     final favorites = this.favorites;
@@ -318,7 +325,7 @@ class BrowseTree {
       return const [];
     }
 
-    await favorites.load().catchError((Object _) {});
+    await favorites.load().catchError((Object e) => _log.warning('favorites not loaded for the car', e));
 
     return favorites.songs;
   }
@@ -332,7 +339,7 @@ class BrowseTree {
       return null;
     }
 
-    final first = await mixes.firstSongs(mix).catchError((Object _) => const <Song>[]);
+    final first = await mixes.firstSongs(mix).catchError(_none<Song>);
     final songs = await mix.queue(_server, first: first);
 
     return songs.isEmpty ? null : (songs, 0);

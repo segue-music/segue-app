@@ -4,16 +4,19 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:logging/logging.dart';
 
 import '../../connect/connect.dart';
 import '../../l10n/app_localizations.dart';
 import '../../server/models.dart';
 import '../../services.dart';
 import '../widgets/directional_navigation.dart';
+import '../widgets/errors.dart';
 import '../widgets/spinner.dart';
 import '../widgets/themed_icon.dart';
 import 'player_controls.dart';
-import '../widgets/errors.dart';
+
+final _log = Logger('LyricsView');
 
 /// The lyrics of [now]'s song: the media server's, or, where it has none, or fails, LRCLIB's, with a blank line for an
 /// intro (a part with no singing). A failure shows only if neither has them: the server's, or else LRCLIB's
@@ -75,6 +78,7 @@ Future<Lyrics?> _find(Services services, NowPlaying now) async {
   try {
     lyrics = songId == null ? null : await services.api.lyrics(songId);
   } on Object catch (error, stack) {
+    _log.warning('no lyrics of $title from the media server', error);
     failure = (error, stack);
   }
 
@@ -83,7 +87,9 @@ Future<Lyrics?> _find(Services services, NowPlaying now) async {
   if (lyrics == null && lrclib != null && title != null && artist != null) {
     try {
       lyrics = await lrclib.find(title: title, artist: artist, album: now.album, duration: now.duration);
-    } on Object catch (_, stack) {
+    } on Object catch (error, stack) {
+      // The user hears only that it failed ([couldNotFetchLyrics]); why is the log's.
+      _log.warning('no lyrics of $title from LRCLIB', error);
       failure ??= (const _LrclibFailed(), stack);
     }
   }

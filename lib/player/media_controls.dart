@@ -471,6 +471,7 @@ class MediaControls extends BaseAudioHandler with SeekHandler {
         _fail(describeError(strings, result.error));
       }
     } on Object catch (e) {
+      _log.warning('nothing played for the car', e);
       _fail(describeFailure(strings, e));
     }
   }

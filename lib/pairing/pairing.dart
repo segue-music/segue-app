@@ -336,7 +336,7 @@ class QuickConnectNotAuthorized implements Exception {
 /// address, and gives what comes to [onOffer], one at a time, which answers it.
 class PairingServer {
   PairingServer._(this._server, PairingInvite invite, this._onOffer) : _invite = ValueNotifier(invite) {
-    _server.listen(_serve, onError: (Object _) {});
+    _server.listen(_serve, onError: (Object e) => _log.warning('listening for a phone failed', e));
   }
 
   /// Listens at a port of its own, at [address], or else on every network, the invite saying the device's address on
@@ -395,7 +395,8 @@ class PairingServer {
         ..statusCode = answer.statusCode
         ..headers.contentType = ContentType.binary
         ..add(await answer.seal(invite));
-    } on Object {
+    } on Object catch (e) {
+      _log.warning('phone\'s sign-in not answered', e);
       response.statusCode = HttpStatus.internalServerError;
     } finally {
       await response.close();

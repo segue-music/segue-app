@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:logging/logging.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../mixes.dart';
@@ -35,6 +36,8 @@ import 'cover_page.dart';
 import 'credits_page.dart';
 import 'dates.dart';
 import 'release_types.dart';
+
+final _log = Logger('AlbumPage');
 
 /// What the album's menu does besides what a song's menu does with its songs ([SongAction]).
 enum _AlbumAction { radio, share }
@@ -126,7 +129,8 @@ class _AlbumPageState extends State<AlbumPage> {
       }
 
       return await api.artist(id);
-    } on Object {
+    } on Object catch (e) {
+      _log.warning('album\'s artist not had', e);
       return null;
     }
   }
@@ -416,7 +420,8 @@ class _AlbumPageState extends State<AlbumPage> {
       return {
         for (final artist in await api.artists()) ...{artist.id: artist, ?artist.musicBrainzId: artist},
       };
-    } on Object {
+    } on Object catch (e) {
+      _log.warning('artists of the library not listed', e);
       return const {};
     }
   }

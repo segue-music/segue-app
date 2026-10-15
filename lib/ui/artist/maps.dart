@@ -1,5 +1,8 @@
 import 'package:flutter/foundation.dart';
+import 'package:logging/logging.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+final _log = Logger('Maps');
 
 /// Where [place] is on a map, found by its name ("Boston, Estados Unidos"), on [platform]: on Android, in the maps app
 /// the user picks (a geo URI); on iOS and macOS, in Apple Maps; elsewhere, OpenStreetMap's search, in the browser.
@@ -22,7 +25,8 @@ Future<void> showOnMap(String place, {required TargetPlatform platform}) async {
     }
 
     await launchUrl(_openStreetMap(place), mode: LaunchMode.externalApplication);
-  } on Object {
+  } on Object catch (e) {
     // Nothing to open it with.
+    _log.warning('no map opened', e);
   }
 }

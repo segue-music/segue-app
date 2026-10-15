@@ -3,10 +3,13 @@ import 'dart:math';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:logging/logging.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../widgets/cover.dart';
 import '../widgets/themed_icon.dart';
+
+final _log = Logger('PictureGallery');
 
 /// Pictures side by side, one at a time in the middle, square, as wide as the text under it, with a little of the next
 /// showing beside it, and of the one before: the media server's, by its cover id, then more from elsewhere, by their
@@ -81,7 +84,7 @@ class PictureGalleryState extends State<PictureGallery> {
       if (mounted && widget.more == more) {
         setState(() => _more = found);
       }
-    }, onError: (Object _) {});
+    }, onError: (Object e) => _log.warning('more pictures not had', e));
   }
 
   /// How many pictures it has.

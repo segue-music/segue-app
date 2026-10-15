@@ -1,10 +1,13 @@
 import 'dart:async';
 
 import 'package:clock/clock.dart';
+import 'package:logging/logging.dart';
 
 import '../server/models.dart';
 import '../server/server.dart';
 import 'player.dart';
+
+final _log = Logger('PlayCounter');
 
 /// Counts the plays of what this device's player plays toward the user's most played on the media
 /// server (MediaServer.scrobble): here, on the device that plays a song, whichever device commands it.
@@ -83,8 +86,12 @@ class PlayCounter {
     }
 
     listen.counted = true;
-    // Offline, or refused: that play goes uncounted.
-    unawaited(_api.scrobble(listen.song.id, time: listen.start!).catchError((_) {}));
+    // Refused, or failing: that play goes uncounted (one out of reach the downloads keep).
+    unawaited(
+      _api
+          .scrobble(listen.song.id, time: listen.start!)
+          .catchError((Object e) => _log.warning('play of ${listen.song.title} not counted', e)),
+    );
   }
 
   void dispose() {

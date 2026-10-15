@@ -3,10 +3,13 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:http/http.dart' as http;
+import 'package:logging/logging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../server/models.dart';
 import '../server/server.dart';
+
+final _log = Logger('MusicBrainz');
 
 /// When an album came out, the labels that put it out and what kind of release it is, as its page shows them.
 typedef AlbumRelease = ({ReleaseDate? date, List<String> labels, ReleaseType? type});
@@ -129,7 +132,8 @@ class MusicBrainz {
         labels: own.labels.isEmpty ? found.labels : own.labels,
         type: own.type ?? found.type,
       );
-    } on Object {
+    } on Object catch (e) {
+      _log.warning('nothing of ${album.name}', e);
       // To try again the next time.
       _found.remove(album.id);
       return own;
@@ -209,7 +213,8 @@ class MusicBrainz {
       found = await _lookUpOnce(_releaseCredits, 'release', id, const {
         'inc': 'recordings recording-level-rels work-rels work-level-rels artist-rels place-rels area-rels',
       });
-    } on Object {
+    } on Object catch (e) {
+      _log.warning('no credits of ${album.name}', e);
       return null;
     }
 
@@ -244,7 +249,8 @@ class MusicBrainz {
 
     try {
       found = await _lookUpOnce(_artists, 'artist', id, const {'inc': 'artist-rels'});
-    } on Object {
+    } on Object catch (e) {
+      _log.warning('no years of ${artist.name}', e);
       return null;
     }
 
@@ -278,7 +284,8 @@ class MusicBrainz {
 
     try {
       found = await _lookUpOnce(_artists, 'artist', id, const {'inc': 'artist-rels'});
-    } on Object {
+    } on Object catch (e) {
+      _log.warning('no origin of ${artist.name}', e);
       return;
     }
 
@@ -309,7 +316,8 @@ class MusicBrainz {
 
           try {
             country = await _countryOf(area);
-          } on Object {
+          } on Object catch (e) {
+            _log.warning('no country of $place', e);
             return;
           }
 

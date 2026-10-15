@@ -1,9 +1,12 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:logging/logging.dart';
 
 import '../server/models.dart';
 import '../server/server.dart';
+
+final _log = Logger('FanartTv');
 
 /// The app's key for fanart.tv, which it gives each project that asks it for pictures: FANART_TV_KEY, given as the app
 /// is built (keys.json, which tool/flutter.sh passes on), out of git; empty in a build without it.
@@ -47,7 +50,8 @@ class FanartTv {
 
     try {
       return _found[id] = await (_pictures[id] ??= _lookUp(id));
-    } on Object {
+    } on Object catch (e) {
+      _log.warning('no pictures of ${artist.name}', e);
       _pictures.remove(id);
       return const [];
     }

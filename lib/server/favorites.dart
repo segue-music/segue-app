@@ -1,9 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:logging/logging.dart';
 
 import 'models.dart';
 import 'server.dart';
+
+final _log = Logger('Favorites');
 
 /// The user's favorites: as the media server last gave them ([load]), with the changes made here since ([set]), which
 /// show at once and go to the server one after another, in the order they come. Once none is left to make, they load
@@ -102,7 +105,7 @@ class Favorites extends ChangeNotifier {
           _pending--;
 
           if (_pending == 0 && !_disposed) {
-            unawaited(load().catchError((Object _) {}));
+            unawaited(load().catchError((Object e) => _log.warning('favorites not loaded again', e)));
           }
         });
 

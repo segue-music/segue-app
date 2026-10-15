@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:logging/logging.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../mixes.dart';
@@ -12,6 +13,8 @@ import '../widgets/mix_button.dart';
 import '../widgets/spinner.dart';
 import '../widgets/themed_icon.dart';
 import '../widgets/tile_row.dart';
+
+final _log = Logger('MixRow');
 
 /// The home's row of mixes, each a tile that plays it at once, as tall as a row of albums. Not there, nor its title,
 /// while they come, where there are none, or where the server can't say: unlike the albums', a row of suggestions.
@@ -73,7 +76,10 @@ class _MixTileState extends State<_MixTile> {
 
     setState(() => _loading = true);
 
-    final first = await widget.mixes.firstSongs(widget.mix).catchError((_) => const <Song>[]);
+    final first = await widget.mixes.firstSongs(widget.mix).catchError((Object e) {
+      _log.warning('first songs of a mix not had', e);
+      return const <Song>[];
+    });
 
     if (mounted) {
       await playMix(context, widget.mix, first: first);

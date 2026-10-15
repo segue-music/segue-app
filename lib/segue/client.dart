@@ -294,6 +294,10 @@ class SegueClient extends ChangeNotifier {
       case 'result':
         _waiting.remove(msg['re'])?.complete(Result(ok: msg['ok'] as bool, error: msg['error'] as String?));
         return;
+      case 'error':
+        // A message of this device's the hub couldn't take, which had no effect: a bug here (SPEC.md, section 2).
+        _log.warning('a message refused by $url: ${msg['error']}');
+        return;
       default:
         return;
     }

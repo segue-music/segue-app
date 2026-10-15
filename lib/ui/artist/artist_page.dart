@@ -5,6 +5,7 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:logging/logging.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../mixes.dart';
@@ -33,6 +34,8 @@ import '../widgets/themed_icon.dart';
 import '../widgets/tile_row.dart';
 import 'artists_view.dart';
 import 'biography_page.dart';
+
+final _log = Logger('ArtistPage');
 
 /// Albums of an artist's of one kind, and what they're called: their albums, or their singles and EPs.
 typedef AlbumSection = ({String title, List<Album> albums});
@@ -117,9 +120,15 @@ class _ArtistPageState extends State<ArtistPage> {
     // Shown with the artist alone: failing with them, as it does, nothing else is there to hear it.
     _mostPlayed ??= api.mostPlayedSongs(widget.artist.id, size: _ArtistSongs.count)..ignore();
     // A biography the server can't give is one it doesn't have: the page goes on without its button.
-    _biography ??= api.biography(widget.artist.id).catchError((Object _) => null);
+    _biography ??= api.biography(widget.artist.id).catchError((Object e) {
+      _log.warning('no biography of ${widget.artist.name}', e);
+      return null;
+    });
     // Artists like them the server can't give are none, as with a biography.
-    _similar ??= api.similarArtists(widget.artist.id).catchError((Object _) => const <Artist>[]);
+    _similar ??= api.similarArtists(widget.artist.id).catchError((Object e) {
+      _log.warning('no artists like ${widget.artist.name}', e);
+      return const <Artist>[];
+    });
   }
 
   @override
@@ -610,7 +619,8 @@ class _ArtistPageState extends State<ArtistPage> {
         for (final artist in await api.artists())
           if (artist.musicBrainzId case final id? when members.contains(id)) id: artist,
       };
-    } on Object {
+    } on Object catch (e) {
+      _log.warning('members in the library not listed', e);
       return const {};
     }
   }

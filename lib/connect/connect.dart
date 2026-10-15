@@ -422,8 +422,9 @@ class ConnectController extends ChangeNotifier {
           order: last.state.order,
         ),
       );
-    } on CommandFailed {
-      // nothing in it can be played here
+    } on CommandFailed catch (e) {
+      // Nothing in it can be played here.
+      _log.warning('last playback not restored', e);
     }
   }
 
@@ -503,8 +504,9 @@ class ConnectController extends ChangeNotifier {
           order: state.order,
         ),
       );
-    } on CommandFailed {
-      // nothing in it can be played here
+    } on CommandFailed catch (e) {
+      // Nothing in it can be played here.
+      _log.warning('music of ${device.info.name} not kept here', e);
     }
 
     // It came back playing, or another device started, while the music loaded here.

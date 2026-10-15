@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:logging/logging.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../server/models.dart';
 import '../../services.dart';
 import '../artist/artists_view.dart';
+import '../widgets/errors.dart';
 import '../widgets/spinner.dart';
 import 'genre_page.dart';
-import '../widgets/errors.dart';
+
+final _log = Logger('GenresView');
 
 /// The library's genres, by name, each with how many albums it has, under those the user listens to
 /// most. Those with no albums, which a server may list for their songs alone, are left out: they would
@@ -33,7 +36,10 @@ class _GenresViewState extends State<GenresView> {
   Future<_Genres> _load() async {
     final api = ServicesScope.of(context).api;
     // A shortcut, which the list goes without when the server fails to give it.
-    final mostPlayed = api.mostPlayedGenres().catchError((_) => const <Genre>[]);
+    final mostPlayed = api.mostPlayedGenres().catchError((Object e) {
+      _log.warning('most played genres not had', e);
+      return const <Genre>[];
+    });
     final genres = await api.genres();
 
     return (

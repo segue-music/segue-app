@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:logging/logging.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../mixes.dart';
@@ -8,6 +9,8 @@ import '../../services.dart';
 import 'errors.dart';
 import 'spinner.dart';
 import 'themed_icon.dart';
+
+final _log = Logger('MixButton');
 
 /// Plays [mix], with [first] first: the songs its tile shows. Says why where it can't: a mix without songs, or a radio
 /// without any like it, and what failed.
@@ -43,6 +46,7 @@ Future<void> playMix(BuildContext context, Mix mix, {List<Song> first = const []
       messenger.showSnackBar(SnackBar(content: Text(describeError(strings, result.error))));
     }
   } on Object catch (error) {
+    _log.warning('mix not played', error);
     messenger.showSnackBar(
       SnackBar(
         content: Text(switch (mix) {
