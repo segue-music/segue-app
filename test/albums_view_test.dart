@@ -18,6 +18,7 @@ import 'package:segue/ui/app/home_page.dart';
 import 'package:segue/ui/artist/artist_page.dart';
 import 'package:segue/ui/player/now_playing_bar.dart';
 import 'package:segue/ui/widgets/cover.dart';
+import 'package:segue/ui/widgets/letter_bar.dart';
 
 import 'fakes.dart';
 import 'sections.dart';
@@ -315,6 +316,20 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Album 001'), findsOneWidget);
     expect(find.text('Tentar de novo'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('a jump to a letter stops as another order is picked, asking for no more of its pages', (tester) async {
+    final held = Completer<void>();
+    final asked = await pumpAlbums(tester, count: 1200, held: held);
+
+    await tester.tap(find.descendant(of: find.byType(LetterBar), matching: find.text('W')).first);
+    await tester.pump();
+    await tester.tap(order('Lançamentos'));
+    await tester.pump();
+    held.complete();
+    await tester.pumpAndSettle();
+    expect(asked.where((list) => list.endsWith(' 500')), ['alphabeticalByName 200 500']);
     await tester.pumpWidget(const SizedBox());
   });
 

@@ -204,6 +204,8 @@ class _AlbumsViewState extends State<AlbumsView> {
       _albums.clear();
       _done = false;
       _error = null;
+      _jumps++; // a jump to a letter on its way stops: the letter is no longer where it was going
+
       scheduleMicrotask(() => _load(over: true)); // out of the build
     }
   }
