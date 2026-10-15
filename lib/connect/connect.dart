@@ -387,8 +387,8 @@ class ConnectController extends ChangeNotifier {
     client!.sendState(player.report(full: true));
   }
 
-  /// When the app opens and nothing plays, it shows where the music was (SPEC.md, "Last
-  /// playback"): on its device, if that one is on; otherwise here, paused at the same point, so
+  /// When the app opens and nothing plays, it shows where the music was (SPEC.md,
+  /// section 7): on its device, if that one is on; otherwise here, paused at the same point, so
   /// that play continues it.
   Future<void> _restoreLastPlayback() async {
     final hub = client!;

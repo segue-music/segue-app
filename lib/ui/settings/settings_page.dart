@@ -25,11 +25,12 @@ import 'sign_in_tv_page.dart';
 
 /// What the user picks for the app, and signing out, in groups under their names: the appearance (the theme, its colors
 /// and its contrast, the language), the playback (the quality, the volume's normalization, the equalizer's page, the
-/// crossfade, autoplay) and the app itself (its version, its log, the licenses' page); a line between the groups, and
-/// after the last, signing out, under the account it signs out of. Each choice is a line that says the option picked,
-/// which opens a sheet of them all ([_Choice]), or, on or off, a switch. In the page area, from the top bar's button;
-/// with no settings (SettingsScope), no choice's line, nor a group left with none, and with no version or no log, no
-/// line of it.
+/// crossfade, autoplay), the downloads (their quality, over mobile data or not, the page of those downloaded) and the
+/// app itself (its version, its log, the licenses' page); a line between the groups, and after the last, on a phone,
+/// signing a TV in, and signing out, under the account it signs out of. Each choice is a line that says the option
+/// picked, which opens a sheet of them all ([_Choice]), or, on or off, a switch. In the page area, from the top bar's
+/// button; with no settings (SettingsScope), no choice's line, nor a group left with none, and with no version or no
+/// log, no line of it.
 class SettingsPage extends StatelessWidget {
   const SettingsPage({required this.onSignOut, this.packageInfo, this.log, super.key});
 

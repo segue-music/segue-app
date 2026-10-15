@@ -20,8 +20,9 @@ import 'playlist_page.dart';
 
 /// The user's playlists, and those others share with them, by name, each with its picture and how many songs it has,
 /// opening its page, under a button that makes a new one and the user's favorites ([FavoritesPage]). Held, one opens
-/// its menu, which plays it next or adds it to the queue, and renames and deletes one the user can change. They load again as the app changes any. Where the app
-/// downloads, chips over them show them all, or the downloaded alone, as these come and go.
+/// its menu, which plays it next or adds it to the queue, and renames and deletes one the user can change. They load
+/// again as the app changes any. Where the app downloads, chips over them show them all, or the downloaded alone, as
+/// these come and go.
 class PlaylistsView extends StatefulWidget {
   const PlaylistsView({this.onFavorites, super.key});
 

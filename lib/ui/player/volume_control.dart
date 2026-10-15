@@ -47,8 +47,10 @@ class _VolumeControlState extends State<VolumeControl> with SingleTickerProvider
   bool _dragging = false;
 
   /// A moment after the last step, when the volume stops moving.
-  Timer? _stop;
-  Timer? _letGo;
+  Timer? _stopping;
+
+  /// A while after it stopped, when the slider lets go of the volume it holds, for the device's own to show.
+  Timer? _releasing;
 
   final _slider = OverlayPortalController();
   final _button = LayerLink();
@@ -59,7 +61,7 @@ class _VolumeControlState extends State<VolumeControl> with SingleTickerProvider
   bool _focused = false;
 
   /// A moment after none keeps it open, when the slider closes: time for the pointer to go from the button to it.
-  Timer? _close;
+  Timer? _closing;
 
   /// How far open the slider is: as it opens, it grows up out of the button, from a circle over it, and shows; as it
   /// closes, back. Closed, it goes.
@@ -82,9 +84,9 @@ class _VolumeControlState extends State<VolumeControl> with SingleTickerProvider
 
   @override
   void dispose() {
-    _stop?.cancel();
-    _letGo?.cancel();
-    _close?.cancel();
+    _stopping?.cancel();
+    _releasing?.cancel();
+    _closing?.cancel();
     _openness.dispose();
     _opening.dispose();
     super.dispose();
@@ -93,15 +95,15 @@ class _VolumeControlState extends State<VolumeControl> with SingleTickerProvider
   /// Opens the slider, or closes it a moment after nothing keeps it open.
   void _openOrClose() {
     if (_overButton || _overSlider || _dragging || _focused) {
-      _close?.cancel();
-      _close = null;
+      _closing?.cancel();
+      _closing = null;
       _slider.show();
       unawaited(_opening.forward());
       return;
     }
 
-    _close ??= Timer(const Duration(milliseconds: 300), () {
-      _close = null;
+    _closing ??= Timer(const Duration(milliseconds: 300), () {
+      _closing = null;
       unawaited(_opening.reverse());
     });
   }
@@ -128,9 +130,9 @@ class _VolumeControlState extends State<VolumeControl> with SingleTickerProvider
 
   /// The volume stops moving a moment after its last step, unless a drag holds it.
   void _waitForStop() {
-    _letGo?.cancel();
-    _stop?.cancel();
-    _stop = Timer(const Duration(milliseconds: 300), () {
+    _releasing?.cancel();
+    _stopping?.cancel();
+    _stopping = Timer(const Duration(milliseconds: 300), () {
       if (!_dragging) {
         _stopped();
       }
@@ -142,14 +144,14 @@ class _VolumeControlState extends State<VolumeControl> with SingleTickerProvider
     final volume = _held;
     final from = _from;
     _from = null;
-    _stop?.cancel();
+    _stopping?.cancel();
 
     if (volume == null || !mounted) {
       return;
     }
 
     unawaited(runCommand(context, () => _connect.setVolume(volume, from: from)));
-    _letGo = Timer(const Duration(seconds: 2), () {
+    _releasing = Timer(const Duration(seconds: 2), () {
       if (mounted) {
         setState(() => _held = null);
       }
@@ -189,13 +191,13 @@ class _VolumeControlState extends State<VolumeControl> with SingleTickerProvider
 
   void _toggleMute() {
     // A move that hasn't stopped yet goes first: where it went down to none, unmuting gives back the volume before it.
-    if (_stop?.isActive ?? false) {
+    if (_stopping?.isActive ?? false) {
       _stopped();
     }
 
     final muted = _volume == 0;
 
-    _letGo?.cancel();
+    _releasing?.cancel();
     setState(() => _held = _from = null);
     unawaited(runCommand(context, muted ? _connect.unmute : () => _connect.setVolume(0)));
   }

@@ -272,9 +272,10 @@ class _AlbumPageState extends State<AlbumPage> {
 
   /// The top of the page: the album's cover, its type (album, EP, ...), its name and byline, and the buttons that play
   /// it, make it one of the user's favorites, and more (its menu: to the queue, to a playlist, its radio). On a wide
-  /// screen the name is beside the cover, the type above it, the buttons under them; on a narrow one ([narrow]) the name is in the page's bar (a [PageBar]), over the
-  /// cover, which is centered, and the byline under the cover, from the page's margin as the songs are, with the buttons
-  /// at the end of its line, the play button last ([SongListTopLine]), and the type before the year.
+  /// screen the name is beside the cover, the type above it, the buttons under them; on a narrow one ([narrow]) the
+  /// name is in the page's bar (a [PageBar]), over the cover, which is centered, and the byline under the cover, from
+  /// the page's margin as the songs are, with the buttons at the end of its line, the play button last
+  /// ([SongListTopLine]), and the type before the year.
   Widget _header(Album album, List<Song> songs, {required ReleaseType? type, required bool narrow}) {
     final text = Theme.of(context).textTheme;
     final strings = AppLocalizations.of(context);
@@ -472,8 +473,6 @@ class _AlbumPageState extends State<AlbumPage> {
     icon: const ThemedIcon(HugeIcons.strokeRoundedPlay),
   );
 
-  /// The album's song at [index] in its list, which plays the album from it; on a [narrow] screen, its artists plain
-  /// text.
   /// The disc that [songs]' song at [index] starts, where the album has more than one; null for any other song, and
   /// for an album of one disc, which goes without saying.
   static int? _discStarting(List<Song> songs, int index) {
@@ -491,6 +490,8 @@ class _AlbumPageState extends State<AlbumPage> {
   static int _numberOf(List<Song> songs, int index) =>
       songs.every((song) => song.track != null) ? songs[index].track! : index + 1;
 
+  /// The album's song at [index] in its list, which plays the album from it; on a [narrow] screen, its artists plain
+  /// text.
   Widget _song(List<Song> songs, int index, {required bool narrow}) {
     final song = songs[index];
 

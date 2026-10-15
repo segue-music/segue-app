@@ -62,7 +62,6 @@ Future<bool> runPlaylistAction(
   List<Song>? songs,
 }) async {
   final services = ServicesScope.of(context);
-  final editor = services.playlistEditor;
   final messenger = ScaffoldMessenger.of(context);
   final strings = AppLocalizations.of(context);
 
@@ -101,12 +100,12 @@ Future<bool> runPlaylistAction(
       final name = await askPlaylistName(context, name: playlist.name);
 
       if (name != null) {
-        change = () => editor.rename(playlist.id, name);
+        change = () => services.playlistEditor.rename(playlist.id, name);
       }
 
     case PlaylistAction.delete:
       if (await confirmPlaylistDeletion(context, playlist)) {
-        change = () => editor.delete(playlist.id);
+        change = () => services.playlistEditor.delete(playlist.id);
       }
   }
 

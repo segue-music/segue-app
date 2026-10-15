@@ -106,6 +106,7 @@ class _PointerTileRowState extends State<_PointerTileRow> {
   Widget build(BuildContext context) {
     final row = widget.row;
     final tiles = row.tiles;
+
     return _TitledRow(
       row: row,
       // As tall with the arrows as without them.

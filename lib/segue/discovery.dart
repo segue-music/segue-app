@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 
 import 'protocol.dart';
 
-/// Finds the hub next to a media server (SPEC.md, "Discovery") and returns its WebSocket URL, or
+/// Finds the hub next to a media server (SPEC.md, section 1) and returns its WebSocket URL, or
 /// null when there is none. [hub], when given, is the hub's own address, typed by the user.
 Future<Uri?> discoverHub(Uri server, {Uri? hub, http.Client? client}) async {
   final candidates = hub != null ? [hub] : [server, if (server.path.length > 1) server.replace(path: '/')];

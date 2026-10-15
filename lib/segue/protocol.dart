@@ -459,8 +459,8 @@ class Device {
   String get id => info.id;
 }
 
-/// The user's most recent playback, as the hub keeps it across app restarts (SPEC.md, "Last
-/// playback"): the queue is already in this device's API.
+/// The user's most recent playback, as the hub keeps it across app restarts (SPEC.md,
+/// section 7): the queue is already in this device's API.
 class LastPlayback {
   const LastPlayback({required this.deviceId, required this.deviceName, required this.state});
 

@@ -170,11 +170,11 @@ class _SeekSliderState extends State<SeekSlider> {
   /// until the position gets there (from another device, that comes with its next report).
   Duration? _held;
   bool _dragging = false;
-  Timer? _letGo;
+  Timer? _releasing;
 
   @override
   void dispose() {
-    _letGo?.cancel();
+    _releasing?.cancel();
     super.dispose();
   }
 
@@ -183,8 +183,8 @@ class _SeekSliderState extends State<SeekSlider> {
       _dragging = false;
       _held = target;
     });
-    _letGo?.cancel();
-    _letGo = Timer(const Duration(seconds: 2), () {
+    _releasing?.cancel();
+    _releasing = Timer(const Duration(seconds: 2), () {
       if (mounted) {
         setState(() => _held = null);
       }

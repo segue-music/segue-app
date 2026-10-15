@@ -659,10 +659,11 @@ Running two app instances on one machine as different devices:
   `openSection(tester, 'Playlists')`) goes. Where every member of a list of fields or of an enum's
   values has its doc, the obvious one stays, rather than leave a gap.
 - Icons come from Hugeicons (`ThemedIcon(HugeIcons.strokeRounded...)`, `lib/ui/widgets/themed_icon.dart`),
-  which draws them as SVG paths, and never through its own `HugeIcon`: that one is 24 pixels
-  whatever the `IconTheme` says, so an icon button's `iconSize` or a navigation bar's theme would
-  miss it. No Material icon is left, and `test/icons_test.dart` keeps it so; the back arrow Flutter
-  adds to a page comes from the theme (`actionIconTheme`).
+  which draws them as SVG paths, and never through its own `HugeIcon` directly: `ThemedIcon` is the app's one way of
+  drawing them, which took the `IconTheme`'s size and color (an icon button's `iconSize`, a navigation bar's theme)
+  when `HugeIcon` was 24 pixels whatever it said; in hugeicons 1.2.0, the version the app takes, it takes them itself.
+  No Material icon is left, and `test/icons_test.dart` keeps it so; the back arrow Flutter adds to a page comes from
+  the theme (`actionIconTheme`).
 - The Linux build renders with Skia, not Impeller (`linux/runner/my_application.cc`): Flutter
   3.47's Impeller, on OpenGL, clips without antialiasing, so the round edges of covers and artists'
   pictures came out jagged, and it left the icons' thin strokes jagged too. On each Flutter update

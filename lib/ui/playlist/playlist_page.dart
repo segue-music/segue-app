@@ -384,8 +384,8 @@ class _PlaylistPageState extends State<PlaylistPage> {
     );
   }
 
-  /// The playlist's song at [index], which plays the playlist from it; its menu takes it out of an [editable] one, and
-  /// with [onMove] moves it, its line then [movable]. On a [narrow] screen, its artists are plain text.
+  /// The playlist's song at [index], which plays the playlist from it; its menu takes it out of an [editable] one, and,
+  /// on a TV, moves it by the remote ([byRemote]). On a [narrow] screen, its artists are plain text.
   Widget _song(List<Song> songs, int index, {required bool editable, required bool narrow, RemoteMove? byRemote}) {
     final song = songs[index];
 
