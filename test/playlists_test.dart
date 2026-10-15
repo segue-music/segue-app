@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/gestures.dart';
@@ -14,6 +15,7 @@ import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/app/home_page.dart';
+import 'package:segue/ui/artist/artist_page.dart';
 import 'package:segue/ui/player/now_playing_bar.dart';
 import 'package:segue/ui/player/player_page.dart';
 import 'package:segue/ui/playlist/playlist_menu.dart';
@@ -98,6 +100,9 @@ class Library {
   /// Whether it refuses to change any playlist.
   bool refuses = false;
 
+  /// Where given, what a deletion waits for before the server answers it.
+  Completer<void>? deletion;
+
   /// The playlist's songs' ids, by its name.
   List<String> songsOf(String name) => playlists.values.firstWhere((playlist) => playlist.name == name).songs;
 
@@ -167,6 +172,10 @@ class Library {
       case 'deletePlaylist.view':
         playlists.remove(param('id'));
         return subsonic({});
+      case 'getArtist.view':
+        return subsonic({
+          'artist': {'id': param('id'), 'name': 'Aerosmith', 'album': <Object>[]},
+        });
       case 'getAlbumList2.view':
         return subsonic({
           'albumList2': {
@@ -198,7 +207,13 @@ Future<PlayerController> pumpHome(WidgetTester tester, Size size, {Library? libr
   final api = SubsonicApi(
     Uri.parse('https://music.test'),
     credentials,
-    client: MockClient((request) async => server.answer(request)),
+    client: MockClient((request) async {
+      if (request.url.path.endsWith('deletePlaylist.view')) {
+        await server.deletion?.future;
+      }
+
+      return server.answer(request);
+    }),
   );
   final player = PlayerController(FakeEngine(), api);
   final services = Services(
@@ -740,6 +755,26 @@ void main() {
     expect(find.byType(PlaylistPage), findsNothing);
     expect(tile('Road trip'), findsNothing);
     expect(tile('Empty'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('a playlist deleted as the server takes its time closes its own page, not one opened over it meanwhile', (
+    tester,
+  ) async {
+    final library = Library()..deletion = Completer<void>();
+
+    await pumpHome(tester, const Size(1000, 700), library: library);
+    await openPlaylist(tester, 'Road trip');
+    await tap(tester, find.byTooltip('Mais opções').first);
+    await tap(tester, item('Excluir a playlist'));
+    await tap(tester, item('Excluir'));
+    await tap(tester, find.text('Aerosmith').first);
+    expect(find.byType(ArtistPage), findsOneWidget);
+
+    library.deletion!.complete();
+    await tester.pumpAndSettle();
+    expect(find.byType(ArtistPage), findsOneWidget);
+    expect(find.byType(PlaylistPage, skipOffstage: false), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
 

@@ -353,9 +353,21 @@ class _PlaylistPageState extends State<PlaylistPage> {
       icon: const ThemedIcon(HugeIcons.strokeRoundedMoreVertical),
       onSelected: (action) async {
         final navigator = Navigator.of(context);
+        final page = ModalRoute.of(context);
 
-        if (await runPlaylistAction(context, playlist, action, songs: songs) && action == PlaylistAction.delete) {
-          navigator.maybePop();
+        if (!await runPlaylistAction(context, playlist, action, songs: songs) || action != PlaylistAction.delete) {
+          return;
+        }
+
+        // This page, wherever it is now: another opened over it meanwhile (the server taking its time) stays.
+        if (page == null || !page.isActive) {
+          return;
+        }
+
+        if (page.isCurrent) {
+          navigator.pop();
+        } else {
+          navigator.removeRoute(page);
         }
       },
       itemBuilder: (context) => playlistMenuItems(context, playlist, hasSongs: songs.isNotEmpty),
