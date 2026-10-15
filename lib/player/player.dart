@@ -427,11 +427,13 @@ class PlayerController extends ChangeNotifier {
     return maxBitRate == null ? null : _api.transcodedStreamUrl(songId, maxBitRate: maxBitRate, from: from);
   }
 
-  Future<void> play() => _engine.play();
+  /// Plays the queue; with none, nothing: media_kit's player, asked to play nothing, says it plays all the same, and this
+  /// device would then be taken for the one playing.
+  Future<void> play() => _queue.isEmpty ? Future.value() : _engine.play();
 
   Future<void> pause() => _engine.pause();
 
-  Future<void> toggle() => playing ? _engine.pause() : _engine.play();
+  Future<void> toggle() => playing ? _engine.pause() : play();
 
   /// The next track; after the last one, the first, unless repeat is off (SPEC.md, section 5).
   Future<void> next() => _jump(index + 1 >= _queue.length && repeat != Repeat.off ? 0 : index + 1);
@@ -497,7 +499,7 @@ class PlayerController extends ChangeNotifier {
   Future<void> obey(Command command) async {
     switch (command.action) {
       case CommandAction.play:
-        await _engine.play();
+        await play();
       case CommandAction.pause:
         await _engine.pause();
       case CommandAction.toggle:

@@ -267,6 +267,18 @@ void main() {
     });
   });
 
+  test('with no queue, play and toggle play nothing, from here or from another device', () async {
+    for (final play in [
+      player.play,
+      player.toggle,
+      () => player.obey(const Command(CommandAction.play)),
+      () => player.obey(const Command(CommandAction.toggle)),
+    ]) {
+      await play();
+      expect(player.playing, isFalse);
+    }
+  });
+
   test('a seek is reported, though the engine says nothing', () async {
     await player.playQueue(songs);
     await player.seek(const Duration(seconds: 42));
