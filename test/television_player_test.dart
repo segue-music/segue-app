@@ -145,6 +145,29 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('on a TV, the player keeps the screen on while the music plays on another device too, which the home '
+      'leaves as the system has it', (tester) async {
+    const channel = MethodChannel('segue/device');
+    final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    final keptOn = <Object?>[];
+
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      if (call.method == 'keepScreenOn') {
+        keptOn.add(call.arguments);
+      }
+
+      return null;
+    });
+    addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+    await pumpFullHdHome(tester, followingAnotherDevice: true);
+    await tester.pump();
+    expect(keptOn, isEmpty, reason: 'the home leaves it as the system has it');
+
+    await openTvPlayer(tester);
+    expect(keptOn, [true]);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('on a TV, the screen stays on while the music plays, lyrics or not', (tester) async {
     const channel = MethodChannel('segue/device');
     final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
