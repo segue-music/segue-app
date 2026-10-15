@@ -6,6 +6,14 @@ import 'package:segue/server/server.dart';
 import 'package:segue/ui/widgets/errors.dart';
 
 void main() {
+  test('the hub\'s and the players\' errors say so in the user\'s language', () {
+    final strings = lookupAppLocalizations(const Locale('pt'));
+
+    expect(describeError(strings, 'badMessage'), 'O hub não entendeu o pedido.');
+    expect(describeError(strings, 'offline'), strings.errorOffline);
+    expect(describeError(strings, 'something new'), 'something new', reason: 'as it came');
+  });
+
   test('an error the app words itself says so in the user\'s language; the server\'s, in its own words', () {
     final strings = lookupAppLocalizations(const Locale('pt'));
 

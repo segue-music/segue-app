@@ -89,6 +89,10 @@
   "@errorFailed": {
     "description": "A command the device tried and failed."
   },
+  "errorBadMessage": "O hub não entendeu o pedido.",
+  "@errorBadMessage": {
+    "description": "A command or a transfer the hub couldn't make sense of (badMessage, SPEC.md section 5)."
+  },
   "errorClosed": "Sem conexão com o hub.",
   "@errorClosed": {
     "description": "A command sent while the connection to the hub was down."
@@ -1214,10 +1218,6 @@
   "addToPlaylist": "Adicionar à playlist",
   "@addToPlaylist": {
     "description": "The menu item and the button that add a song or an album to a playlist, and the title of the dialog that picks it."
-  },
-  "add": "Adicionar",
-  "@add": {
-    "description": "The tooltip of the album's button whose menu plays its songs next, adds them to the queue or adds them to a playlist."
   },
   "playNext": "Tocar a seguir",
   "@playNext": {

@@ -14,6 +14,7 @@ String describeError(AppLocalizations strings, String? error) => switch (error) 
   'unknownDevice' => strings.errorUnknownDevice,
   'nothingToTransfer' => strings.errorNothingToTransfer,
   'failed' => strings.errorFailed,
+  'badMessage' => strings.errorBadMessage,
   'closed' => strings.errorClosed,
   null => strings.errorUnknown,
   _ => error,
