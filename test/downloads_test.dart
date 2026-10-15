@@ -138,7 +138,13 @@ void main() {
     ]);
     expect(downloads.artist('ar1')?.coverArt, 'ar-ar1');
     expect(downloads.coverFile('ar-ar1')!.readAsStringSync(), 'image of ar-ar1');
-    expect(Uri.parse(server.api.streamUrl('s1').toString()).queryParameters, isNot(contains('maxBitRate')));
+    expect(
+      [
+        for (final url in server.urls)
+          if (url.path.endsWith('stream.view')) url.queryParameters['maxBitRate'],
+      ],
+      [null, null],
+    );
   });
 
   test('downloads stay as the app opens again, with all they say of the album and its songs', () async {
@@ -713,6 +719,11 @@ void main() {
     test('a downloaded song plays from its file, and a downloaded cover shows from its own, in reach too', () async {
       expect(api.streamUrl('s1', maxBitRate: 160), downloads.songFile('s1')!.uri);
       expect(await api.transcodedStreamUrl('s1', maxBitRate: 160, from: const Duration(seconds: 30)), isNull);
+      expect(
+        await api.transcodedStreamUrl('s3', maxBitRate: 160, from: const Duration(seconds: 30)),
+        isNotNull,
+        reason: 'the server can, for a song not downloaded',
+      );
       expect(api.streamUrl('s3').host, 'music.test');
       expect(api.coverArtUrl('al1', size: 300), downloads.coverFile('al1')!.uri);
       expect(utf8.decode(await api.coverArt('al1')), 'image of al1');
@@ -722,6 +733,9 @@ void main() {
     test('out of reach, the albums, playlists, artists and genres are the downloaded ones', () async {
       server.reachable = false;
       await reachability.check();
+
+      final asked = server.requests.length;
+
       expect((await api.artist('ar1')).$1.coverArt, 'ar-ar1', reason: 'with their picture');
       expect((await api.albums(order: AlbumOrder.name)).map((album) => album.name), ['Toys in the Attic']);
       expect(await api.albums(order: AlbumOrder.mostPlayed), isEmpty);
@@ -745,7 +759,7 @@ void main() {
         throwsA(ServerWithDownloads.unreachable),
         reason: 'a radio says why it doesn\'t play',
       );
-      expect(server.requests.where((request) => !request.startsWith('stream') && !request.startsWith('get')), isEmpty);
+      expect(server.requests.skip(asked), isEmpty, reason: 'the server not asked');
     });
 
     test('out of reach, a mix\'s songs are those of the downloaded albums of its genre and its years', () async {

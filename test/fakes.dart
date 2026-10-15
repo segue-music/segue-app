@@ -299,9 +299,10 @@ class FakeEngine implements Deck {
 /// A Subsonic server whose songs are their ids' bytes, and whose covers are images of their ids, but for those in
 /// [failing], which it answers with an error, and those in [held], which it answers once their completer is; out of
 /// reach ([reachable] false), it answers nothing. Its artists are [artists], by their ids, as getArtist gives them; it
-/// counts plays (scrobble) and answers pings, as a Navidrome of [version] where it has one. Pictures from elsewhere
-/// (`fanart.test`) are images of their paths. It keeps what it is asked for: by endpoint and id ([requests]), and
-/// whole ([urls]).
+/// counts plays (scrobble) and answers pings, as a Navidrome of [version] where it has one, and starts a transcoded song
+/// later (OpenSubsonic's transcodeOffset). Pictures from elsewhere (`fanart.test`) are images of their paths, out of
+/// reach only where [fanartReachable] is false. It keeps what it is asked for: by endpoint and id ([requests]),
+/// answered or not, and whole ([urls]), those it answers.
 class FileServer {
   final requests = <String>[];
   final urls = <Uri>[];
@@ -318,17 +319,12 @@ class FileServer {
   String? version;
 
   late final client = MockClient((request) async {
-    if (!reachable) {
-      throw http.ClientException('no route to host', request.url);
-    }
-
-    urls.add(request.url);
-
     if (request.url.host == 'fanart.test') {
       if (!fanartReachable) {
         throw http.ClientException('no route to host', request.url);
       }
 
+      urls.add(request.url);
       requests.add('fanart ${request.url.path}');
       return http.Response.bytes(utf8.encode('picture at ${request.url.path}'), 200);
     }
@@ -336,7 +332,14 @@ class FileServer {
     final id = request.url.queryParameters['id'] ?? '';
     final endpoint = request.url.pathSegments.last;
 
+    // Asked, whether it answers or not.
     requests.add('$endpoint $id');
+
+    if (!reachable) {
+      throw http.ClientException('no route to host', request.url);
+    }
+
+    urls.add(request.url);
     await held[id]?.future;
 
     if (failing.contains(id)) {
@@ -372,6 +375,15 @@ class FileServer {
         headers: {'content-type': 'image/jpeg'},
       ),
       'getArtist.view' when artists.containsKey(id) => subsonic({'artist': artists[id]}),
+      // One that starts a transcoded song later, where the downloads have nothing of it.
+      'getOpenSubsonicExtensions.view' => subsonic({
+        'openSubsonicExtensions': [
+          {
+            'name': 'transcodeOffset',
+            'versions': [1],
+          },
+        ],
+      }),
       'scrobble.view' || 'ping.view' => subsonic({}),
       _ => http.Response('', 404),
     };
