@@ -19,6 +19,7 @@ import 'package:segue/ui/app/theme.dart';
 import 'package:segue/ui/widgets/cover.dart';
 import 'package:segue/ui/widgets/themed_icon.dart';
 
+import 'computer.dart';
 import 'fakes.dart';
 
 const credentials = SubsonicCredentials(username: 'a', token: 't', salt: 's');
@@ -154,7 +155,7 @@ void main() {
     expect(find.textContaining('Este aparelho'), findsOneWidget);
     expect(otherIcons, findsNothing, reason: 'the devices');
     await tester.pumpWidget(const SizedBox()); // stops the player bar's timers
-  });
+  }, variant: computer);
 
   testWidgets('on a phone, the bar at the bottom too, the settings, and a page\'s back arrow', (tester) async {
     await pumpApp(tester, const Size(360, 640));

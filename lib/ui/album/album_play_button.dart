@@ -13,10 +13,9 @@ import 'release_types.dart';
 
 /// A button that plays an album from its first song without opening it, in the middle of its cover,
 /// which it fills. On a computer it shows while the pointer is over the album ([hovered]), the cover
-/// darkening a little under it as it comes; on a tablet, with nothing to hover with, always, on the
-/// cover as it is. On a TV it doesn't: the remote goes from album to album, and would have to stop at
-/// each one's button too. Nor on a phone, where it covered much of so small a cover. There an album
-/// plays from its page.
+/// darkening a little under it as it comes. On a TV it doesn't: the remote goes from album to album, and would have to
+/// stop at each one's button too. Nor on a phone, where it covered much of so small a cover, nor on a tablet, which has
+/// the phone's layout, with nothing to hover with. There an album plays from its page.
 class AlbumPlayButton extends StatefulWidget {
   const AlbumPlayButton(this.album, {required this.hovered, this.small = false, super.key});
 
@@ -68,15 +67,13 @@ class _AlbumPlayButtonState extends State<AlbumPlayButton> {
 
   @override
   Widget build(BuildContext context) {
-    if (context.television || context.phone) {
+    if (context.television || context.touch) {
       return const SizedBox.shrink();
     }
 
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 150),
-      child: context.touch
-          ? Center(child: _button(context))
-          : widget.hovered || _loading
+      child: widget.hovered || _loading
           // The shade comes and goes with the button, in the same fade, rounded as the thumbnail's or the
           // cover's corners are.
           ? Stack(

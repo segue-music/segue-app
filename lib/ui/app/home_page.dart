@@ -35,6 +35,7 @@ import '../widgets/directional_navigation.dart';
 import '../widgets/equalizer.dart';
 import '../widgets/scroll_focus.dart';
 import '../widgets/themed_icon.dart';
+import '../widgets/touch_screen.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({required this.onSignOut, this.packageInfo, this.log, super.key});
@@ -149,6 +150,21 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   /// beside its buttons.
   static const _libraryTabPadding = 12.0;
 
+  /// How wide the bars at the bottom are at most, the player's and the sections', on a touch screen wider than a
+  /// phone's (a tablet's): across the whole of it, the destinations and the player's few buttons would be far apart.
+  static const _bottomBarsWidth = 560.0;
+
+  /// From how wide a touch screen is (a tablet's, a phone's turned), the player's bar goes beside the sections', rather
+  /// than over them: one bar's height taken from the page rather than two's, where the width has room for both.
+  static const _barsBesideFrom = 760.0;
+
+  /// How wide the player's bar is beside the sections': as on a big phone, the sections' taking the rest.
+  static const _playerBesideWidth = 400.0;
+
+  /// How far the bars at the bottom, floating over the page side by side, are from each other, from the screen's sides
+  /// and from the system's bar.
+  static const _barsGap = 8.0;
+
   /// On a wide screen, the page area's navigator, and the pages opened in it.
   final _pages = GlobalKey<NavigatorState>();
   final _history = PageHistory();
@@ -185,9 +201,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   /// The favorites' page, by which the side rail tells it on top, as the top bar's button does the settings.
   static const _favorites = RouteSettings(name: 'favorites');
 
-  /// A phone's screen, or a window as narrow: the sections in a bar at the bottom, and pages over all of it.
-  bool get _narrow => MediaQuery.sizeOf(context).width < 600;
-
   /// Opens the settings in the page area, over the section, which a section picked shows again. With them open on top
   /// (on a wide screen, where the top bar stays over them), goes back instead, as the top bar's arrow does, rather than
   /// opening them again over themselves. From here, above the area, its navigator is the home's own.
@@ -207,7 +220,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
   /// Goes to the search bar, as the key '/' does: on a phone, to the search, a section of its own, where the bar is.
   void _focusSearch() {
-    if (_narrow && _section != _Section.search) {
+    if (context.phoneLayout && _section != _Section.search) {
       _select(_Section.search);
     }
 
@@ -229,7 +242,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
     // On a wide screen the results show over the section, which closes them. On a phone they are a section of their
     // own, which keeps them as the others keep theirs.
-    if (_results != null && !_narrow) {
+    if (_results != null && !context.phoneLayout) {
       _clearSearch();
     }
   }
@@ -237,7 +250,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   /// Shows [section], picked from the side rail, the app's icon, the bar at the bottom or the library's tabs; shown
   /// already, with nothing over it (a page; on a wide screen, the search's results), back to its start.
   void _pick(_Section section) {
-    if (section == _section && !_history.canGoBack && (_narrow || _results == null)) {
+    if (section == _section && !_history.canGoBack && (context.phoneLayout || _results == null)) {
       _toStart(section);
       return;
     }
@@ -436,12 +449,12 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     final strings = AppLocalizations.of(context);
     final results = _results;
     final width = MediaQuery.sizeOf(context).width;
-    final narrow = _narrow;
+    final phoneLayout = context.phoneLayout;
     // On a wide screen the search is the top bar's, not a section: a window narrowed to the search and widened again
     // shows the home. On a phone the genres are the search's, before something is searched.
     final shown = switch (_section) {
-      _Section.search when !narrow => _Section.home,
-      _Section.genres when narrow => _Section.search,
+      _Section.search when !phoneLayout => _Section.home,
+      _Section.genres when phoneLayout => _Section.search,
       final section => section,
     };
 
@@ -451,7 +464,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     final television = context.television;
     // On a phone, as wide as the top bar leaves it; on a wide screen, at most 600 and two fifths of the window, which on
     // a TV's (960 wide) leaves the top bar more than the search.
-    final searchWidth = narrow ? width : min(600.0, width * 0.4);
+    final searchWidth = phoneLayout ? width : min(600.0, width * 0.4);
     // Esc, as the clear button, staying in the bar for another search; with nothing typed, out of it, as Esc goes out
     // of anything else (UnfocusShortcut).
     final searchBar = CallbackShortcuts(
@@ -476,7 +489,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           onTapOutside: _tappedOutsideSearch,
           // On a phone, in the top bar, the search's name, in the room its name would take, rather than what it finds,
           // which wouldn't fit beside the top bar's buttons.
-          hintText: narrow ? strings.search : strings.searchHint,
+          hintText: phoneLayout ? strings.search : strings.searchHint,
           leading: const ThemedIcon(HugeIcons.strokeRoundedSearch01),
           trailing: [
             ListenableBuilder(
@@ -556,12 +569,28 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       ),
     );
 
-    // On a phone the bars at the bottom stay, the player's and the destinations', and pages open over the rest, in the
-    // page area, each with its own top bar and back arrow, over the section, which has the home's chips in its top bar,
-    // the search bar, or the library's tabs, and which a swipe changes for the next. The full-screen player and the
-    // queue cover everything.
-    if (narrow) {
+    // On a phone, or a tablet, the bars at the bottom stay, the player's and the destinations', and pages open over the
+    // rest, in the page area, each with its own top bar and back arrow, over the section, which has the home's chips in
+    // its top bar, the search bar, or the library's tabs, and which a swipe changes for the next. The full-screen player
+    // and the queue cover everything.
+    if (phoneLayout) {
       final destination = _Destination.of(shown);
+      final sectionsColor = Theme.of(context).colorScheme.surfaceContainer
+          .withValues(alpha: NowPlayingBar.phoneOpacity);
+
+      // The sections' bar on [color], a bit lower than Material's 80, with less room above and below the icons and
+      // their names.
+      NavigationBar sectionsBar(Color color) => NavigationBar(
+        height: 68,
+        backgroundColor: color,
+        selectedIndex: destination.index,
+        onDestinationSelected: (index) => _open(_Destination.values[index]),
+        destinations: [
+          for (final destination in _Destination.values)
+            NavigationDestination(icon: ThemedIcon(destination.icon), label: destination.label(strings)),
+        ],
+      );
+
       return SearchShortcut(
         onSearch: _focusSearch,
         child: PageArea(
@@ -629,35 +658,70 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                   ),
                 ),
               ),
-              bottomNavigationBar: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Above the sections' bar, which keeps clear of the system's at the bottom of the screen: the
-                  // player's needn't, and a small gap sets the two apart, alike in color. Nothing playing, there is no
-                  // player to set apart.
-                  MediaQuery.removePadding(context: context, removeBottom: true, child: const NowPlayingBar()),
-                  ListenableBuilder(
-                    listenable: services.connect,
-                    builder: (context, _) => SizedBox(height: services.connect.nowPlaying == null ? 0 : 2),
-                  ),
-                  // Its top corners rounded as the player's, the section showing around them.
-                  ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: NowPlayingBar.phoneCorner),
-                    child: NavigationBar(
-                      // A bit lower than Material's 80, with less room above and below the icons and their names.
-                      height: 68,
-                      backgroundColor: Theme.of(context).colorScheme.surfaceContainer
-                          .withValues(alpha: NowPlayingBar.phoneOpacity),
-                      selectedIndex: destination.index,
-                      onDestinationSelected: (index) => _open(_Destination.values[index]),
-                      destinations: [
-                        for (final destination in _Destination.values)
-                          NavigationDestination(icon: ThemedIcon(destination.icon), label: destination.label(strings)),
-                      ],
+              bottomNavigationBar: width >= _barsBesideFrom
+                  // Side by side, floating over the page, apart from each other, from the screen's sides and from the
+                  // system's bar, which they keep clear of, alike in color and corners: the sections' at the start, in
+                  // the room the player's leaves them, as tall as each other, their icons and names in the middle.
+                  // Nothing playing, the sections' alone.
+                  ? SafeArea(
+                      top: false,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(_barsGap, 0, _barsGap, _barsGap),
+                        child: ListenableBuilder(
+                          listenable: services.connect,
+                          child: ClipRRect(
+                            borderRadius: const BorderRadius.all(NowPlayingBar.phoneCorner),
+                            child: ColoredBox(
+                              color: sectionsColor,
+                              child: Center(heightFactor: 1, child: sectionsBar(Colors.transparent)),
+                            ),
+                          ),
+                          builder: (context, sections) => IntrinsicHeight(
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Expanded(child: sections!),
+                                if (services.connect.nowPlaying != null) ...[
+                                  const SizedBox(width: _barsGap),
+                                  const SizedBox(width: _playerBesideWidth, child: NowPlayingBar()),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    )
+                  // On a phone the player's over the sections', which go on to the bottom of the screen; on a tablet
+                  // too narrow for them side by side, in the middle, as wide as a phone's at most
+                  // ([_bottomBarsWidth]), the page showing at their sides.
+                  : Center(
+                      heightFactor: 1,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: _bottomBarsWidth),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Above the sections' bar, which keeps clear of the system's at the bottom of the screen:
+                            // the player's needn't, and a small gap sets the two apart, alike in color. Nothing
+                            // playing, there is no player to set apart.
+                            MediaQuery.removePadding(
+                              context: context,
+                              removeBottom: true,
+                              child: const NowPlayingBar(),
+                            ),
+                            ListenableBuilder(
+                              listenable: services.connect,
+                              builder: (context, _) => SizedBox(height: services.connect.nowPlaying == null ? 0 : 2),
+                            ),
+                            // Its top corners rounded as the player's, the page showing around them.
+                            ClipRRect(
+                              borderRadius: const BorderRadius.vertical(top: NowPlayingBar.phoneCorner),
+                              child: sectionsBar(sectionsColor),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
-                ],
-              ),
             ),
           ),
         ),
@@ -667,13 +731,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     // On a wide screen the bars stay, the top one, the side rail and the player's (but on a TV, whose rail opens the
     // full-screen player instead), and pages open between them, in the page area. The arrows beside the app's icon go
     // back and forward through them, as do the keyboard's. They sit close together, as a browser's: smaller buttons than
-    // the rest, without the room Material leaves around them on a touch screen.
+    // the rest.
     const arrow = 32.0;
-    final arrows = IconButton.styleFrom(
-      padding: const EdgeInsets.all(4),
-      minimumSize: const Size.square(arrow),
-      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-    );
+    final arrows = IconButton.styleFrom(padding: const EdgeInsets.all(4), minimumSize: const Size.square(arrow));
     final logo = IconButton(
       tooltip: _Section.home.label(strings),
       icon: Image.asset('assets/logo.png', width: 32, height: 32),

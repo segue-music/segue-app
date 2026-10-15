@@ -8,6 +8,7 @@ import 'package:segue/session.dart';
 import 'package:segue/ui/home/home_chips.dart';
 import 'package:segue/ui/playlist/favorites_page.dart';
 
+import 'computer.dart';
 import 'fakes.dart';
 import 'home_search_test.dart' show pumpHome;
 import 'mixes_test.dart' show api, credentials;
@@ -82,5 +83,5 @@ void main() {
     await tester.pumpAndSettle();
     expect(chip, findsOneWidget, reason: 'over a page too');
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 }

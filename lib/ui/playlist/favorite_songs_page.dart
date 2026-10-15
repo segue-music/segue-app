@@ -18,6 +18,7 @@ import '../widgets/cover.dart';
 import '../widgets/errors.dart';
 import '../widgets/spinner.dart';
 import '../widgets/themed_icon.dart';
+import '../widgets/touch_screen.dart';
 
 /// The picture of the user's favorite songs: a heart, filled, on the theme's color, rounded as a cover is, by [radius].
 class FavoritesPicture extends StatelessWidget {
@@ -106,9 +107,8 @@ class _FavoriteSongsPageState extends State<FavoriteSongsPage> {
       return false;
     }
 
-    final width = MediaQuery.sizeOf(context).width;
-
-    if (width < 600) {
+    if (context.phoneLayout) {
+      final width = MediaQuery.sizeOf(context).width;
       final picture = min(width - 2 * 16, 280);
       _shade.value = (offset / (8 + picture / 2)).clamp(0, 1);
     } else {
@@ -130,7 +130,7 @@ class _FavoriteSongsPageState extends State<FavoriteSongsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final narrow = MediaQuery.sizeOf(context).width < 600;
+    final phoneLayout = context.phoneLayout;
     final strings = AppLocalizations.of(context);
     final favorites = ServicesScope.of(context).favorites;
 
@@ -143,12 +143,12 @@ class _FavoriteSongsPageState extends State<FavoriteSongsPage> {
         return Scaffold(
           appBar: PageArea.holdsUnderTopBar(context)
               ? null
-              : PageBar(title: narrow ? strings.favoriteSongs : null, shade: narrow && shown ? _shade : null),
-          extendBodyBehindAppBar: narrow && shown,
+              : PageBar(title: phoneLayout ? strings.favoriteSongs : null, shade: phoneLayout && shown ? _shade : null),
+          extendBodyBehindAppBar: phoneLayout && shown,
           body: switch (shown) {
             true => NotificationListener(
               onNotification: _followScroll,
-              child: _songs(favorites.songs, narrow: narrow),
+              child: _songs(favorites.songs, phoneLayout: phoneLayout),
             ),
             false when error != null => Center(
               child: Text(strings.couldNotListFavorites(describeFailure(strings, error))),
@@ -163,27 +163,27 @@ class _FavoriteSongsPageState extends State<FavoriteSongsPage> {
   }
 
   /// The page under its bar: the top, and the songs.
-  Widget _songs(List<Song> songs, {required bool narrow}) {
+  Widget _songs(List<Song> songs, {required bool phoneLayout}) {
     final strings = AppLocalizations.of(context);
 
     return CustomScrollView(
       slivers: [
-        if (!narrow) PageBarSliver(title: strings.favoriteSongs, shade: _shade, leading: _playButton(songs)),
+        if (!phoneLayout) PageBarSliver(title: strings.favoriteSongs, shade: _shade, leading: _playButton(songs)),
         SliverSafeArea(
           left: false,
           right: false,
           sliver: SliverMainAxisGroup(
             slivers: [
-              SliverToBoxAdapter(child: _header(songs, narrow: narrow)),
+              SliverToBoxAdapter(child: _header(songs, phoneLayout: phoneLayout)),
               if (songs.isEmpty)
                 SliverToBoxAdapter(
                   child: Padding(padding: const EdgeInsets.all(16), child: Text(strings.favoriteSongsEmpty)),
                 )
-              else if (!narrow)
+              else if (!phoneLayout)
                 const SliverToBoxAdapter(child: SongListHeader(menus: true)),
               SliverList.builder(
                 itemCount: songs.length,
-                itemBuilder: (context, i) => _song(songs, i, narrow: narrow),
+                itemBuilder: (context, i) => _song(songs, i, phoneLayout: phoneLayout),
               ),
             ],
           ),
@@ -192,16 +192,16 @@ class _FavoriteSongsPageState extends State<FavoriteSongsPage> {
     );
   }
 
-  /// The top of the page, as a playlist's: on a wide screen the name beside the picture, the button under it; on a
-  /// [narrow] one the name in the page's bar, over the picture, and how many songs they are under it, with the button
+  /// The top of the page, as a playlist's: on a wide screen the name beside the picture, the button under it; in a
+  /// phone's layout ([phoneLayout]) the name in the page's bar, over the picture, and how many songs they are under it, with the button
   /// at the end of their line.
-  Widget _header(List<Song> songs, {required bool narrow}) {
+  Widget _header(List<Song> songs, {required bool phoneLayout}) {
     final text = Theme.of(context).textTheme;
     final strings = AppLocalizations.of(context);
     final details = songs.isEmpty ? null : Text(songCountAndLength(strings, songs), style: text.bodyMedium);
     final play = _playButton(songs);
 
-    if (narrow) {
+    if (phoneLayout) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -254,8 +254,8 @@ class _FavoriteSongsPageState extends State<FavoriteSongsPage> {
     icon: const ThemedIcon(HugeIcons.strokeRoundedPlay),
   );
 
-  /// The song at [index], which plays them from it; on a [narrow] screen, its artists are plain text.
-  Widget _song(List<Song> songs, int index, {required bool narrow}) {
+  /// The song at [index], which plays them from it; in a phone's layout ([phoneLayout]), its artists are plain text.
+  Widget _song(List<Song> songs, int index, {required bool phoneLayout}) {
     final song = songs[index];
 
     return CurrentSong(
@@ -270,7 +270,7 @@ class _FavoriteSongsPageState extends State<FavoriteSongsPage> {
           title: Text(song.title, maxLines: 1, overflow: TextOverflow.ellipsis),
           subtitle: song.artist == null
               ? null
-              : narrow
+              : phoneLayout
               ? Text(artistNames(song), maxLines: 1, overflow: TextOverflow.ellipsis)
               : ExcludeFocus(child: ArtistLinks.song(song)),
           trailing: SongTrailing(song.id, song.duration, menu),

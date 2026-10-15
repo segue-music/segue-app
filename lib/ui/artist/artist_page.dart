@@ -32,6 +32,7 @@ import '../widgets/spinner.dart';
 import '../widgets/text_link.dart';
 import '../widgets/themed_icon.dart';
 import '../widgets/tile_row.dart';
+import '../widgets/touch_screen.dart';
 import 'artists_view.dart';
 import 'biography_page.dart';
 
@@ -141,9 +142,9 @@ class _ArtistPageState extends State<ArtistPage> {
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context);
-    // On a phone, or a window as narrow (as the home counts it), the picture goes across the top of the page, under its
+    // In a phone's layout (a tablet's too, as the home has it), the picture goes across the top of the page, under its
     // bar, which has the name: beside it, a picture of some size would leave the name no room.
-    final narrow = MediaQuery.sizeOf(context).width < 600;
+    final phoneLayout = context.phoneLayout;
 
     return FutureBuilder(
       future: _artist,
@@ -160,15 +161,15 @@ class _ArtistPageState extends State<ArtistPage> {
             appBar: PageArea.holdsUnderTopBar(context)
                 ? null
                 : PageBar(
-                    title: narrow ? data?.$1.name ?? widget.artist.name : null,
-                    shade: narrow && data != null ? _shade : null,
-                    titleOpacity: narrow && data != null ? _titleOpacity : null,
-                    under: narrow && data != null
+                    title: phoneLayout ? data?.$1.name ?? widget.artist.name : null,
+                    shade: phoneLayout && data != null ? _shade : null,
+                    titleOpacity: phoneLayout && data != null ? _titleOpacity : null,
+                    under: phoneLayout && data != null
                         ? _colorUnderBar(data.$1.coverArt ?? widget.artist.coverArt, otherPicture)
                         : null,
                   ),
             // On a phone the picture goes on under the bar and the system's, to the top of the screen.
-            extendBodyBehindAppBar: narrow && data != null,
+            extendBodyBehindAppBar: phoneLayout && data != null,
             body: switch (data) {
               _ when snapshot.hasError => Center(
                 child: Text(strings.couldNotOpenArtistError(describeFailure(strings, snapshot.error))),
@@ -180,15 +181,15 @@ class _ArtistPageState extends State<ArtistPage> {
                   ArtistPage.sections(strings, albums),
                   subtitle: (album) => yearAndReleaseType(strings, album),
                   // On a wide screen, where the name is by the picture, and stays in sight once that has gone.
-                  bar: narrow ? null : PageBarSliver(title: artist.name, shade: _shade),
+                  bar: phoneLayout ? null : PageBarSliver(title: artist.name, shade: _shade),
                   header: _ArtistSongs(
                     artist,
                     mostPlayed: _mostPlayed!,
                     builder: (heading, songs) =>
-                        _header(artist, albums, heading, songs, otherPicture: otherPicture, narrow: narrow),
-                    icons: narrow,
+                        _header(artist, albums, heading, songs, otherPicture: otherPicture, phoneLayout: phoneLayout),
+                    icons: phoneLayout,
                     // On a phone, how many albums they have, at the end of the choice's line.
-                    trailing: narrow ? _counts(artist, albums, end: true) : null,
+                    trailing: phoneLayout ? _counts(artist, albums, end: true) : null,
                   ),
                   footer: _similarArtists(),
                 ),
@@ -295,7 +296,7 @@ class _ArtistPageState extends State<ArtistPage> {
       return false;
     }
 
-    if (MediaQuery.sizeOf(context).width >= 600) {
+    if (!context.phoneLayout) {
       _shade.value = PageBarSliver.shadeAt(offset, pictureBottom: 16 + _widePicture);
       return false;
     }
@@ -348,7 +349,7 @@ class _ArtistPageState extends State<ArtistPage> {
 
   /// The top of the page, down to the artist's [songs] and the choice of their lists, or its title ([heading]). On a
   /// wide screen the picture is round, the name beside it, with how many albums they have and their genres, and behind
-  /// them the picture again, blurred, across the page. On a narrow one ([narrow]) it goes across the page from the top
+  /// them the picture again, blurred, across the page. In a phone's layout ([phoneLayout]) it goes across the page from the top
   /// of the screen, under the page's bar (a [PageBar]) and the system's; the heading is over its bottom, with how many
   /// albums they have at the end of its line, where it fades to the page's color (darker in the dark theme, lighter in
   /// the light one), their genres over it, and their name over them, in bold, bigger than the bar has it ([_name]). The
@@ -359,16 +360,16 @@ class _ArtistPageState extends State<ArtistPage> {
     Widget? heading,
     List<Widget> songs, {
     required Uri? otherPicture,
-    required bool narrow,
+    required bool phoneLayout,
   }) {
     final text = Theme.of(context).textTheme;
     final picture = artist.coverArt ?? widget.artist.coverArt;
-    final count = _counts(artist, albums, end: narrow);
+    final count = _counts(artist, albums, end: phoneLayout);
     final genres = _genres(albums);
     // The first way to play anything of theirs from the page: a radio, as a genre's page has its mix.
     final radio = ArtistRadio(artist);
 
-    if (narrow) {
+    if (phoneLayout) {
       // The system's bar, which the picture goes on under, as under the page's.
       final top = MediaQuery.paddingOf(context).top;
       final height = top + _pictureHeight;

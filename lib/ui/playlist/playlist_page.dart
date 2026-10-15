@@ -23,6 +23,7 @@ import '../widgets/download_button.dart';
 import '../widgets/errors.dart';
 import '../widgets/spinner.dart';
 import '../widgets/themed_icon.dart';
+import '../widgets/touch_screen.dart';
 import 'playlist_menu.dart';
 
 /// A playlist's page, laid out as an album's: its picture, its name, how many songs it has and how long they last, the
@@ -171,9 +172,8 @@ class _PlaylistPageState extends State<PlaylistPage> {
       return false;
     }
 
-    final width = MediaQuery.sizeOf(context).width;
-
-    if (width < 600) {
+    if (context.phoneLayout) {
+      final width = MediaQuery.sizeOf(context).width;
       // The picture is as wide as the page less its margins, up to 280, under a gap of 8 (_header).
       final picture = min(width - 2 * 16, 280);
       _shade.value = (offset / (8 + picture / 2)).clamp(0, 1);
@@ -196,9 +196,9 @@ class _PlaylistPageState extends State<PlaylistPage> {
 
   @override
   Widget build(BuildContext context) {
-    // On a phone, or a window as narrow (as the home counts it), the name is in the page's bar, over the picture, and
+    // In a phone's layout (a tablet's too, as the home has it), the name is in the page's bar, over the picture, and
     // the songs have no header naming their columns.
-    final narrow = MediaQuery.sizeOf(context).width < 600;
+    final phoneLayout = context.phoneLayout;
     final strings = AppLocalizations.of(context);
     final (playlist, entries, error) = (_playlist, _entries, _error);
     final shown = playlist != null && entries != null;
@@ -208,15 +208,15 @@ class _PlaylistPageState extends State<PlaylistPage> {
       appBar: PageArea.holdsUnderTopBar(context)
           ? null
           : PageBar(
-              title: narrow ? playlist?.name ?? widget.playlist.name : null,
-              shade: narrow && shown ? _shade : null,
+              title: phoneLayout ? playlist?.name ?? widget.playlist.name : null,
+              shade: phoneLayout && shown ? _shade : null,
             ),
       // On a phone the page goes on under the bar and the system's, to the top of the screen, as it scrolls.
-      extendBodyBehindAppBar: narrow && shown,
+      extendBodyBehindAppBar: phoneLayout && shown,
       body: switch ((playlist, entries)) {
         (final playlist?, final entries?) => NotificationListener(
           onNotification: _followScroll,
-          child: _songs(playlist, entries, narrow: narrow),
+          child: _songs(playlist, entries, phoneLayout: phoneLayout),
         ),
         _ when error != null => Center(child: Text(strings.couldNotOpenPlaylist(describeFailure(strings, error)))),
         _ => const Center(child: Spinner()),
@@ -229,7 +229,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
   }
 
   /// The page under its bar: the top, and the songs, which move where the user can change the playlist.
-  Widget _songs(Playlist playlist, List<_Entry> entries, {required bool narrow}) {
+  Widget _songs(Playlist playlist, List<_Entry> entries, {required bool phoneLayout}) {
     final strings = AppLocalizations.of(context);
     final songs = [for (final entry in entries) entry.song];
 
@@ -237,7 +237,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
       slivers: [
         // On a wide screen, where the name is by the picture, and stays in sight once that has gone, with the button that
         // plays the playlist.
-        if (!narrow) PageBarSliver(title: playlist.name, shade: _shade, leading: _playButton(songs)),
+        if (!phoneLayout) PageBarSliver(title: playlist.name, shade: _shade, leading: _playButton(songs)),
         // Clear of the bars the page goes on under, by the room MediaQuery says they take, as a list is.
         SliverSafeArea(
           left: false,
@@ -248,20 +248,20 @@ class _PlaylistPageState extends State<PlaylistPage> {
                 // Built again as the device the app controls changes: its menu follows what that device takes.
                 child: ListenableBuilder(
                   listenable: ServicesScope.of(context).connect,
-                  builder: (context, _) => _header(playlist, songs, narrow: narrow),
+                  builder: (context, _) => _header(playlist, songs, phoneLayout: phoneLayout),
                 ),
               ),
               if (songs.isEmpty)
                 SliverToBoxAdapter(
                   child: Padding(padding: const EdgeInsets.all(16), child: Text(strings.playlistEmpty)),
                 )
-              else if (!narrow)
+              else if (!phoneLayout)
                 const SliverToBoxAdapter(child: SongListHeader(menus: true)),
               MovableSongs(
                 keys: [for (final entry in entries) ObjectKey(entry)],
                 onMove: playlist.editable ? _move : null,
                 itemBuilder: (_, index, byRemote) =>
-                    _song(songs, index, editable: playlist.editable, narrow: narrow, byRemote: byRemote),
+                    _song(songs, index, editable: playlist.editable, phoneLayout: phoneLayout, byRemote: byRemote),
               ),
             ],
           ),
@@ -272,10 +272,10 @@ class _PlaylistPageState extends State<PlaylistPage> {
 
   /// The top of the page: the playlist's picture, its name, how many songs it has and how long they last (where it has
   /// any: an empty one says so under it), the button that plays it, and, where it has anything in it, its menu. On a
-  /// wide screen the name is beside the picture, under the word "Playlist", the buttons under them; on a narrow one
-  /// ([narrow]) the name is in the page's bar, over the picture, which is centered, and the songs and their length
+  /// wide screen the name is beside the picture, under the word "Playlist", the buttons under them; in a phone's
+  /// layout ([phoneLayout]) the name is in the page's bar, over the picture, which is centered, and the songs and their length
   /// under it, with the buttons at the end of their line, the play button last ([SongListTopLine]).
-  Widget _header(Playlist playlist, List<Song> songs, {required bool narrow}) {
+  Widget _header(Playlist playlist, List<Song> songs, {required bool phoneLayout}) {
     final text = Theme.of(context).textTheme;
     final strings = AppLocalizations.of(context);
     final details = songs.isEmpty ? null : Text(songCountAndLength(strings, songs), style: text.bodyMedium);
@@ -288,7 +288,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
     // Asked of the server as an album's cover is.
     final picture = CoverButton(playlist.coverArt, size: 800, icon: HugeIcons.strokeRoundedPlaylist01);
 
-    if (narrow) {
+    if (phoneLayout) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -385,8 +385,8 @@ class _PlaylistPageState extends State<PlaylistPage> {
   }
 
   /// The playlist's song at [index], which plays the playlist from it; its menu takes it out of an [editable] one, and,
-  /// on a TV, moves it by the remote ([byRemote]). On a [narrow] screen, its artists are plain text.
-  Widget _song(List<Song> songs, int index, {required bool editable, required bool narrow, RemoteMove? byRemote}) {
+  /// on a TV, moves it by the remote ([byRemote]). In a phone's layout ([phoneLayout]), its artists are plain text.
+  Widget _song(List<Song> songs, int index, {required bool editable, required bool phoneLayout, RemoteMove? byRemote}) {
     final song = songs[index];
 
     return CurrentSong(
@@ -404,7 +404,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
             // On a phone plain text, and elsewhere links that take no focus, as on an album's page.
             subtitle: song.artist == null
                 ? null
-                : narrow
+                : phoneLayout
                 ? Text(artistNames(song), maxLines: 1, overflow: TextOverflow.ellipsis)
                 : ExcludeFocus(child: ArtistLinks.song(song)),
             trailing: SongTrailing(song.id, song.duration, menu),

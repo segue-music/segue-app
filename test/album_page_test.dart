@@ -28,6 +28,7 @@ import 'package:segue/ui/widgets/cover.dart';
 import 'package:segue/ui/widgets/text_link.dart';
 import 'package:segue/ui/widgets/tile_row.dart';
 
+import 'computer.dart';
 import 'fakes.dart';
 
 http.Response subsonic(Map<String, Object?> body) => http.Response(
@@ -472,7 +473,7 @@ void main() {
     expect(find.descendant(of: find.byType(ArtistPage), matching: find.text('Aerosmith')).first, findsOneWidget);
     expect(engine.tracks, isEmpty, reason: 'the song didn\'t play');
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets(
     'the album\'s menu plays its radio, songs like its own, and a song\'s menu that song\'s, the song first',
@@ -605,7 +606,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.widget<ArtistPage>(find.byType(ArtistPage)).artist.id, 'ar2');
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets(
     'on a phone, a song\'s artists are plain text, which a tap on plays the song: only the player links them',
@@ -648,13 +649,14 @@ void main() {
       expect(find.byType(ArtistPage), findsOneWidget, reason: 'the picture is part of the link');
       await tester.pumpWidget(const SizedBox());
     },
+    variant: computer,
   );
 
   testWidgets('an album of an hour or more says how long in hours and minutes', (tester) async {
     await pumpAlbum(tester, more: 20); // 494 seconds, and 20 songs of 200
     expect(find.textContaining(' · 1975 · 22 faixas, 1 h 14 min'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('over the songs, a header names their columns, lined up with them: #, the title, the duration', (
     tester,
@@ -674,9 +676,13 @@ void main() {
       reason: 'each number',
     );
     expect(tester.getRect(find.text('Título')).left, tester.getRect(find.text('Walk This Way')).left);
+
+    // The theme's density, a computer's compact one, takes its 4 off the room, as off Material's.
+    final density = Theme.of(tester.element(first)).visualDensity;
+
     expect(
       tester.getRect(find.text('Walk This Way')).left,
-      16 + SongListHeader.numberWidth + SongListHeader.numberGap,
+      16 + SongListHeader.numberWidth + SongListHeader.numberGap + 2 * density.horizontal,
       reason: 'the room after the number, narrower than Material\'s',
     );
     expect(
@@ -686,7 +692,7 @@ void main() {
     expect(tester.getRect(find.text('Título')).bottom, lessThan(tester.getRect(first).top));
     expect(Focus.maybeOf(tester.element(find.text('Título')))?.canRequestFocus ?? false, isFalse, reason: 'no stop');
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('each song\'s menu ends its line, after its duration, the durations ending together, a longer one too', (
     tester,
@@ -792,7 +798,7 @@ void main() {
     expect((byline.left, play.left), (name.left, name.left));
     expect(play.top, greaterThan(byline.bottom));
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets(
     'on a phone, the byline is under the cover, from the page\'s margin, the play button at the end of its line',
@@ -911,7 +917,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(inBar(find.byType(Opacity)), findsNothing, reason: 'gone with the cover back');
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('a window widened with the page scrolled a little shows no bar yet, where a phone\'s had some color', (
     tester,
@@ -967,6 +973,7 @@ void main() {
 
       await tester.pumpWidget(const SizedBox());
     },
+    variant: computer,
   );
 
   testWidgets('on a wide screen, the cover is 220, asked of the server as the phone\'s', (tester) async {
@@ -982,7 +989,7 @@ void main() {
       reason: 'under it, as it comes',
     );
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('a song\'s number and duration are as big as the artist\'s line beside them, in its title\'s color', (
     tester,
@@ -1054,7 +1061,7 @@ void main() {
     }
 
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('on a wide screen, the album\'s type is above its name, lined up with it', (tester) async {
     await pumpAlbum(tester, releaseTypes: ['EP']);
@@ -1066,7 +1073,7 @@ void main() {
     expect(find.textContaining('EP ·'), findsNothing, reason: 'not in the byline too');
     expect(find.byTooltip('Tocar o EP'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('on a phone, the album\'s type is before its year, under the artist', (tester) async {
     await pumpAlbum(tester, releaseTypes: ['EP'], size: const Size(360, 640));
@@ -1095,7 +1102,7 @@ void main() {
     expect(find.byTooltip('Tocar o álbum'), findsOneWidget, reason: 'but its play button says album');
     expect(find.text('Toys in the Attic'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('where the server says no release date or type, MusicBrainz\'s, as they come', (tester) async {
     final brainz = MusicBrainz(
@@ -1124,7 +1131,7 @@ void main() {
     expect(find.text('EP'), findsOneWidget);
     expect(find.byTooltip('Tocar o EP'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('the release date as precisely as the server knows it', (tester) async {
     for (final (date, text) in [
@@ -1235,7 +1242,7 @@ void main() {
       await pumpAlbum(tester, size: size);
       expect(find.byTooltip('Ver os créditos'), findsNothing);
       await tester.pumpWidget(const SizedBox());
-    });
+    }, variant: platformFor(size));
   }
 
   testWidgets('the names of the library\'s artists among those credited are links to their pages, which close the '

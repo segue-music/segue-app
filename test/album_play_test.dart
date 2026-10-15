@@ -17,6 +17,7 @@ import 'package:segue/ui/widgets/cover.dart';
 import 'package:segue/ui/widgets/directional_navigation.dart';
 import 'package:segue/ui/widgets/themed_icon.dart';
 
+import 'computer.dart';
 import 'fakes.dart';
 import 'sections.dart';
 import 'side_rail.dart';
@@ -236,17 +237,13 @@ void main() {
   );
 
   testWidgets(
-    'on a tablet, with no pointer to hover with, every album shows it',
+    'on a tablet, with no pointer to hover with, there is none either, as it has the phone\'s layout',
     variant: TargetPlatformVariant.mobile(),
     (tester) async {
-      final player = await pumpAlbums(tester);
-
-      expect(playButton, findsNWidgets(2));
-      expect(shade('Toys in the Attic'), findsNothing, reason: 'with nothing to hover with, the covers stay');
-      await tester.tap(find.descendant(of: tile('Toys in the Attic'), matching: playButton));
-      await tester.pumpAndSettle();
-      expect(player.current?.title, 'Walk This Way');
-      await tester.pumpWidget(const SizedBox());
+      await pumpAlbums(tester);
+      expect(find.text('Toys in the Attic'), findsOneWidget);
+      expect(playButton, findsNothing);
+      expect(shade('Toys in the Attic'), findsNothing);
     },
   );
 
@@ -284,6 +281,11 @@ void main() {
     await tester.enterText(find.byType(TextField), 'toys');
     await tester.pump(HomePage.searchTypingPause);
     await tester.pumpAndSettle();
+
+    final gesture = await mouse(tester);
+
+    await gesture.moveTo(tester.getCenter(find.text('Toys in the Attic')));
+    await tester.pumpAndSettle();
     expect(playButton, findsOneWidget);
 
     final icon = tester.element(find.descendant(of: playButton, matching: find.byType(ThemedIcon)));
@@ -298,20 +300,28 @@ void main() {
     await tester.pumpAndSettle();
     expect(player.current?.title, 'Walk This Way');
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('an album the server fails to give says so, and nothing plays', (tester) async {
     final player = await pumpAlbums(tester);
+    final gesture = await mouse(tester);
 
+    await gesture.moveTo(tester.getCenter(find.text('Pump')));
+    await tester.pumpAndSettle();
     await tester.tap(find.descendant(of: tile('Pump'), matching: playButton));
     await tester.pumpAndSettle();
     expect(find.textContaining('Não consegui tocar o álbum'), findsOneWidget);
     expect(player.queue, isEmpty);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('the play button, and its failure, name the album\'s type, where the server says it', (tester) async {
     await pumpAlbums(tester, releaseTypes: ['EP']);
+
+    final gesture = await mouse(tester);
+
+    await gesture.moveTo(tester.getCenter(find.text('Pump')));
+    await tester.pumpAndSettle();
 
     final play = find.descendant(of: tile('Pump'), matching: find.byTooltip('Tocar o EP'));
 
@@ -320,5 +330,5 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('Não consegui tocar o EP'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 }

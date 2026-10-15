@@ -13,10 +13,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
+import 'computer.dart';
 import 'fakes.dart';
 import 'player_page_test.dart' show credentials, pumpBar;
-
-final computer = TargetPlatformVariant.only(TargetPlatform.linux);
 
 /// A hub client that sees the device tv play a song at [volume], taking setVolume where [canSetVolume], and answers
 /// every command at once, keeping it ([sent]).

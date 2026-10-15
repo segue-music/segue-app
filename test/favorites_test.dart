@@ -25,6 +25,7 @@ import 'package:segue/ui/playlist/playlists_view.dart';
 import 'package:segue/ui/song/favorite_button.dart';
 import 'package:segue/ui/widgets/cover.dart';
 
+import 'computer.dart';
 import 'fakes.dart';
 import 'sections.dart';
 
@@ -498,6 +499,7 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.byType(FavoritesPage), findsNothing, reason: 'over the section alone');
       },
+      variant: computer,
     );
 
     testWidgets('with none, the favorite songs\' page says how to add one', (tester) async {
@@ -536,7 +538,7 @@ void main() {
       await player.playQueue(const [Song(id: 's1', title: 'Song s1')], play: false);
       await tester.pumpAndSettle();
       expect(find.descendant(of: find.byType(NowPlayingBar), matching: heart(filled: true)), findsOneWidget);
-    });
+    }, variant: computer);
 
     testWidgets('on a phone the full-screen player has it at the end of the title\'s line, which stays in the middle', (
       tester,

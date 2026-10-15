@@ -272,7 +272,18 @@ Running two app instances on one machine as different devices:
   of the focus (`Visibility`).
 - On a phone the page area is there too, the same navigator (by its key, so pages stay open as the
   window changes width), between the top of the screen and the bars at the bottom (the player's and
-  the sections'), which stay. It isn't under a top bar (`PageArea.underTopBar`), so its pages keep
+  the sections'), which stay. A tablet has the phone's layout, as every touch screen does: the home, the player bar,
+  the full-screen player and its lyrics, the pages and the albums' play button ask `phoneLayout`
+  (`lib/ui/widgets/touch_screen.dart`), not the screen's width, the wide layout's arrows, hovers and keys being a
+  mouse's and a keyboard's. Its bars at the bottom are a phone's, the player's over the sections', which go on to the
+  bottom of the screen, in the middle and at most 560 wide (`_bottomBarsWidth`); from 760 across (`_barsBesideFrom`: a
+  tablet's, a phone's turned) they float side by side over the page, `_barsGap` from each other, the screen's sides
+  and the system's bar, alike in color and corners, the player's 400 wide at the end (`_playerBesideWidth`), the
+  sections' in the rest, as tall as each other (`IntrinsicHeight`), their icons in the middle. Turned, wider than tall
+  from 720 across, the full-screen player has the cover in one half and the song, its controls and their buttons in the
+  other, the lyrics coming in in the cover's place (`_LandscapePlayer`). So the tests of the wide layout are a
+  computer's (`variant: computer`, `test/computer.dart`): Flutter's tests are on Android's, whose wide screen is now a
+  tablet's. It isn't under a top bar (`PageArea.underTopBar`), so its pages keep
   their own, with the back arrow (`PageArea.holdsUnderTopBar`). The full-screen player and the
   queue open in the app's navigator there, over everything (`PageArea.playerNavigatorOf`); the
   player takes the area along (`PlayerRoute.area`), so its links close it and open their page in

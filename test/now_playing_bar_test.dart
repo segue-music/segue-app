@@ -12,9 +12,11 @@ import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
 import 'package:segue/ui/player/now_playing_bar.dart';
+import 'package:segue/ui/player/volume_control.dart';
 import 'package:segue/ui/widgets/cover.dart';
 import 'package:segue/ui/widgets/themed_icon.dart';
 
+import 'computer.dart';
 import 'fakes.dart';
 import 'player_page_test.dart' show pumpBar, tvPlaying;
 
@@ -46,7 +48,7 @@ void main() {
   }
 
   testWidgets('on a wide screen, the playback\'s buttons are in the middle, play filled, between the heart and the '
-      'lyrics, over the slider; a playlist to add the song to, the queue and the devices are at the end', (
+      'lyrics, over the slider; a playlist to add the song to, the queue, the devices and the volume are at the end', (
     tester,
   ) async {
     await pumpBar(tester, size: const Size(1280, 700));
@@ -101,9 +103,14 @@ void main() {
       expect(rect(find.byTooltip(tooltip)).left, greaterThan(slider.right), reason: tooltip);
     }
 
-    expect(rect(find.byTooltip('Aparelhos')).right, moreOrLessEquals(1280 - 8, epsilon: 1));
+    expect(rect(find.byType(VolumeControl)).left, greaterThanOrEqualTo(rect(find.byTooltip('Aparelhos')).right));
+    expect(
+      rect(find.byType(VolumeControl)).right,
+      moreOrLessEquals(1280 - 8, epsilon: 1),
+      reason: 'last, a computer\'s',
+    );
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
-  });
+  }, variant: computer);
 
   testWidgets('at 960 wide, the narrowest a computer\'s window gets, the middle buttons\' icons are over the seek bar, '
       'none past its ends', (tester) async {
@@ -124,7 +131,7 @@ void main() {
     expect(icon('Adicionar aos favoritos').left, greaterThanOrEqualTo(track.left - 1));
     expect(icon('Mostrar a letra').right, lessThanOrEqualTo(track.right + 1));
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
-  });
+  }, variant: computer);
 
   testWidgets('on a phone, the bar is slightly see-through, its corners slightly rounded; on a wide screen, opaque and '
       'square', (tester) async {
@@ -138,7 +145,7 @@ void main() {
     expect(material().color?.a, 1);
     expect(material().shape, isNull);
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
-  });
+  }, variant: computer);
 
   testWidgets('on a phone, the song in the bar has room around its cover and lines, where its tint and ring show', (
     tester,
@@ -168,7 +175,7 @@ void main() {
     expect(tester.getRect(find.descendant(of: bar, matching: find.byTooltip('Abrir o player'))), cover);
     expect(cover.left, moreOrLessEquals(8));
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
-  });
+  }, variant: computer);
 
   testWidgets('on a phone-sized screen, the bar shows what plays on another device, its devices button tinted', (
     tester,
@@ -256,7 +263,7 @@ void main() {
     );
     expect(find.text('Tocando em Sala de estar'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('the slider jumps to where it is tapped, or to where a drag lets go', (tester) async {
     const credentials = SubsonicCredentials(username: 'a', token: 't', salt: 's');
@@ -372,5 +379,5 @@ void main() {
     expect(find.byTooltip('Ativar aleatório'), findsNothing);
     expect(find.byTooltip('Repetir a lista'), findsNothing);
     await tester.pumpWidget(const SizedBox()); // stops the bar's timers
-  });
+  }, variant: computer);
 }

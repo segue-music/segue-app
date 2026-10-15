@@ -18,6 +18,7 @@ import '../song/song_link.dart';
 import '../widgets/cover.dart';
 import '../widgets/directional_navigation.dart';
 import '../widgets/themed_icon.dart';
+import '../widgets/touch_screen.dart';
 import 'devices_sheet.dart';
 import 'idle_player.dart';
 import 'lyrics_page.dart';
@@ -30,14 +31,16 @@ import 'television_player.dart';
 
 /// The full-screen player: what plays, wherever it plays, big, and its lyrics beside it (on a phone, under it). On a
 /// wide screen the player bar stays under it, with the controls; on a phone, where there is none, it has every control
-/// itself, and a drag down closes it, or takes its lyrics out, which a drag up brings in, and then full screen. On a TV,
+/// itself, and a drag down closes it, or takes its lyrics out, which a drag up brings in, and then full screen. Turned,
+/// a phone's layout has the cover beside the song and its controls, the lyrics coming in in its place
+/// ([_LandscapePlayer]). On a TV,
 /// over everything, it is as a video player: no top bar, and its controls coming as the remote's keys are pressed and
 /// going after a while ([TelevisionControls]).
 class PlayerPage extends StatefulWidget {
   const PlayerPage(this._lyrics, {super.key});
 
   /// Whether the lyrics show: turned on and off, on a phone, by a drag or the handle under the player ([_LyricsHandle]),
-  /// and on a wide screen in the bar under it.
+  /// or turned, by a button under its controls ([_LandscapePlayer]), and on a wide screen in the bar under it.
   final ValueNotifier<bool> _lyrics;
 
   /// How long the lyrics take to come in, beside the player or under it, and to go.
@@ -163,8 +166,11 @@ class _PlayerPageState extends State<PlayerPage> with SingleTickerProviderStateM
 
     // On a wide screen the bar stays under the player, with what would be at its top: the lyrics, the
     // queue and the devices. On a phone, which has no bar there, the queue and the devices go in one of their own, at
-    // the bottom, with a playlist to add the song to, under a handle that says that a drag brings the lyrics in.
-    final wide = MediaQuery.sizeOf(context).width >= NowPlayingBar.wideFrom;
+    // the bottom, with a playlist to add the song to, under a handle that says that a drag brings the lyrics in; turned,
+    // under the controls, beside the cover, the lyrics' button with them.
+    final wide = !context.phoneLayout;
+    final size = MediaQuery.sizeOf(context);
+    final landscape = !wide && size.width > size.height && size.width >= _LandscapePlayer.from;
 
     return CallbackShortcuts(
       bindings: {const SingleActivator(LogicalKeyboardKey.escape): close},
@@ -211,6 +217,21 @@ class _PlayerPageState extends State<PlayerPage> with SingleTickerProviderStateM
                 final device = now.device;
                 final strings = AppLocalizations.of(context);
 
+                // On a phone, under the player, or turned, under its controls.
+                final queue = IconButton(
+                  tooltip: strings.queue,
+                  icon: const ThemedIcon(HugeIcons.strokeRoundedPlaylist03),
+                  onPressed: () => QueuePage.open(context),
+                );
+                final devices = IconButton(
+                  tooltip: strings.devices,
+                  icon: ThemedIcon(
+                    HugeIcons.strokeRoundedMonitorSpeaker,
+                    color: device == null ? null : colors.primary,
+                  ),
+                  onPressed: () => showDevicesSheet(context),
+                );
+
                 return Scaffold(
                   appBar: AppBar(
                     // The background's color, always: neither the lyrics nor, on a phone, the page tint it as
@@ -245,45 +266,56 @@ class _PlayerPageState extends State<PlayerPage> with SingleTickerProviderStateM
                     ],
                   ),
                   // Out of the room at the screen's side, where the system has the app keep out of it (on a TV, its
-                  // edges), as the lyrics' lines would otherwise go on into it.
+                  // edges), as the lyrics' lines would otherwise go on into it; turned, of the system's bar too, with
+                  // nothing under the player.
                   body: SafeArea(
                     top: false,
-                    bottom: false,
-                    child: _Player(now, lyrics: _shown, controls: !wide, scroll: scroll),
-                  ),
-                  bottomNavigationBar: wide
-                      ? NowPlayingBar(lyrics: widget._lyrics)
-                      : SafeArea(
-                          top: false,
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
+                    bottom: landscape,
+                    child: landscape
+                        ? _LandscapePlayer(
+                            now,
+                            lyrics: _shown,
+                            scroll: scroll,
+                            // The lyrics' button among them, rather than a handle under the cover.
+                            actions: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
-                                _LyricsHandle(_shown, lyrics: lyrics, onPressed: () => widget._lyrics.value = !lyrics),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    IconButton(
-                                      tooltip: strings.queue,
-                                      icon: const ThemedIcon(HugeIcons.strokeRoundedPlaylist03),
-                                      onPressed: () => QueuePage.open(context),
-                                    ),
-                                    IconButton(
-                                      tooltip: strings.devices,
-                                      icon: ThemedIcon(
-                                        HugeIcons.strokeRoundedMonitorSpeaker,
-                                        color: device == null ? null : colors.primary,
-                                      ),
-                                      onPressed: () => showDevicesSheet(context),
-                                    ),
-                                    AddToPlaylistButton(now),
-                                  ],
+                                queue,
+                                IconButton(
+                                  tooltip: lyrics ? strings.hideLyrics : strings.showLyrics,
+                                  icon: ThemedIcon(
+                                    HugeIcons.strokeRoundedMicVocal,
+                                    color: lyrics ? colors.primary : null,
+                                  ),
+                                  onPressed: () => widget._lyrics.value = !lyrics,
                                 ),
+                                devices,
+                                AddToPlaylistButton(now),
                               ],
                             ),
-                          ),
+                          )
+                        : _Player(now, lyrics: _shown, controls: !wide, scroll: scroll),
+                  ),
+                  bottomNavigationBar: switch (wide) {
+                    true => NowPlayingBar(lyrics: widget._lyrics),
+                    false when landscape => null,
+                    false => SafeArea(
+                      top: false,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _LyricsHandle(_shown, lyrics: lyrics, onPressed: () => widget._lyrics.value = !lyrics),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [queue, devices, AddToPlaylistButton(now)],
+                            ),
+                          ],
                         ),
+                      ),
+                    ),
+                  },
                 );
               },
             ),
@@ -390,7 +422,7 @@ class _LyricsRoute extends PageRoute<void> {
   @override
   Widget buildPage(BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation) =>
       _DragToClose(
-        enabled: MediaQuery.sizeOf(context).width < NowPlayingBar.wideFrom,
+        enabled: context.phoneLayout,
         builder: (context, _) => LyricsPage(onHide: hide),
       );
 
@@ -949,7 +981,8 @@ class _Player extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final colors = Theme.of(context).colorScheme;
     final muted = colors.onSurfaceVariant;
-    final beside = box.maxWidth >= _lyricsBesideFrom;
+    // On a phone, a tablet too, under it, as they come in from the handle at the bottom.
+    final beside = !context.phoneLayout && box.maxWidth >= _lyricsBesideFrom;
     final karaoke = LyricsView.karaoke(context);
     // Beside the player, the lyrics take their share of the screen, the player the rest, which shrinks as they come in.
     final share = _lyricsShare(context);
@@ -1110,6 +1143,129 @@ class _Player extends StatelessWidget {
         // On a TV the screen stays on while they show, as they are read, not touched.
         if (shown > 0 && karaoke) const KeepScreenOn(child: SizedBox.shrink()),
       ],
+    );
+  }
+}
+
+/// The full-screen player of a phone's layout turned, wider than tall (a tablet's, a phone's): the cover in one half, as
+/// big as its height leaves it, and in the other the song, its controls and [actions] under them, rather than a column
+/// of them all in the middle, which left the cover small and the screen's sides empty. The lyrics, [lyrics] of the way
+/// in, come in in the cover's place, fading in as it fades out, the controls staying at hand.
+class _LandscapePlayer extends StatelessWidget {
+  const _LandscapePlayer(this.now, {required this.lyrics, required this.actions, required this.scroll});
+
+  final NowPlaying now;
+
+  /// How far the lyrics have come in, from 0 (gone) to 1 (there).
+  final Animation<double> lyrics;
+
+  /// Under the controls: the queue, the lyrics, the devices and a playlist to add the song to.
+  final Widget actions;
+
+  /// How the song and its controls scroll, where they are taller than the screen (a phone's, turned).
+  final ScrollController scroll;
+
+  /// From how wide a phone's layout turned has it: a tablet's, and a phone's but the smallest.
+  static const from = 720.0;
+
+  /// How wide the song and its controls are at most: a long slider is hard to take in at a glance.
+  static const _controlsWidth = 480.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    final songId = now.songId;
+    final title = SongLink.title(
+      now,
+      style: text.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+      maxLines: 2,
+      textAlign: TextAlign.center,
+      replace: true,
+    );
+    // Made once for all the steps of their coming and going, as the player's are ([_Player]).
+    final lyricsView = RepaintBoundary(child: LyricsView(now));
+    final song = ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: _controlsWidth),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // At the end of the title's line, the heart, with as much room at its start, so that the title stays in the
+          // middle.
+          if (songId != null)
+            Row(
+              children: [
+                const SizedBox(width: kMinInteractiveDimension),
+                Expanded(child: title),
+                FavoriteButton(FavoriteKind.song, songId),
+              ],
+            )
+          else
+            title,
+          SongLink.artist(
+            now,
+            style: text.titleLarge?.copyWith(color: muted),
+            textAlign: TextAlign.center,
+            replace: true,
+          ),
+          const SizedBox(height: 12),
+          SeekSlider(now, timesBelow: true),
+          const SizedBox(height: 8),
+          PlaybackButtons(now),
+          const SizedBox(height: 16),
+          actions,
+        ],
+      ),
+    );
+
+    return LayoutBuilder(
+      builder: (context, box) {
+        final half = box.maxWidth / 2;
+        // Square, with room around it.
+        final side = min(half - 48, box.maxHeight - 32).clamp(96.0, PlayerPage.coverSize);
+
+        return Row(
+          children: [
+            SizedBox(
+              width: half,
+              child: AnimatedBuilder(
+                animation: lyrics,
+                builder: (context, _) => Stack(
+                  fit: StackFit.expand,
+                  // Each by its key, which keeps it as the other comes and goes: paired with the other's place, the
+                  // lyrics would be made anew as the cover went, their lines loading and scrolling again.
+                  children: [
+                    if (lyrics.value < 1)
+                      Opacity(
+                        key: const ValueKey(#cover),
+                        opacity: 1 - lyrics.value,
+                        child: Center(child: _SwipeToSkip(now.coverArt, side: side)),
+                      ),
+                    if (lyrics.value > 0)
+                      Opacity(
+                        key: const ValueKey(#lyrics),
+                        opacity: lyrics.value,
+                        child: Padding(padding: const EdgeInsets.symmetric(horizontal: 24), child: lyricsView),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            // In the middle of their half, and taller than it, scrolling, a drag down from their top closing the
+            // player, as the player's page does ([_ClosingScrollPosition]).
+            Expanded(
+              child: Center(
+                child: SingleChildScrollView(
+                  controller: scroll,
+                  physics: const _ClosingScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                  child: song,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

@@ -30,6 +30,7 @@ import '../widgets/share_link.dart';
 import '../widgets/spinner.dart';
 import '../widgets/themed_icon.dart';
 import '../widgets/tile_row.dart';
+import '../widgets/touch_screen.dart';
 import 'album_row.dart';
 import 'albums_view.dart';
 import 'cover_page.dart';
@@ -154,9 +155,8 @@ class _AlbumPageState extends State<AlbumPage> {
       return false;
     }
 
-    final width = MediaQuery.sizeOf(context).width;
-
-    if (width < 600) {
+    if (context.phoneLayout) {
+      final width = MediaQuery.sizeOf(context).width;
       // The cover is as wide as the page less its margins, up to 280, under a gap of 8 (_header).
       final cover = min(width - 2 * 16, 280);
       _shade.value = (offset / (8 + cover / 2)).clamp(0, 1);
@@ -179,9 +179,9 @@ class _AlbumPageState extends State<AlbumPage> {
 
   @override
   Widget build(BuildContext context) {
-    // On a phone, or a window as narrow (as the home counts it), the album's name is in the page's bar, over its cover,
+    // In a phone's layout (a tablet's too, as the home has it), the album's name is in the page's bar, over its cover,
     // and the songs have no header naming their columns.
-    final narrow = MediaQuery.sizeOf(context).width < 600;
+    final phoneLayout = context.phoneLayout;
     final strings = AppLocalizations.of(context);
 
     return FutureBuilder(
@@ -194,12 +194,12 @@ class _AlbumPageState extends State<AlbumPage> {
           appBar: PageArea.holdsUnderTopBar(context)
               ? null
               : PageBar(
-                  title: narrow ? data?.$1.name ?? widget.album.name : null,
-                  shade: narrow && data != null ? _shade : null,
+                  title: phoneLayout ? data?.$1.name ?? widget.album.name : null,
+                  shade: phoneLayout && data != null ? _shade : null,
                 ),
           // On a phone the page goes on under the bar and the system's, to the top of the screen, as it scrolls: the
           // list, with no padding of its own, starts under them, in the room MediaQuery says they take.
-          extendBodyBehindAppBar: narrow && data != null,
+          extendBodyBehindAppBar: phoneLayout && data != null,
           body: switch (data) {
             _ when snapshot.hasError => Center(
               child: Text(
@@ -216,7 +216,7 @@ class _AlbumPageState extends State<AlbumPage> {
                 slivers: [
                   // On a wide screen, where the name is by the cover, and stays in sight once that has gone, with the
                   // button that plays the album.
-                  if (!narrow)
+                  if (!phoneLayout)
                     _ReleaseType(
                       album,
                       _release!,
@@ -235,21 +235,21 @@ class _AlbumPageState extends State<AlbumPage> {
                         _ReleaseType(
                           album,
                           _release!,
-                          builder: (type) => _header(album, songs, type: type, narrow: narrow),
+                          builder: (type) => _header(album, songs, type: type, phoneLayout: phoneLayout),
                         ),
-                        if (!narrow) const SongListHeader(numbered: true, menus: true),
+                        if (!phoneLayout) const SongListHeader(numbered: true, menus: true),
                         for (var i = 0; i < songs.length; i++) ...[
                           if (_discStarting(songs, i) case final disc?)
                             _DiscHeader(disc, title: album.discTitles[disc]),
                           if (i == songs.length - 1)
                             _LastSong(
-                              _song(songs, i, narrow: narrow),
+                              _song(songs, i, phoneLayout: phoneLayout),
                               album: album,
                               release: _release!,
-                              length: narrow ? songsLength(strings, songs) : null,
+                              length: phoneLayout ? songsLength(strings, songs) : null,
                             )
                           else
-                            _song(songs, i, narrow: narrow),
+                            _song(songs, i, phoneLayout: phoneLayout),
                         ],
                         _moreByArtist(),
                       ],
@@ -272,20 +272,20 @@ class _AlbumPageState extends State<AlbumPage> {
 
   /// The top of the page: the album's cover, its type (album, EP, ...), its name and byline, and the buttons that play
   /// it, make it one of the user's favorites, and more (its menu: to the queue, to a playlist, its radio). On a wide
-  /// screen the name is beside the cover, the type above it, the buttons under them; on a narrow one ([narrow]) the
-  /// name is in the page's bar (a [PageBar]), over the cover, which is centered, and the byline under the cover, from
+  /// screen the name is beside the cover, the type above it, the buttons under them; in a phone's layout
+  /// ([phoneLayout]) the name is in the page's bar (a [PageBar]), over the cover, which is centered, and the byline under the cover, from
   /// the page's margin as the songs are, with the buttons at the end of its line, the play button last
   /// ([SongListTopLine]), and the type before the year.
-  Widget _header(Album album, List<Song> songs, {required ReleaseType? type, required bool narrow}) {
+  Widget _header(Album album, List<Song> songs, {required ReleaseType? type, required bool phoneLayout}) {
     final text = Theme.of(context).textTheme;
     final strings = AppLocalizations.of(context);
     final byline = _Byline(
       album,
       songs,
       artist: _artist!,
-      type: narrow ? type : null,
+      type: phoneLayout ? type : null,
       style: text.bodyMedium,
-      stacked: narrow,
+      stacked: phoneLayout,
       credits: _creditsButton(album, songs),
     );
     final play = _playButton(songs, type: type);
@@ -319,7 +319,7 @@ class _AlbumPageState extends State<AlbumPage> {
       ],
     );
 
-    if (narrow) {
+    if (phoneLayout) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -490,9 +490,9 @@ class _AlbumPageState extends State<AlbumPage> {
   static int _numberOf(List<Song> songs, int index) =>
       songs.every((song) => song.track != null) ? songs[index].track! : index + 1;
 
-  /// The album's song at [index] in its list, which plays the album from it; on a [narrow] screen, its artists plain
-  /// text.
-  Widget _song(List<Song> songs, int index, {required bool narrow}) {
+  /// The album's song at [index] in its list, which plays the album from it; in a phone's layout ([phoneLayout]),
+  /// its artists plain text.
+  Widget _song(List<Song> songs, int index, {required bool phoneLayout}) {
     final song = songs[index];
 
     return CurrentSong(
@@ -514,7 +514,7 @@ class _AlbumPageState extends State<AlbumPage> {
           // the song stays one stop, as an album in the grid is.
           subtitle: song.artist == null
               ? null
-              : narrow
+              : phoneLayout
               ? Text(artistNames(song), maxLines: 1, overflow: TextOverflow.ellipsis)
               : ExcludeFocus(child: ArtistLinks.song(song)),
           trailing: SongTrailing(song.id, song.duration, menu),

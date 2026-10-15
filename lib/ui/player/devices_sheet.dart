@@ -18,6 +18,7 @@ Future<void> showDevicesSheet(BuildContext context) =>
       context: context,
       showDragHandle: true,
       useRootNavigator: true,
+      useSafeArea: true,
       builder: (_) => const _DevicesSheet(),
     );
 
@@ -50,7 +51,9 @@ class _DevicesSheet extends StatelessWidget {
       listenable: connect,
       builder: (context, _) => ListView(
         shrinkWrap: true,
-        padding: const EdgeInsets.only(bottom: 16),
+        // Clear of the system's bar at the bottom, which the sheet goes on behind (a tablet's taskbar, a phone's
+        // gesture bar): a padding given, the list leaves it out.
+        padding: EdgeInsets.only(bottom: 16 + MediaQuery.paddingOf(context).bottom),
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

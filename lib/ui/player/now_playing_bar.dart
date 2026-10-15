@@ -16,6 +16,7 @@ import '../widgets/directional_navigation.dart';
 import '../widgets/focus_ring.dart';
 import '../widgets/menu_shortcuts.dart';
 import '../widgets/themed_icon.dart';
+import '../widgets/touch_screen.dart';
 import 'devices_sheet.dart';
 import 'player_controls.dart';
 import 'player_page.dart';
@@ -40,15 +41,12 @@ export 'player_controls.dart' show formatDuration;
 class NowPlayingBar extends StatelessWidget {
   const NowPlayingBar({this.lyrics, super.key});
 
-  /// From how wide the bar has room for shuffle, repeat, the lyrics and the queue.
-  static const wideFrom = 600.0;
-
   /// How opaque the bars at the bottom of a phone's screen are, this one and the home's sections': slightly
   /// see-through, the home's section showing through them.
   static const phoneOpacity = 0.98;
 
-  /// How round the corners of the bars at the bottom of a phone's screen are: all four of this one's, the top two of
-  /// the home's sections'.
+  /// How round the corners of the bars at the bottom of a phone's screen are: all four of this one's, and of the home's
+  /// sections' beside it on a tablet; the top two of theirs under it, on a phone.
   static const phoneCorner = Radius.circular(8);
 
   /// Under the full-screen player, whether it shows the lyrics: the bar's lyrics button turns them on and
@@ -72,9 +70,9 @@ class NowPlayingBar extends StatelessWidget {
     final buttons = (theme.iconButtonTheme.style ?? const ButtonStyle()).copyWith(
       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
     );
-    // Shuffle, repeat, the lyrics and the queue need room; a phone-sized bar has none (they are in the
+    // Shuffle, repeat, the lyrics and the queue need room; a phone's bar, a tablet's too, has none (they are in the
     // full-screen player).
-    final wide = MediaQuery.sizeOf(context).width >= wideFrom;
+    final wide = !context.phoneLayout;
     final lyrics = this.lyrics;
 
     return NowPlayingBuilder(

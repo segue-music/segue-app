@@ -28,6 +28,7 @@ import 'package:segue/ui/artist/biography_page.dart';
 import 'package:segue/ui/player/queue_page.dart';
 import 'package:segue/ui/settings/settings_page.dart';
 
+import 'computer.dart';
 import 'fakes.dart';
 import 'sections.dart';
 
@@ -305,8 +306,9 @@ void main() {
         expect(find.text(strings.appVersionNumber('0.1.0', '214')), findsOneWidget);
         expect(find.text(strings.openSourceLicenses), findsOneWidget);
         expect(find.text(strings.signOut), findsOneWidget);
-        expect(find.text(strings.signInTv), findsOneWidget);
-        expect(find.text(strings.signInTvDetail), findsOneWidget);
+        // A phone's, which has a camera for the TV's code; not a computer's.
+        expect(find.text(strings.signInTv), narrow ? findsOneWidget : findsNothing);
+        expect(find.text(strings.signInTvDetail), narrow ? findsOneWidget : findsNothing);
         // Back up to the crossfade, which the lines at the end took above the top on a phone.
         await tester.scrollUntilVisible(find.text(strings.crossfade).hitTestable(), -100, scrollable: list);
         await tap(tester, find.text(strings.crossfade).hitTestable());
@@ -416,7 +418,7 @@ void main() {
         expect(find.text(strings.thisDevice('laptop')), findsOneWidget);
         expect(find.text(strings.noHubAt('music.test')), findsOneWidget);
         await tester.pumpWidget(const SizedBox()); // stops the player bar's timers
-      });
+      }, variant: platformFor(size));
     }
 
     testWidgets('in ${strings.languageName}, the sign-in has room for its words, its errors too', (tester) async {

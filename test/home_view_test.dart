@@ -38,6 +38,7 @@ import 'package:segue/ui/widgets/themed_icon.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
+import 'computer.dart';
 import 'fakes.dart';
 import 'sections.dart';
 import 'side_rail.dart';
@@ -293,7 +294,7 @@ void main() {
     expect(selected('Álbuns'), isTrue);
     expect(selected('Artistas'), isFalse);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('a section\'s name shows beside its icon, level with it, rather than over the icon below', (
     tester,
@@ -320,7 +321,7 @@ void main() {
     }
 
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('the app\'s icon, in the top left corner, goes to the home, which the side rail doesn\'t list', (
     tester,
@@ -349,7 +350,7 @@ void main() {
     expectHomeInRail();
     expect(shown('Lançamentos'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('the app in the old theme fades away over the new one', (tester) async {
     tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
@@ -400,6 +401,24 @@ void main() {
     await tester.pump();
     expect(find.byKey(ThemeFade.oldThemeKey), findsNothing);
     expect(Theme.of(tester.element(find.byType(HomePage))).brightness, Brightness.dark);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('a choice\'s last option is clear of the system\'s bar at the bottom, which its sheet goes on behind', (
+    tester,
+  ) async {
+    final settings = Settings();
+
+    addTearDown(settings.dispose);
+    tester.view.padding = const FakeViewPadding(bottom: 56);
+    await pumpHome(tester, const Size(360, 640), settings: settings);
+    await openSettings(tester);
+    await openChoice(tester, 'Tema');
+
+    final options = find.descendant(of: find.byType(BottomSheet), matching: find.byType(ListTile));
+
+    expect(tester.getRect(options.last).bottom, lessThanOrEqualTo(640 - 56));
+    expect(tester.getRect(find.byType(BottomSheet)).bottom, 640);
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -596,7 +615,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(signedOut, isTrue);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('on a wide screen, the settings open the licenses in the page area, with no arrow of their own, nor a '
       'package\'s: the top bar\'s goes back through them', (tester) async {
@@ -626,7 +645,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(title('Licenças'), findsOneWidget, reason: 'and forward to them again');
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('on a wide screen, Esc closes the settings, as the top bar\'s arrow does, also from a setting with the '
       'focus', (tester) async {
@@ -656,7 +675,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(page, findsNothing);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('on a wide screen, where the top bar stays over the settings, its button goes back from them rather than '
       'opening them again', (tester) async {
@@ -685,7 +704,7 @@ void main() {
     await openSettings(tester);
     expect(settings, findsNothing, reason: 'going back from it too');
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('on a phone, the settings pick the theme, the old one fading away, and the system\'s again', (
     tester,
@@ -1326,7 +1345,7 @@ void main() {
     }
 
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('on a phone, a row\'s title opens the library on its albums tab, from another tab too, in the row\'s '
       'order', (tester) async {

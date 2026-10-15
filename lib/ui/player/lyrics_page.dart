@@ -5,8 +5,8 @@ import 'package:hugeicons/hugeicons.dart';
 import '../../device.dart';
 import '../../l10n/app_localizations.dart';
 import '../widgets/themed_icon.dart';
+import '../widgets/touch_screen.dart';
 import 'lyrics_view.dart';
-import 'now_playing_bar.dart';
 import 'player_controls.dart';
 
 /// The lyrics full screen, from under the full-screen player, where they are short: the song's title and artist above
@@ -23,7 +23,7 @@ class LyricsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     void close() => Navigator.of(context).maybePop();
 
-    final wide = MediaQuery.sizeOf(context).width >= NowPlayingBar.wideFrom;
+    final wide = !context.phoneLayout;
 
     return KeepScreenOn(
       child: CallbackShortcuts(

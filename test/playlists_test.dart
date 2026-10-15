@@ -25,6 +25,7 @@ import 'package:segue/ui/widgets/cover.dart';
 import 'package:segue/ui/widgets/directional_navigation.dart';
 import 'package:segue/ui/widgets/themed_icon.dart';
 
+import 'computer.dart';
 import 'fakes.dart';
 import 'remote.dart';
 import 'sections.dart';
@@ -322,7 +323,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(selectedInRail('Playlists'), findsOneWidget);
     await tester.pumpWidget(const SizedBox()); // stops the player bar's timers
-  });
+  }, variant: computer);
 
   testWidgets('a playlist plays from the song picked, or from its first with its button, the songs in its order', (
     tester,
@@ -344,7 +345,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(player.current?.id, 's2');
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('an empty playlist says so, and can\'t be played', (tester) async {
     await pumpHome(tester, const Size(1000, 700));
@@ -359,7 +360,7 @@ void main() {
 
     expect(tester.widget<IconButton>(play).onPressed, isNull);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('with no playlists, the section says so', (tester) async {
     await pumpHome(tester, const Size(1000, 700), library: Library(playlists: false));
@@ -367,7 +368,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Ainda não há playlists.'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   for (final (device, kind, size, platform) in [
     ('a finger, on a phone', PointerDeviceKind.touch, const Size(360, 640), TargetPlatform.android),
@@ -482,7 +483,7 @@ void main() {
       expect(find.text('Adicionada a Road trip'), findsOneWidget);
       expect(library.songsOf('Road trip'), ['s2', 's9', 's1']);
       await tester.pumpWidget(const SizedBox());
-    });
+    }, variant: platformFor(size));
   }
 
   testWidgets('a song\'s line in a list, right-clicked, opens its menu', (tester) async {
@@ -690,7 +691,7 @@ void main() {
     await openPlaylist(tester, 'Road trip');
     expect(find.descendant(of: tile('Dream Police'), matching: find.byTooltip('Abrir o artista')), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('on a phone, a song\'s artist is plain text: only the player links them', (tester) async {
     await pumpHome(tester, const Size(360, 640));
@@ -787,7 +788,7 @@ void main() {
     expect(find.byType(ArtistPage), findsOneWidget);
     expect(find.byType(PlaylistPage, skipOffstage: false), findsNothing);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('another user\'s playlist\'s menu only plays it next or adds it to the queue, and its songs neither come '
       'out nor move', (tester) async {

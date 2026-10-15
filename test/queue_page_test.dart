@@ -26,6 +26,7 @@ import 'package:segue/ui/widgets/equalizer.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
+import 'computer.dart';
 import 'fakes.dart';
 import 'remote.dart';
 
@@ -388,7 +389,7 @@ void main() {
     await pumpBar(tester);
     expect(find.byTooltip('Fila'), findsNothing);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   group('editing the queue', () {
     testWidgets('a track dragged in the queue goes there, the current one playing on', (tester) async {

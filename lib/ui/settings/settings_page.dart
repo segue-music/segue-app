@@ -346,7 +346,8 @@ class _Choice extends StatelessWidget {
     useSafeArea: true,
     builder: (sheet) => ListView(
       shrinkWrap: true,
-      padding: const EdgeInsets.only(bottom: 16),
+      // Clear of the system's bar at the bottom, as the devices' sheet is.
+      padding: EdgeInsets.only(bottom: 16 + MediaQuery.paddingOf(sheet).bottom),
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

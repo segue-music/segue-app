@@ -219,4 +219,15 @@ void main() {
     await openSheet(tester, [], size: const Size(1920, 1080), television: true);
     expect(thisDevice(HugeIcons.strokeRoundedTv01), findsOneWidget);
   });
+
+  testWidgets('its last device is clear of the system\'s bar at the bottom, a tablet\'s taskbar, which the sheet goes '
+      'on behind', (tester) async {
+    tester.view.padding = const FakeViewPadding(bottom: 56);
+    await openSheet(tester, [player('tv', 'Sala de estar', online: true)], size: const Size(800, 1280));
+
+    final lines = find.descendant(of: find.byType(BottomSheet), matching: find.byType(ListTile));
+
+    expect(tester.getRect(lines.last).bottom, lessThanOrEqualTo(1280 - 56));
+    expect(tester.getRect(find.byType(BottomSheet)).bottom, 1280);
+  });
 }

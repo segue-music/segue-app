@@ -7,6 +7,7 @@ import 'package:segue/ui/player/now_playing_bar.dart';
 import 'package:segue/ui/player/player_page.dart';
 import 'package:segue/ui/widgets/themed_icon.dart';
 
+import 'computer.dart';
 import 'player_page_test.dart' show onPage, openPlayer, pumpBar, tvPlaying;
 
 /// The sleep timer's button, by its tooltip, which says its state.
@@ -70,7 +71,7 @@ void main() {
     expect(button('Timer de sono'), findsOneWidget);
     expect(find.descendant(of: button('Timer de sono'), matching: find.text('15')), findsNothing);
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
-  });
+  }, variant: computer);
 
   testWidgets('the song\'s end, picked, shows as picked, with no minutes', (tester) async {
     await pumpBar(tester, size: const Size(1000, 700), sleepTimer: true);
@@ -87,6 +88,19 @@ void main() {
     await tester.tap(line('Desligar o timer'));
     await tester.pumpAndSettle();
     await tester.pumpWidget(const SizedBox());
+  }, variant: computer);
+
+  testWidgets('on a tablet, the sheet\'s last line is clear of the system\'s taskbar, which the sheet goes on behind', (
+    tester,
+  ) async {
+    tester.view.padding = const FakeViewPadding(bottom: 56);
+    await pumpBar(tester, size: const Size(800, 1280), sleepTimer: true);
+    await openPlayer(tester);
+    await tester.tap(onPage(button('Timer de sono')));
+    await tester.pumpAndSettle();
+    expect(tester.getRect(line('Fim desta música')).bottom, lessThanOrEqualTo(1280 - 56));
+    expect(tester.getRect(find.byType(BottomSheet)).bottom, 1280);
+    await tester.pumpWidget(const SizedBox()); // stops the bar's timer
   });
 
   testWidgets('on a phone, the moon is in the full-screen player\'s top right corner, and not in the bar', (

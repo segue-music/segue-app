@@ -9,6 +9,7 @@ import 'package:segue/ui/player/player_page.dart';
 import 'package:segue/ui/player/queue_page.dart';
 import 'package:segue/ui/widgets/cover.dart';
 
+import 'computer.dart';
 import 'home_search_test.dart' show pumpHome;
 
 /// The home on a wide screen, with Dream On playing.
@@ -59,7 +60,7 @@ void main() {
     expect(page.top, greaterThanOrEqualTo(tester.getRect(find.byType(SearchBar)).bottom));
     expect(page.bottom, lessThanOrEqualTo(tester.getRect(find.byTooltip('Próxima')).top));
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('the top bar has no section name, but arrows beside the app\'s icon', (tester) async {
     await pumpWide(tester);
@@ -71,18 +72,14 @@ void main() {
     expect(tester.getRect(forward).left, greaterThanOrEqualTo(tester.getRect(back).right));
     expect(tester.getRect(back).center.dy, moreOrLessEquals(icon.center.dy, epsilon: 1));
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
-  testWidgets(
-    'the arrows sit close together, as a browser\'s, also on a touch screen',
-    variant: const TargetPlatformVariant({TargetPlatform.linux, TargetPlatform.android}),
-    (tester) async {
-      await pumpWide(tester);
-      expect(tester.getSize(back), const Size.square(32));
-      expect(tester.getCenter(forward).dx - tester.getCenter(back).dx, 32, reason: 'the icons 8 apart');
-      await tester.pumpWidget(const SizedBox());
-    },
-  );
+  testWidgets('the arrows sit close together, as a browser\'s', (tester) async {
+    await pumpWide(tester);
+    expect(tester.getSize(back), const Size.square(32));
+    expect(tester.getCenter(forward).dx - tester.getCenter(back).dx, 32, reason: 'the icons 8 apart');
+    await tester.pumpWidget(const SizedBox());
+  }, variant: computer);
 
   testWidgets('the arrows go back and forward through the pages opened, as a browser\'s do', (tester) async {
     await pumpWide(tester);
@@ -105,7 +102,7 @@ void main() {
     expect(find.byType(PlayerPage), findsOneWidget);
     expect(enabled(tester, forward), isFalse);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('a page has no back arrow of its own, the top bar\'s going back', (tester) async {
     await pumpWide(tester);
@@ -118,7 +115,7 @@ void main() {
       reason: 'an album\'s, nor a bar: its name is by its cover',
     );
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets(
     'on a phone, a page opens over the section and its name, under the bars at the bottom, which stay; it has '
@@ -192,7 +189,7 @@ void main() {
     expect(find.byType(AlbumPage), findsOneWidget);
     expect(find.byType(BackButton), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('the keyboard\'s arrows left and right go back and forward too, but while typing', (tester) async {
     await pumpWide(tester);
@@ -211,7 +208,7 @@ void main() {
     await press(tester, LogicalKeyboardKey.arrowLeft);
     expect(find.byType(AlbumPage), findsNothing);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('Esc goes back too, as the top bar\'s arrow does, wherever the focus is in the home, but while typing', (
     tester,
@@ -240,7 +237,7 @@ void main() {
     await press(tester, LogicalKeyboardKey.escape);
     expect(find.byType(AlbumPage), findsNothing);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('the full-screen player opens between the bars too, the player bar\'s lyrics and song acting on it', (
     tester,
@@ -259,7 +256,7 @@ void main() {
     expect(find.byType(PlayerPage), findsNothing);
     expect(find.byTooltip('Abrir o player'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('the player bar\'s queue button goes back from the queue rather than opening it again', (tester) async {
     await pumpWide(tester);
@@ -285,7 +282,7 @@ void main() {
     expect(queue, findsNothing);
     expect(find.byType(PlayerPage), findsOneWidget, reason: 'back to the full-screen player it opened over');
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('a section of the side rail, or a search, closes the pages', (tester) async {
     await pumpWide(tester);
@@ -303,9 +300,9 @@ void main() {
     expect(find.byType(AlbumPage), findsNothing);
     expect(find.text('Dream Police'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
-  testWidgets('the system\'s back (Android\'s, a TV remote\'s) closes the page, rather than the app', (tester) async {
+  testWidgets('the system\'s back closes the page, rather than the app', (tester) async {
     await pumpWide(tester);
     await tapAndSettle(tester, album);
     await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
@@ -318,5 +315,5 @@ void main() {
     expect(find.byType(HomePage), findsOneWidget);
     expect(enabled(tester, forward), isTrue);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 }

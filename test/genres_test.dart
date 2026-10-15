@@ -17,6 +17,7 @@ import 'package:segue/ui/genre/genre_page.dart';
 import 'package:segue/ui/genre/genres_view.dart';
 import 'package:segue/ui/player/now_playing_bar.dart';
 
+import 'computer.dart';
 import 'fakes.dart';
 import 'sections.dart';
 import 'side_rail.dart';
@@ -246,7 +247,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(selectedInRail('Gêneros'), findsOneWidget);
     await tester.pumpWidget(const SizedBox()); // stops the player bar's timers
-  });
+  }, variant: computer);
 
   testWidgets('the genres start with those the user listens to most, the most first, each opening its page', (
     tester,
@@ -271,7 +272,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(title('hard rock'), findsOneWidget);
     await tester.pumpWidget(const SizedBox()); // stops the player bar's timers
-  });
+  }, variant: computer);
 
   testWidgets('before anything has played, the genres are just the list of them all', (tester) async {
     await pumpHome(tester, const Size(1000, 700), played: false);
@@ -281,7 +282,7 @@ void main() {
     expect(find.text('Mais tocados'), findsNothing);
     expect(find.text('Todos os gêneros'), findsNothing);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('a genre\'s page starts with a row of its most played albums, above all of them', (tester) async {
     await pumpHome(tester, const Size(1000, 700));
@@ -311,7 +312,7 @@ void main() {
     expect(all.top, greaterThan(tester.getRect(row).bottom));
     expect(tester.getRect(find.text('Rocks')).top, greaterThan(all.bottom));
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('a genre with more albums than a page asks for the next as its grid nears its end, not as its row of '
       'the most played lays out', (tester) async {
@@ -330,7 +331,7 @@ void main() {
       ['0'],
     );
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('a genre\'s page starts with a button that plays a mix of its songs, at random', (tester) async {
     final asked = await pumpHome(tester, const Size(1000, 700));
@@ -354,7 +355,7 @@ void main() {
     expect(player.playing, isTrue);
     expect(asked.last, allOf(containsPair('genre', 'Rock'), containsPair('size', '100')));
     await tester.pumpWidget(const SizedBox()); // stops the player bar's timers
-  });
+  }, variant: computer);
 
   testWidgets('a genre with nothing played has no row of the most played, just its albums', (tester) async {
     await pumpHome(tester, const Size(1000, 700));
@@ -366,7 +367,7 @@ void main() {
     expect(find.text('Mais tocados'), findsNothing);
     expect(find.text('Álbuns'), findsNothing);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('dragged down from its top, the genres come again', (tester) async {
     final asked = await pumpHome(tester, const Size(360, 640));

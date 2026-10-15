@@ -17,6 +17,7 @@ import 'package:segue/ui/app/home_page.dart';
 import 'package:segue/ui/home/home_chips.dart';
 import 'package:segue/ui/player/now_playing_bar.dart';
 
+import 'computer.dart';
 import 'fakes.dart';
 import 'themed_icons.dart';
 
@@ -338,6 +339,57 @@ void main() {
     await tester.pumpWidget(const SizedBox()); // stops the player bar's timer
   });
 
+  testWidgets(
+    'on a tablet, the home is a phone\'s, with no side rail nor arrows, its bars floating side by side, the player\'s '
+    'a phone\'s, 400 wide at the end, the sections\' in the rest, as tall as it, their icons in the middle',
+    (tester) async {
+      tester.view.padding = const FakeViewPadding(bottom: 56);
+
+      final (player, _) = await pumpHome(tester, const Size(1280, 800));
+      final sections = find.byType(NavigationBar);
+      final pill = find.ancestor(of: sections, matching: find.byType(ClipRRect)).first;
+
+      expect(find.byTooltip('Álbuns'), findsNothing, reason: 'no side rail');
+      expect(find.byTooltip('Voltar'), findsNothing, reason: 'no arrows: the system\'s back goes back');
+      expect(tester.getRect(pill), const Rect.fromLTRB(8, 800 - 56 - 8 - 68, 1272, 800 - 56 - 8), reason: 'alone');
+
+      await player.playQueue(const [Song(id: 's1', title: 'Dream On')]);
+      await tester.pump();
+
+      final bar = tester.getRect(find.byType(NowPlayingBar));
+      final room = tester.getRect(pill);
+
+      expect(bar, Rect.fromLTRB(1272 - 400, room.top, 1272, 800 - 56 - 8));
+      expect((room.left, room.right, room.bottom), (8, 1272 - 400 - 8, bar.bottom));
+      expect(tester.getCenter(sections).dy, room.center.dy);
+      expect(find.byTooltip('Mostrar a letra'), findsNothing, reason: 'in the full-screen player, as on a phone');
+      await tester.pumpWidget(const SizedBox()); // stops the player bar's timer
+    },
+    variant: TargetPlatformVariant.mobile(),
+  );
+
+  testWidgets(
+    'on a tablet too narrow for them side by side, its bars at the bottom are in the middle, the player\'s over the '
+    'sections\', no wider than 560',
+    (tester) async {
+      final (player, _) = await pumpHome(tester, const Size(600, 960));
+
+      await player.playQueue(const [Song(id: 's1', title: 'Dream On')]);
+      await tester.pump();
+
+      final sections = tester.getRect(find.byType(NavigationBar));
+      final bar = tester.getRect(find.byType(NowPlayingBar));
+
+      expect(sections.width, 560);
+      expect(sections.center.dx, 300, reason: 'in the middle');
+      expect(sections.bottom, 960);
+      expect((bar.left, bar.right), (sections.left, sections.right));
+      expect(sections.top - bar.bottom, 2);
+      await tester.pumpWidget(const SizedBox()); // stops the player bar's timer
+    },
+    variant: TargetPlatformVariant.mobile(),
+  );
+
   testWidgets('the songs found have no header over them, just their heading', (tester) async {
     await pumpHome(tester, const Size(1000, 640));
     await tester.enterText(find.byType(TextField), 'dream');
@@ -347,7 +399,7 @@ void main() {
     expect(find.text('Título'), findsNothing);
     expect(find.byTooltip('Duração'), findsNothing);
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
-  });
+  }, variant: computer);
 
   testWidgets('on a wide screen, the bar sits in the middle of the window, past the arrows on its left', (
     tester,
@@ -362,7 +414,7 @@ void main() {
     expect(bar.left, greaterThan(arrows.right));
     expect(bar.center.dy, moreOrLessEquals(arrows.center.dy, epsilon: 4));
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
-  });
+  }, variant: computer);
 
   testWidgets('on a TV\'s window, the bar takes two fifths of it, and on a big one no more than 600', (tester) async {
     await pumpHome(tester, const Size(960, 540));
@@ -370,7 +422,7 @@ void main() {
     await pumpHome(tester, const Size(1920, 1080));
     expect(tester.getSize(find.byType(SearchBar)).width, moreOrLessEquals(600, epsilon: 1));
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
-  });
+  }, variant: computer);
 
   testWidgets('where the middle has no room for it, the bar keeps clear of the arrows and the buttons', (tester) async {
     await pumpHome(tester, const Size(640, 640));
@@ -381,7 +433,7 @@ void main() {
     expect(bar.left, greaterThan(arrows.right));
     expect(bar.right, lessThan(tester.getRect(find.byTooltip('Sem hub: só toca neste aparelho')).left));
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
-  });
+  }, variant: computer);
 
   testWidgets('off a TV, the keyboard opens as the focus comes to the search bar', (tester) async {
     await pumpHome(tester, const Size(1000, 640));
@@ -394,7 +446,7 @@ void main() {
 
     expect(tester.testTextInput.isVisible, isTrue);
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
-  });
+  }, variant: computer);
 
   testWidgets('Esc in the search bar clears it, as its clear button does; empty, it leaves it', (tester) async {
     await pumpHome(tester, const Size(1000, 640));
@@ -419,7 +471,7 @@ void main() {
     await tester.pump();
     expect(field.hasFocus, isFalse, reason: 'space plays and pauses again');
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
-  });
+  }, variant: computer);
 
   testWidgets('the key "/" goes to the search bar, also as a keyboard types it with Shift; not while typing, where it '
       'goes on to the text field', (tester) async {
@@ -445,7 +497,7 @@ void main() {
     await tester.pump();
     expect(field.hasFocus, isTrue);
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
-  });
+  }, variant: computer);
 
   testWidgets('on a phone, the key "/" goes to the search, a section of its own, ready to type', (tester) async {
     await pumpHome(tester, const Size(360, 640));
@@ -500,5 +552,5 @@ void main() {
     expect(find.text('Toys in the Attic'), findsOneWidget);
     expect(tester.widget<TextField>(find.byType(TextField)).controller?.text, isEmpty);
     await tester.pumpWidget(const SizedBox()); // stops the bar's timer
-  });
+  }, variant: computer);
 }

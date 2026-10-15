@@ -22,8 +22,10 @@ import 'package:segue/ui/home/home_view.dart';
 import 'package:segue/ui/player/now_playing_bar.dart';
 import 'package:segue/ui/player/player_page.dart';
 import 'package:segue/ui/player/television_player.dart';
+import 'package:segue/ui/player/volume_control.dart';
 import 'package:segue/ui/widgets/text_link.dart';
 
+import 'computer.dart';
 import 'fakes.dart';
 
 /// The player bar, with a song at 1:00, and the focus on its slider. A TV has none.
@@ -297,9 +299,11 @@ void main() {
     await press(tester, LogicalKeyboardKey.arrowRight);
     expect(focusedTip(), 'Aparelhos');
     await press(tester, LogicalKeyboardKey.arrowRight);
-    expect(focusedTip(), 'Aparelhos', reason: 'the last one: not to the albums under the bar');
+    expect(focusedIn<VolumeControl>(), isTrue, reason: 'a computer\'s');
+    await press(tester, LogicalKeyboardKey.arrowRight);
+    expect(focusedIn<VolumeControl>(), isTrue, reason: 'the last one: not to the albums under the bar');
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('on a computer, right from "Próxima" stays in the bar with an album row cut by it, as the grid scrolls', (
     tester,
@@ -318,15 +322,17 @@ void main() {
     await press(tester, LogicalKeyboardKey.arrowRight);
     expect(focusedTip(), 'Aparelhos');
     await press(tester, LogicalKeyboardKey.arrowRight);
-    expect(focusedTip(), 'Aparelhos');
+    expect(focusedIn<VolumeControl>(), isTrue);
+    await press(tester, LogicalKeyboardKey.arrowRight);
+    expect(focusedIn<VolumeControl>(), isTrue);
 
-    for (var i = 0; i < 6; i++) {
+    for (var i = 0; i < 7; i++) {
       await press(tester, LogicalKeyboardKey.arrowLeft);
     }
 
     expect(focusedTip(), 'Pausar', reason: 'and back left along the buttons');
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('on a computer, left from the bar\'s song stays in the bar', (tester) async {
     await pumpFullHdHome(tester, television: false);

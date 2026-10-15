@@ -33,6 +33,7 @@ import 'package:segue/ui/widgets/themed_icon.dart';
 import 'package:segue/ui/widgets/tile_row.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
+import 'computer.dart';
 import 'fakes.dart';
 import 'sections.dart';
 import 'side_rail.dart';
@@ -473,7 +474,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Walk This Way'), findsOneWidget);
     await tester.pumpWidget(const SizedBox()); // stops the player bar's timers
-  });
+  }, variant: computer);
 
   testWidgets('the artists tab lists them by name, the most played first, or the favorites, as picked above them', (
     tester,
@@ -514,11 +515,11 @@ void main() {
     expect(find.text('Aerosmith'), findsOneWidget);
     expect(find.text('Ramones'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('on a wide screen, once the artist\'s picture has gone up, their name stays in a bar at the top of their '
       'page, under the top bar, whose arrows go back', (tester) async {
-    await pumpHome(tester, const Size(1000, 700));
+    await pumpHome(tester, const Size(1000, 600));
     await tester.tap(find.byTooltip('Artistas'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Cheap Trick'));
@@ -546,7 +547,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(inBar(find.text('Cheap Trick')), findsNothing);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets(
     'on a wide screen, the artist\'s picture is behind the top of their page too, blurred, across it, under '
@@ -582,6 +583,7 @@ void main() {
       expect(find.descendant(of: page, matching: find.byType(ImageFiltered)), findsNothing);
       await tester.pumpWidget(const SizedBox());
     },
+    variant: computer,
   );
 
   testWidgets('before anything has played, the most played artists say where they will be', (tester) async {
@@ -593,15 +595,14 @@ void main() {
     expect(find.text('Os artistas que você mais ouvir aparecem aqui.'), findsOneWidget);
     expect(find.text('Cheap Trick'), findsNothing);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('an artist\'s five songs the user plays most, numbered, come over their albums, picked over them, and '
       'play from the one picked', (tester) async {
     // Tall enough for the songs and the album under them.
     final engine = await pumpHome(tester, const Size(1000, 900));
 
-    await tester.tap(find.byTooltip('Artistas'));
-    await tester.pumpAndSettle();
+    await openSection(tester, 'Artistas');
     await tester.tap(find.text('Cheap Trick'));
     await tester.pumpAndSettle();
     expect(artistName('Cheap Trick'), findsOneWidget);
@@ -626,9 +627,12 @@ void main() {
 
     final last = find.descendant(of: find.widgetWithText(ListTile, 'Downed'), matching: find.text('In Color'));
 
+    // The theme's density, a computer's compact one, takes 4 off the room under the song's lines.
+    final density = Theme.of(tester.element(last)).visualDensity;
+
     expect(
       tester.getRect(albums).top - tester.getRect(last).bottom,
-      moreOrLessEquals(36, epsilon: 1),
+      moreOrLessEquals(36 + 2 * density.vertical, epsilon: 1),
       reason: 'as far from the last song\'s lines as a section of albums is from the one over it',
     );
     expect(find.text('So Good to See You'), findsNothing, reason: 'the sixth');
@@ -653,7 +657,7 @@ void main() {
     );
     expect(engine.index, 1, reason: 'from the one picked');
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('the button under the artist\'s name plays their radio: songs of theirs and of those like them', (
     tester,
@@ -674,7 +678,7 @@ void main() {
     expect([for (final track in engine.tracks) track.queryParameters['id']], ['s3', 'r1']);
     expect(engine.index, 0);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('picking the popular ones shows the artist\'s songs everyone plays most, as the server gives them, which '
       'play from the one picked', (tester) async {
@@ -705,7 +709,7 @@ void main() {
     expect(find.text('Hello There'), findsOneWidget, reason: 'the user\'s again');
     expect(find.text('Big Eyes'), findsNothing);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('an artist none of whose songs has played has their popular ones, under a title', (tester) async {
     await pumpHome(tester, const Size(1000, 900), played: false);
@@ -722,7 +726,7 @@ void main() {
     expect(tester.getTopLeft(heading).dy, lessThan(tester.getTopLeft(find.text('Big Eyes')).dy));
     expect(find.text('So Good to See You'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('an artist with albums and singles or EPs has a choice between them over the albums, which shows their '
       'singles and EPs, newest first, in their place', (tester) async {
@@ -771,7 +775,7 @@ void main() {
     expect(find.text('Toys in the Attic'), findsOneWidget, reason: 'the albums again');
     expect(find.text('Pink'), findsNothing);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('an artist the server no longer has says so, and nothing else fails unheard', (tester) async {
     const credentials = SubsonicCredentials(username: 'a', token: 't', salt: 's');
@@ -823,7 +827,7 @@ void main() {
     expect(find.descendant(of: find.byType(ArtistPage), matching: find.text('Álbuns')), findsNothing);
     expect(find.text('Singles e EPs'), findsNothing);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('an artist with albums alone has them under a title, with nothing to pick', (tester) async {
     // Tall enough for their songs and their album.
@@ -845,7 +849,7 @@ void main() {
     expect(find.text('Singles e EPs'), findsNothing);
     expect(find.text('1 álbum'), findsOneWidget, reason: 'and no singles or EPs to count');
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('on a phone, the artists are a tab of the library, in the bar at the bottom, their orders in chips, and '
       'the bar stays under an artist\'s page', (tester) async {
@@ -1063,7 +1067,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(shade('Aerosmith'), findsNothing);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets(
     'an artist has room inside, around their picture, where the tint shows; the picture is 16 from the next',
@@ -1085,6 +1089,7 @@ void main() {
       expect(picture(artist).left - tester.getRect(grid).left, moreOrLessEquals(16));
       await tester.pumpWidget(const SizedBox());
     },
+    variant: computer,
   );
 
   testWidgets('search finds artists too, with no count of their albums, and one opens their page', (tester) async {
@@ -1099,7 +1104,7 @@ void main() {
     expect(artistName('Aerosmith'), findsOneWidget);
     expect(find.text('Toys in the Attic'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
   testWidgets('search finds albums too: one opens its page, and its artist theirs', (tester) async {
     await pumpHome(tester, const Size(1000, 700));
     await tester.enterText(find.byType(TextField), 'toys');
@@ -1118,7 +1123,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Walk This Way'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
   testWidgets('an album\'s page links its artist, whom the keyboard and the remote reach too', (tester) async {
     await pumpHome(tester, const Size(1000, 700));
     await tester.enterText(find.byType(TextField), 'toys');
@@ -1148,7 +1153,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(artistName('Aerosmith'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   for (final (screen, size) in [('a wide screen', const Size(1000, 700)), ('a phone', const Size(360, 640))]) {
     testWidgets('on $screen, a button after how many albums an artist has opens their biography over the window, under '
@@ -1373,7 +1378,7 @@ void main() {
 
       expect(asked, hasLength(1), reason: 'remembered, and none for the others');
       await tester.pumpWidget(const SizedBox());
-    });
+    }, variant: platformFor(size));
   }
 
   for (final (screen, size) in [('a wide screen', const Size(1000, 700)), ('a phone', const Size(360, 640))]) {
@@ -1464,6 +1469,7 @@ void main() {
       expect(find.byTooltip('Abrir o gênero'), findsNothing);
       await tester.pumpWidget(const SizedBox());
     },
+    variant: computer,
   );
 
   testWidgets('on a phone, an artist\'s genres are over the bottom of their picture, between their name and the choice '
@@ -1511,7 +1517,7 @@ void main() {
 
       expect(find.descendant(of: material, matching: picture), findsNothing);
       await tester.pumpWidget(const SizedBox());
-    });
+    }, variant: platformFor(size));
   }
 
   testWidgets('a band\'s biography has its years beside its name, and where it comes from under it, asked of '
@@ -1555,7 +1561,7 @@ void main() {
     expect(find.descendant(of: page, matching: find.text('Aerosmith (desde 1970)')), findsOneWidget);
     expect(find.descendant(of: page, matching: find.text('Massachusetts, Estados Unidos')), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('where an artist comes from, under their name, by a pin: the place and its country, or either alone; '
       'nothing for a country the app has no name for', (tester) async {

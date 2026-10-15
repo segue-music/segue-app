@@ -16,7 +16,7 @@ Segue's protocol and its hub, which runs next to the media server, are in
 <p align="center">
   <a href="docs/screenshots/phone.png"><img src="docs/screenshots/phone.webp" width="20.8%" alt="The full-screen player on a phone: the cover, the song, the time played and the controls, and at the top the sleep timer on, 30 minutes left"></a>
   <a href="docs/screenshots/devices.png"><img src="docs/screenshots/devices.webp" width="20.8%" alt="The device picker on a phone, over the full-screen player: this phone; a kitchen speaker, with a song paused; a laptop; and the living room TV, which the phone controls, playing the song the TV above plays"></a>
-  <a href="docs/screenshots/tablet.png"><img src="docs/screenshots/tablet.webp" width="56.4%" alt="The full-screen player on a tablet, in the light theme, with the synced lyrics beside the cover"></a>
+  <a href="docs/screenshots/tablet.png"><img src="docs/screenshots/tablet.webp" width="56.4%" alt="The full-screen player on a tablet turned, in the light theme: the synced lyrics in the cover's place, beside the song and its controls"></a>
 </p>
 
 > [!NOTE]
@@ -62,9 +62,9 @@ iPhone and in a car, with CarPlay's Now Playing screen, and the Windows build on
   one at a glance; a row of mixes; then rows of the latest added, the latest released and the most played. A row's title
   opens the albums tab in that order. Dragging the home down from its top loads it again. As the app opens, the home
   shows at once what it showed the time before, covers too, kept on the device, while it loads again; its mixes are
-  those picked the time before. On a phone, its top bar has two chips: "Shuffle", which plays the whole library at
-  random, and "Favorites", which opens the favorites. On a computer, a tablet or a TV, "Shuffle" is in the top bar, over
-  every page, and the favorites in the side rail.
+  those picked the time before. On a phone or a tablet, its top bar has two chips: "Shuffle", which plays the whole
+  library at random, and "Favorites", which opens the favorites. On a computer or a TV, "Shuffle" is in the top bar,
+  over every page, and the favorites in the side rail.
 - **Mixes**: 100 songs of the library at random, of a genre ("Rock") or of a decade ("1970s"), from the genres and
   decades the user plays most (before anything has played, the genres with the most albums). They are picked again each
   time the home loads, the more played the likelier. A mix plays the first songs its tile shows, and autoplay goes on
@@ -81,9 +81,9 @@ iPhone and in a car, with CarPlay's Now Playing screen, and the Windows build on
   `ShareURL`, so a link with an address of the local network opens only there, which the app says before it goes.
   Navidrome's web page lists the links, to take one back. Jellyfin has none.
 - **Albums**: by name, latest released, most played, played last or latest added. Wherever albums are listed, the
-  album's artist opens their page, and on a computer or a tablet a button on the cover plays the album. By name,
-  they have their letters beside them, which scroll to where each starts: a letter pressed, or a finger slid along
-  them, as in a phone's contacts.
+  album's artist opens their page, and on a computer a button on the cover plays the album. By name, they have their
+  letters beside them, which scroll to where each starts: a letter pressed, or a finger slid along them, as in a
+  phone's contacts.
 - **Artists**: by name or most played; by name, with their letters beside them too.
 - **Genres**: by name, under the ten the user listens to most. A genre's page has a button that plays its mix, a
   row of its most played albums, and its albums by name.
@@ -125,12 +125,13 @@ iPhone and in a car, with CarPlay's Now Playing screen, and the Windows build on
   upright slider opens as the pointer comes to it (or the keyboard's focus, whose up and down arrows move it). The
   mouse's wheel moves it over either. It is the volume of whichever device the app controls; this device's own the next
   launch keeps. A phone's and a TV's own buttons set the system's volume.
-- **Lyrics**, beside the cover in the full-screen player (under it on a phone), and full screen: the server's
-  (OpenSubsonic's songLyrics, as Navidrome's from the tags or a `.lrc`; Jellyfin's), or else LRCLIB's (lrclib.net).
-  Synced ones mark the line that plays, and a line tapped goes there. Full screen, on a phone or a tablet, they keep
-  the screen on. On a TV the full-screen player opens with them, as karaoke: in three fifths of the screen, the line
-  that plays bigger, growing as it comes, in the middle, those to come faint and those gone by fainter, the screen on
-  while they show. A song without lyrics shows the cover alone there, and they come back with one that has some.
+- **Lyrics**, beside the cover in the full-screen player (under it on a phone or a tablet, in its place turned), and
+  full screen: the server's (OpenSubsonic's songLyrics, as Navidrome's from the tags or a `.lrc`; Jellyfin's), or else
+  LRCLIB's (lrclib.net). Synced ones mark the line that plays, and a line tapped goes there. Full screen, on a phone or
+  a tablet, they keep the screen on. On a TV the full-screen player opens with them, as karaoke: in three fifths of the
+  screen, the line that plays bigger, growing as it comes, in the middle, those to come faint and those gone by fainter,
+  the screen on while they show. A song without lyrics shows the cover alone there, and they come back with one that has
+  some.
 - **Queue** of whichever device the app controls: a tap plays a track there, a drag moves it, and its menu takes it
   out (but the current one). Shuffled, a move changes the play order alone. A change the device refuses goes back,
   and a message says why.
@@ -196,14 +197,17 @@ knows nothing of them, and another device plays as it has them.
 
 ### Devices
 
-- **Computer and tablet**: the top bar, the side rail (albums, artists, genres, playlists, favorites) and the player bar
-  stay, and pages open between them. Arrows beside the app's icon, and the keyboard's left and right, go back and
-  forward through them, as a browser's do. `/` goes to the search bar, Esc takes the focus off what has it, and space
-  plays or pauses (not while typing). A section's button in the side rail, picked again, takes it back to its start. On
-  a computer the window opens maximized and gets no narrower than 960.
-- **Phone**: the player bar and a bar with the home, the search and the library stay at the bottom, and a swipe goes
-  from section to section; the home or the library picked again there goes back to its start. Pages open over the
-  rest, and a swipe to the right from anywhere goes back.
+- **Computer**: the top bar, the side rail (albums, artists, genres, playlists, favorites) and the player bar stay, and
+  pages open between them. Arrows beside the app's icon, and the keyboard's left and right, go back and forward through
+  them, as a browser's do. `/` goes to the search bar, Esc takes the focus off what has it, and space plays or pauses
+  (not while typing). A section's button in the side rail, picked again, takes it back to its start. The window opens
+  maximized and gets no narrower than 960.
+- **Phone and tablet**: the player bar and a bar with the home, the search and the library stay at the bottom, and a
+  swipe goes from section to section; the home or the library picked again there goes back to its start. Pages open
+  over the rest, and a swipe to the right from anywhere goes back. On a tablet, or a phone turned, the two bars float
+  side by side over the page, one bar's height at the bottom; on a tablet too narrow for that, they sit in the middle,
+  no wider than on a big phone. Turned, the full-screen player has the cover beside the song and its controls, the
+  lyrics coming in in the cover's place.
 - **Sign-in on a TV with a phone**: the TV's sign-in shows a QR code, which the app on a phone signed in reads
   (Settings, "Sign in on a TV"), signing the TV in with no typing on the remote. Over the local network, sealed with a
   key the code carries (AES-GCM): on Subsonic the phone's credentials; on Jellyfin the TV signs in by Quick Connect,

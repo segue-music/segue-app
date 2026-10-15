@@ -35,6 +35,7 @@ import 'package:segue/ui/player/television_player.dart';
 import 'package:segue/ui/widgets/cover.dart';
 import 'package:segue/ui/widgets/themed_icon.dart';
 
+import 'computer.dart';
 import 'fakes.dart';
 import 'themed_icons.dart';
 
@@ -455,7 +456,7 @@ void main() {
     expect(onPage(find.byType(LyricsView)), findsNothing);
     expect(tester.getRect(playerCover), cover, reason: 'back where it was');
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('on a phone, the lyrics show under the player, whose bar has no room for their button, the cover smaller '
       'to make room for them', (tester) async {
@@ -541,7 +542,7 @@ void main() {
     expect(lyrics, findsNothing);
     expect(tester.getCenter(playerCover).dx, 640);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('on a phone, the lyrics\' room under the player grows as they fade in, and the cover shrinks', (
     tester,
@@ -802,7 +803,7 @@ void main() {
     expect(find.byType(PlayerPage), findsOneWidget);
     expect(onPage(find.byType(LyricsView)), findsNothing);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('on a TV, the full-screen player opens with the lyrics beside it, three fifths of the room the controls '
       'leave at the sides, the cover at its start, and the screen stays on while they show', (tester) async {
@@ -1117,7 +1118,7 @@ void main() {
     expect(tester.getRect(lyrics).left, 640);
     expect(tester.widget<Opacity>(find.ancestor(of: lyrics, matching: find.byType(Opacity)).first).opacity, 1);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('a wide bar has a button for the lyrics, which opens the player with them', (tester) async {
     await pumpBar(tester, server: withLyrics(verse), size: const Size(1000, 700));
@@ -1128,7 +1129,7 @@ void main() {
     expect(onPage(find.text('You talk about things')), findsOneWidget);
     expect(onPage(find.byTooltip('Esconder a letra')), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('long lyrics scroll to the line that plays, which stays in their upper half while there is more to '
       'scroll, and the page stays where it was', (tester) async {
@@ -1335,7 +1336,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(player.position.inSeconds, 15);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('lyrics that aren\'t synced show as they are, with no line marked', (tester) async {
     final player = await pumpBar(
@@ -1433,7 +1434,7 @@ void main() {
     await tester.pumpAndSettle();
     expectBig('beside the lyrics');
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('the song\'s title, artist and album show in the middle, big, the title in bold', (tester) async {
     await pumpBar(tester, size: const Size(1280, 800));
@@ -1461,7 +1462,7 @@ void main() {
     }
 
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('on a wide screen the minimized player stays under the full-screen one, with the lyrics, the queue and '
       'the devices, which leave its top bar', (tester) async {
@@ -1499,7 +1500,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(PlayerPage), findsNothing);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('on a wide screen the full-screen player shows the song alone: the controls are the bar\'s, under it', (
     tester,
@@ -1519,7 +1520,83 @@ void main() {
     }
 
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
+
+  testWidgets(
+    'on a tablet the full-screen player is a phone\'s: the controls under the song, a drag down closing it, the lyrics '
+    'under them',
+    variant: TargetPlatformVariant.mobile(),
+    (tester) async {
+      await pumpBar(tester, server: withLyrics(verse), size: const Size(800, 1280));
+      await openPlayer(tester);
+      expect(inPlayer((widget) => widget is Slider), findsOneWidget);
+      expect(playerTip('Tocar'), findsOneWidget);
+      expect(onPage(find.byType(NowPlayingBar)), findsNothing, reason: 'no bar under it');
+
+      await tester.drag(playerCover, const Offset(0, 500)); // past a third of the way down
+      await tester.pumpAndSettle();
+      expect(find.byType(PlayerPage), findsNothing);
+
+      await openPlayer(tester);
+      await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
+      await tester.pumpAndSettle();
+      expect(
+        tester.getRect(onPage(find.byType(LyricsView))).top,
+        greaterThan(tester.getRect(playerCover).bottom),
+        reason: 'under the player, not beside it',
+      );
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets(
+    'on a tablet turned, the cover is in one half, as big as its height leaves it, and the song, its controls and the '
+    'buttons under them in the other; the lyrics come in in the cover\'s place',
+    variant: TargetPlatformVariant.mobile(),
+    (tester) async {
+      await pumpBar(tester, server: withLyrics(verse), size: const Size(1280, 800));
+      await openPlayer(tester);
+
+      final cover = tester.getRect(playerCover);
+      final slider = tester.getRect(onPage(find.byType(Slider)));
+
+      expect(cover.right, lessThanOrEqualTo(640), reason: 'in the first half');
+      expect(cover.height, greaterThan(500), reason: 'about as tall as the page');
+      expect(slider.left, greaterThanOrEqualTo(640), reason: 'in the other');
+      expect(playerTip('Tocar'), findsOneWidget);
+      expect(onPage(find.text('Letra')), findsNothing, reason: 'no handle under the cover');
+
+      for (final tooltip in ['Fila', 'Mostrar a letra', 'Aparelhos', 'Adicionar à playlist']) {
+        final button = tester.getRect(onPage(find.byTooltip(tooltip)));
+
+        expect(button.top, greaterThan(slider.bottom), reason: tooltip);
+        expect(button.left, greaterThanOrEqualTo(640), reason: tooltip);
+      }
+
+      await tester.drag(onPage(find.byType(Slider)), const Offset(0, 300));
+      await tester.pumpAndSettle();
+      expect(find.byType(PlayerPage), findsNothing, reason: 'a drag down closes it, as on a phone');
+
+      await openPlayer(tester);
+      await tester.tap(onPage(find.byTooltip('Mostrar a letra')));
+      await tester.pump();
+      await tester.pump(PlayerPage.lyricsTransition ~/ 2);
+
+      final coming = tester.state(onPage(find.byType(LyricsView)));
+
+      await tester.pumpAndSettle();
+      expect(tester.state(onPage(find.byType(LyricsView))), same(coming), reason: 'the same, as the cover goes');
+      expect(playerCover, findsNothing);
+      expect(tester.getRect(onPage(find.byType(LyricsView))).right, lessThanOrEqualTo(640), reason: 'in its place');
+      expect(onPage(find.byType(Slider)), findsOneWidget, reason: 'the controls at hand');
+
+      await tester.tap(onPage(find.byTooltip('Esconder a letra')));
+      await tester.pumpAndSettle();
+      expect(playerCover, findsOneWidget);
+      expect(onPage(find.byType(LyricsView)), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
 
   testWidgets('on a wide screen the bar stays put as the full-screen player slides up over the page', (tester) async {
     await pumpBar(tester, size: const Size(1280, 800));
@@ -1538,7 +1615,7 @@ void main() {
     expect(find.byType(PlayerPage), findsOneWidget);
     expect(tester.getRect(find.byTooltip('Aparelhos')), devices, reason: 'under the player');
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('the bar stays put from page to page: the queue has it too', (tester) async {
     await pumpBar(tester, size: const Size(1280, 800));
@@ -1557,7 +1634,7 @@ void main() {
     expect(find.byType(QueuePage), findsOneWidget);
     expect(tester.getRect(find.byTooltip('Próxima')), next, reason: 'under the queue');
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('Esc closes the full-screen player', (tester) async {
     await pumpBar(tester);
@@ -2023,7 +2100,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(onPage(find.byType(LyricsView)), findsNothing);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('on a small phone, where the player with its lyrics is taller than the screen, a drag down scrolls it to '
       'its top, and from there on takes the lyrics out; the lyrics scroll as they do', (tester) async {
@@ -2129,7 +2206,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(PlayerPage), findsNothing);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('on a wide screen, a drag down leaves the player be, and one up its lyrics', (tester) async {
     await pumpBar(tester, size: const Size(1280, 800));
@@ -2142,7 +2219,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(onPage(find.byType(LyricsView)), findsNothing);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('its slider jumps to where it is tapped', (tester) async {
     final player = await pumpBar(tester);
@@ -2164,7 +2241,7 @@ void main() {
     expect(inPlayer((widget) => widget is Text && widget.data == 'Tocando em Sala de estar'), findsOneWidget);
     expect(inPlayer((widget) => widget is Text && widget.data == 'Dream On'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('on a phone, its devices button says that it plays on another device, tinted', (tester) async {
     Color? devicesColor() => tester
@@ -2307,7 +2384,7 @@ void main() {
     expect(tester.widget<ArtistPage>(find.byType(ArtistPage)).artist.id, 'ar1');
     expect(asked.where((request) => request.url.path.endsWith('getSong.view')), isEmpty);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('a song the server can\'t find opens nothing, and says so', (tester) async {
     await pumpBar(tester);
@@ -2369,7 +2446,7 @@ void main() {
     );
     expect(playerTip('Abrir o artista'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 
   testWidgets('on a phone, the whole song in the bar opens the player, its title and artist included', (tester) async {
     await pumpBar(tester, server: library);
@@ -2410,5 +2487,5 @@ void main() {
     await tester.pump();
     expect(decoration(), isNot(TextDecoration.underline));
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: computer);
 }
