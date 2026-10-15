@@ -6,8 +6,8 @@ A music player for Navidrome, any other OpenSubsonic server, or Jellyfin, built 
 device, and whatever you play goes there. One Flutter codebase for Linux, Windows, macOS, Android and iOS, in
 Portuguese, English and Spanish.
 
-Segue's protocol and its hub, which runs next to the media server, are in
-[segue-music/segue](https://github.com/segue-music/segue). Without a hub, the app plays on the device it runs on.
+Connect needs Segue's hub next to the media server ([Setting up Connect](#setting-up-connect)). Without one, the app
+plays on the device it runs on.
 
 <p align="center">
   <a href="docs/screenshots/desktop.png"><img src="docs/screenshots/desktop.webp" width="51%" alt="The home on a computer: the albums played last as small tiles, mixes by genre and decade, and the latest added albums, with the player bar at the bottom"></a>
@@ -32,8 +32,9 @@ iPhone and in a car, with CarPlay's Now Playing screen, and the Windows build on
 
 ### Connect
 
-- The hub is found next to the server, or typed at sign-in, under "Advanced". The device picker lists the user's other
-  devices that are online, with what they play, and picking one makes the app control it.
+- The app finds the hub next to the server by itself, or takes its address at sign-in, under "Advanced". The device
+  picker lists the user's other devices that are online, with what they play, and picking one makes the app control
+  it.
 - An icon in the top bar, before the settings' button, says how Connect is: connected to the hub, connecting, offline
   (trying again), refused (this device connected again elsewhere, say), or no hub found, the app playing here alone;
   and, with the media server out of reach, that the app shows only what was downloaded.
@@ -41,7 +42,7 @@ iPhone and in a car, with CarPlay's Now Playing screen, and the Windows build on
   closes, its music stays here, paused. If its queue ends there, the player goes, and the app controls this device
   again, until another queue plays there.
 - When another device starts playing, music left paused here goes, so that no device is listed paused with music that
-  now plays elsewhere. An app opened when nothing plays anywhere picks up where the music was.
+  now plays elsewhere. Opened when nothing plays anywhere, the app picks up where the music was.
 
 ### Signing in
 
@@ -162,8 +163,8 @@ iPhone and in a car, with CarPlay's Now Playing screen, and the Windows build on
 - **Plays** count toward the user's most played: on a Subsonic server once a song has played half or four minutes
   (not a song of 30 seconds or less), on a Jellyfin server by the hub.
 
-Autoplay, the crossfade, the sleep timer, the normalization and the equalizer are each device's own: the protocol
-knows nothing of them, and another device plays as it has them.
+Autoplay, the crossfade, the sleep timer, the normalization and the equalizer are each device's own: a device the app
+controls plays as it has them, and the settings here change this device's alone.
 
 ### Playlists and favorites
 
@@ -320,33 +321,27 @@ time the app reaches a server in the local network, iOS asks for permission.
 
 What iOS does differently:
 - In the background, iOS keeps the app running only while it plays. Paused, or just controlling another device, it is
-  suspended after a while, and the hub sees it leave until it is opened again.
+  suspended after a while, and the other devices list it offline until it is opened again.
 - In a car, the music shows in CarPlay's Now Playing screen, with its controls, but the app has no screen of its own
   there.
 - Other devices see this one as "iPhone" (or "iPad"), not by its name in Settings (General > About > Name): since iOS
   16 an app reads that name only with an entitlement Apple grants on request
   (`com.apple.developer.device-information.user-assigned-device-name`), which the app doesn't have yet.
 
-## Trying Connect
+## Setting up Connect
 
-Connect needs the hub, from [segue-music/segue](https://github.com/segue-music/segue). Published at `/connect` on the
-media server's address, it is found by itself, with nothing to type at sign-in. To try it without that, run it on your
-computer, pointing at the media server, from its image:
+Connect needs Segue's hub, which runs next to the media server: its
+[README](https://github.com/segue-music/segue#running-the-hub) says how. Published at `/connect` on the media server's
+address, the hub is found by itself, with nothing to type at sign-in; anywhere else, its address goes at sign-in, under
+"Advanced".
+
+To try Connect without changing the server, run a hub on your computer, pointing at the media server:
 
 ```sh
 docker run --rm -p 127.0.0.1:8480:8480 -e SEGUE_UPSTREAM=https://navidrome.example ghcr.io/segue-music/segue-hub
 ```
 
-or with Go, in a clone of that repository:
-
-```sh
-cd segue/hub
-go build -o segue-hub ./cmd/segue-hub
-env SEGUE_UPSTREAM=https://navidrome.example ./segue-hub
-```
-
-and at sign-in, under "Advanced", put `http://127.0.0.1:8480` as the hub's address. The hub's binary is static, so one
-built on another computer runs as it is.
+and at sign-in, under "Advanced", put `http://127.0.0.1:8480` as the hub's address.
 
 To see two devices on one computer, start a second copy of the app as another device:
 
