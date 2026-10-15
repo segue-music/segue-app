@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:segue/mobile_data.dart';
 
@@ -33,5 +36,32 @@ void main() {
 
     addTearDown(mobileData.dispose);
     expect(mobileData.value, isFalse);
+  });
+
+  test('a system slow to say how it is online first still has what it says next count', () async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+
+    final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    const methods = MethodChannel('dev.fluttercommunity.plus/connectivity');
+    const changes = EventChannel('dev.fluttercommunity.plus/connectivity_status');
+    final listening = Completer<MockStreamHandlerEventSink>();
+
+    messenger
+      ..setMockMethodCallHandler(methods, (_) => Completer<Object?>().future)
+      ..setMockStreamHandler(changes, MockStreamHandler.inline(onListen: (_, sink) => listening.complete(sink)));
+    addTearDown(() {
+      messenger
+        ..setMockMethodCallHandler(methods, null)
+        ..setMockStreamHandler(changes, null);
+    });
+
+    // Past the 2 s it waits for the first answer.
+    final mobileData = await MobileData.watch(askSystem: true);
+
+    addTearDown(mobileData.dispose);
+    expect(mobileData.value, isFalse);
+    (await listening.future.timeout(const Duration(seconds: 1))).success(['mobile']);
+    await pumpEventQueue();
+    expect(mobileData.value, isTrue);
   });
 }

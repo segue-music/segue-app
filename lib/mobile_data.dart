@@ -31,6 +31,9 @@ class MobileData extends ValueNotifier<bool> {
     try {
       // Services.start waits for it, as the app opens.
       mobileData.value = inUse(await connectivity.checkConnectivity().timeout(const Duration(seconds: 2)));
+    } on TimeoutException catch (e) {
+      // Slow to say, but there: what it says next counts.
+      _log.warning('no news of the connection yet', e);
     } on Object catch (e) {
       _log.warning('no news of the connection', e);
       return mobileData;
