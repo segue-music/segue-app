@@ -199,7 +199,7 @@ class TrackServer {
       response.write('{"error": "not found"}');
     } else {
       response.headers.contentType = ContentType('audio', 'wav');
-      response.add(wav(n, seconds: path.startsWith('/short') ? 1 : (path.startsWith('/long') ? 20.0 - offset : 4)));
+      response.add(wav(n, seconds: path.startsWith('/short') ? 1 : (path.contains('long') ? 20.0 - offset : 4)));
     }
 
     await response.close();
@@ -817,9 +817,12 @@ void main() {
     setUp(() async => server = await TrackServer.start());
     tearDown(() => server.close());
 
-    /// `long<n>`, which starts later when asked.
-    TrackSource long(int n) =>
-        TrackSource.resolved(() => server.url('long$n'), addressFrom: (from) async => server.url('long$n', from: from));
+    /// `long<n>`, which starts later when asked; [slow], half a second late each time.
+    TrackSource long(int n, {bool slow = false}) {
+      final name = '${slow ? 'slow' : ''}long$n';
+
+      return TrackSource.resolved(() => server.url(name), addressFrom: (from) async => server.url(name, from: from));
+    }
 
     test('a seek loads it again from there, and the position counts from the track\'s start', () async {
       await engine.open([long(0), long(1)], index: 0, position: Duration.zero, play: true);
@@ -852,6 +855,21 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 500));
       expect(engine.playing, isTrue);
       expect(engine.position, lessThan(const Duration(seconds: 2)));
+    });
+
+    test('a jump to it, its stream starting later, loads it again from its start; a pause meanwhile holds', () async {
+      await engine.open([long(0, slow: true)], index: 0, position: const Duration(seconds: 12), play: true);
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+
+      final jumping = engine.jump(0);
+
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      await engine.pause();
+      await jumping;
+      await Future<void>.delayed(const Duration(milliseconds: 800));
+      expect(server.offsetsOf('slowlong0'), [0, 12, 0]);
+      expect(engine.playing, isFalse);
+      expect(engine.position, lessThan(const Duration(seconds: 1)));
     });
 
     test('repeating it, a stream that starts later starts over from the track\'s start', () async {

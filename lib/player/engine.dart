@@ -1060,9 +1060,14 @@ class MediaKitEngine implements Deck {
 
     // mpv ignores a jump to the track it is on. Once the queue has ended, media_kit's jump is the one
     // that works, since its play would go back to the first track. A stream that starts later, or can't seek, loads
-    // again from the start.
+    // again from the start, and plays once it has, unless paused meanwhile, which then holds.
+    final pauses = _pauses;
+
     await _seek(Duration.zero, play: true);
-    await _withAudio(_player.play);
+
+    if (pauses == _pauses) {
+      await _withAudio(_player.play);
+    }
   }
 
   /// mpv's warnings and errors, by their prefix and text, that say nothing wrong, every time what they tell of happens:
