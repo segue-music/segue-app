@@ -185,6 +185,12 @@ class _LoginPageState extends State<LoginPage> {
               deviceName: deviceName,
               client: widget.client,
             );
+
+      // Signed in otherwise meanwhile, the page gone: a TV, by a phone.
+      if (!mounted) {
+        return;
+      }
+
       final session = Session(
         server: server,
         credentials: api.credentials,
@@ -196,35 +202,44 @@ class _LoginPageState extends State<LoginPage> {
       try {
         await session.save();
       } on Exception catch (e) {
-        setState(() => _error = strings.couldNotSaveSignIn('$e'));
+        _fail(strings.couldNotSaveSignIn('$e'));
         return;
       }
 
-      widget.onSignedIn(session);
+      if (mounted) {
+        widget.onSignedIn(session);
+      }
     } on NotAMediaServer {
-      setState(() => _error = strings.notAMediaServer(server.host));
+      _fail(strings.notAMediaServer(server.host));
     } on NoApiKeys {
-      setState(() => _error = strings.serverTakesNoApiKeys);
+      _fail(strings.serverTakesNoApiKeys);
     } on ServerError catch (e) {
-      setState(() {
-        // A server that takes a key alone (LMS) refuses the password so: the key's field, rather than the password's.
-        if (!_withApiKey && e.wantsApiKey) {
-          _withApiKey = true;
-          _error = strings.serverWantsApiKey;
-        } else if (e.isAuth) {
-          _error = _withApiKey ? strings.wrongApiKey : strings.wrongCredentials;
-        } else {
-          _error = strings.serverRefused('$e');
-        }
-      });
+      // A server that takes a key alone (LMS) refuses the password so: the key's field, rather than the password's.
+      if (!_withApiKey && e.wantsApiKey) {
+        _fail(strings.serverWantsApiKey, withApiKey: true);
+      } else if (e.isAuth) {
+        _fail(_withApiKey ? strings.wrongApiKey : strings.wrongCredentials);
+      } else {
+        _fail(strings.serverRefused('$e'));
+      }
     } on Exception catch (e) {
-      setState(() => _error = strings.couldNotReachServer(server.host, '$e'));
+      _fail(strings.couldNotReachServer(server.host, '$e'));
     } finally {
       api?.close();
 
       if (mounted) {
         setState(() => _busy = false);
       }
+    }
+  }
+
+  /// The sign-in failed, as [error] says, unless the page has gone meanwhile; [withApiKey], the key's field shows.
+  void _fail(String error, {bool withApiKey = false}) {
+    if (mounted) {
+      setState(() {
+        _error = error;
+        _withApiKey |= withApiKey;
+      });
     }
   }
 

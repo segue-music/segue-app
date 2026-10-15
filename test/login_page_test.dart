@@ -416,6 +416,37 @@ void main() {
     expect(asked, isFalse);
   });
 
+  testWidgets('a sign-in that ends with the page gone, signed in otherwise meanwhile (a TV, by a phone), signs in no '
+      'more', (tester) async {
+    final answer = Completer<http.Response>();
+    var signedIn = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: const [Locale('pt')],
+        home: LoginPage(onSignedIn: (_) => signedIn++, client: MockClient((_) => answer.future)),
+      ),
+    );
+    await tester.enterText(find.widgetWithText(TextFormField, 'Servidor'), 'music.example');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Usuário'), 'alice');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Senha'), 'sesame');
+    await tester.tap(find.text('Entrar'));
+    await tester.pump();
+    await tester.pumpWidget(const SizedBox());
+    answer.complete(
+      http.Response(
+        jsonEncode({
+          'subsonic-response': {'status': 'ok'},
+        }),
+        200,
+        headers: {'content-type': 'application/json'},
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(signedIn, 0);
+  });
+
   test('a server typed without a scheme is https', () {
     expect(normalizeServer(' music.test:4533 ').toString(), 'https://music.test:4533');
     expect(normalizeServer('http://127.0.0.1:8480').toString(), 'http://127.0.0.1:8480');
