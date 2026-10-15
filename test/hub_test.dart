@@ -866,6 +866,45 @@ void main() {
     expect(messages.last, 'left $hubUrl');
   });
 
+  test(
+    'the log says once that the hub is out of reach, after a connection ends too, until it connects again',
+    () async {
+      final user = newUser();
+      final port = await freePort();
+      final (first, url) = await startHub(port: port);
+      final laptop = App(user, 'laptop', url: url);
+      final messages = <String>[];
+      final subscription = Logger.root.onRecord
+          .where((record) => record.loggerName == 'SegueClient')
+          .listen((record) => messages.add(record.message));
+
+      addTearDown(subscription.cancel);
+      addTearDown(first.kill);
+      unawaited(laptop.client.start());
+      addTearDown(laptop.client.close);
+      await until(() => laptop.client.status == HubStatus.connected, 'the laptop connected');
+      first.kill();
+      await first.exitCode;
+      // Tried again 1 s and 3 s after, failing both times.
+      await Future<void>.delayed(const Duration(milliseconds: 3500));
+
+      final (second, _) = await startHub(port: port);
+
+      addTearDown(second.kill);
+      await until(
+        () => laptop.client.status == HubStatus.connected,
+        'the laptop connected again',
+        timeout: const Duration(seconds: 10),
+      );
+      expect(messages, [
+        'connected to $url',
+        startsWith('disconnected from $url: ${CloseCode.goingAway}'),
+        'no connection to $url',
+        'connected to $url',
+      ]);
+    },
+  );
+
   test('a command that fails, on another device or on this one, is in the log of both', () async {
     final user = newUser();
     final said = <String>[];

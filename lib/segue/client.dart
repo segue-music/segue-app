@@ -93,6 +93,9 @@ class SegueClient extends ChangeNotifier {
   Future<void> start() async {
     _running = true;
     var backoff = const Duration(seconds: 1);
+    // Whether the log has said the hub is out of reach since the last connection: by the time it is tried again
+    // after one ends, backoff has gone up already.
+    var unreachableLogged = false;
 
     while (_running) {
       _setStatus(HubStatus.connecting);
@@ -101,6 +104,7 @@ class SegueClient extends ChangeNotifier {
         await connect();
         _log.info('connected to $url');
         backoff = const Duration(seconds: 1);
+        unreachableLogged = false;
         await closed;
 
         // This device leaving ([close]), or the hub closing the connection, with its code, or it ending with none: the
@@ -132,8 +136,9 @@ class SegueClient extends ChangeNotifier {
       } catch (e) {
         // A network error: retry below. Out of reach, the hub fails again and again, which the log says once, until it
         // connects again.
-        if (backoff == const Duration(seconds: 1)) {
+        if (!unreachableLogged) {
           _log.warning('no connection to $url', e);
+          unreachableLogged = true;
         }
       }
 
