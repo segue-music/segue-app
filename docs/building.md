@@ -131,7 +131,7 @@ number after the `+` is the commit count's, whatever it says) and `appVersion` i
 app gives the media server, the hub and the services it asks, which the release checks against it, commit, and
 
 ```sh
-git tag v0.2.0 && git push origin v0.2.0
+git tag v<version> && git push origin v<version>
 ```
 
 Run from the Actions tab ("Release", "Run workflow"), it only builds the packages, kept a day as the run's artifacts.
