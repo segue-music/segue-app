@@ -473,6 +473,35 @@ void main() {
     );
   });
 
+  test('when the hub restarts and the device it follows, playing, does not come back, its music stays here where it '
+      'had got to', () async {
+    final user = newUser();
+    final folder = await Directory.systemTemp.createTemp('segue');
+    final state = '${folder.path}/last.json';
+    final port = await freePort();
+    final (first, url) = await startHub(port: port, state: state);
+    final laptop = App(user, 'laptop', url: url);
+    final phone = await App(user, 'phone', url: url).start();
+
+    addTearDown(() => folder.delete(recursive: true));
+    addTearDown(first.kill);
+    unawaited(laptop.client.start());
+    addTearDown(laptop.client.close);
+    await until(() => laptop.client.status == HubStatus.connected, 'the laptop connected');
+    await phone.player.playQueue(songs, index: 1, position: const Duration(seconds: 30));
+    await until(() => laptop.connect.nowPlaying?.playing ?? false, 'the laptop to follow the phone, playing');
+    // No report meanwhile: the phone only reports a change.
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+    first.kill();
+    await first.exitCode;
+
+    final (second, _) = await startHub(port: port, state: state);
+
+    addTearDown(second.kill);
+    await until(() => laptop.player.queue.isNotEmpty, 'the music on the laptop', timeout: const Duration(seconds: 10));
+    expect(laptop.player.position.inMilliseconds, greaterThanOrEqualTo(30500));
+  });
+
   test('a play for a device out of reach fails, and its music comes here, for the next play to play it', () async {
     final user = newUser();
     final proxy = await proxyToHub();

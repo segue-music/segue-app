@@ -495,7 +495,8 @@ class ConnectController extends ChangeNotifier {
         Command.setQueue(
           queue: queue,
           index: state.index ?? 0,
-          positionMs: client!.positionMs(device.id) ?? state.positionMs,
+          // Where it had got to: gone from the hub's list (restarted), it has no position there.
+          positionMs: state.positionAt(client!.hubNow),
           play: false,
           repeat: state.repeat,
           shuffle: state.shuffle,
