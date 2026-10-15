@@ -314,7 +314,9 @@ class MediaControls extends BaseAudioHandler with SeekHandler {
     return Uri(scheme: 'content', host: _coverAuthority, path: '/${_coverName(coverId)}');
   }
 
-  /// The file of the cover whose id is [coverId], in the app's cache, downloaded there once; null where it can't be.
+  /// The file of the cover whose id is [coverId], in the app's cache, downloaded there once a session ([attach]): a
+  /// file from before may be of a cover the server has changed since, or of another server's of the same id. Null where
+  /// it can't be had.
   Future<File?> _coverFile(String coverId) => _covers[coverId] ??= _downloadCover(coverId);
 
   Future<File?> _downloadCover(String coverId) async {
@@ -324,27 +326,29 @@ class MediaControls extends BaseAudioHandler with SeekHandler {
       return null;
     }
 
+    File? file;
+
     try {
       final directory = Directory('${(await getTemporaryDirectory()).path}/$_coverDirectory');
-      final file = File('${directory.path}/${_coverName(coverId)}');
+      file = File('${directory.path}/${_coverName(coverId)}');
 
-      if (!await file.exists()) {
-        final bytes = await _downloads.run(() => api.coverArt(coverId, size: 512));
+      final bytes = await _downloads.run(() => api.coverArt(coverId, size: 512));
 
-        await directory.create(recursive: true);
+      await directory.create(recursive: true);
 
-        // Whole under another name, then under its own, so that the car never reads half of one (CoverProvider.kt).
-        final part = File('${file.path}.part');
+      // Whole under another name, then under its own, so that the car never reads half of one (CoverProvider.kt).
+      final part = File('${file.path}.part');
 
-        await part.writeAsBytes(bytes);
-        await part.rename(file.path);
-      }
+      await part.writeAsBytes(bytes);
+      await part.rename(file.path);
 
       return file;
     } on Object catch (e) {
-      _log.warning('cover for the media controls', e); // the controls just go without it
+      _log.warning('cover for the media controls', e);
       _covers.remove(coverId); // tried again next time
-      return null;
+
+      // The server out of reach, say: the one from before, where there is one, rather than none.
+      return file != null && await file.exists() ? file : null;
     }
   }
 

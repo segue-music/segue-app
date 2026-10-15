@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:audio_service/audio_service.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -82,6 +85,58 @@ void main() {
 
     controls.attach(null, null); // signing out
     expect(controls.mediaItem.value, isNull);
+  });
+
+  test('a cover goes to the system as the server has it now, not as it was downloaded before; out of reach, as it '
+      'was', () async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+
+    final temporary = Directory.systemTemp.createTempSync('segue-media-controls');
+    final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    const paths = MethodChannel('plugins.flutter.io/path_provider');
+    var reachable = true;
+
+    messenger.setMockMethodCallHandler(paths, (_) async => temporary.path);
+    addTearDown(() {
+      messenger.setMockMethodCallHandler(paths, null);
+      temporary.deleteSync(recursive: true);
+    });
+    File('${temporary.path}/segue-covers/al1.jpg')
+      ..createSync(recursive: true)
+      ..writeAsStringSync('the cover before');
+
+    final api = SubsonicApi(
+      Uri.parse('https://music.test'),
+      const SubsonicCredentials(username: 'a', token: 't', salt: 's'),
+      client: MockClient(
+        (_) async => reachable
+            ? http.Response('the cover now', 200, headers: {'content-type': 'image/jpeg'})
+            : throw http.ClientException('no route to host'),
+      ),
+    );
+    final player = PlayerController(FakeEngine(), api);
+    final controls = MediaControls();
+
+    Future<String?> coverShown() async {
+      for (var i = 0; i < 100 && controls.mediaItem.value?.artUri == null; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+      }
+
+      return File.fromUri(controls.mediaItem.value!.artUri!).readAsStringSync();
+    }
+
+    const song = Song(id: 's1', title: 'Dream On', coverArt: 'al1');
+
+    controls.attach(ConnectController(player: player), api);
+    await player.playQueue(const [song]);
+    expect(await coverShown(), 'the cover now');
+
+    reachable = false;
+    await player.stop();
+    controls.attach(ConnectController(player: player), api); // another session
+    await player.playQueue(const [song]);
+    expect(await coverShown(), 'the cover now', reason: 'the one downloaded before');
+    controls.attach(null, null);
   });
 
   test('a song on another device says which, in the app\'s language, and again as it changes', () {
