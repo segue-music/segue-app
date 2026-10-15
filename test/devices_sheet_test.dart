@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -8,6 +10,7 @@ import 'package:segue/l10n/app_localizations.dart';
 import 'package:segue/player/player.dart';
 import 'package:segue/segue/client.dart';
 import 'package:segue/segue/protocol.dart';
+import 'package:segue/server/models.dart';
 import 'package:segue/services.dart';
 import 'package:segue/session.dart';
 import 'package:segue/subsonic/api.dart';
@@ -31,9 +34,32 @@ Device player(String id, String name, {required bool online, StampedState? state
   state: state,
 );
 
+/// A hub whose answer to a transfer waits for [answer].
+class HeldHub extends SegueClient {
+  HeldHub()
+    : super(
+        url: Uri.parse('ws://unused'),
+        auth: const Auth.subsonic(username: 'a', token: 't', salt: 's'),
+        device: const DeviceInfo(id: 'me', name: 'me', client: 'test', api: Api.subsonic, roles: [], capabilities: []),
+      );
+
+  final answer = Completer<Result>();
+
+  @override
+  Future<Result> transfer(String? from, String to, {bool play = true}) => answer.future;
+}
+
 /// Opens the device picker with [devices] as the user's other devices, on a screen of [size] (the test's, by
-/// default), on a [television] or not.
-Future<void> openSheet(WidgetTester tester, List<Device> devices, {Size? size, bool television = false}) async {
+/// default), on a [television] or not, from a page over the home ([fromPage]), as the full-screen player is, or not.
+/// [hub] is the hub client, which the devices go to. The services it opens with.
+Future<Services> openSheet(
+  WidgetTester tester,
+  List<Device> devices, {
+  Size? size,
+  bool television = false,
+  bool fromPage = false,
+  SegueClient? hub,
+}) async {
   if (size != null) {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
@@ -46,11 +72,13 @@ Future<void> openSheet(WidgetTester tester, List<Device> devices, {Size? size, b
     credentials,
     client: MockClient((_) async => http.Response('', 404)),
   );
-  final client = SegueClient(
-    url: Uri.parse('ws://unused'),
-    auth: const Auth.subsonic(username: 'a', token: 't', salt: 's'),
-    device: const DeviceInfo(id: 'me', name: 'me', client: 'test', api: Api.subsonic, roles: [], capabilities: []),
-  );
+  final client =
+      hub ??
+      SegueClient(
+        url: Uri.parse('ws://unused'),
+        auth: const Auth.subsonic(username: 'a', token: 't', salt: 's'),
+        device: const DeviceInfo(id: 'me', name: 'me', client: 'test', api: Api.subsonic, roles: [], capabilities: []),
+      );
 
   for (final device in devices) {
     client.devices[device.id] = device;
@@ -77,13 +105,32 @@ Future<void> openSheet(WidgetTester tester, List<Device> devices, {Size? size, b
       ),
       home: Builder(
         builder: (context) => Scaffold(
-          body: TextButton(onPressed: () => showDevicesSheet(context), child: const Text('abrir')),
+          body: TextButton(
+            onPressed: fromPage
+                ? () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (context) => Scaffold(
+                        body: TextButton(onPressed: () => showDevicesSheet(context), child: const Text('abrir')),
+                      ),
+                    ),
+                  )
+                : () => showDevicesSheet(context),
+            child: Text(fromPage ? 'página' : 'abrir'),
+          ),
         ),
       ),
     ),
   );
+
+  if (fromPage) {
+    await tester.tap(find.text('página'));
+    await tester.pumpAndSettle();
+  }
+
   await tester.tap(find.text('abrir'));
   await tester.pumpAndSettle();
+
+  return services;
 }
 
 /// The icon beside "Este aparelho".
@@ -129,6 +176,24 @@ void main() {
     expect(inTile('Celular', find.text('test')), findsOneWidget, reason: 'with nothing, its app');
     expect(find.textContaining('Tocando'), findsNothing);
     expect(find.textContaining('Pausado'), findsNothing);
+  });
+
+  testWidgets('a device picked whose music goes there only after the picker was closed closes nothing more', (
+    tester,
+  ) async {
+    final hub = HeldHub();
+    final services = await openSheet(tester, [player('tv', 'Sala de estar', online: true)], fromPage: true, hub: hub);
+
+    await services.player.playQueue(const [Song(id: 's1', title: 'Dream On')]);
+    await tester.tap(find.text('Sala de estar'));
+    await tester.pump();
+    await tester.tapAt(const Offset(10, 10)); // its barrier
+    await tester.pumpAndSettle();
+    expect(find.text('Sala de estar'), findsNothing);
+
+    hub.answer.complete(const Result(ok: true));
+    await tester.pumpAndSettle();
+    expect(find.text('abrir'), findsOneWidget, reason: 'the page it opened from, still there');
   });
 
   testWidgets('this device shows as a computer on a computer', variant: TargetPlatformVariant.desktop(), (

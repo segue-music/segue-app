@@ -33,10 +33,14 @@ class _DevicesSheet extends StatelessWidget {
     Future<void> act(Future<Result> Function() action) async {
       final messenger = ScaffoldMessenger.of(context);
       final navigator = Navigator.of(context);
+      final sheet = ModalRoute.of(context);
       final result = await action();
 
       if (result.ok) {
-        navigator.pop();
+        // Unless it was closed meanwhile, the hub taking its time: the page under it stays.
+        if (sheet?.isCurrent ?? false) {
+          navigator.pop();
+        }
       } else {
         messenger.showSnackBar(SnackBar(content: Text(describeError(strings, result.error))));
       }
