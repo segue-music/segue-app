@@ -195,26 +195,32 @@ class _QueuePageState extends State<QueuePage> {
 
   /// Takes the track at [i] out of [tracks], of which the one at [index] is current.
   void _remove(ConnectController connect, List<QueueItem> tracks, int index, int i) {
-    // The track on top stays on top.
-    if (i < _top!) {
-      _top = _top! - 1;
+    final top = _top!;
+
+    // The track on top stays on top, the queue as it was too, where the device fails to take it out.
+    if (i < top) {
+      _top = top - 1;
     }
 
     _edit(
       _QueueChange(_ids(tracks), [...tracks]..removeAt(i), i < index ? index - 1 : index),
       () => connect.removeFromQueue(i),
+      undo: () => _top = top,
     );
   }
 
   /// Shows [change] until the queue has it, and has the device the app controls make it with [command]; the queue as it
-  /// was again, and why, where that fails.
-  Future<void> _edit(_QueueChange change, Future<Result> Function() command) async {
+  /// was again, and why, where that fails, and what [undo] does undone.
+  Future<void> _edit(_QueueChange change, Future<Result> Function() command, {VoidCallback? undo}) async {
     setState(() => _change = change);
 
     final result = await runCommand(context, command);
 
     if (!result.ok && mounted && identical(_change, change)) {
-      setState(() => _change = null);
+      setState(() {
+        _change = null;
+        undo?.call();
+      });
     }
   }
 

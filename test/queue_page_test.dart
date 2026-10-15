@@ -454,6 +454,27 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     });
 
+    testWidgets('a removal the device fails puts the queue back as it was, the current track on top', (tester) async {
+      await pumpBar(tester, client: clientWithTv(capabilities: CommandAction.values));
+      await openQueue(tester);
+      await tester.drag(inQueue(find.text('Walk This Way')), const Offset(0, 300)); // up to the track before it
+      await tester.pumpAndSettle();
+      await tester.tap(menuOf('Dream On'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Remover da fila'));
+      await tester.pumpAndSettle();
+      expect(find.text('Sem conexão com o hub.'), findsOneWidget);
+
+      bool movable(String title) => find
+          .ancestor(of: inQueue(find.text(title)), matching: find.byType(ReorderableDelayedDragStartListener))
+          .evaluate()
+          .isNotEmpty;
+
+      expect(movable('Walk This Way'), isTrue);
+      expect(movable('Dream On'), isFalse, reason: 'played already, above the current track as before');
+      await tester.pumpWidget(const SizedBox());
+    });
+
     testWidgets("a track's menu takes it out of the queue; the current one stays", (tester) async {
       final player = await pumpBar(tester);
 
