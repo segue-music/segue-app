@@ -7,11 +7,11 @@ iOS 16, `UIDevice.current.name` gives that name only to an app with Apple's
 `com.apple.developer.device-information.user-assigned-device-name` entitlement. The app already asks
 for it (`ios/Runner/AppDelegate.swift`); only the entitlement is missing.
 
-1. Request it at https://developer.apple.com/contact/request/user-assigned-device-name/. Connect
-   fits Apple's criteria: the name shows in the device picker, it identifies the user's own devices
-   in a feature across several of them, and it goes only to the user's own media server and hub.
-   The request needs screenshots of the picker listing devices by name (from a computer or an
-   Android phone).
+1. Requested on 2026-10-16, at https://developer.apple.com/contact/request/user-assigned-device-name/,
+   with links to screenshots of the device picker and to a demo video; the answer comes by e-mail.
+   Connect fits Apple's criteria: the name shows in the device picker, it identifies the user's own
+   devices in a feature across several of them, and it goes only to the user's own media server and
+   hub. Its weak point is that Connect needs the hub, where Apple asks for a feature most users have.
 2. Once Apple grants it: in the Apple Developer site, turn on "User Assigned Device Name" under the
    App ID's Additional Capabilities, make the App Store provisioning profile again and fetch it
    again in Codemagic.
