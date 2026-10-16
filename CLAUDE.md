@@ -243,8 +243,9 @@ Running two app instances on one machine as different devices:
   or another (its queue ended): the player bar goes, and the full-screen player and its lyrics close
   (`PlayingPageBuilder`, a moment after, showing the song meanwhile, as this device stops before the app goes on to the
   device the music moves to). Another device that had a song and has none any more gives the control back to this one,
-  until it plays another queue. It also follows whichever device starts playing, and
-  restores the last playback on first connect, paused, or playing for a play pressed before it came back
+  until it plays another queue. It also follows whichever device starts playing, and the music it showed where it
+  goes, as a transfer moves it, paused or not: to the device that holds the last playback, which the hub says again
+  each time another does. And it restores the last playback on first connect, paused, or playing for a play pressed before it came back
   (`playRestoredBy`: `MediaControls` holds a headphone's play that opened the app on Android). It links the player and the hub:
   `player.onReport → client.sendState` and `client.onCommand → player.obey`.
 - `lib/ui/` goes by subject, so that what changes together is together: `album/`, `artist/`, `genre/` and

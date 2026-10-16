@@ -791,6 +791,46 @@ void main() {
     expect(laptop.player.queue, isEmpty);
   });
 
+  test('music moved paused shows where it went on the device it left, whichever of the two moved it', () async {
+    final user = newUser();
+    final laptop = await App(user, 'laptop').start();
+    final phone = await App(user, 'phone').start();
+
+    await phone.player.playQueue(songs, index: 1, position: const Duration(seconds: 30));
+    await phone.player.pause();
+    await until(() => laptop.connect.nowPlaying?.playing == false, 'the laptop to show the phone paused');
+    expect(laptop.connect.nowPlaying?.device, 'phone');
+
+    // Sent from the phone: it shows the music on the laptop, as it picked it.
+    expect((await phone.connect.switchTo('laptop')).ok, isTrue);
+    await until(() => phone.connect.nowPlaying?.device == 'laptop', 'the phone to show the music on the laptop');
+
+    // Taken back from the phone: the laptop, which nothing started playing on, shows it there all the same.
+    expect((await phone.connect.switchTo(null)).ok, isTrue);
+    expect(phone.player.playing, isFalse);
+    expect(laptop.player.queue, isEmpty);
+    await until(() => laptop.connect.nowPlaying?.device == 'phone', 'the laptop to show the music on the phone');
+    expect(laptop.connect.nowPlaying?.playing, isFalse);
+    expect(laptop.connect.nowPlaying?.title, 'Other');
+  });
+
+  test('an app that shows music paused on another device follows it where a transfer takes it', () async {
+    final user = newUser();
+    final laptop = await App(user, 'laptop').start();
+    final phone = await App(user, 'phone').start();
+    final tablet = await App(user, 'tablet').start();
+
+    await phone.player.playQueue(songs, index: 1);
+    await phone.player.pause();
+    await until(() => tablet.connect.nowPlaying?.playing == false, 'the tablet to show the phone paused');
+    expect(tablet.connect.nowPlaying?.device, 'phone');
+
+    expect((await laptop.client.transfer('phone', 'laptop', play: false)).ok, isTrue);
+    await until(() => tablet.connect.nowPlaying?.device == 'laptop', 'the tablet to show the music on the laptop');
+    expect(tablet.connect.nowPlaying?.playing, isFalse);
+    expect(tablet.player.queue, isEmpty, reason: 'not the tablet\'s own player');
+  });
+
   test('a transfer that names no source moves the last playback from the device that plays it', () async {
     final user = newUser();
     final laptop = await App(user, 'laptop').start();

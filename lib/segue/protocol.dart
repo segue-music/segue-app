@@ -470,8 +470,8 @@ class LastPlayback {
     state: StampedState.fromJson(json['state'] as Map<String, dynamic>),
   );
 
-  /// The device that holds it (possibly this one): the one that played it, until it went offline.
-  /// Empty after that, until a device plays; [deviceName] still says where it played.
+  /// The device that holds it (possibly this one): the one that played it, or that a transfer moved it to, until it
+  /// went offline. Empty after that, until a device takes it over; [deviceName] still says where it was.
   final String deviceId;
   final String deviceName;
   final StampedState state;

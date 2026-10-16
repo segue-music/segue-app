@@ -84,8 +84,9 @@ class NowPlaying {
 }
 
 /// The Connect model: the app controls one device at a time, this one or another, and everything you
-/// press (play an album, pause, skip) goes to it. Picking another device moves the music there, and
-/// when any device starts playing, every app follows it.
+/// press (play an album, pause, skip) goes to it. Picking another device moves the music there; when
+/// any device starts playing, every app follows it, and every app that showed music follows it where
+/// a transfer takes it.
 class ConnectController extends ChangeNotifier {
   ConnectController({required this.player, SegueClient? client}) {
     player.addListener(_update);
@@ -121,6 +122,9 @@ class ConnectController extends ChangeNotifier {
 
   /// The other device the app controlled at the last update, where it had a song then; null, none.
   String? _activeWithSong;
+
+  /// Where the song the app showed at the last update was: [_here], another device's id, or null for none.
+  String? _shown;
 
   /// The other device the app controlled at the last update, as the hub listed it then: what the app keeps of it where
   /// the hub forgets it.
@@ -449,8 +453,9 @@ class ConnectController extends ChangeNotifier {
     }
 
     final active = activeDevice;
+    final offline = _active != null && !(active?.online ?? false);
 
-    if (_active != null && !(active?.online ?? false)) {
+    if (offline) {
       // Offline, or gone from the list without going offline first, as when the hub restarts and it doesn't come back:
       // then its music is what the app last saw of it.
       final left = active ?? (_seen?.id == _active ? _seen : null);
@@ -471,7 +476,19 @@ class ConnectController extends ChangeNotifier {
       _active = null;
     }
 
-    _activeWithSong = withSong ? _active : null;
+    final gone = _shown != null && nowPlaying == null;
+    final holder = client?.lastPlayback?.deviceId;
+
+    // The music the app showed went, from here or from the device it controlled, and another device holds the last
+    // playback: a transfer took it there, paused or not, whichever device asked for it (SPEC.md, section 7). The app
+    // follows it, as one that opens then would; but not back to the device whose music went, its queue over there, nor
+    // from one that went offline, whose music stays here ([_keepHere]).
+    if (gone && !offline && holder != _shown && (client?.devices[holder]?.online ?? false)) {
+      _active = holder;
+    }
+
+    _activeWithSong = activeDevice?.state?.current != null ? _active : null;
+    _shown = nowPlaying == null ? null : _active ?? _here;
     _seen = activeDevice;
     notifyListeners();
 

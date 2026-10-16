@@ -43,6 +43,8 @@ iPhone and in a car, with CarPlay's Now Playing screen, and the Windows build on
   again, until another queue plays there.
 - When another device starts playing, music left paused here goes, so that no device is listed paused with music that
   now plays elsewhere. Opened when nothing plays anywhere, the app picks up where the music was.
+- Music moved to another device, paused or playing, shows there in every app that showed it, whichever device moved
+  it.
 
 ### Signing in
 

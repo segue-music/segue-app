@@ -74,7 +74,8 @@ class SegueClient extends ChangeNotifier {
   /// How the last connection ended; says why when [status] is [HubStatus.rejected].
   HubClosed? lastClose;
 
-  /// The user's last playback, as of the last welcome.
+  /// The user's last playback, as of the last welcome, and the device that holds it since: the hub sends it again each
+  /// time another device holds it, or none does (SPEC.md, section 7).
   LastPlayback? lastPlayback;
 
   final WebSocketChannel Function(Uri url) _channelFactory;
@@ -286,6 +287,8 @@ class SegueClient extends ChangeNotifier {
         }
       case 'gone':
         devices.remove(msg['deviceId']);
+      case 'lastPlayback':
+        lastPlayback = LastPlayback.fromJson(msg['lastPlayback'] as Map<String, dynamic>);
       case 'command':
         unawaited(
           _obey(msg['id'] as String, Command.fromJson(msg['command'] as Map<String, dynamic>), msg['from'] as String),
