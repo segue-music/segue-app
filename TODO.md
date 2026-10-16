@@ -179,8 +179,8 @@ needs a TOTP secret that Spotify versions, and YouTube changes the JavaScript ch
 
 ## Asking Lidarr or SoulSync for what the library lacks
 
-SoulSync's own search, watchlist and wishlist are poor to use, and the app could do them where the user already is,
-sending them on: on an artist's page, a button that follows the artist (the watchlist), and in the discography the
+Following an artist or wanting an album now takes leaving for the service's own pages. The app could offer both where
+the user already is, sending them on: on an artist's page, a button that follows the artist (the watchlist), and in the discography the
 albums the library lacks (MusicBrainz's release groups, by the artist's MusicBrainz id, as in "New releases of the
 library's artists" above), each with a button that wants it (the wishlist); and a page of the requests, with the artists
 followed, the albums wanted and what is downloading. Searching for the files, their sources and their quality stay the
