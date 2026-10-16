@@ -50,6 +50,7 @@ class SegueClient extends ChangeNotifier {
     this.onConnected,
     WebSocketChannel Function(Uri url)? channelFactory,
     this.answerTimeout = const Duration(seconds: 25),
+    this.outOfReachAfter = const Duration(seconds: 5),
   }) : _channelFactory = channelFactory ?? WebSocketChannel.connect;
 
   /// How long a command or a transfer waits for the hub's answer. The hub answers a command within 10 s and a transfer
@@ -57,6 +58,11 @@ class SegueClient extends ChangeNotifier {
   /// away), which a proxy can keep open on this side: it is closed, and made again. The app sends no pings to notice it
   /// sooner, which would cost a phone battery for a case that is rare (SPEC.md, section 9).
   final Duration answerTimeout;
+
+  /// How long [devices] stay as they were after the connection ends, as [start] makes it again: time for the hub to
+  /// restart, or for an app back from the background to reconnect. Without it by then, the hub is out of reach, and so
+  /// is every other device: they go offline here, and the app plays on its own (SPEC.md, section 9).
+  final Duration outOfReachAfter;
 
   /// The hub's WebSocket URL; a new one is where the next connection goes.
   Uri url;
@@ -67,7 +73,7 @@ class SegueClient extends ChangeNotifier {
   /// Called after every (re)connection, e.g. to report the full state again.
   VoidCallback? onConnected;
 
-  /// The user's other devices, by id.
+  /// The user's other devices, by id: all offline once the hub has been out of reach for [outOfReachAfter].
   final devices = <String, Device>{};
   HubStatus status = HubStatus.offline;
 
@@ -86,6 +92,7 @@ class SegueClient extends ChangeNotifier {
   int _seq = 0;
   int _clockOffset = 0; // hub time minus local time
   bool _running = false;
+  Timer? _outOfReach;
 
   /// Hub time now, in epoch ms.
   int get hubNow => DateTime.now().millisecondsSinceEpoch + _clockOffset;
@@ -203,6 +210,11 @@ class SegueClient extends ChangeNotifier {
 
         if (welcomed.isCompleted) {
           _setStatus(HubStatus.offline);
+
+          // Not as this device leaves ([close]), nor for a single attempt, which no other follows.
+          if (_running) {
+            _outOfReach = Timer(outOfReachAfter, _listOffline);
+          }
         } else {
           welcomed.completeError(HubClosed(channel.closeCode, channel.closeReason));
         }
@@ -219,6 +231,8 @@ class SegueClient extends ChangeNotifier {
 
   Future<void> close() async {
     _running = false;
+    _outOfReach?.cancel();
+
     final channel = _channel;
 
     if (_open) {
@@ -266,6 +280,7 @@ class SegueClient extends ChangeNotifier {
   void _receive(Map<String, dynamic> msg) {
     switch (msg['type']) {
       case 'welcome':
+        _outOfReach?.cancel();
         _clockOffset = (msg['serverTime'] as num).toInt() - DateTime.now().millisecondsSinceEpoch;
         final last = msg['lastPlayback'] as Map<String, dynamic>?;
         lastPlayback = last == null ? null : LastPlayback.fromJson(last);
@@ -347,6 +362,14 @@ class SegueClient extends ChangeNotifier {
         return const Result(ok: false, error: 'closed');
       },
     );
+  }
+
+  /// The hub out of reach for [outOfReachAfter]: so is every other device, which can't be shown nor commanded. Listed
+  /// offline, as the hub lists one that closed, they leave the app controlling none of them, with the music of the one
+  /// it did kept here (`ConnectController`). Their last states stay; the next welcome lists them anew.
+  void _listOffline() {
+    devices.updateAll((_, device) => Device(info: device.info, online: false, state: device.state));
+    notifyListeners();
   }
 
   void _send(Map<String, Object?> msg) {

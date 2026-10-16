@@ -498,8 +498,8 @@ class ConnectController extends ChangeNotifier {
     }
   }
 
-  /// The device the app controlled went offline (closed, say), or the hub forgot it: its music stays in the bar, here,
-  /// paused where it got to, instead of vanishing with it.
+  /// The device the app controlled went offline (closed, say, or out of reach with the hub), or the hub forgot it: its
+  /// music stays in the bar, here, paused where it got to, instead of vanishing with it.
   Future<void> _keepHere(Device device) async {
     final state = device.state;
     final queue = state?.queue;

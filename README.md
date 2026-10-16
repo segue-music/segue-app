@@ -39,8 +39,8 @@ iPhone and in a car, with CarPlay's Now Playing screen, and the Windows build on
   (trying again), refused (this device connected again elsewhere, say), or no hub found, the app playing here alone;
   and, with the media server out of reach, that the app shows only what was downloaded.
 - Picking this device again moves the music here, at the same point, in the same modes. If the device it controls
-  closes, its music stays here, paused. If its queue ends there, the player goes, and the app controls this device
-  again, until another queue plays there.
+  closes, or the hub goes out of reach for a few seconds, its music stays here, paused, and the app plays on its own.
+  If its queue ends there, the player goes, and the app controls this device again, until another queue plays there.
 - When another device starts playing, music left paused here goes, so that no device is listed paused with music that
   now plays elsewhere. Opened when nothing plays anywhere, the app picks up where the music was.
 - Music moved to another device, paused or playing, shows there in every app that showed it, whichever device moved

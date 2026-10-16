@@ -45,7 +45,7 @@ int users = 0;
 
 /// One app: a fake engine, the player, the hub client and the Connect controller.
 class App {
-  App(String user, this.name, {Uri? url})
+  App(String user, this.name, {Uri? url, Duration outOfReachAfter = const Duration(seconds: 5)})
     : engine = FakeEngine(),
       client = SegueClient(
         url: url ?? hubUrl,
@@ -58,6 +58,7 @@ class App {
           roles: Role.values,
           capabilities: CommandAction.values,
         ),
+        outOfReachAfter: outOfReachAfter,
       ) {
     player = PlayerController(
       engine,
@@ -500,6 +501,34 @@ void main() {
     addTearDown(second.kill);
     await until(() => laptop.player.queue.isNotEmpty, 'the music on the laptop', timeout: const Duration(seconds: 10));
     expect(laptop.player.position.inMilliseconds, greaterThanOrEqualTo(30500));
+  });
+
+  test('with the hub out of reach, the app plays on its own, the music it followed kept here where it had got '
+      'to', () async {
+    final user = newUser();
+    final (own, url) = await startHub();
+    final laptop = await App(user, 'laptop', url: url).start();
+    final phone = App(user, 'phone', url: url, outOfReachAfter: const Duration(milliseconds: 500));
+
+    addTearDown(own.kill);
+    unawaited(phone.client.start());
+    addTearDown(phone.client.close);
+    await until(() => phone.client.status == HubStatus.connected, 'the phone connected');
+    await laptop.player.playQueue(songs, index: 1, position: const Duration(seconds: 30));
+    await until(() => phone.connect.nowPlaying?.device == 'laptop', 'the phone to follow the laptop');
+
+    // The hub stops, and doesn't come back: the laptop plays on, out of the phone's reach.
+    own.kill();
+    await own.exitCode;
+    await until(() => phone.player.queue.isNotEmpty, 'the music on the phone', timeout: const Duration(seconds: 5));
+    expect(phone.connect.activeId, isNull);
+    expect(phone.connect.devices, isEmpty);
+    expect(phone.connect.nowPlaying?.title, 'Other');
+    expect(phone.player.playing, isFalse);
+    expect(phone.player.position.inMilliseconds, greaterThanOrEqualTo(30000));
+    expect((await phone.connect.playSongs(songs, 0)).ok, isTrue);
+    expect(phone.connect.nowPlaying?.title, 'Dream On');
+    expect(phone.player.playing, isTrue);
   });
 
   test('a play for a device out of reach fails, and its music comes here, for the next play to play it', () async {

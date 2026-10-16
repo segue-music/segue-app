@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -81,4 +82,81 @@ void main() {
       expect(warnings, isEmpty);
     },
   );
+
+  test('the other devices stay as they were while the connection is made again, and go offline once the hub is out of '
+      'reach', () async {
+    final hub = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    final sockets = <WebSocket>[];
+    const laptop = DeviceInfo(
+      id: 'laptop',
+      name: 'Laptop',
+      client: 'test',
+      api: Api.subsonic,
+      roles: [Role.player],
+      capabilities: [],
+    );
+
+    // A hub that welcomes each hello, listing the laptop online.
+    hub.listen((request) async {
+      final socket = await WebSocketTransformer.upgrade(request);
+
+      sockets.add(socket);
+      socket.listen(
+        (_) => socket.add(
+          jsonEncode({
+            'type': 'welcome',
+            'serverTime': DateTime.now().millisecondsSinceEpoch,
+            'devices': [
+              {...laptop.toJson(), 'online': true},
+            ],
+          }),
+        ),
+      );
+    });
+    addTearDown(() => hub.close(force: true));
+
+    final client = SegueClient(
+      url: Uri.parse('ws://127.0.0.1:${hub.port}/connect/v1/ws'),
+      auth: const Auth.subsonic(username: 'alice', token: '-', salt: '-'),
+      device: const DeviceInfo(
+        id: 'phone',
+        name: 'Phone',
+        client: 'test',
+        api: Api.subsonic,
+        roles: [],
+        capabilities: [],
+      ),
+      // Over the second [SegueClient.start] waits before it connects again.
+      outOfReachAfter: const Duration(seconds: 2),
+    );
+    var listedOffline = false;
+
+    client.addListener(() => listedOffline |= client.devices['laptop']?.online == false);
+    unawaited(client.start());
+    addTearDown(client.close);
+    await until(() => client.status == HubStatus.connected);
+
+    // The hub restarting.
+    await sockets.single.close(CloseCode.goingAway);
+    await until(() => sockets.length == 2 && client.status == HubStatus.connected);
+    expect(listedOffline, isFalse);
+
+    // The hub gone.
+    await hub.close(force: true);
+    await sockets.last.close(CloseCode.goingAway);
+    await until(() => client.devices['laptop']?.online == false);
+    expect(client.devices['laptop']?.info.name, 'Laptop');
+  });
+}
+
+Future<void> until(bool Function() condition) async {
+  final deadline = DateTime.now().add(const Duration(seconds: 5));
+
+  while (!condition()) {
+    if (DateTime.now().isAfter(deadline)) {
+      fail('timed out');
+    }
+
+    await Future<void>.delayed(const Duration(milliseconds: 5));
+  }
 }

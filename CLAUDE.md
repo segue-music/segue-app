@@ -438,7 +438,8 @@ Running two app instances on one machine as different devices:
   have, or else those in their places. Where it was recorded, mixed and mastered, and who made its
   cover and booklet, only MusicBrainz says.
 - `lib/segue/`: protocol types, the client (reconnects with backoff; stops on final close codes
-  4001/4002/4003) and hub discovery (`/connect/v1/info` next to the server).
+  4001/4002/4003; lists the other devices offline once the hub has been out of reach for `outOfReachAfter`, so that
+  the app plays on its own) and hub discovery (`/connect/v1/info` next to the server).
 - `MediaControls` (`lib/player/media_controls.dart`) mirrors `connect.nowPlaying` to the system's
   media controls: Linux (MPRIS), iOS (Now Playing, also CarPlay's) and Android (its media session, whose
   foreground service keeps the app running in the background while the music plays) for now. Android draws the
