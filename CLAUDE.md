@@ -642,7 +642,7 @@ Running two app instances on one machine as different devices:
   `tool/flutter.sh gen-l10n`. Code, comments, `README.md` and `docs/building.md` are in English. Error codes from the
   hub and players become messages in `describeError` (`lib/ui/widgets/errors.dart`), so a new error string
   needs an entry there.
-- Commit messages are in Portuguese: a short title and a body explaining the behaviour and why.
+- Commit messages are in Portuguese and are only a short title, with no body.
 - `README.md` lists what the app does and what it doesn't do yet. Update it when a feature lands,
   and segue's `README.md` ("Next steps") when the feature was listed there.
 - Dart layout: every `if`, `for` and `while` body is in braces, even a single `return` (the lints
